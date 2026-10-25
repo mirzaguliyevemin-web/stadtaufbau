@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 34;
+const APP_VERSION = 35;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -132,9 +132,9 @@ const HAPPINESS = {
 // Berufe. Gebäude mit `jobs` brauchen Personal – ohne volle Besetzung arbeiten sie anteilig langsamer.
 // Einwohner werden automatisch verteilt (Farmen zuerst, soweit für die Ernährung nötig). Gelehrte gibt es nur mit Bildung.
 const JOBS = {
-  worker:  { name: 'Arbeiter', one: 'Arbeiter', icon: '👷' },
-  trader:  { name: 'Händler',  one: 'Händler',  icon: '🧑‍💼' },
-  scholar: { name: 'Gelehrte', one: 'Gelehrter', icon: '🧑‍🎓' },
+  worker:  { name: 'Arbeiter', one: 'Arbeiter', dat: 'Arbeitern', icon: '👷' },
+  trader:  { name: 'Händler',  one: 'Händler',  dat: 'Händlern',  icon: '🧑‍💼' },
+  scholar: { name: 'Gelehrte', one: 'Gelehrter', dat: 'Gelehrten', icon: '🧑‍🎓' },
 };
 
 // Steuerstufen: Geld je Einwohner alle CONFIG.taxInterval Sekunden und Wirkung auf die Zufriedenheit
@@ -700,7 +700,8 @@ const stats = {
   activeWeight: {},              // dasselbe, gewichtet mit der Ausbaustufe
   entrances: new Map(),          // Straßenfeld -> Richtungen zu Gebäuden, deren Eingang dort liegt (Bits 1↑ 2→ 4↓ 8←)
   jobs: { demand: {}, assigned: {}, scholarCap: 0 },   // Stellen und Besetzung je Beruf
-  staff: {},                     // Besetzungsgrad 0–1 je Gebäudeart
+  staff: {},                     // Besetzungsgrad 0–1 je Gebäudeart (Durchschnitt, für Übersichten)
+  cellStaff: new Map(),          // Feldindex -> Zahl der Beschäftigten in genau diesem Gebäude
   unemployed: 0,
   niceHouses: 0,
 };
@@ -1131,7 +1132,7 @@ function placeBuilding(x, y, type) {
   emit('build', { x, y, type });
   recalcStats();
   if (def.needsRoad && !hasRoadAccess(x, y)) showToast('⚠️ Braucht eine Straße direkt daneben');
-  else if (def.jobs && staffOf(type) < 1) {
+  else if (def.jobs && staffOfCell(y * N + x) < 1) {
     const job = JOBS[jobOf(type)];
     showToast(job === JOBS.scholar && stats.jobs.assigned.scholar >= stats.jobs.scholarCap
       ? `${job.icon} Zu wenige Gelehrte – mehr Bildung (Schulen) bringt mehr`
@@ -1171,9 +1172,9 @@ function productivity() {
 
 // Ertrag eines Gebäudes pro Intervall (mit Nachkommastellen). Forschung, Zufriedenheit und
 // Ereignisse (z. B. Dürre) wirken als Faktor – später auch Jahreszeiten.
-function buildingOutput(type) {
+function buildingOutput(type, staff = staffOf(type)) {
   const def = BUILDINGS[type];
-  const factor = (1 + productionBonus(type)) * productivity() * legacyFactor() * staffOf(type) * (season().production?.[type] ?? 1);
+  const factor = (1 + productionBonus(type)) * productivity() * legacyFactor() * staff * (season().production?.[type] ?? 1);
   const out = {};
   for (const [id, n] of Object.entries(def.produces || {})) out[id] = (out[id] || 0) + n;
   if (def.perPopulation) {
@@ -1285,7 +1286,7 @@ function updateProduction(dt) {
     cell.timer += dt;
     while (cell.timer >= def.interval) {
       const lf = levelFactor(cell);
-      const raw = buildingOutput(cell.type);
+      const raw = buildingOutput(cell.type, staffOfCell(i));
       for (const id in raw) raw[id] *= lf;
       // Verarbeitung: ohne Rohstoff oder bei vollem Lager pausieren (Zeit läuft nicht weiter)
       if (def.consumes) {
@@ -1328,6 +1329,20 @@ function staffOf(type) {
   return BUILDINGS[type].jobs ? (stats.staff[type] ?? 0) : 1;
 }
 
+// Stellen eines Gebäudes (mit Ausbaustufe)
+function jobSlots(cell) {
+  const jobs = BUILDINGS[cell.type].jobs;
+  return jobs ? Math.round(Object.values(jobs)[0] * levelFactor(cell)) : 0;
+}
+
+// Besetzungsgrad genau dieses Gebäudes (1 = voll besetzt oder braucht kein Personal)
+function staffOfCell(i) {
+  const cell = state.grid[i];
+  if (!cell || !BUILDINGS[cell.type].jobs) return 1;
+  const slots = jobSlots(cell);
+  return slots ? (stats.cellStaff.get(i) || 0) / slots : 1;
+}
+
 function jobOf(type) {
   const jobs = BUILDINGS[type].jobs;
   return jobs ? Object.keys(jobs)[0] : null;
@@ -1338,12 +1353,12 @@ function computeJobs(activeCells) {
   const demand = {};
   const typeDemand = {};
   for (const job in JOBS) demand[job] = 0;
-  for (const cell of activeCells) {
-    for (const [job, n] of Object.entries(BUILDINGS[cell.type].jobs || {})) {
-      const jobs = Math.round(n * levelFactor(cell));
-      demand[job] += jobs;
-      typeDemand[cell.type] = (typeDemand[cell.type] || 0) + jobs;
-    }
+  for (const [, cell] of activeCells) {
+    const job = jobOf(cell.type);
+    if (!job) continue;
+    const jobs = jobSlots(cell);
+    demand[job] += jobs;
+    typeDemand[cell.type] = (typeDemand[cell.type] || 0) + jobs;
   }
   const pop = state.population;
   const scholarCap = Math.floor(CONFIG.baseScholars + pop * CONFIG.scholarShare * (stats.coverage.education || 0));
@@ -1369,15 +1384,37 @@ function computeJobs(activeCells) {
   const foodPerWorker = farm.produces.food / farm.interval * (1 + productionBonus('farm')) * productivity() / farm.jobs.worker;
   const foodWorkers = Math.ceil(pop * CONFIG.foodPerCitizen * 1.1 / foodPerWorker);
   const farmFirst = Math.min(farmDemand, foodWorkers, assigned.worker);
-  const restDemand = demand.worker - farmFirst;
-  const share = restDemand ? (assigned.worker - farmFirst) / restDemand : 1;
-  const staff = {};
-  for (const type in typeDemand) {
-    const job = jobOf(type);
-    if (type === 'farm') staff[type] = (farmFirst + (farmDemand - farmFirst) * share) / farmDemand;
-    else if (job === 'worker') staff[type] = share;
-    else staff[type] = demand[job] ? assigned[job] / demand[job] : 1;
+  // Jedem Gebäude Leute zuteilen: der Reihe nach voll besetzen (Farmen bis zum Nahrungsbedarf zuerst).
+  // So sieht man genau, welches Gebäude Personal hat und welches nicht.
+  const cellStaff = new Map();
+  const typeStaffed = {};
+  const fill = (list, pool) => {
+    for (const [i, cell] of list) {
+      if (pool <= 0) break;
+      const free = jobSlots(cell) - (cellStaff.get(i) || 0);
+      const n = Math.min(free, pool);
+      if (n <= 0) continue;
+      cellStaff.set(i, (cellStaff.get(i) || 0) + n);
+      typeStaffed[cell.type] = (typeStaffed[cell.type] || 0) + n;
+      pool -= n;
+    }
+    return pool;
+  };
+  for (const job in JOBS) {
+    const list = activeCells.filter(([, cell]) => jobOf(cell.type) === job);
+    let pool = assigned[job];
+    if (job === 'worker') {
+      const farms = list.filter(([, cell]) => cell.type === 'farm');
+      pool -= farmFirst - fill(farms, farmFirst);
+      pool = fill(list.filter(([, cell]) => cell.type !== 'farm'), pool);
+      fill(farms, pool);
+    } else {
+      fill(list, pool);
+    }
   }
+  const staff = {};
+  for (const type in typeDemand) staff[type] = (typeStaffed[type] || 0) / typeDemand[type];
+  stats.cellStaff = cellStaff;
   stats.staff = staff;
   stats.jobs = { demand, assigned, scholarCap, ratio };
   stats.unemployed = pop - Object.values(assigned).reduce((a, b) => a + b, 0);
@@ -1420,12 +1457,12 @@ function recalcStats() {
     const x = i % N, y = Math.floor(i / N);
     if (!isActive(x, y)) return;
     const def = BUILDINGS[cell.type];
-    if (def.service) providers.push({ x, y, w: cell.w || 1, h: cell.h || 1, type: cell.type, need: def.service.need, radius: def.service.radius + levelOf(cell) - 1 });
+    if (def.service) providers.push({ i, x, y, w: cell.w || 1, h: cell.h || 1, type: cell.type, need: def.service.need, radius: def.service.radius + levelOf(cell) - 1 });
     if (def.population) houses.push({ i, x, y, cap: houseCapacity(x, y) });
     if (def.storage) storage += def.storage * levelOf(cell);
     if (def.landmark) landmarks += def.landmark;
     activeCount[cell.type] = (activeCount[cell.type] || 0) + 1;
-    activeTypes.push(cell);
+    activeTypes.push([i, cell]);
     activeWeight[cell.type] = (activeWeight[cell.type] || 0) + levelFactor(cell);
   });
   stats.activeCount = activeCount;
@@ -1445,7 +1482,7 @@ function recalcStats() {
     // Versorgungsgrad = bester Anbieter in Reichweite, gewichtet mit dessen Besetzung
     const levels = new Map();
     for (const p of providers) {
-      if (rectGap(p.x, p.y, p.w, p.h, h.x, h.y, 1, 1) <= p.radius) levels.set(p.need, Math.max(levels.get(p.need) || 0, staffOf(p.type)));
+      if (rectGap(p.x, p.y, p.w, p.h, h.x, h.y, 1, 1) <= p.radius) levels.set(p.need, Math.max(levels.get(p.need) || 0, staffOfCell(p.i)));
     }
     stats.houseNeeds.set(h.i, levels);
     for (const [need, level] of levels) covered[need] += h.cap * level;
@@ -1686,7 +1723,7 @@ function fireProtected(x, y) {
   const tx = a >= 0 ? a % N : x, ty = a >= 0 ? Math.floor(a / N) : y;
   return state.grid.some((cell, i) => {
     const r = cell && BUILDINGS[cell.type].fireRadius && BUILDINGS[cell.type].fireRadius + levelOf(cell) - 1;
-    return r && staffOf(cell.type) > 0 && isActive(i % N, Math.floor(i / N)) &&
+    return r && staffOfCell(i) > 0 && isActive(i % N, Math.floor(i / N)) &&
       rectGap(i % N, Math.floor(i / N), cell.w || 1, cell.h || 1, tx, ty, tw, th) <= r;
   });
 }
@@ -1813,9 +1850,9 @@ function wallBonus() {
 }
 
 // Stärke eines Wachpostens (Wachhaus, Wachturm): Grundwert × Stufe × Besetzung
-function postStrength(cell) {
+function postStrength(cell, i) {
   const def = BUILDINGS[cell.type];
-  return def.defense ? def.defense.strength * levelFactor(cell) * staffOf(cell.type) : 0;
+  return def.defense ? def.defense.strength * levelFactor(cell) * staffOfCell(i) : 0;
 }
 
 function postRadius(cell) {
@@ -1827,7 +1864,7 @@ function defenseAt(x, y, w = 1, h = 1) {
   let d = wallBonus();
   state.grid.forEach((cell, i) => {
     if (!cell || !BUILDINGS[cell.type].defense || !isActive(i % N, Math.floor(i / N))) return;
-    if (rectGap(i % N, Math.floor(i / N), cell.w || 1, cell.h || 1, x, y, w, h) <= postRadius(cell)) d += postStrength(cell);
+    if (rectGap(i % N, Math.floor(i / N), cell.w || 1, cell.h || 1, x, y, w, h) <= postRadius(cell)) d += postStrength(cell, i);
   });
   return Math.round(d * (hasFlag('militia') ? 1.5 : 1));
 }
@@ -1836,7 +1873,7 @@ function defenseAt(x, y, w = 1, h = 1) {
 function cityDefense() {
   let d = wallBonus();
   state.grid.forEach((cell, i) => {
-    if (cell && BUILDINGS[cell.type].defense && isActive(i % N, Math.floor(i / N))) d += postStrength(cell);
+    if (cell && BUILDINGS[cell.type].defense && isActive(i % N, Math.floor(i / N))) d += postStrength(cell, i);
   });
   return Math.round(d * (hasFlag('militia') ? 1.5 : 1));
 }
@@ -1975,7 +2012,7 @@ function startRaid(camp) {
     if (!post || !BUILDINGS[post.type].defense || !isActive(i % N, Math.floor(i / N))) return;
     const [pw, ph] = sizeOf(post);
     if (rectGap(i % N, Math.floor(i / N), pw, ph, target % N, Math.floor(target / N), w, h) > postRadius(post)) return;
-    for (let n = 0; n < Math.max(1, Math.round(postStrength(post) / 10)); n++) {
+    for (let n = 0; n < Math.max(1, Math.round(postStrength(post, i) / 10)); n++) {
       raid.defenders.push({ x: i % N + pw / 2 + randomBetween(-0.3, 0.3), y: Math.floor(i / N) + ph / 2 + randomBetween(-0.3, 0.3) });
     }
   });
@@ -2137,7 +2174,7 @@ function updateCarts(dt) {
   state.grid.forEach((cell, i) => {
     if (!cell || cell.type !== 'market' || !isActive(i % N, Math.floor(i / N))) return;
     if (cell.cartIn === undefined) cell.cartIn = randomBetween(5, CONFIG.cartSeconds);
-    cell.cartIn -= dt * levelFactor(cell) * staffOf('market');
+    cell.cartIn -= dt * levelFactor(cell) * staffOfCell(i);
     if (cell.cartIn > 0) return;
     cell.cartIn = CONFIG.cartSeconds;
     if (tradeBlocked()) return;   // Banditen machen die Wege unsicher
@@ -2340,7 +2377,7 @@ function applyOfflineProgress(savedAt) {
     const def = cell && BUILDINGS[cell.type];
     if (!def || !def.interval || !isActive(i % N, Math.floor(i / N))) return;
     if (def.consumes) { processors.push(cell); return; }
-    for (const [id, n] of Object.entries(buildingOutput(cell.type))) rates[id] = (rates[id] || 0) + n * levelFactor(cell) / def.interval;
+    for (const [id, n] of Object.entries(buildingOutput(cell.type, staffOfCell(i)))) rates[id] = (rates[id] || 0) + n * levelFactor(cell) / def.interval;
   });
   rates.money = (rates.money || 0) + state.population * TAXES[state.taxLevel].perCitizen / CONFIG.taxInterval;
   rates.food = (rates.food || 0) - state.population * CONFIG.foodPerCitizen;
@@ -2864,7 +2901,7 @@ function render(dt) {
     const mx = (x + w - 0.2) * T, my = (y + 0.22) * T;      // Ecke oben rechts für Hinweise
     if (cell.fire) {
       drawFire(x, y, cell.fire, w, h);
-    } else if (active && BUILDINGS[cell.type].jobs && staffOf(cell.type) < 0.995) {
+    } else if (active && BUILDINGS[cell.type].jobs && staffOfCell(y * N + x) < 0.995) {
       ctx.font = `${T * 0.28}px ${EMOJI_FONT}`;
       ctx.fillText('👷', mx, my);
     } else if (active && cell.waiting) {
@@ -2878,6 +2915,8 @@ function render(dt) {
       ctx.fillText('⚠️', mx, my);
     }
   });
+
+  drawWorkers(vis);
 
   // Ausbaustufe als Sterne unten am Gebäude
   ctx.font = `bold ${T * 0.22}px system-ui, sans-serif`;
@@ -3292,6 +3331,35 @@ function updateWalkers(dt) {
     w.p = 0;
   }
   walkers = walkers.filter(w => !w.dead && roadAt(w.fx, w.fy));
+}
+
+// Beschäftigte laufen als kleine Figuren im Gebäude umher (Farbe je Beruf)
+const JOB_COLORS = { worker: '#f4a261', trader: '#4dabf7', scholar: '#b197fc' };
+
+function drawWorkers(vis) {
+  if (view.zoom < 0.45) return;   // weit herausgezoomt nur störend
+  const t = performance.now() / 1000;
+  forEachVisible(vis, (cell, x, y) => {
+    const job = jobOf(cell.type);
+    if (!job || cell.fire) return;
+    const count = Math.min(stats.cellStaff.get(y * N + x) || 0, 10);
+    const [w, h] = sizeOf(cell);
+    for (let n = 0; n < count; n++) {
+      // eigene, ruhige Bahn je Figur innerhalb des Gebäudes
+      const seed = (x * 13 + y * 7 + n * 31) % 97;
+      const a = t * (0.4 + (seed % 5) * 0.08) + seed;
+      const px = x + w / 2 + Math.cos(a) * (w / 2 - 0.25) * (0.5 + (seed % 3) * 0.2);
+      const py = y + h / 2 + 0.15 + Math.sin(a * 1.3) * (h / 2 - 0.3) * (0.4 + (seed % 4) * 0.12);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.arc(px * T, (py + 0.04) * T, T * 0.095, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = JOB_COLORS[job];
+      ctx.beginPath();
+      ctx.arc(px * T, py * T, T * 0.085, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
 }
 
 function drawWalkers() {
@@ -4687,13 +4755,14 @@ function renderTileInfo() {
   }
   if (def.jobs && active) {
     const job = JOBS[jobOf(cell.type)];
-    const pct = Math.round(staffOf(cell.type) * 100);
-    lines.push(`Personal: ${Math.round(def.jobs[jobOf(cell.type)] * levelFactor(cell))} ${job.icon} ${job.name} – besetzt ${pct} %` +
-      (pct < 100 ? ' (arbeitet langsamer)' : ''));
+    const pct = Math.round(staffOfCell(infoTile.y * N + infoTile.x) * 100);
+    const have = stats.cellStaff.get(infoTile.y * N + infoTile.x) || 0;
+    lines.push(`Personal: ${job.icon} ${have} von ${jobSlots(cell)} ${job.dat}` +
+      (pct < 100 ? ` – arbeitet mit ${pct} %` : ' – voll besetzt'));
   }
   if (def.interval) {
     const lf = levelFactor(cell);
-    const out = buildingOutput(cell.type);
+    const out = buildingOutput(cell.type, staffOfCell(infoTile.y * N + infoTile.x));
     for (const id in out) out[id] = Math.round(out[id] * lf * 10) / 10;
     const need = {};
     for (const [id, n] of Object.entries(def.consumes || {})) need[id] = Math.round(n * lf);

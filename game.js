@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 41;
+const APP_VERSION = 42;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -57,7 +57,6 @@ const CONFIG = {
   offlineMaxHours: 3,     // Offline-Einnahmen höchstens für so viele Stunden
   offlineEfficiency: 0.25, // offline arbeitet die Stadt mit einem Viertel der Leistung
   costGrowth: 0.2,        // jedes weitere Gebäude derselben Art kostet 20 % mehr (außer fixedCost)
-  breadPerCitizen: 0.005, // Brot pro Einwohner und Sekunde (nur solange Brot da ist)
   baseScholars: 2,        // so viele Gelehrte gibt es auch ohne Bildung
   scholarShare: 0.3,      // dazu dieser Anteil der Einwohner × Bildungsversorgung
   unemploymentTolerance: 0.25, // bis zu diesem Anteil Arbeitslose stört es niemanden
@@ -86,9 +85,9 @@ const CONFIG = {
 //   ground: Bodenfarbe  | happiness: Bonus/Abzug für die ganze Stadt
 const SEASONS = [
   { id: 'spring', name: 'Frühling', icon: '🌸', ground: '#74c69d', production: { farm: 1 },    happiness: 3 },
-  { id: 'summer', name: 'Sommer',   icon: '☀️', ground: '#95c97a', production: { farm: 1.25 } },
-  { id: 'autumn', name: 'Herbst',   icon: '🍂', ground: '#c2b46a', production: { farm: 1.5 } },
-  { id: 'winter', name: 'Winter',   icon: '❄️', ground: '#e4edf1', production: { farm: 0.3, fishery: 0.5 },  heating: true },
+  { id: 'summer', name: 'Sommer',   icon: '☀️', ground: '#95c97a', production: { farm: 1.2, sheepfarm: 1.2 } },
+  { id: 'autumn', name: 'Herbst',   icon: '🍂', ground: '#c2b46a', production: { farm: 1.35 } },
+  { id: 'winter', name: 'Winter',   icon: '❄️', ground: '#e4edf1', production: { farm: 0.5, fishery: 0.5, sheepfarm: 0.7 },  heating: true },
 ];
 
 // Gelände. blocks: darauf kann nicht gebaut werden  | clearYield: Ertrag, wenn das Feld beim Bauen gerodet wird
@@ -110,6 +109,7 @@ const TERRAIN_BONUS = {
   quarry:  { terrain: 'rock',   radius: 2, perTile: 0.06, max: 0.6, label: 'Bergnähe' },
   farm:    { terrain: 'water',  radius: 2, flat: 0.25, label: 'Bewässerung' },
   fishery: { terrain: 'water',  radius: 2, perTile: 0.03, max: 0.45, label: 'Großes Gewässer' },
+  mine:    { terrain: 'rock',   radius: 2, perTile: 0.04, max: 0.4, label: 'Großer Berg' },
 };
 
 // Ressourcen. stored: unterliegt der Lagergrenze  | price: Grundpreis pro Einheit am Markt
@@ -123,7 +123,22 @@ const RESOURCES = {
   planks: { name: 'Bretter', icon: '🪜', start: 0, stored: true, price: 20, showFrom: 1 },
   bricks: { name: 'Ziegel',  icon: '🧱', start: 0, stored: true, price: 25, showFrom: 1 },
   bread:  { name: 'Brot',    icon: '🥖', start: 0, stored: true, price: 8,  showFrom: 1 },
+  wool:   { name: 'Wolle',    icon: '🧶', start: 0, stored: true, price: 6,  showFrom: 99 },
+  cloth:  { name: 'Stoff',    icon: '🧵', start: 0, stored: true, price: 18, showFrom: 99 },
+  beer:   { name: 'Bier',     icon: '🍺', start: 0, stored: true, price: 10, showFrom: 99 },
+  iron:   { name: 'Eisen',    icon: '⛓️', start: 0, stored: true, price: 12, showFrom: 99 },
+  tools:  { name: 'Werkzeug', icon: '🛠️', start: 0, stored: true, price: 30, showFrom: 99 },
 };
+
+// Genussgüter: werden laufend verbraucht, solange etwas da ist – und machen die Einwohner zufriedener
+const LUXURIES = {
+  bread: { perCitizen: 0.005, happiness: 8, label: '🥖 Frisches Brot', verb: 'essen Brot' },
+  beer:  { perCitizen: 0.002, happiness: 5, label: '🍺 Bier im Wirtshaus', verb: 'trinken Bier' },
+  cloth: { perCitizen: 0.0015, happiness: 6, label: '🧵 Neue Kleidung', verb: 'brauchen Kleidung' },
+};
+
+// Werkzeug: Betriebe mit Arbeitern produzieren mehr, solange Werkzeug da ist – es nutzt sich dabei ab
+const TOOLS = { bonus: 0.2, perWorker: 0.0004 };
 
 // Stadtstufen. Größere Städte sind anspruchsvoller (Abzug bei der Zufriedenheit).
 const LEVELS = [
@@ -145,7 +160,6 @@ const HAPPINESS = {
   base: 50,        // Grundwert
   fed: 20,         // Bonus, wenn Nahrung vorhanden ist
   starving: -40,   // Abzug, wenn Nahrung fehlt
-  bread: 8,        // Bonus, solange Brot vorhanden ist
   growAbove: 50,   // ab diesem Wert ziehen Einwohner zu
   leaveBelow: 30,  // unter diesem Wert wandern Einwohner ab
 };
@@ -273,8 +287,32 @@ const BUILDINGS = {
     interval: 8,
     produces: { food: 3 },
     needsRoad: true,
-    needsWater: 2,        // so viele Wasserfelder direkt daneben (auch schräg)
+    nearTerrain: { terrain: 'water', min: 2 },   // so viele Wasserfelder direkt daneben (auch schräg)
     jobs: { worker: 2 },
+    category: 'resources',
+  },
+  sheepfarm: {
+    name: 'Schäferei', icon: '🐑', color: '#c7e9b0',
+    description: 'Schafe liefern Wolle für die Weberei.',
+    cost: { money: 60, wood: 25 },
+    interval: 8,
+    produces: { wool: 2 },
+    unlockLevel: 1,
+    needsRoad: true,
+    jobs: { worker: 2 },
+    category: 'resources',
+    size: [2, 2],
+  },
+  mine: {
+    name: 'Erzmine', icon: '⛏️', color: '#6c757d',
+    description: 'Fördert Eisen aus dem Berg. Muss direkt an einem Berg stehen.',
+    cost: { money: 80, wood: 30, stone: 20 },
+    interval: 8,
+    produces: { iron: 2 },
+    unlockLevel: 1,
+    needsRoad: true,
+    nearTerrain: { terrain: 'rock', min: 2 },
+    jobs: { worker: 4 },
     category: 'resources',
   },
   quarry: {
@@ -377,6 +415,45 @@ const BUILDINGS = {
     consumes: { food: 3 },
     produces: { bread: 2 },
     smoke: 0.5,
+    unlockLevel: 1,
+    needsRoad: true,
+    jobs: { worker: 3 },
+    category: 'crafts',
+  },
+  brewery: {
+    name: 'Brauerei', icon: '🍺', color: '#d4a373',
+    description: 'Braut aus Getreide Bier. Solange es Bier gibt, sind alle zufriedener.',
+    cost: { money: 80, wood: 30, stone: 15 },
+    interval: 8,
+    consumes: { food: 3 },
+    produces: { beer: 2 },
+    smoke: 0.4,
+    unlockLevel: 1,
+    needsRoad: true,
+    jobs: { worker: 3 },
+    category: 'crafts',
+    size: [2, 1],
+  },
+  weaver: {
+    name: 'Weberei', icon: '🧵', color: '#cdb4db',
+    description: 'Webt aus Wolle Stoff für Kleidung. Solange es Stoff gibt, sind alle zufriedener.',
+    cost: { money: 80, wood: 25, planks: 5 },
+    interval: 8,
+    consumes: { wool: 2 },
+    produces: { cloth: 2 },
+    unlockLevel: 1,
+    needsRoad: true,
+    jobs: { worker: 3 },
+    category: 'crafts',
+  },
+  smithy: {
+    name: 'Schmiede', icon: '⚒️', color: '#6d6875',
+    description: 'Schmiedet aus Eisen und Holz Werkzeug. Mit Werkzeug arbeiten alle Arbeiter-Betriebe 20 % schneller.',
+    cost: { money: 100, wood: 30, stone: 30, bricks: 10 },
+    interval: 10,
+    consumes: { iron: 2, wood: 2 },
+    produces: { tools: 2 },
+    smoke: 0.9,
     unlockLevel: 1,
     needsRoad: true,
     jobs: { worker: 3 },
@@ -538,6 +615,9 @@ const QUESTS = [
   { id: 'land5',      title: 'Großgrundbesitz',      goal: { type: 'plots', count: 5 },                        reward: { money: 400 } },
   { id: 'pop101',     title: 'Eine echte Stadt',     goal: { type: 'population', count: 101 },                 reward: { money: 300 } },
   { id: 'hospital',   title: 'Gute Besserung',       goal: { type: 'build', building: 'hospital', count: 1 },  reward: { money: 200 } },
+  { id: 'brewery',    title: 'Prost!',               goal: { type: 'build', building: 'brewery', count: 1 },   reward: { money: 120 } },
+  { id: 'weaver',     title: 'Neue Kleider',         goal: { type: 'build', building: 'weaver', count: 1 },    reward: { wool: 20, money: 80 } },
+  { id: 'tools20',    title: 'Gutes Werkzeug',       goal: { type: 'produced', resource: 'tools', count: 20 }, reward: { money: 300, iron: 20 } },
 ];
 
 // Tägliche Belohnung für Tag 1, 2, 3 … in Folge (ab Tag 7 bleibt es bei der letzten)
@@ -575,8 +655,8 @@ const ACHIEVEMENTS = [
   { id: 'land20',     icon: '🗺️', name: 'Landesherr',          text: 'Kaufe 20 Flächen dazu.',                   check: () => plotsBought() >= 20 },
   { id: 'warmWinter', icon: '🔥', name: 'Warme Stuben',        text: 'Überstehe einen Winter mit mindestens 50 Einwohnern, ohne dass jemand friert.', check: () => (state.counters.warmWinters || 0) >= 1 },
   { id: 'fullJobs',   icon: '👷', name: 'Vollbeschäftigung',   text: 'Mindestens 50 Einwohner und niemand ist arbeitslos.', check: () => state.population >= 50 && stats.unemployed === 0 },
-  { id: 'crafts100',  icon: '🔨', name: 'Meisterhandwerker',   text: 'Stelle insgesamt 100 Bretter, Ziegel oder Brote her.',
-    check: () => ['planks', 'bricks', 'bread'].reduce((sum, id) => sum + (state.produced[id] || 0), 0) >= 100 },
+  { id: 'crafts100',  icon: '🔨', name: 'Meisterhandwerker',   text: 'Stelle insgesamt 100 Handwerkswaren her (Bretter, Ziegel, Brot, Bier, Stoff, Werkzeug).',
+    check: () => ['planks', 'bricks', 'bread', 'beer', 'cloth', 'tools'].reduce((sum, id) => sum + (state.produced[id] || 0), 0) >= 100 },
 ];
 
 // Forschung. Immer nur eine gleichzeitig; Kosten werden beim Start bezahlt.
@@ -903,7 +983,18 @@ function canPlaceAt(type, x, y) {
   const [w, h] = placementSize(type);
   if (def.onTerrain) return canPlaceOnTerrain(x, y, w, h, def.onTerrain);
   if (!canPlaceSize(x, y, w, h)) return false;
-  return !def.needsWater || waterNextTo(x, y, w, h) >= def.needsWater;
+  return nearTerrainOk(def, x, y, w, h);
+}
+
+// Braucht das Gebäude ein bestimmtes Gelände direkt daneben (Fischerhütte am Wasser, Mine am Berg)?
+function nearTerrainOk(def, x, y, w, h) {
+  const need = def.nearTerrain;
+  return !need || countTerrainNear(x, y, w, h, need.terrain, 1) >= need.min;
+}
+
+function nearTerrainText(def) {
+  const t = TERRAIN[TERRAIN_ID[def.nearTerrain.terrain]];
+  return `${def.icon} ${def.name} muss direkt ${t.id === 'water' ? 'am Wasser' : 'an einem Berg'} stehen`;
 }
 
 // Brücken: alle Felder frei, eigenes Land und vom passenden Gelände
@@ -916,10 +1007,7 @@ function canPlaceOnTerrain(x, y, w, h, terrain) {
   return true;
 }
 
-// Wasserfelder direkt um die Fläche (auch schräg)
-function waterNextTo(x, y, w, h) {
-  return countTerrainNear(x, y, w, h, 'water', 1);
-}
+
 
 // Ist die Fläche frei und eigenes Land? ignore: Gebäude-Ecke, deren eigene Felder als frei zählen (Drehen, Verschieben)
 function canPlaceSize(x, y, w, h, ignore = -1) {
@@ -1148,10 +1236,9 @@ function moveBuildingTo(x, y) {
     showToast('Hier ist kein Platz (belegt, Berg/See oder fremdes Land)');
     return;
   }
-  const needsWater = BUILDINGS[cell.type].needsWater;
-  if (needsWater && waterNextTo(x, y, w, h) < needsWater) {
+  if (!nearTerrainOk(BUILDINGS[cell.type], x, y, w, h)) {
     sound.play('error');
-    showToast(`${BUILDINGS[cell.type].icon} ${BUILDINGS[cell.type].name} muss direkt am Wasser stehen`);
+    showToast(nearTerrainText(BUILDINGS[cell.type]));
     return;
   }
   const [ow, oh] = sizeOf(cell);
@@ -1362,7 +1449,7 @@ function upgradeBuilding(x, y) {
 
 // Neue Waren erst zeigen, wenn die Stufe erreicht ist oder schon etwas davon da ist
 function isResourceVisible(id) {
-  return state.resources[id] > 0 || (RESOURCES[id].showFrom || 0) <= state.maxLevel;
+  return state.resources[id] > 0 || (state.produced[id] || 0) > 0 || (RESOURCES[id].showFrom || 0) <= state.maxLevel;
 }
 
 function storageCap(id) {
@@ -1437,7 +1524,7 @@ function placeBuilding(x, y, type) {
       if (x + dx < N && y + dy < N && terrainBlocked(x + dx, y + dy)) onTerrain = true;
     }
     if (def.onTerrain) showToast(`${def.icon} ${def.name} geht nur auf Wasser`);
-    else if (def.needsWater && canPlaceSize(x, y, w, h)) showToast(`${def.icon} ${def.name} muss direkt am Wasser stehen`);
+    else if (def.nearTerrain && canPlaceSize(x, y, w, h)) showToast(nearTerrainText(def));
     else showToast(onTerrain
       ? '⛰️ Auf Bergen und Seen kann man nicht bauen'
       : `Kein Platz: ${def.name} braucht ${w}×${h} freie Felder auf eigenem Land`);
@@ -1505,7 +1592,7 @@ function productivity() {
 // Ereignisse (z. B. Dürre) wirken als Faktor – später auch Jahreszeiten.
 function buildingOutput(type, staff = staffOf(type)) {
   const def = BUILDINGS[type];
-  const factor = (1 + productionBonus(type)) * productivity() * legacyFactor() * staff * (season().production?.[type] ?? 1);
+  const factor = (1 + productionBonus(type)) * productivity() * legacyFactor() * staff * (season().production?.[type] ?? 1) * toolFactor(type);
   const out = {};
   for (const [id, n] of Object.entries(def.produces || {})) out[id] = (out[id] || 0) + n;
   if (def.perPopulation) {
@@ -1522,6 +1609,10 @@ function buildingOutput(type, staff = staffOf(type)) {
     out[id] = Math.round(out[id] * 10) / 10;
   }
   return out;
+}
+
+function toolFactor(type) {
+  return state.resources.tools > 0 && BUILDINGS[type].jobs?.worker ? 1 + TOOLS.bonus : 1;
 }
 
 // ---------- Steuern ----------
@@ -1825,7 +1916,9 @@ function recalcStats() {
   stats.starving = state.population > 0 && state.resources.food <= 0;
   const factors = [['Grundwert', HAPPINESS.base]];
   factors.push(stats.starving ? ['🍞 Nahrung fehlt', HAPPINESS.starving] : ['🍞 Nahrung', HAPPINESS.fed]);
-  if (state.resources.bread > 0 && state.population > 0) factors.push(['🥖 Frisches Brot', HAPPINESS.bread]);
+  for (const [id, lux] of Object.entries(LUXURIES)) {
+    if (state.resources[id] > 0 && state.population > 0) factors.push([lux.label, lux.happiness]);
+  }
   if (season().happiness) factors.push([`${season().icon} ${season().name}`, season().happiness]);
   if (isFreezing()) factors.push(['🥶 Es ist kalt – Holz zum Heizen fehlt', -CONFIG.coldPenalty]);
   for (const [need, def] of Object.entries(NEEDS)) {
@@ -1859,7 +1952,8 @@ function recalcStats() {
 
 let growthTimer = 0;
 let foodDebt = 0;
-let breadDebt = 0;
+const luxuryDebt = {};
+let toolDebt = 0;
 
 function updatePopulation(dt) {
   // Nahrung wird laufend verbraucht
@@ -1869,13 +1963,23 @@ function updatePopulation(dt) {
     foodDebt -= eaten;
     state.resources.food = Math.max(0, state.resources.food - eaten);
   }
-  // Brot ist ein Extra: wird nur gegessen, solange welches da ist
-  if (state.resources.bread > 0) {
-    breadDebt += state.population * CONFIG.breadPerCitizen * dt;
-    if (breadDebt >= 1) {
-      const eaten = Math.floor(breadDebt);
-      breadDebt -= eaten;
-      state.resources.bread = Math.max(0, state.resources.bread - eaten);
+  // Genussgüter sind ein Extra: werden nur verbraucht, solange welche da sind
+  for (const [id, lux] of Object.entries(LUXURIES)) {
+    if (state.resources[id] <= 0) continue;
+    luxuryDebt[id] = (luxuryDebt[id] || 0) + state.population * lux.perCitizen * dt;
+    if (luxuryDebt[id] >= 1) {
+      const used = Math.floor(luxuryDebt[id]);
+      luxuryDebt[id] -= used;
+      state.resources[id] = Math.max(0, state.resources[id] - used);
+    }
+  }
+  // Werkzeug nutzt sich bei der Arbeit ab
+  if (state.resources.tools > 0) {
+    toolDebt += (stats.jobs.assigned.worker || 0) * TOOLS.perWorker * dt;
+    if (toolDebt >= 1) {
+      const used = Math.floor(toolDebt);
+      toolDebt -= used;
+      state.resources.tools = Math.max(0, state.resources.tools - used);
     }
   }
 
@@ -2734,7 +2838,9 @@ function applyOfflineProgress(savedAt) {
     for (const [id, n] of Object.entries(def.consumes)) rates[id] = (rates[id] || 0) - share * n * lf / def.interval;
     for (const [id, n] of Object.entries(buildingOutput(type))) rates[id] = (rates[id] || 0) + share * n * lf / def.interval;
   }
-  if (state.resources.bread > 0 || rates.bread > 0) rates.bread = (rates.bread || 0) - state.population * CONFIG.breadPerCitizen;
+  for (const [id, lux] of Object.entries(LUXURIES)) {
+    if (state.resources[id] > 0 || rates[id] > 0) rates[id] = (rates[id] || 0) - state.population * lux.perCitizen;
+  }
   if (season().heating) rates.wood = (rates.wood || 0) - heatingRate();
 
   const before = { ...state.resources };
@@ -4039,6 +4145,68 @@ const SPRITES = {
       ctx.fillStyle = '#ffd77a'; ctx.fillRect(tx + T * 0.1, ty + T * 0.2, T * 0.1, T * 0.16);
     });
   },
+  sheepfarm(X, Y, W, H, x, y) {
+    sprGround(X, Y, W, H, season().id === 'winter' ? '#e8eef0' : '#a7d48b', T * 0.12);
+    ctx.strokeStyle = '#8b5e3c'; ctx.lineWidth = T * 0.03;
+    roundRect(X + T * 0.08, Y + T * 0.08, W - T * 0.16, H - T * 0.16, T * 0.08); ctx.stroke();
+    sprHouse(X + W - T * 0.95, Y + T * 0.02, T * 0.9, T * 0.85, { roof: ['#7f5539', '#9c6644'], wall: '#d6b98c', windows: 0, inset: T * 0.1 });
+    const time = performance.now() / 1000;
+    for (let k = 0; k < 5; k++) {   // Schafe grasen und bewegen sich ein wenig
+      const sx = X + T * (0.35 + 1.1 * tileHash(x, y, k + 50)) + Math.sin(time * 0.3 + k) * T * 0.08;
+      const sy = Y + T * (0.9 + 0.8 * tileHash(x, y, k + 60));
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.beginPath(); ctx.ellipse(sx + T * 0.03, sy + T * 0.06, T * 0.13, T * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fbfbf8';
+      ctx.beginPath(); ctx.ellipse(sx, sy, T * 0.13, T * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#333';
+      ctx.beginPath(); ctx.arc(sx + T * 0.12, sy - T * 0.02, T * 0.045, 0, Math.PI * 2); ctx.fill();
+    }
+  },
+  mine(X, Y, W, H, x, y) {
+    sprGround(X, Y, W, H, '#a39e93');
+    // Stolleneingang mit Holzrahmen und Schienen
+    ctx.fillStyle = '#7d776d';
+    ctx.beginPath(); ctx.moveTo(X + T * 0.05, Y + T * 0.7); ctx.lineTo(X + T * 0.5, Y + T * 0.05); ctx.lineTo(X + T * 0.95, Y + T * 0.7); ctx.fill();
+    ctx.fillStyle = '#2b2b2b';
+    ctx.beginPath(); ctx.moveTo(X + T * 0.3, Y + T * 0.7); ctx.lineTo(X + T * 0.3, Y + T * 0.45); ctx.arc(X + T * 0.5, Y + T * 0.45, T * 0.2, Math.PI, 0); ctx.lineTo(X + T * 0.7, Y + T * 0.7); ctx.fill();
+    ctx.strokeStyle = '#8b5e3c'; ctx.lineWidth = T * 0.06;
+    ctx.beginPath(); ctx.moveTo(X + T * 0.28, Y + T * 0.72); ctx.lineTo(X + T * 0.28, Y + T * 0.38); ctx.lineTo(X + T * 0.72, Y + T * 0.38); ctx.lineTo(X + T * 0.72, Y + T * 0.72); ctx.stroke();
+    ctx.strokeStyle = '#5c5c5c'; ctx.lineWidth = T * 0.02;
+    ctx.beginPath(); ctx.moveTo(X + T * 0.42, Y + T * 0.7); ctx.lineTo(X + T * 0.38, Y + T * 0.95); ctx.moveTo(X + T * 0.58, Y + T * 0.7); ctx.lineTo(X + T * 0.62, Y + T * 0.95); ctx.stroke();
+    ctx.fillStyle = '#6b4226';
+    ctx.fillRect(X + T * 0.62, Y + T * 0.74, T * 0.26, T * 0.14);
+    ctx.fillStyle = '#4a4e69';
+    ctx.beginPath(); ctx.arc(X + T * 0.69, Y + T * 0.74, T * 0.05, 0, Math.PI * 2); ctx.arc(X + T * 0.8, Y + T * 0.73, T * 0.05, 0, Math.PI * 2); ctx.fill();
+  },
+  brewery(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#e3cfae');
+    sprHouse(X, Y, T * 1.25, H, { roof: ['#5e503f', '#7a6852'], wall: '#efe0c8', windows: 1, windowColor: '#ffd77a', inset: T * 0.1, chimney: 0.25, doorAt: 0.65 });
+    for (let k = 0; k < 3; k++) {   // Fässer
+      const bx = X + T * (1.42 + (k % 2) * 0.24), by = Y + T * (0.35 + Math.floor(k / 2) * 0.3 + (k === 2 ? 0 : 0));
+      ctx.fillStyle = '#8b5e3c';
+      ctx.beginPath(); ctx.arc(bx, by + (k === 2 ? 0.3 * T : 0), T * 0.12, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#4a3222'; ctx.lineWidth = T * 0.02;
+      ctx.beginPath(); ctx.arc(bx, by + (k === 2 ? 0.3 * T : 0), T * 0.08, 0, Math.PI * 2); ctx.stroke();
+    }
+  },
+  weaver(X, Y, W, H) {
+    const r = sprHouse(X, Y, W, H, { roof: ['#6d597a', '#8a7397'], wall: '#f2e8cf', windows: 1, inset: T * 0.12, doorAt: 0.68 });
+    // Stoffbahnen zum Trocknen
+    const colors = ['#e63946', '#457b9d', '#e9c46a'];
+    ctx.strokeStyle = '#5d4037'; ctx.lineWidth = T * 0.015;
+    ctx.beginPath(); ctx.moveTo(r.x0, r.y0 + T * 0.02); ctx.lineTo(r.x1, r.y0 + T * 0.02); ctx.stroke();
+    colors.forEach((c, k) => { ctx.fillStyle = c; ctx.fillRect(r.x0 + T * (0.06 + k * 0.22), r.y0 + T * 0.02, T * 0.14, T * 0.2); });
+  },
+  smithy(X, Y, W, H) {
+    const r = sprHouse(X, Y, W, H, { roof: ['#3d405b', '#565a7a'], wall: '#9a8c98', windows: 0, inset: T * 0.1, chimney: 0.2, doorAt: 0.3 });
+    // Esse glüht, Amboss davor
+    const glowA = 0.6 + 0.3 * Math.sin(performance.now() / 200);
+    ctx.fillStyle = `rgba(255, 140, 40, ${glowA})`;
+    ctx.fillRect(r.x1 - T * 0.32, r.eave + T * 0.06, T * 0.2, T * 0.14);
+    ctx.fillStyle = '#343a40';
+    ctx.fillRect(r.x1 - T * 0.36, r.y1 - T * 0.02, T * 0.24, T * 0.06);
+    ctx.fillRect(r.x1 - T * 0.3, r.y1 - T * 0.06, T * 0.12, T * 0.05);
+  },
   fishery(X, Y, W, H, x, y) {
     // Steg zum Wasser hin
     const dirs = [[0, 1], [1, 0], [-1, 0], [0, -1]];
@@ -4996,11 +5164,15 @@ function addChip(parent, key, title, onClick) {
 
 function buildUI() {
   const resWrap = document.getElementById('resources');
-  for (const id in RESOURCES) addChip(resWrap, id, `${RESOURCES[id].name} – antippen für Produktion und Verbrauch`, () => showResourceInfo(id));
-  addChip(resWrap, 'population', 'Einwohner / Wohnplätze', showCityInfo);
-  addChip(resWrap, 'happiness', 'Zufriedenheit', showCityInfo);
-  addChip(resWrap, 'level', 'Stadtstufe', showCityInfo);
-  addChip(resWrap, 'season', 'Jahreszeit', showCityInfo);
+  const statusWrap = document.getElementById('status');
+  for (const id in RESOURCES) {
+    addChip(id === 'money' ? statusWrap : resWrap, id, `${RESOURCES[id].name} – antippen für Produktion und Verbrauch`, () => showResourceInfo(id));
+  }
+  resourceEls.money.classList.add('money');
+  addChip(statusWrap, 'population', 'Einwohner / Wohnplätze', showCityInfo);
+  addChip(statusWrap, 'happiness', 'Zufriedenheit', showCityInfo);
+  addChip(statusWrap, 'level', 'Stadtstufe', showCityInfo);
+  addChip(statusWrap, 'season', 'Jahreszeit', showCityInfo);
 
   const tabs = document.getElementById('build-tabs');
   for (const [cat, c] of Object.entries(CATEGORIES)) {
@@ -5166,16 +5338,50 @@ function happinessIcon(h) {
   return '😠';
 }
 
+// Kurze Zahl für die Leiste: 950 · 9,1k · 47k · 1,2M
+function shortNumber(n) {
+  n = Math.floor(n);
+  if (n < 1000) return String(n);
+  if (n < 10000) return (Math.floor(n / 100) / 10).toString().replace('.', ',') + 'k';
+  if (n < 1e6) return Math.floor(n / 1000) + 'k';
+  return (Math.floor(n / 1e5) / 10).toString().replace('.', ',') + 'M';
+}
+
+// Bilanz je Ressource (pro Minute) für die Trendpfeile – nur alle 2 Sekunden neu berechnet
+const resourceTrend = {};
+let trendAt = 0;
+
+function updateTrends() {
+  if (performance.now() - trendAt < 2000) return;
+  trendAt = performance.now();
+  for (const id in RESOURCES) {
+    const f = resourceFlows(id);
+    resourceTrend[id] = f.sources.reduce((a, e) => a + e.perMin, 0) - f.uses.reduce((a, e) => a + e.perMin, 0);
+  }
+}
+
 function updateUI() {
+  updateTrends();
   for (const id in RESOURCES) {
     const el = resourceEls[id];
+    const r = RESOURCES[id];
     el.classList.toggle('hidden', !isResourceVisible(id));
-    el.textContent = `${RESOURCES[id].icon} ${state.resources[id]}`;
-    if (RESOURCES[id].stored) {
-      const full = state.resources[id] >= storageCap(id);
-      el.classList.toggle('full', full);
-      el.title = `${RESOURCES[id].name} – Lager ${state.resources[id]} / ${storageCap(id)}${full ? ' (voll!)' : ''}`;
+    const net = resourceTrend[id] || 0;
+    const trend = net > 0.5 ? '<span class="trend up">▲</span>' : net < -0.5 ? '<span class="trend down">▼</span>' : '';
+    if (id === 'money') {
+      el.innerHTML = `${r.icon} ${shortNumber(state.resources[id])}${trend}`;
+      continue;
     }
+    let bar = '';
+    if (r.stored) {
+      const cap = storageCap(id);
+      const fill = clamp(state.resources[id] / cap, 0, 1);
+      const full = state.resources[id] >= cap;
+      el.classList.toggle('full', full);
+      bar = `<i class="bar${fill > 0.8 ? ' high' : ''}" style="width:${Math.round(fill * 100)}%"></i>`;
+      el.title = `${r.name} – Lager ${Math.floor(state.resources[id])} / ${cap}${full ? ' (voll!)' : ''} – antippen für Details`;
+    }
+    el.innerHTML = `<span>${r.icon} ${shortNumber(state.resources[id])}</span>${trend}${bar}`;
   }
   resourceEls.population.textContent = `👥 ${state.population}/${stats.capacity}`;
   resourceEls.happiness.textContent = `${happinessIcon(stats.happiness)} ${stats.happiness}`;
@@ -5734,7 +5940,8 @@ function resourceFlows(id) {
   const pop = state.population;
   if (id === 'money' && pop) add(sources, 'tax', `🏛️ Steuern (${TAXES[state.taxLevel].name})`, pop * TAXES[state.taxLevel].perCitizen * 60 / CONFIG.taxInterval);
   if (id === 'food' && pop) add(uses, 'eat', `👥 ${pop} Einwohner essen`, pop * CONFIG.foodPerCitizen * 60);
-  if (id === 'bread' && pop && state.resources.bread > 0) add(uses, 'eat', `👥 ${pop} Einwohner essen Brot`, pop * CONFIG.breadPerCitizen * 60);
+  if (LUXURIES[id] && pop && state.resources[id] > 0) add(uses, 'eat', `👥 ${pop} Einwohner ${LUXURIES[id].verb}`, pop * LUXURIES[id].perCitizen * 60);
+  if (id === 'tools' && state.resources.tools > 0) add(uses, 'wear', `👷 ${stats.jobs.assigned.worker || 0} Arbeiter nutzen es ab`, (stats.jobs.assigned.worker || 0) * TOOLS.perWorker * 60);
   if (id === 'wood' && pop && season().heating) add(uses, 'heat', '🔥 Heizen im Winter', heatingRate() * 60);
   return { sources: [...sources.values()], uses: [...uses.values()] };
 }
@@ -5771,6 +5978,8 @@ function renderResourceInfo() {
     lines.push(`• ${e.label}${e.count > 1 ? ` ×${e.count}` : ''}: −${formatRate(e.perMin)}${e.paused ? ` (⏸️ ${e.paused} pausiert)` : ''}`);
   }
   const details = [];
+  if (LUXURIES[id]) details.push(`Solange ${r.name} da ist: +${LUXURIES[id].happiness} Zufriedenheit.`);
+  if (id === 'tools') details.push(`Solange Werkzeug da ist, arbeiten alle Betriebe mit Arbeitern ${Math.round(TOOLS.bonus * 100)} % schneller.`);
   if (id === 'wood' && !season().heating && state.population) details.push(`Im Winter heizen die Einwohner: −${formatRate(heatingRate() * 60)} 🪵/min.`);
   if (r.price) details.push(`Marktpreis: ${Math.round(r.price * (state.prices[id] || 1) * 10) / 10} 💰 je Stück (Handel am Markt).`);
   if (!sources.length) {

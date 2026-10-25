@@ -44,6 +44,15 @@ function runBalanceBot(minutes = 90) {
       want.people = (want.people || 0) + 1;
       return false;
     }
+    // Betriebe mit Geländebonus an den besten der nahen Plätze stellen (Sägewerk am Wald, Steinbruch am Berg …)
+    if (!slot && TERRAIN_BONUS[type]) {
+      const [fw, fh] = footprintSize(type);
+      let best = -1;
+      for (const s of freeSlots(type).slice(0, 120)) {
+        const b = terrainBonusOf(type, s.x, s.y, fw, fh) - s.d * 0.004;
+        if (b > best) { best = b; slot = s; }
+      }
+    }
     slot = slot || freeSlots(type)[0];
     if (!slot) return false;
     if (!canPlaceAt(type, slot.x, slot.y)) return false;
@@ -152,6 +161,14 @@ function runBalanceBot(minutes = 90) {
     if (isUnlocked('bakery') && countBuildings('bakery') < 1 + Math.floor(pop / 60)) tasks.push(['bakery']);
     if (isUnlocked('carpentry') && countBuildings('carpentry') < 1 + Math.floor(pop / 80)) tasks.push(['carpentry']);
     if (isUnlocked('brickworks') && countBuildings('brickworks') < 1 + Math.floor(pop / 80)) tasks.push(['brickworks']);
+    // Weitere Handwerksketten ab 50 Einwohnern: Bier, Wolle → Stoff, Eisen → Werkzeug
+    if (pop >= 50) {
+      if (countBuildings('brewery') < Math.floor(pop / 90) + 1) tasks.push(['brewery']);
+      if (countBuildings('sheepfarm') < Math.floor(pop / 120) + 1) tasks.push(['sheepfarm']);
+      if (countBuildings('sheepfarm') && countBuildings('weaver') < countBuildings('sheepfarm')) tasks.push(['weaver']);
+      if (countBuildings('mine') < Math.floor(pop / 150) + 1) tasks.push(['mine']);
+      if (countBuildings('mine') && countBuildings('smithy') < countBuildings('mine')) tasks.push(['smithy']);
+    }
     // Viele Arbeitslose: zusätzliche Betriebe bauen (wie ein Spieler auf die Warnung reagiert)
     if (pop >= 20 && stats.unemployed / pop > CONFIG.unemploymentTolerance) {
       const options = ['sawmill', 'quarry', 'carpentry', 'brickworks', 'bakery', 'market'].filter(isUnlocked);
@@ -203,7 +220,7 @@ function runBalanceBot(minutes = 90) {
       }
     }
     // Überschüsse verkaufen
-    if (hasMarket()) for (const id of ['wood', 'stone', 'food', 'planks', 'bricks', 'bread']) {
+    if (hasMarket()) for (const id of ['wood', 'stone', 'food', 'planks', 'bricks', 'bread', 'beer', 'cloth', 'wool', 'iron', 'tools']) {
       if (state.resources[id] >= storageCap(id)) trade(id, false);
     }
   }

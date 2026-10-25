@@ -29,22 +29,46 @@ button {
   cursor: pointer;
 }
 
-/* ---------- Ressourcenleiste oben ---------- */
+/* ---------- Leiste oben: Stadtstatus + Warenraster ---------- */
 #topbar {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  padding-top: calc(8px + env(safe-area-inset-top));
-  background: #2d6a4f;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 10px 8px;
+  padding-top: calc(6px + env(safe-area-inset-top));
+  background: linear-gradient(#2d6a4f, #276149);
   box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
   z-index: 2;
 }
 
-#resources {
+#topbar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#status {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
+  gap: 4px;
+}
+
+#status .res {
+  padding: 4px 9px;
+  font-size: 14px;
+  border-radius: 999px;
+}
+
+#status .res.money {
+  background: rgba(255, 209, 102, .22);
+  color: #ffe8a3;
+}
+
+#resources {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(66px, 1fr));
   gap: 4px;
 }
 
@@ -60,10 +84,35 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+#resources .res {
+  position: relative;
+  overflow: hidden;
+  justify-content: space-between;
+  padding: 4px 6px 6px;
+  border-radius: 8px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+#resources .res .trend { font-size: 10px; line-height: 1; }
+#resources .res .trend.up { color: #95d5b2; }
+#resources .res .trend.down { color: #ffadad; }
+#resources .res .bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: #95d5b2;
+  transition: width .4s;
+}
+#resources .res .bar.high { background: #ffd166; }
+#resources .res.full .bar { background: #ff6b6b; }
+.res.hidden { display: none; }
+
 #topbar .top-btn {
   flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: rgba(0, 0, 0, .25);
   font-size: 18px;
@@ -834,3 +883,4 @@ button.res { cursor: pointer; }
 }
 #topbar .speed-btn.paused { background: #e63946; animation: pulse 1.2s ease-in-out infinite; }
 #topbar .speed-btn.fast { background: #f4a261; color: #222; }
+#resources .res.full { background: rgba(192, 57, 43, .45); }

@@ -222,6 +222,39 @@ test('Ressourcen-Info: Produktion und Verbrauch', () => {
   return o.food.split('\n').slice(0, 2).join(' · ');
 });
 
+test('Handwerk: Bier, Stoff, Werkzeug', () => {
+  const game = fresh({ seed: 13 });
+  const r = game.run(`
+    state.plots.fill(true); state.maxLevel = 1;
+    state.terrain.fill(TERRAIN_ID.grass);
+    for (let y = 20; y < 23; y++) for (let x = 30; x < 33; x++) state.terrain[y * N + x] = TERRAIN_ID.rock;
+    Object.assign(state.resources, { money: 9999, wood: 900, stone: 900, planks: 50, bricks: 50, food: 300 });
+    stats.storage = 2000;
+    for (let x = 24; x < 40; x++) placeBuilding(x, 25, 'road');
+    const mineFar = placeBuilding(26, 24, 'mine');
+    const mineOk = placeBuilding(31, 23, 'mine');
+    placeBuilding(31, 24, 'road');
+    const ok = ['brewery', 'weaver', 'smithy', 'sheepfarm'].map((t, k) => placeBuilding(24 + k * 3, 26, t));
+    for (let x = 24; x < 40; x++) placeBuilding(x, 28, 'road');
+    for (let x = 24; x < 40; x++) placeBuilding(x, 29, 'house');
+    state.population = 60; recalcStats();
+    Object.assign(state.resources, { wool: 50, iron: 50 });
+    for (let i = 0; i < 400; i++) update(0.25);
+    state.resources.tools = 0;
+    const before = buildingOutput('sawmill', 1).wood;
+    state.resources.tools = 10;
+    const withTools = buildingOutput('sawmill', 1).wood;
+    JSON.stringify({ mineFar, mineOk, ok, beer: state.produced.beer > 0, cloth: state.produced.cloth > 0, tools: state.produced.tools > 0,
+      toolBonus: Math.round(withTools / before * 100) / 100, lux: stats.factors.filter(f => /Bier|Kleidung/.test(f[0])).length })
+  `);
+  noErrors(game, 'beim Handwerk');
+  const o = JSON.parse(r);
+  assert(o.mineFar === false && o.mineOk === true && o.ok.every(Boolean), 'Bauen: ' + r);
+  assert(o.beer && o.cloth && o.tools, 'Produktion: ' + r);
+  assert(o.toolBonus > 1.15 && o.toolBonus < 1.25 && o.lux === 2, 'Wirkung: ' + r);
+  return 'ok';
+});
+
 test('Meldungen schließen sich selbst', () => {
   const game = fresh({ seed: 6 });
   const r = game.run(`

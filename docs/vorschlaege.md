@@ -5,8 +5,6 @@ wenn Emin zugestimmt hat.** Neue Einträge oben, mit Datum und kurzer Begründun
 
 ## Offen
 
-- **Bot nutzt Geländeboni** (2026-10-25) – der Balancing-Bot stellt Sägewerke/Steinbrüche noch nicht gezielt an
-  Wald/Berg; seit dem Gelände braucht er bis zur Stadt ~31 statt ~23 min.
 
 - **Mehr Inhalte fürs späte Spiel** (2026-10-25) – ab etwa 150 Einwohnern sammelt sich Geld an,
   ohne dass es etwas Sinnvolles zu kaufen gibt. Ideen: weitere Sehenswürdigkeiten, Handelsverträge,
@@ -24,4 +22,5 @@ wenn Emin zugestimmt hat.** Neue Einträge oben, mit Datum und kurzer Begründun
 
 ## Erledigt
 
+- **Bot nutzt Geländeboni**, neue Handwerksketten, neue obere Leiste – Version 42 (2026-10-25).
 - **Brücken und Fischerhütte** – von Emin gewünscht, eingebaut in Version 40 (2026-10-25).

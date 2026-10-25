@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#2d6a4f">
+  <meta name="app-version" content="16">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Stadtaufbau</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header id="topbar">
+    <div id="resources"></div>
+    <button id="btn-research" class="top-btn" title="Forschung">🔬</button>
+    <button id="btn-settings" class="top-btn" title="Einstellungen">⚙️</button>
+  </header>
+
+  <main id="map-wrap">
+    <canvas id="map"></canvas>
+    <button id="quest-tracker" title="Aufträge"></button>
+    <div id="toast" class="hidden"></div>
+    <section id="quests" class="hidden">
+      <div class="info-head">
+        <span>📜</span>
+        <strong>Aufträge</strong>
+        <span id="quests-count"></span>
+        <button id="quests-close" title="Schließen">✕</button>
+      </div>
+      <div id="quest-list"></div>
+      <div id="achievements"></div>
+    </section>
+    <section id="research" class="hidden">
+      <div class="info-head">
+        <span>🔬</span>
+        <strong>Forschung</strong>
+        <span id="research-count"></span>
+        <button id="research-close" title="Schließen">✕</button>
+      </div>
+      <div id="tech-list"></div>
+    </section>
+    <section id="settings" class="hidden">
+      <div class="info-head">
+        <span>⚙️</span>
+        <strong>Einstellungen</strong>
+        <button id="settings-close" title="Schließen">✕</button>
+      </div>
+      <button class="setting" data-setting="sfx"></button>
+      <button class="setting" data-setting="music"></button>
+      <button class="setting" data-setting="daynight"></button>
+      <button id="btn-reset" class="danger">⟳ Neues Spiel</button>
+    </section>
+    <section id="info" class="hidden">
+      <div class="info-head">
+        <span id="info-icon"></span>
+        <strong id="info-name"></strong>
+        <button id="info-close" title="Schließen">✕</button>
+      </div>
+      <p id="info-text"></p>
+      <div id="info-extra"></div>
+      <button id="info-action" class="hidden"></button>
+      <button id="info-demolish">Abreißen</button>
+    </section>
+    <div id="effects"></div>
+    <section id="event" class="hidden">
+      <div id="event-icon"></div>
+      <strong id="event-title"></strong>
+      <p id="event-text"></p>
+      <div id="event-buttons"></div>
+    </section>
+  </main>
+
+  <nav id="buildnav">
+    <div id="build-tabs"></div>
+    <div id="buildbar"></div>
+  </nav>
+
+  <script src="game.js"></script>
+</body>
+</html>

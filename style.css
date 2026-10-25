@@ -1,0 +1,541 @@
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #1b4332;
+  color: #f1f1f1;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: none;
+  cursor: pointer;
+}
+
+/* ---------- Ressourcenleiste oben ---------- */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  padding-top: calc(8px + env(safe-area-inset-top));
+  background: #2d6a4f;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+  z-index: 2;
+}
+
+#resources {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.res {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  font-size: 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .25);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+#topbar .top-btn {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .25);
+  font-size: 18px;
+}
+
+/* ---------- Karte ---------- */
+#map-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+#map {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+#map.dragging { cursor: grabbing; }
+#map.building { cursor: crosshair; }
+
+#toast {
+  position: absolute;
+  top: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, .8);
+  font-size: 14px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ---------- Auftragsanzeige ---------- */
+#quest-tracker {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  max-width: calc(100% - 20px);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .65);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#quest-tracker.ready {
+  background: #f4a261;
+  color: #222;
+  font-weight: 600;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% { transform: scale(1.05); }
+}
+
+#quests-count, #research-count {
+  font-size: 13px;
+  opacity: .6;
+}
+
+.quest {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #f1efe7;
+}
+
+.quest.done { background: #e3f4d7; }
+.quest-title { font-weight: 700; }
+.quest-goal { margin: 2px 0 6px; font-size: 14px; }
+
+.quest-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: #d9d5c7;
+  overflow: hidden;
+}
+
+.quest-bar div {
+  height: 100%;
+  background: #2d6a4f;
+  transition: width .3s;
+}
+
+.quest-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.quest-claim {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f4a261;
+  color: #222;
+  font-weight: 700;
+}
+
+.tech.done { background: #e3f4d7; }
+.tech.locked { opacity: .55; }
+.tech.running { background: #dbe9ff; }
+.tech.running .quest-bar div { background: #1c7ed6; }
+
+.tech-start {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #2d6a4f;
+  color: #fff;
+  font-weight: 700;
+}
+
+.tech-start.unaffordable { opacity: .45; }
+
+.setting {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #e9ecef;
+  color: #555;
+  text-align: left;
+  font-weight: 600;
+}
+
+.setting.on {
+  background: #d8f3dc;
+  color: #1b4332;
+}
+
+.danger {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #c0392b;
+  color: #fff;
+  font-weight: 600;
+}
+
+.res.full { background: rgba(192, 57, 43, .75); }
+
+#info-extra:empty { display: none; }
+#info-extra { margin-bottom: 10px; }
+
+.trade-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.trade-name { flex: 1; font-size: 14px; }
+
+.trade-btn {
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: #2d6a4f;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.trade-btn.sell { background: #b08968; }
+
+.tax-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  background: #f1efe7;
+}
+
+.tax-label { flex: 1; text-align: center; font-size: 14px; line-height: 1.4; }
+
+.tax-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #2d6a4f;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+#event-text { white-space: pre-line; }
+
+.ach-title { margin: 16px 0 8px; font-weight: 700; }
+
+.ach-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 6px;
+}
+
+.ach {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 10px;
+  background: #ece9df;
+  color: #222;
+  opacity: .45;
+  filter: grayscale(1);
+}
+
+.ach.done { opacity: 1; filter: none; background: #fff3c4; }
+.ach-icon { font-size: 22px; }
+.ach-name { font-size: 10px; line-height: 1.2; text-align: center; }
+
+/* ---------- Gebäude-Info ---------- */
+#info, #quests, #research, #settings {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  max-width: 360px;
+  margin: 0 auto;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fffdf7;
+  color: #222;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .4);
+}
+
+.info-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+}
+
+#info-icon { font-size: 26px; }
+#info-name { flex: 1; }
+
+#info-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #eee;
+}
+
+#info-text {
+  margin: 8px 0 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-line;
+}
+
+#info-demolish {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  background: #c0392b;
+  color: #fff;
+  font-weight: 600;
+}
+
+#info-action {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #1c7ed6;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---------- Ereignisse ---------- */
+#effects {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  pointer-events: none;
+}
+
+#quests:not(.hidden) ~ #effects,
+#research:not(.hidden) ~ #effects,
+#settings:not(.hidden) ~ #effects,
+#info:not(.hidden) ~ #effects { display: none; }
+
+.effect {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .65);
+  font-size: 13px;
+}
+
+#event {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(340px, calc(100% - 32px));
+  padding: 18px;
+  border-radius: 14px;
+  background: #fffdf7;
+  color: #222;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .5);
+  z-index: 3;
+}
+
+#event-icon { font-size: 44px; line-height: 1.1; }
+#event-title { display: block; margin-top: 4px; font-size: 20px; }
+#event-text { margin: 8px 0 14px; font-size: 15px; line-height: 1.45; }
+
+#event-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+#event-buttons button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  background: #e9ecef;
+  font-weight: 600;
+}
+
+#event-buttons button.primary {
+  background: #2d6a4f;
+  color: #fff;
+}
+
+/* ---------- Bauleiste unten ---------- */
+#buildnav {
+  background: #2d6a4f;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, .3);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 2;
+}
+
+#build-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 6px 0;
+  overflow-x: auto;
+  background: rgba(0, 0, 0, .18);
+}
+
+.build-tab {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 1px 5px;
+  border-radius: 10px 10px 0 0;
+  background: transparent;
+  opacity: .75;
+}
+
+.build-tab .icon { font-size: 20px; line-height: 1.1; }
+.build-tab .name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9.5px;
+  font-weight: 600;
+}
+.build-tab.active { background: #2d6a4f; opacity: 1; }
+.build-tab.locked { opacity: .35; filter: grayscale(1); }
+.build-tab.active.locked { opacity: .8; }
+
+/* Roter Punkt: neu freigeschaltetes Gebäude in diesem Reiter */
+.build-tab.new::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #e63946;
+  box-shadow: 0 0 0 2px #2d6a4f;
+}
+
+/* Gelber Rand: das gewählte Gebäude liegt in diesem (nicht offenen) Reiter */
+.build-tab.has-selected { box-shadow: inset 0 -3px 0 #ffd166; }
+
+#buildbar {
+  display: flex;
+  justify-content: safe center;
+  gap: 6px;
+  padding: 8px 8px;
+  overflow-x: auto;
+}
+
+.build-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, .25);
+  border: 2px solid transparent;
+}
+
+.build-btn .icon { font-size: 28px; line-height: 1; }
+.build-btn .name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+.build-btn .cost { font-size: 10px; line-height: 1.25; text-align: center; opacity: .85; }
+
+/* Scrollbalken der Leisten ausblenden (Wischen/Mausrad geht weiter) */
+#build-tabs, #buildbar { scrollbar-width: none; }
+#build-tabs::-webkit-scrollbar, #buildbar::-webkit-scrollbar { display: none; }
+
+.build-btn.selected {
+  border-color: #ffd166;
+  background: rgba(255, 209, 102, .2);
+}
+
+.build-btn.unaffordable { opacity: .45; }
+.build-btn.locked { opacity: .35; filter: grayscale(1); }
+
+button.res { cursor: pointer; }
+
+#info, #quests, #research, #settings { max-height: 70%; overflow-y: auto; }
+
+@media (hover: hover) {
+  .build-btn:hover { background: rgba(255, 255, 255, .12); }
+  .build-tab:hover { opacity: 1; }
+  .top-btn:hover, #info-close:hover { filter: brightness(1.2); }
+}
+
+.hidden { display: none !important; }
+
+/* Fehleranzeige */
+#crash {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  top: 8px;
+  z-index: 100;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #c0392b;
+  color: #fff;
+  font: 13px/1.4 monospace;
+  white-space: pre-wrap;
+  user-select: text;
+  -webkit-user-select: text;
+}

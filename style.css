@@ -577,3 +577,5 @@ button.res { cursor: pointer; }
   user-select: text;
   -webkit-user-select: text;
 }
+
+#info-action.unaffordable { opacity: .6; }

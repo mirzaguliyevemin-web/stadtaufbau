@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 17;
+const APP_VERSION = 18;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -22,7 +22,11 @@ window.addEventListener('unhandledrejection', e => showCrash(String(e.reason)));
 // =====================================================================
 
 const CONFIG = {
-  gridSize: 32,           // Karte ist gridSize × gridSize Felder
+  gridSize: 64,           // Karte ist gridSize × gridSize Felder
+  plotSize: 8,            // Land wird in Parzellen von plotSize × plotSize Feldern gekauft
+  startPlots: 2,          // zu Beginn gehören die startPlots × startPlots Parzellen in der Mitte
+  plotBasePrice: 150,     // Preis der ersten gekauften Parzelle (Geld)
+  plotPriceGrowth: 1.7,   // jede weitere Parzelle kostet so viel mal mehr
   tileSize: 48,           // Kachelgröße in Weltpixeln
   saveKey: 'stadtaufbau-save-1',
   saveVersion: 1,
@@ -393,6 +397,7 @@ const QUESTS = [
   { id: 'quarry',     title: 'Steinzeit',            goal: { type: 'build', building: 'quarry', count: 1 },    reward: { wood: 20 } },
   { id: 'market',     title: 'Markttag',             goal: { type: 'build', building: 'market', count: 1 },    reward: { stone: 20 } },
   { id: 'warehouse',  title: 'Volle Speicher',       goal: { type: 'build', building: 'warehouse', count: 1 }, reward: { wood: 30 } },
+  { id: 'land1',      title: 'Neues Land',           goal: { type: 'plots', count: 1 },                        reward: { wood: 40 } },
   { id: 'park',       title: 'Grüne Oase',           goal: { type: 'build', building: 'park', count: 1 },      reward: { money: 30 } },
   { id: 'firestation', title: 'Brandschutz',         goal: { type: 'build', building: 'firestation', count: 1 }, reward: { money: 40 } },
   { id: 'scriptorium', title: 'Wissen ist Macht',    goal: { type: 'build', building: 'scriptorium', count: 1 }, reward: { money: 30 } },
@@ -416,6 +421,7 @@ const QUESTS = [
   { id: 'townhall',   title: 'Prestige',             goal: { type: 'build', building: 'townhall', count: 1 },  reward: { money: 150, stone: 50 } },
   { id: 'research4',  title: 'Zeitalter der Gelehrten', goal: { type: 'research', count: 4 },                  reward: { money: 150 } },
   { id: 'money500',   title: 'Volle Stadtkasse',     goal: { type: 'resource', resource: 'money', count: 500 }, reward: { stone: 80 } },
+  { id: 'land5',      title: 'Großgrundbesitz',      goal: { type: 'plots', count: 5 },                        reward: { money: 400 } },
   { id: 'pop101',     title: 'Eine echte Stadt',     goal: { type: 'population', count: 101 },                 reward: { money: 300 } },
   { id: 'hospital',   title: 'Gute Besserung',       goal: { type: 'build', building: 'hospital', count: 1 },  reward: { money: 200 } },
 ];
@@ -447,6 +453,7 @@ const ACHIEVEMENTS = [
   { id: 'landmarks',  icon: '🏛️', name: 'Wahrzeichen',         text: 'Baue alle Sehenswürdigkeiten.',            check: () => Object.keys(BUILDINGS).filter(t => BUILDINGS[t].landmark).every(t => countBuildings(t) > 0) },
   { id: 'allQuests',  icon: '📜', name: 'Auftragsheld',        text: 'Erledige alle Aufträge.',                  check: () => state.questsClaimed.length === QUESTS.length },
   { id: 'streak7',    icon: '📅', name: 'Treue Seele',         text: 'Spiele 7 Tage in Folge.',                  check: () => state.daily.streak >= 7 },
+  { id: 'land20',     icon: '🗺️', name: 'Landesherr',          text: 'Kaufe 20 Flächen dazu.',                   check: () => plotsBought() >= 20 },
   { id: 'warmWinter', icon: '🔥', name: 'Warme Stuben',        text: 'Überstehe einen Winter mit mindestens 50 Einwohnern, ohne dass jemand friert.', check: () => (state.counters.warmWinters || 0) >= 1 },
   { id: 'fullJobs',   icon: '👷', name: 'Vollbeschäftigung',   text: 'Mindestens 50 Einwohner und niemand ist arbeitslos.', check: () => state.population >= 50 && stats.unemployed === 0 },
   { id: 'crafts100',  icon: '🔨', name: 'Meisterhandwerker',   text: 'Stelle insgesamt 100 Bretter, Ziegel oder Brote her.',
@@ -576,6 +583,8 @@ const state = {
   nextEventIn: CONFIG.firstEventSeconds,
   techs: [],         // erforschte Technologien
   research: null,    // laufende Forschung { id, left }
+  plots: [],         // plots[i] = true, wenn die Parzelle gekauft ist
+  plotsGranted: 0,   // geschenkte Flächen (alter Spielstand mit Gebäuden außerhalb) – zählen nicht als gekauft
   dayTime: 0.15,     // Tageszeit 0–1 (0 = Mittag, 0.5 = Mitternacht)
   yearTime: 0,       // Sekunden im laufenden Jahr (Jahreszeit = yearTime / seasonLength)
   coldThisWinter: 0, // Sekunden, in denen im aktuellen Winter gefroren wurde
@@ -608,6 +617,8 @@ function newGame() {
   state.resources = {};
   for (const id in RESOURCES) state.resources[id] = RESOURCES[id].start;
   state.grid = new Array(N * N).fill(null);
+  state.plots = startPlots();
+  state.plotsGranted = 0;
   state.population = 0;
   state.maxLevel = 0;
   state.questsClaimed = [];
@@ -626,6 +637,61 @@ function newGame() {
   state.achievements ||= [];
   state.daily ||= { last: null, streak: 0 };
   notifiedQuests.clear();
+}
+
+// ---------- Land (Parzellen) ----------
+
+const P = N / CONFIG.plotSize;   // Parzellen je Seite
+
+function startPlots() {
+  const plots = new Array(P * P).fill(false);
+  const from = Math.floor((P - CONFIG.startPlots) / 2);
+  for (let py = from; py < from + CONFIG.startPlots; py++) {
+    for (let px = from; px < from + CONFIG.startPlots; px++) plots[py * P + px] = true;
+  }
+  return plots;
+}
+
+function plotOf(x, y) {
+  return Math.floor(y / CONFIG.plotSize) * P + Math.floor(x / CONFIG.plotSize);
+}
+
+function isOwned(x, y) {
+  return x >= 0 && y >= 0 && x < N && y < N && !!state.plots[plotOf(x, y)];
+}
+
+function plotsBought() {
+  return state.plots.filter(Boolean).length - CONFIG.startPlots * CONFIG.startPlots - state.plotsGranted;
+}
+
+function plotPrice() {
+  return { money: Math.round(CONFIG.plotBasePrice * Math.pow(CONFIG.plotPriceGrowth, Math.max(0, plotsBought()))) };
+}
+
+// Kaufbar sind nur Parzellen, die an eigenes Land grenzen
+function canBuyPlot(p) {
+  if (state.plots[p]) return false;
+  const px = p % P, py = Math.floor(p / P);
+  return [[px - 1, py], [px + 1, py], [px, py - 1], [px, py + 1]]
+    .some(([qx, qy]) => qx >= 0 && qy >= 0 && qx < P && qy < P && state.plots[qy * P + qx]);
+}
+
+function buyPlot(p) {
+  if (!canBuyPlot(p)) return;
+  const price = plotPrice();
+  if (!canAfford(price)) {
+    sound.play('error');
+    showToast(`Nicht genug ${missingText(price)} für diese Fläche`);
+    return;
+  }
+  addResources(price, -1);
+  state.plots[p] = true;
+  sound.play('build');
+  showToast('🏞️ Neues Land gekauft!');
+  emit('plotBought', { plot: p });
+  closeInfo();
+  recalcStats();
+  updateUI();
 }
 
 function getCell(x, y) {
@@ -788,6 +854,7 @@ function costOf(type, offset = 0) {
 function placeBuilding(x, y, type) {
   const def = BUILDINGS[type];
   if (getCell(x, y) !== null) return false;
+  if (!isOwned(x, y)) return false;
   if (def.landmark && countBuildings(type) > 0) {
     sound.play('error');
     showToast(`${def.name} gibt es nur einmal`);
@@ -1197,6 +1264,7 @@ function questProgress(quest) {
     case 'research':   current = state.techs.length; break;
     case 'jobs':       current = stats.jobs.assigned[g.job] || 0; break;
     case 'winters':    current = state.counters.winters || 0; break;
+    case 'plots':      current = plotsBought(); break;
   }
   return { current: Math.min(current, g.count), target: g.count, done: current >= g.count };
 }
@@ -1214,6 +1282,7 @@ function goalText(goal) {
     case 'research':   return goal.count === 1 ? 'Erforsche eine Technologie 🔬' : `Erforsche ${goal.count} Technologien 🔬`;
     case 'jobs':       return `Beschäftige ${goal.count} ${JOBS[goal.job].icon} ${JOBS[goal.job].name}`;
     case 'winters':    return goal.count === 1 ? 'Überstehe einen Winter ❄️' : `Überstehe ${goal.count} Winter ❄️`;
+    case 'plots':      return goal.count === 1 ? 'Kaufe eine neue Fläche 🏞️' : `Kaufe ${goal.count} neue Flächen 🏞️`;
   }
   return '';
 }
@@ -1720,6 +1789,8 @@ function buildSaveData() {
     counters: state.counters,
     achievements: state.achievements,
     daily: state.daily,
+    plots: state.plots.map((owned, i) => (owned ? i : -1)).filter(i => i >= 0),
+    plotsGranted: state.plotsGranted,
     buildings,
   };
   return data;
@@ -1754,7 +1825,8 @@ function load() {
     if (typeof data.resources?.[id] === 'number') state.resources[id] = data.resources[id];
   }
   // Spielstand von einer kleineren Karte: Stadt in die Mitte der neuen Karte schieben
-  const offset = Math.max(0, Math.floor((N - (data.gridSize || 16)) / 2));
+  const oldSize = data.gridSize || 16;
+  const offset = Math.max(0, Math.floor((N - oldSize) / 2));
   for (const b of data.buildings || []) {
     b.x += offset;
     b.y += offset;
@@ -1764,6 +1836,15 @@ function load() {
       state.grid[b.y * N + b.x] = cell;
     }
   }
+  // Land: gespeicherte Parzellen (nur bei gleicher Kartengröße), dazu alles, worauf schon gebaut ist
+  const hadPlots = Array.isArray(data.plots) && oldSize === N;
+  if (hadPlots) {
+    for (const p of data.plots) if (p >= 0 && p < P * P) state.plots[p] = true;
+    if (Number.isFinite(data.plotsGranted)) state.plotsGranted = data.plotsGranted;
+  }
+  const ownedBefore = state.plots.filter(Boolean).length;
+  state.grid.forEach((cell, i) => { if (cell) state.plots[plotOf(i % N, Math.floor(i / N))] = true; });
+  state.plotsGranted += state.plots.filter(Boolean).length - ownedBefore;   // geschenkt, nicht gekauft
   if (Array.isArray(data.effects)) {
     state.effects = data.effects.filter(e => EVENTS[e.event] && typeof e.left === 'number');
   }
@@ -1807,6 +1888,7 @@ const view = { x: 0, y: 0, zoom: 1, w: 0, h: 0, dpr: 1 };
 let selectedType = null;   // gewähltes Gebäude in der Bauleiste
 let infoMode = null;       // null | 'tile' | 'city'
 let infoTile = null;       // {x, y} des angezeigten Gebäudes
+let infoPlot = null;       // angezeigte Parzelle (infoMode 'plot')
 let hoverTile = null;      // Maus-Vorschau
 let floaters = [];
 
@@ -1885,32 +1967,31 @@ function render(dt) {
   ctx.fillStyle = groundColor();
   ctx.fillRect(0, 0, N * T, N * T);
 
+  // Nur den sichtbaren Ausschnitt zeichnen (die Karte ist groß)
+  const vis = visibleRange();
+
   // Rasterlinien
   ctx.strokeStyle = 'rgba(0,0,0,0.12)';
   ctx.lineWidth = 1 / view.zoom;
   ctx.beginPath();
-  for (let i = 0; i <= N; i++) {
-    ctx.moveTo(i * T, 0); ctx.lineTo(i * T, N * T);
-    ctx.moveTo(0, i * T); ctx.lineTo(N * T, i * T);
-  }
+  for (let i = vis.x0; i <= vis.x1 + 1; i++) { ctx.moveTo(i * T, vis.y0 * T); ctx.lineTo(i * T, (vis.y1 + 1) * T); }
+  for (let i = vis.y0; i <= vis.y1 + 1; i++) { ctx.moveTo(vis.x0 * T, i * T); ctx.lineTo((vis.x1 + 1) * T, i * T); }
   ctx.stroke();
 
+  drawLand(vis);
   drawServiceAreas();
 
   // Straßen zuerst, damit sie unter allem liegen
-  for (let i = 0; i < state.grid.length; i++) {
-    const cell = state.grid[i];
-    if (cell && BUILDINGS[cell.type].isRoad) drawRoad(i % N, Math.floor(i / N), BUILDINGS[cell.type], 1);
-  }
+  forEachVisible(vis, (cell, x, y) => {
+    if (BUILDINGS[cell.type].isRoad) drawRoad(x, y, BUILDINGS[cell.type], 1);
+  });
   drawWalkers();
 
   // Gebäude
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  for (let i = 0; i < state.grid.length; i++) {
-    const cell = state.grid[i];
-    if (!cell || BUILDINGS[cell.type].isRoad) continue;
-    const x = i % N, y = Math.floor(i / N);
+  forEachVisible(vis, (cell, x, y) => {
+    if (BUILDINGS[cell.type].isRoad) return;
     const active = isActive(x, y);
     const age = (performance.now() - (cell.builtAt || 0)) / 1000;
     const scale = age < 0.35 ? easeOutBack(age / 0.35) : 1;   // Plopp beim Bauen
@@ -1927,7 +2008,7 @@ function render(dt) {
       ctx.font = `${T * 0.3}px ${EMOJI_FONT}`;
       ctx.fillText('⚠️', (x + 0.8) * T, (y + 0.22) * T);
     }
-  }
+  });
 
   drawSmoke();
 
@@ -1936,12 +2017,16 @@ function render(dt) {
   if (dark > 0) {
     ctx.fillStyle = `rgba(10, 20, 55, ${dark})`;
     ctx.fillRect(0, 0, N * T, N * T);
-    drawLights(dark);
+    drawLights(dark, vis);
   }
   if (season().heating && settings.daynight) drawSnow(dt, s);
 
   // Bau-Vorschau unter der Maus
-  if (selectedType && hoverTile && getCell(hoverTile.x, hoverTile.y) === null) {
+  drawPlotPrices(vis);
+
+  if (selectedType && hoverTile && getCell(hoverTile.x, hoverTile.y) === null && !isOwned(hoverTile.x, hoverTile.y)) {
+    outlineTile(hoverTile, '#c0392b');
+  } else if (selectedType && hoverTile && getCell(hoverTile.x, hoverTile.y) === null) {
     const def = BUILDINGS[selectedType];
     if (def.isRoad) drawRoad(hoverTile.x, hoverTile.y, def, 0.5);
     else drawBuilding(hoverTile.x, hoverTile.y, def, 0.5);
@@ -1951,6 +2036,7 @@ function render(dt) {
   }
 
   if (infoTile) outlineTile(infoTile, '#ffd166');
+  if (infoMode === 'plot') outlinePlot(infoPlot);
 
   // Schwebende Ertragsanzeigen
   ctx.font = `bold ${T * 0.3}px system-ui, sans-serif`;
@@ -2027,6 +2113,89 @@ function drawBuilding(x, y, def, alpha, scale = 1) {
   ctx.restore();
 }
 
+// Sichtbarer Kartenausschnitt in Feldern (mit einem Feld Rand)
+function visibleRange() {
+  const left = -view.x / view.zoom / T, top = -view.y / view.zoom / T;
+  return {
+    x0: clamp(Math.floor(left) - 1, 0, N - 1),
+    y0: clamp(Math.floor(top) - 1, 0, N - 1),
+    x1: clamp(Math.ceil(left + view.w / view.zoom / T) + 1, 0, N - 1),
+    y1: clamp(Math.ceil(top + view.h / view.zoom / T) + 1, 0, N - 1),
+  };
+}
+
+function forEachVisible(vis, fn) {
+  for (let y = vis.y0; y <= vis.y1; y++) {
+    for (let x = vis.x0; x <= vis.x1; x++) {
+      const cell = state.grid[y * N + x];
+      if (cell) fn(cell, x, y);
+    }
+  }
+}
+
+// Fremdes Land abdunkeln, Grenzen des eigenen Landes betonen
+function drawLand(vis) {
+  const S = CONFIG.plotSize;
+  const p0x = Math.floor(vis.x0 / S), p1x = Math.floor(vis.x1 / S);
+  const p0y = Math.floor(vis.y0 / S), p1y = Math.floor(vis.y1 / S);
+  ctx.fillStyle = 'rgba(20, 45, 30, 0.45)';
+  for (let py = p0y; py <= p1y; py++) {
+    for (let px = p0x; px <= p1x; px++) {
+      if (!state.plots[py * P + px]) ctx.fillRect(px * S * T, py * S * T, S * T, S * T);
+    }
+  }
+  // Grenzlinie zwischen eigenem und fremdem Land
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+  ctx.lineWidth = 2 / view.zoom;
+  ctx.setLineDash([8 / view.zoom, 6 / view.zoom]);
+  ctx.beginPath();
+  for (let py = p0y; py <= p1y; py++) {
+    for (let px = p0x; px <= p1x; px++) {
+      if (!state.plots[py * P + px]) continue;
+      const owned = (qx, qy) => qx >= 0 && qy >= 0 && qx < P && qy < P && state.plots[qy * P + qx];
+      const X = px * S * T, Y = py * S * T, L = S * T;
+      if (!owned(px, py - 1)) { ctx.moveTo(X, Y); ctx.lineTo(X + L, Y); }
+      if (!owned(px, py + 1)) { ctx.moveTo(X, Y + L); ctx.lineTo(X + L, Y + L); }
+      if (!owned(px - 1, py)) { ctx.moveTo(X, Y); ctx.lineTo(X, Y + L); }
+      if (!owned(px + 1, py)) { ctx.moveTo(X + L, Y); ctx.lineTo(X + L, Y + L); }
+    }
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// Preisschild auf allen kaufbaren Parzellen im Bild
+function drawPlotPrices(vis) {
+  const S = CONFIG.plotSize;
+  const price = plotPrice().money;
+  const affordable = state.resources.money >= price;
+  const size = Math.max(T * 0.7, 14 / view.zoom);   // auch weit herausgezoomt lesbar
+  ctx.font = `bold ${size}px system-ui, ${EMOJI_FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (let py = Math.floor(vis.y0 / S); py <= Math.floor(vis.y1 / S); py++) {
+    for (let px = Math.floor(vis.x0 / S); px <= Math.floor(vis.x1 / S); px++) {
+      const p = py * P + px;
+      if (!canBuyPlot(p)) continue;
+      const cx = (px + 0.5) * S * T, cy = (py + 0.5) * S * T;
+      const text = `🏷️ ${formatNumber(price)}`;
+      const w = ctx.measureText(text).width + size;
+      ctx.fillStyle = affordable ? 'rgba(45, 106, 79, 0.9)' : 'rgba(0, 0, 0, 0.55)';
+      roundRect(cx - w / 2, cy - size * 0.8, w, size * 1.6, size * 0.5);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillText(text, cx, cy);
+    }
+  }
+}
+
+function outlinePlot(p) {
+  const S = CONFIG.plotSize;
+  ctx.strokeStyle = '#ffd166';
+  ctx.lineWidth = 3 / view.zoom;
+  ctx.strokeRect((p % P) * S * T, Math.floor(p / P) * S * T, S * T, S * T);
+}
+
 // Bodenfarbe der Jahreszeit, in den letzten 20 Sekunden fließender Übergang zur nächsten
 function hexToRgb(hex) {
   const n = parseInt(hex.slice(1), 16);
@@ -2085,14 +2254,12 @@ function glow(cx, cy, r, color) {
   ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
 }
 
-function drawLights(dark) {
+function drawLights(dark, vis) {
   const k = dark / CONFIG.nightDarkness;   // 0…1
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  state.grid.forEach((cell, i) => {
-    if (!cell) return;
+  forEachVisible(vis, (cell, x, y) => {
     const def = BUILDINGS[cell.type];
-    const x = i % N, y = Math.floor(i / N);
     const cx = (x + 0.5) * T, cy = (y + 0.5) * T;
     if (cell.fire) {
       glow(cx, cy, T * 1.4, `rgba(255, 110, 30, ${0.8 * k})`);
@@ -2419,6 +2586,10 @@ function handleTap(sx, sy) {
   const cell = getCell(x, y);
   if (cell) {
     showInfo(x, y);
+    return;
+  }
+  if (cell === null && !isOwned(x, y)) {
+    showPlotInfo(plotOf(x, y));
     return;
   }
   closePanels();
@@ -2759,7 +2930,8 @@ function buildUI() {
     if (infoTile) demolish(infoTile.x, infoTile.y);
   });
   document.getElementById('info-action').addEventListener('click', () => {
-    if (infoTile) extinguish(infoTile.x, infoTile.y);
+    if (infoMode === 'plot') buyPlot(infoPlot);
+    else if (infoTile) extinguish(infoTile.x, infoTile.y);
   });
   document.getElementById('btn-settings').addEventListener('click', () => {
     if (settingsEl.classList.contains('hidden')) showSettings();
@@ -3041,7 +3213,40 @@ function showCityInfo() {
 
 function renderInfo() {
   if (infoMode === 'city') renderCityInfo();
+  else if (infoMode === 'plot') renderPlotInfo();
   else renderTileInfo();
+}
+
+function showPlotInfo(p) {
+  closeQuests();
+  closeResearch();
+  closeSettings();
+  infoMode = 'plot';
+  infoTile = null;
+  infoPlot = p;
+  clearInfoExtra();
+  infoEl.classList.remove('hidden');
+  renderInfo();
+}
+
+function renderPlotInfo() {
+  const buyable = canBuyPlot(infoPlot);
+  const price = plotPrice();
+  const lines = [
+    `Unbebautes Land – ${CONFIG.plotSize} × ${CONFIG.plotSize} Felder.`,
+    buyable
+      ? `Kaufe diese Fläche, um darauf zu bauen. Jede weitere Fläche wird teurer.`
+      : 'Diese Fläche grenzt noch nicht an dein Land. Kaufe zuerst eine Fläche dazwischen.',
+    `Dein Land: ${state.plots.filter(Boolean).length} von ${P * P} Flächen.`,
+  ];
+  document.getElementById('info-icon').textContent = '🏞️';
+  document.getElementById('info-name').textContent = 'Freie Fläche';
+  document.getElementById('info-text').textContent = lines.join('\n');
+  document.getElementById('info-demolish').classList.add('hidden');
+  const btn = document.getElementById('info-action');
+  btn.classList.toggle('hidden', !buyable);
+  btn.textContent = `🏷️ Kaufen für ${formatAmounts(price)}`;
+  btn.classList.toggle('unaffordable', !canAfford(price));
 }
 
 function renderTileInfo() {
@@ -3105,6 +3310,7 @@ function renderTileInfo() {
   }
   const actionBtn = document.getElementById('info-action');
   actionBtn.classList.toggle('hidden', !cell.fire || cell.fire.brigade);
+  actionBtn.classList.remove('unaffordable');
   actionBtn.textContent = `💧 Löschen (${formatAmounts(CONFIG.extinguishCost)})`;
   const refund = {};
   for (const [id, n] of Object.entries(costOf(cell.type, -1))) refund[id] = Math.floor(n * CONFIG.refundRate);
@@ -3124,6 +3330,7 @@ function renderCityInfo() {
     `Einwohner: 👥 ${state.population} von ${stats.capacity} Wohnplätzen`,
     next ? `Nächste Stufe: ${next.icon} ${next.name} ab ${next.minPop} Einwohnern` : 'Höchste Stufe erreicht',
     `Nahrungsverbrauch: 🍞 ${consumption} pro Sekunde`,
+    `Land: ${state.plots.filter(Boolean).length} von ${P * P} Flächen · nächste Fläche ${formatAmounts(plotPrice())}`,
     `Jahreszeit: ${season().icon} ${season().name} – noch ${formatClock(seasonLeft())} · Ernte ${Math.round((season().production.farm ?? 1) * 100)} %` +
       (season().heating ? ` · Heizen: 🪵 ${formatNumber(heatingRate())} pro Sekunde` : ''),
     `Danach: ${SEASONS[(seasonIndex() + 1) % SEASONS.length].icon} ${SEASONS[(seasonIndex() + 1) % SEASONS.length].name}` +

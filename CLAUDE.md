@@ -21,6 +21,17 @@ Spieler haben echte Spielstände im localStorage (`stadtaufbau-save-1/2/3`). Än
 Speicherformat müssen alte Stände weiter laden (Test „Alte Spielstände“). Gebäude-IDs in
 `BUILDINGS` nie umbenennen oder löschen.
 
+## Fehler und Wünsche von Emin (`docs/wuensche.md`)
+
+Emin trägt dort selbst Fehler und Wünsche ein. **Diese Liste hat Vorrang vor allem anderen** –
+zuerst lesen, dann abarbeiten:
+- **Fehler:** beheben.
+- **Wünsche:** umsetzen, wenn sie klar beschrieben und überschaubar sind (Emin hat sie ausdrücklich
+  gewünscht, die Einschränkungen unten für eigene Ideen gelten hier nicht). Nur bei großen Umbauten
+  (mehr als etwa 300 Zeilen) oder unklarer Beschreibung: stehen lassen und darunter mit „→ Frage:“
+  notieren, was unklar ist bzw. dass es in einer Sitzung mit Emin gebaut wird.
+- Erledigte Punkte nach „Erledigt“ verschieben, mit Datum, Version und einem Halbsatz, was gemacht wurde.
+
 ## Täglicher Agent (automatischer Lauf)
 
 Erlaubt ohne Rückfrage:

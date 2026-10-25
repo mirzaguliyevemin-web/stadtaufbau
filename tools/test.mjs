@@ -176,6 +176,31 @@ test('Gelände: Wald, Berge, Seen mit Spielwirkung', () => {
   return `Wald ${o.amounts.forest}, Berg ${o.amounts.rock}, Wasser ${o.amounts.water} Felder`;
 });
 
+test('Brücke und Fischerhütte', () => {
+  const game = fresh({ seed: 10 });
+  const r = game.run(`
+    state.plots.fill(true);
+    Object.assign(state.resources, { money: 9999, wood: 900, stone: 900 });
+    state.terrain.fill(TERRAIN_ID.grass);
+    for (let y = 30; y < 34; y++) for (let x = 20; x < 30; x++) state.terrain[y * N + x] = TERRAIN_ID.water;
+    for (let y = 26; y < 38; y++) placeBuilding(24, y, 'road');          // Straße quer über den See
+    const bridges = [30, 31, 32, 33].filter(y => getCell(24, y)?.type === 'bridge').length;
+    const bridgeOnLand = placeBuilding(26, 26, 'bridge');
+    const fishFar = placeBuilding(27, 26, 'fishery');                    // zu weit vom Wasser
+    const fishOk = placeBuilding(26, 29, 'fishery');
+    placeBuilding(26, 28, 'road');
+    save();
+    JSON.stringify({ bridges, bridgeOnLand, fishFar, fishOk, active: isActive(24, 31) })
+  `);
+  noErrors(game, 'bei Brücke/Fischerhütte');
+  assert(r === '{"bridges":4,"bridgeOnLand":false,"fishFar":false,"fishOk":true,"active":true}', r);
+  const b = fresh({ storage: game.storage, seed: 11 });
+  const after = b.run(`JSON.stringify({ bridge: getCell(24, 31)?.type, water: terrainAt(24, 31) === TERRAIN_ID.water })`);
+  noErrors(b, 'beim Laden mit Brücke');
+  assert(after === '{"bridge":"bridge","water":true}', 'nach dem Laden: ' + after);
+  return 'ok';
+});
+
 test('Meldungen schließen sich selbst', () => {
   const game = fresh({ seed: 6 });
   const r = game.run(`

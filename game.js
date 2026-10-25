@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 39;
+const APP_VERSION = 40;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -47,7 +47,7 @@ const CONFIG = {
   fireBrigadeSeconds: 3,  // so schnell löscht eine Feuerwache in Reichweite
   extinguishCost: { money: 30 },
   dayLength: 240,         // Sekunden für einen ganzen Tag (Tag + Nacht)
-  nightDarkness: 0.6,     // wie dunkel es nachts wird (0–1)
+  nightDarkness: 0.5,     // wie dunkel es nachts wird (0–1)
   maxWalkers: 40,         // höchstens so viele Spaziergänger auf den Straßen
   baseStorage: 100,       // Lagerplatz für Holz, Stein und Nahrung ohne Lagerhaus
   niceHouseBonus: 2,      // Extra-Wohnplätze für Häuser direkt neben Park/Brunnen/Brunnenplatz
@@ -88,7 +88,7 @@ const SEASONS = [
   { id: 'spring', name: 'Frühling', icon: '🌸', ground: '#74c69d', production: { farm: 1 },    happiness: 3 },
   { id: 'summer', name: 'Sommer',   icon: '☀️', ground: '#95c97a', production: { farm: 1.25 } },
   { id: 'autumn', name: 'Herbst',   icon: '🍂', ground: '#c2b46a', production: { farm: 1.5 } },
-  { id: 'winter', name: 'Winter',   icon: '❄️', ground: '#e4edf1', production: { farm: 0.3 },  heating: true },
+  { id: 'winter', name: 'Winter',   icon: '❄️', ground: '#e4edf1', production: { farm: 0.3, fishery: 0.5 },  heating: true },
 ];
 
 // Gelände. blocks: darauf kann nicht gebaut werden  | clearYield: Ertrag, wenn das Feld beim Bauen gerodet wird
@@ -109,6 +109,7 @@ const TERRAIN_BONUS = {
   sawmill: { terrain: 'forest', radius: 2, perTile: 0.05, max: 0.5, label: 'Waldnähe' },
   quarry:  { terrain: 'rock',   radius: 2, perTile: 0.06, max: 0.6, label: 'Bergnähe' },
   farm:    { terrain: 'water',  radius: 2, flat: 0.25, label: 'Bewässerung' },
+  fishery: { terrain: 'water',  radius: 2, perTile: 0.03, max: 0.45, label: 'Großes Gewässer' },
 };
 
 // Ressourcen. stored: unterliegt der Lagergrenze  | price: Grundpreis pro Einheit am Markt
@@ -223,6 +224,16 @@ const BUILDINGS = {
     dragBuild: true,
     category: 'housing',
   },
+  bridge: {
+    name: 'Brücke', icon: '🌉', color: '#a47148',
+    description: 'Straße über das Wasser. Wird auch automatisch gebaut, wenn du eine Straße über einen See ziehst.',
+    cost: { money: 20, wood: 10 },
+    fixedCost: true,
+    isRoad: true,
+    onTerrain: 'water',   // nur auf Wasser
+    dragBuild: true,
+    category: 'housing',
+  },
   house: {
     name: 'Haus', icon: '🏠', color: '#e9c46a',
     description: 'Wohnraum für Einwohner. Sie ziehen ein, wenn sie zufrieden sind.',
@@ -254,6 +265,17 @@ const BUILDINGS = {
     jobs: { worker: 2 },
     category: 'resources',
     size: [2, 1],
+  },
+  fishery: {
+    name: 'Fischerhütte', icon: '🎣', color: '#8ecae6',
+    description: 'Fängt Fisch als Nahrung. Muss direkt am Wasser stehen; im Winter wird weniger gefangen.',
+    cost: { money: 40, wood: 15 },
+    interval: 8,
+    produces: { food: 3 },
+    needsRoad: true,
+    needsWater: 2,        // so viele Wasserfelder direkt daneben (auch schräg)
+    jobs: { worker: 2 },
+    category: 'resources',
   },
   quarry: {
     name: 'Steinbruch', icon: '⛏️', color: '#adb5bd',
@@ -470,6 +492,8 @@ const BUILDINGS = {
     size: [3, 3],
   },
 };
+
+for (const id in BUILDINGS) BUILDINGS[id].id = id;
 
 // Aufträge – werden der Reihe nach freigegeben. Neue einfach anhängen.
 //   goal.type: build (Gebäude stehen) | population | happiness | resource (vorrätig) | produced (insgesamt erzeugt) | research (erforschte Technologien) | jobs (beschäftigte im Beruf goal.job) | winters (überstandene Winter)
@@ -875,7 +899,26 @@ function getCell(x, y) {
 
 // Passt ein Gebäude mit der Ecke auf (x, y)? Alle Felder müssen frei und eigenes Land sein
 function canPlaceAt(type, x, y) {
-  return canPlaceSize(x, y, ...placementSize(type));
+  const def = BUILDINGS[type];
+  const [w, h] = placementSize(type);
+  if (def.onTerrain) return canPlaceOnTerrain(x, y, w, h, def.onTerrain);
+  if (!canPlaceSize(x, y, w, h)) return false;
+  return !def.needsWater || waterNextTo(x, y, w, h) >= def.needsWater;
+}
+
+// Brücken: alle Felder frei, eigenes Land und vom passenden Gelände
+function canPlaceOnTerrain(x, y, w, h, terrain) {
+  for (let dy = 0; dy < h; dy++) {
+    for (let dx = 0; dx < w; dx++) {
+      if (anchorAt(x + dx, y + dy) !== -1 || !isOwned(x + dx, y + dy) || terrainAt(x + dx, y + dy) !== TERRAIN_ID[terrain]) return false;
+    }
+  }
+  return true;
+}
+
+// Wasserfelder direkt um die Fläche (auch schräg)
+function waterNextTo(x, y, w, h) {
+  return countTerrainNear(x, y, w, h, 'water', 1);
 }
 
 // Ist die Fläche frei und eigenes Land? ignore: Gebäude-Ecke, deren eigene Felder als frei zählen (Drehen, Verschieben)
@@ -1025,9 +1068,9 @@ function loadTerrain(data, sameSize) {
   } else {
     for (let i = 0; i < N * N; i++) if (state.plots[plotOf(i % N, Math.floor(i / N))]) state.terrain[i] = TERRAIN_ID.grass;
   }
-  // Unter Gebäuden ist immer Wiese
+  // Unter Gebäuden ist immer Wiese (außer unter Brücken)
   state.grid.forEach((cell, i) => {
-    if (!cell) return;
+    if (!cell || BUILDINGS[cell.type].onTerrain) return;
     const [w, h] = sizeOf(cell);
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) state.terrain[(Math.floor(i / N) + dy) * N + i % N + dx] = TERRAIN_ID.grass;
   });
@@ -1103,6 +1146,12 @@ function moveBuildingTo(x, y) {
   if (!canPlaceSize(x, y, w, h, from)) {
     sound.play('error');
     showToast('Hier ist kein Platz (belegt, Berg/See oder fremdes Land)');
+    return;
+  }
+  const needsWater = BUILDINGS[cell.type].needsWater;
+  if (needsWater && waterNextTo(x, y, w, h) < needsWater) {
+    sound.play('error');
+    showToast(`${BUILDINGS[cell.type].icon} ${BUILDINGS[cell.type].name} muss direkt am Wasser stehen`);
     return;
   }
   const [ow, oh] = sizeOf(cell);
@@ -1375,6 +1424,8 @@ function costOf(type, offset = 0) {
 
 // Gibt zurück, ob gebaut wurde
 function placeBuilding(x, y, type) {
+  // Straße übers Wasser wird zur Brücke
+  if (type === 'road' && x >= 0 && y >= 0 && x < N && y < N && terrainAt(x, y) === TERRAIN_ID.water && isUnlocked('bridge')) type = 'bridge';
   const def = BUILDINGS[type];
   if (getCell(x, y) !== null) return false;
   if (!isOwned(x, y)) return false;
@@ -1385,7 +1436,9 @@ function placeBuilding(x, y, type) {
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) {
       if (x + dx < N && y + dy < N && terrainBlocked(x + dx, y + dy)) onTerrain = true;
     }
-    showToast(onTerrain
+    if (def.onTerrain) showToast(`${def.icon} ${def.name} geht nur auf Wasser`);
+    else if (def.needsWater && canPlaceSize(x, y, w, h)) showToast(`${def.icon} ${def.name} muss direkt am Wasser stehen`);
+    else showToast(onTerrain
       ? '⛰️ Auf Bergen und Seen kann man nicht bauen'
       : `Kein Platz: ${def.name} braucht ${w}×${h} freie Felder auf eigenem Land`);
     return false;
@@ -3172,7 +3225,8 @@ function render(dt) {
 
   // Straßen zuerst, damit sie unter allem liegen
   forEachVisible(vis, (cell, x, y) => {
-    if (BUILDINGS[cell.type].isRoad) drawRoad(x, y, BUILDINGS[cell.type], 1);
+    if (BUILDINGS[cell.type].onTerrain) drawBridge(x, y, 1);
+    else if (BUILDINGS[cell.type].isRoad) drawRoad(x, y, BUILDINGS[cell.type], 1);
     else if (BUILDINGS[cell.type].isWall) drawWall(x, y, 1);
   });
   drawWalkers();
@@ -3187,7 +3241,7 @@ function render(dt) {
     const age = (performance.now() - (cell.builtAt || 0)) / 1000;
     const scale = age < 0.35 ? easeOutBack(age / 0.35) : 1;   // Plopp beim Bauen
     const moving = moveMode && moveMode.from === y * N + x;
-    drawBuilding(x, y, BUILDINGS[cell.type], moving ? 0.35 : active || cell.fire ? 1 : 0.55, scale, w, h);
+    drawBuilding(x, y, BUILDINGS[cell.type], moving ? 0.35 : active || cell.fire ? 1 : 0.55, scale, w, h, cell);
     if (moving) outlineRect(x, y, w, h, '#ffd166');
     const mx = (x + w - 0.2) * T, my = (y + 0.22) * T;      // Ecke oben rechts für Hinweise
     if (cell.fire) {
@@ -3244,15 +3298,17 @@ function render(dt) {
     if (canPlaceSize(hoverTile.x, hoverTile.y, w, h, moveMode.from)) drawBuilding(hoverTile.x, hoverTile.y, BUILDINGS[state.grid[moveMode.from].type], 0.55, 1, w, h);
     else outlineRect(hoverTile.x, hoverTile.y, w, h, '#c0392b');
   } else if (selectedType && hoverTile && getCell(hoverTile.x, hoverTile.y) === null) {
-    const def = BUILDINGS[selectedType];
-    const [w, h] = placementSize(selectedType);
-    if (!canPlaceAt(selectedType, hoverTile.x, hoverTile.y)) {
+    const previewType = selectedType === 'road' && terrainAt(hoverTile.x, hoverTile.y) === TERRAIN_ID.water && isUnlocked('bridge') ? 'bridge' : selectedType;
+    const def = BUILDINGS[previewType];
+    const [w, h] = placementSize(previewType);
+    if (!canPlaceAt(previewType, hoverTile.x, hoverTile.y)) {
       outlineRect(hoverTile.x, hoverTile.y, w, h, '#c0392b');
     } else {
-      if (def.isRoad) drawRoad(hoverTile.x, hoverTile.y, def, 0.5);
+      if (def.onTerrain) drawBridge(hoverTile.x, hoverTile.y, 0.5);
+      else if (def.isRoad) drawRoad(hoverTile.x, hoverTile.y, def, 0.5);
       else if (def.isWall) drawWall(hoverTile.x, hoverTile.y, 0.5);
       else drawBuilding(hoverTile.x, hoverTile.y, def, 0.5, 1, w, h);
-      if (!canAfford(costOf(selectedType))) outlineRect(hoverTile.x, hoverTile.y, w, h, '#c0392b');
+      if (!canAfford(costOf(previewType))) outlineRect(hoverTile.x, hoverTile.y, w, h, '#c0392b');
       const tb = terrainBonusOf(selectedType, hoverTile.x, hoverTile.y, w, h);
       if (tb) drawTag(`+${Math.round(tb * 100)} %`, (hoverTile.x + w / 2) * T, (hoverTile.y - 0.25) * T);
     }
@@ -3475,7 +3531,7 @@ function drawArea(x, y, r, color, w = 1, h = 1) {
 
 const EMOJI_FONT = 'system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
 
-function drawBuilding(x, y, def, alpha, scale = 1, w = 1, h = 1) {
+function drawBuilding(x, y, def, alpha, scale = 1, w = 1, h = 1, cell = null) {
   const pad = T * 0.06;
   const cx = (x + w / 2) * T, cy = (y + h / 2) * T;
   ctx.save();
@@ -3485,6 +3541,12 @@ function drawBuilding(x, y, def, alpha, scale = 1, w = 1, h = 1) {
     ctx.translate(-cx, -cy);
   }
   ctx.globalAlpha = alpha;
+  const sprite = SPRITES[def.id];
+  if (sprite) {
+    sprite(x * T, y * T, w * T, h * T, x, y, cell);
+    ctx.restore();
+    return;
+  }
   ctx.fillStyle = def.color;
   roundRect(x * T + pad, y * T + pad, w * T - pad * 2, h * T - pad * 2, T * 0.15);
   ctx.fill();
@@ -3500,6 +3562,528 @@ function drawBuilding(x, y, def, alpha, scale = 1, w = 1, h = 1) {
   ctx.font = `${T * 0.6 * iconScale}px ${EMOJI_FONT}`;
   ctx.fillText(def.icon, cx, cy + T * 0.04 * Math.min(w, h));
   ctx.restore();
+}
+
+// ---------- Gebäudegrafik ----------
+// Jedes Gebäude wird als kleine Zeichnung in Schrägansicht gemalt: Dach oben, Vorderwand unten, Schatten nach rechts unten.
+// Koordinaten in Weltpixeln: X, Y = linke obere Ecke, W, H = Breite und Höhe der Fläche.
+
+const ROOF_COLORS = [['#c8553d', '#e07a5f'], ['#9c4a3a', '#bd5d4a'], ['#7f5539', '#9c6644'], ['#5e6472', '#7a8191'], ['#b5651d', '#d4843a']];
+const WALL_COLORS = ['#f4e3c1', '#efe0c8', '#e8d5b7', '#f2e8cf', '#ead7c3'];
+
+function shade(hex, f) {
+  const [r, g, b] = hexToRgb(hex);
+  const m = v => clamp(Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f), 0, 255);
+  return `rgb(${m(r)}, ${m(g)}, ${m(b)})`;
+}
+
+function sprShadow(X, Y, W, H, r = T * 0.12) {
+  ctx.fillStyle = 'rgba(20, 30, 20, 0.25)';
+  roundRect(X + T * 0.12, Y + T * 0.16, W - T * 0.08, H - T * 0.1, r);
+  ctx.fill();
+}
+
+function sprGround(X, Y, W, H, color, r = T * 0.1) {
+  ctx.fillStyle = color;
+  roundRect(X + T * 0.04, Y + T * 0.04, W - T * 0.08, H - T * 0.08, r);
+  ctx.fill();
+}
+
+// Haus in Schrägansicht: o = { roof: [dunkel, hell], wall, windows, door, chimney, wallRatio, floors }
+function sprHouse(X, Y, W, H, o) {
+  const x0 = X + (o.inset ?? T * 0.1), x1 = X + W - (o.inset ?? T * 0.1);
+  const y0 = Y + (o.insetTop ?? T * 0.1), y1 = Y + H - T * 0.08;
+  const wallH = (y1 - y0) * (o.wallRatio ?? 0.36);
+  const eave = y1 - wallH;
+  const over = T * 0.05;
+  sprShadow(x0 - T * 0.06, y0 - T * 0.06, x1 - x0 + T * 0.12, y1 - y0 + T * 0.08, T * 0.06);
+  // Vorderwand
+  ctx.fillStyle = o.wall;
+  ctx.fillRect(x0, eave - T * 0.02, x1 - x0, wallH + T * 0.02);
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  ctx.fillRect(x0, y1 - T * 0.04, x1 - x0, T * 0.04);
+  // Fenster und Tür
+  const floors = o.floors || 1;
+  const winW = Math.min(T * 0.16, (x1 - x0) / 6), winH = Math.min(T * 0.14, wallH / (floors + 1.2));
+  const doorW = T * 0.14, doorX = x0 + (x1 - x0) * (o.doorAt ?? 0.5) - doorW / 2;
+  const windows = o.windows ?? 2;
+  for (let f = 0; f < floors; f++) {
+    const wy = eave + wallH * (floors === 1 ? 0.28 : 0.14 + f * 0.42);
+    for (let n = 0; n < windows; n++) {
+      const wx = x0 + (x1 - x0) * ((n + 0.5) / windows) - winW / 2;
+      if (f === floors - 1 && o.door !== false && Math.abs(wx + winW / 2 - (doorX + doorW / 2)) < doorW) continue;
+      ctx.fillStyle = '#5b4636';
+      ctx.fillRect(wx - T * 0.015, wy - T * 0.015, winW + T * 0.03, winH + T * 0.03);
+      ctx.fillStyle = o.windowColor || '#a9d6e5';
+      ctx.fillRect(wx, wy, winW, winH);
+    }
+  }
+  if (o.door !== false) {
+    ctx.fillStyle = o.doorColor || '#6b4226';
+    ctx.beginPath();
+    const dy = y1 - T * 0.04, dh = Math.min(wallH * 0.62, T * 0.22);
+    ctx.moveTo(doorX, dy);
+    ctx.lineTo(doorX, dy - dh + doorW / 2);
+    ctx.arc(doorX + doorW / 2, dy - dh + doorW / 2, doorW / 2, Math.PI, 0);
+    ctx.lineTo(doorX + doorW, dy);
+    ctx.fill();
+  }
+  // Dach: hintere Fläche hell (Sonne), vordere dunkler, First dazwischen
+  const ridge = y0 + (eave - y0) * 0.42;
+  const winter = season().id === 'winter';   // Schnee auf den Dächern
+  const dark = winter ? shade(o.roof[0], 0.55) : o.roof[0], light = winter ? '#f4f7f9' : o.roof[1];
+  ctx.fillStyle = light;
+  if (o.hip) {
+    ctx.beginPath();
+    ctx.moveTo(x0 - over, ridge); ctx.lineTo(x0 + (x1 - x0) * 0.2, y0); ctx.lineTo(x1 - (x1 - x0) * 0.2, y0); ctx.lineTo(x1 + over, ridge);
+    ctx.fill();
+  } else {
+    ctx.fillRect(x0 - over, y0, x1 - x0 + over * 2, ridge - y0);
+  }
+  ctx.fillStyle = dark;
+  ctx.fillRect(x0 - over, ridge, x1 - x0 + over * 2, eave - ridge + over);
+  if (view.zoom > 0.6) {   // Dachziegel-Linien
+    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+    ctx.lineWidth = T * 0.015;
+    ctx.beginPath();
+    for (let ly = ridge + T * 0.07; ly < eave + over; ly += T * 0.07) { ctx.moveTo(x0 - over, ly); ctx.lineTo(x1 + over, ly); }
+    ctx.stroke();
+  }
+  ctx.fillStyle = shade(dark, -0.25);
+  ctx.fillRect(x0 - over, ridge - T * 0.015, x1 - x0 + over * 2, T * 0.03);
+  if (o.chimney) {
+    const cx = x0 + (x1 - x0) * (o.chimney === true ? 0.72 : o.chimney);
+    ctx.fillStyle = '#8d6e63';
+    ctx.fillRect(cx, y0 + (ridge - y0) * 0.15, T * 0.1, (ridge - y0) * 0.75);
+    ctx.fillStyle = '#5d4037';
+    ctx.fillRect(cx - T * 0.01, y0 + (ridge - y0) * 0.1, T * 0.12, T * 0.03);
+  }
+  return { x0, x1, y0, y1, eave, ridge };
+}
+
+function sprTree(cx, cy, r, color) {
+  ctx.fillStyle = 'rgba(20,30,20,0.25)';
+  ctx.beginPath(); ctx.ellipse(cx + r * 0.3, cy + r * 0.6, r * 0.9, r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.beginPath(); ctx.arc(cx - r * 0.3, cy - r * 0.3, r * 0.45, 0, Math.PI * 2); ctx.fill();
+}
+
+function sprFlag(x, y, color) {
+  ctx.fillStyle = '#5d4037';
+  ctx.fillRect(x, y, T * 0.025, T * 0.3);
+  ctx.fillStyle = color;
+  const wave = Math.sin(performance.now() / 300 + x) * T * 0.02;
+  ctx.beginPath(); ctx.moveTo(x + T * 0.025, y); ctx.lineTo(x + T * 0.2, y + T * 0.05 + wave); ctx.lineTo(x + T * 0.025, y + T * 0.11); ctx.fill();
+}
+
+function treeColor(x, y) {
+  return TREE_COLORS[season().id][Math.floor(tileHash(x, y, 21) * TREE_COLORS[season().id].length)];
+}
+
+const CROP_COLORS = {
+  spring: { soil: '#8b6b4a', crop: '#7fb069' },
+  summer: { soil: '#9c7b55', crop: '#b5c94a' },
+  autumn: { soil: '#8b6b4a', crop: '#e9c46a' },
+  winter: { soil: '#d9d4cc', crop: '#bfb6a8' },
+};
+
+// Zeichnung je Gebäudeart: (X, Y, W, H, x, y, cell) – cell kann fehlen (Bauvorschau)
+const SPRITES = {
+  house(X, Y, W, H, x, y, cell) {
+    const lvl = cell ? levelOf(cell) : 1;
+    const h = tileHash(x, y, 4);
+    sprHouse(X, Y, W, H, {
+      roof: ROOF_COLORS[Math.floor(h * ROOF_COLORS.length)],
+      wall: WALL_COLORS[Math.floor(tileHash(x, y, 5) * WALL_COLORS.length)],
+      inset: T * (lvl === 1 ? 0.16 : 0.08), insetTop: T * (lvl === 1 ? 0.18 : 0.08),
+      floors: lvl >= 3 ? 2 : 1, wallRatio: lvl >= 3 ? 0.48 : 0.38,
+      windows: lvl === 1 ? 2 : 3, chimney: h < 0.5 ? 0.22 : true, doorAt: h < 0.5 ? 0.62 : 0.4,
+    });
+  },
+  farm(X, Y, W, H, x, y) {
+    const c = CROP_COLORS[season().id];
+    sprGround(X, Y, W, H, c.soil, T * 0.06);
+    // Ackerreihen
+    ctx.fillStyle = c.crop;
+    const rowsY = Y + T * 0.12;
+    for (let ry = rowsY; ry < Y + H - T * 0.12; ry += T * 0.16) ctx.fillRect(X + T * 1.0, ry, W - T * 1.12, T * 0.09);
+    for (let ry = Y + T * 1.0; ry < Y + H - T * 0.12; ry += T * 0.16) ctx.fillRect(X + T * 0.12, ry, T * 0.86, T * 0.09);
+    // Zaun
+    ctx.strokeStyle = '#7f5539';
+    ctx.lineWidth = T * 0.03;
+    roundRect(X + T * 0.06, Y + T * 0.06, W - T * 0.12, H - T * 0.12, T * 0.05);
+    ctx.stroke();
+    // Scheune oben links
+    sprHouse(X + T * 0.04, Y + T * 0.02, T * 0.96, T * 0.96, { roof: ['#8d2f23', '#ad3e2f'], wall: '#b23a2e', windows: 0, doorColor: '#f1e3c8', inset: T * 0.1 });
+  },
+  sawmill(X, Y, W, H, x, y) {
+    sprGround(X, Y, W, H, '#d9c4a0');
+    sprHouse(X, Y, T * 1.05, H, { roof: ['#6f4e37', '#8b6748'], wall: '#b08968', windows: 1, inset: T * 0.1, doorAt: 0.35 });
+    // Stammstapel
+    for (let row = 0; row < 2; row++) {
+      for (let n = 0; n < 3 - row; n++) {
+        const cx = X + T * (1.3 + n * 0.22 + row * 0.11), cy = Y + H - T * (0.28 + row * 0.19);
+        ctx.fillStyle = '#7f5539';
+        ctx.beginPath(); ctx.arc(cx, cy, T * 0.11, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ddb892';
+        ctx.beginPath(); ctx.arc(cx, cy, T * 0.075, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#b08968'; ctx.lineWidth = T * 0.012;
+        ctx.beginPath(); ctx.arc(cx, cy, T * 0.04, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    ctx.fillStyle = '#9c6644';
+    ctx.fillRect(X + T * 1.15, Y + T * 0.16, T * 0.75, T * 0.12);
+  },
+  quarry(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#c2bbb0');
+    const terr = ['#a8a196', '#8f887d', '#767064'];
+    terr.forEach((col, n) => {
+      ctx.fillStyle = col;
+      const i = T * (0.2 + n * 0.22);
+      roundRect(X + i, Y + i, W - i * 2, H - i * 2, T * 0.2);
+      ctx.fill();
+    });
+    // Steinblöcke und Lore
+    ctx.fillStyle = '#d6d2cb';
+    [[0.25, 0.25], [1.5, 0.3], [0.3, 1.55]].forEach(([bx, by]) => ctx.fillRect(X + bx * T, Y + by * T, T * 0.22, T * 0.16));
+    ctx.fillStyle = '#6b4226';
+    ctx.fillRect(X + T * 1.35, Y + T * 1.5, T * 0.36, T * 0.2);
+    ctx.fillStyle = '#9c958a';
+    ctx.fillRect(X + T * 1.39, Y + T * 1.45, T * 0.28, T * 0.08);
+    ctx.fillStyle = '#333';
+    ctx.beginPath(); ctx.arc(X + T * 1.42, Y + T * 1.72, T * 0.04, 0, Math.PI * 2); ctx.arc(X + T * 1.64, Y + T * 1.72, T * 0.04, 0, Math.PI * 2); ctx.fill();
+  },
+  market(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#ddd3c6');
+    const awnings = [['#e63946', '#fff'], ['#457b9d', '#fff'], ['#f4a261', '#fff']];
+    const sw = (W - T * 0.2) / 3;
+    awnings.forEach(([a, b], n) => {
+      const sx = X + T * 0.1 + n * sw;
+      sprShadow(sx, Y + T * 0.1, sw - T * 0.04, H - T * 0.2, T * 0.04);
+      ctx.fillStyle = '#9c6644';
+      ctx.fillRect(sx + T * 0.04, Y + H * 0.55, sw - T * 0.12, H * 0.3);
+      const fruit = ['#e63946', '#ffb703', '#8ac926', '#fb8500'];
+      for (let k = 0; k < 4; k++) {
+        ctx.fillStyle = fruit[(k + n) % 4];
+        ctx.beginPath(); ctx.arc(sx + T * 0.1 + k * (sw - T * 0.2) / 3.5, Y + H * 0.66, T * 0.045, 0, Math.PI * 2); ctx.fill();
+      }
+      for (let k = 0; k < 4; k++) {   // gestreifte Markise
+        ctx.fillStyle = k % 2 ? b : a;
+        ctx.fillRect(sx + k * (sw - T * 0.04) / 4, Y + T * 0.12, (sw - T * 0.04) / 4, H * 0.38);
+      }
+      ctx.fillStyle = a;
+      for (let k = 0; k < 4; k++) {
+        ctx.beginPath(); ctx.arc(sx + (k + 0.5) * (sw - T * 0.04) / 4, Y + T * 0.12 + H * 0.38, (sw - T * 0.04) / 8, 0, Math.PI); ctx.fill();
+      }
+    });
+  },
+  warehouse(X, Y, W, H) {
+    const r = sprHouse(X, Y, W, H, { roof: ['#6c584c', '#8a7365'], wall: '#ddb892', windows: 0, door: false, inset: T * 0.08 });
+    // große Tore mit Kreuzstreben
+    [0.3, 0.7].forEach(p => {
+      const dw = T * 0.32, dx = r.x0 + (r.x1 - r.x0) * p - dw / 2, dh = (r.y1 - r.eave) * 0.85;
+      ctx.fillStyle = '#7f5539'; ctx.fillRect(dx, r.y1 - dh, dw, dh);
+      ctx.strokeStyle = '#5d4037'; ctx.lineWidth = T * 0.025;
+      ctx.beginPath(); ctx.moveTo(dx, r.y1 - dh); ctx.lineTo(dx + dw, r.y1); ctx.moveTo(dx + dw, r.y1 - dh); ctx.lineTo(dx, r.y1); ctx.stroke();
+    });
+  },
+  park(X, Y, W, H, x, y) {
+    sprGround(X, Y, W, H, '#80c98f', T * 0.25);
+    ctx.strokeStyle = '#e9dcc9';
+    ctx.lineWidth = T * 0.16;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(X + T * 0.2, Y + H - T * 0.3); ctx.quadraticCurveTo(X + W * 0.5, Y + H * 0.45, X + W - T * 0.2, Y + T * 0.35);
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+    ctx.fillStyle = '#5fa8d3';
+    ctx.beginPath(); ctx.ellipse(X + W * 0.7, Y + H * 0.72, T * 0.3, T * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#7f5539';
+    ctx.fillRect(X + W * 0.42, Y + H * 0.28, T * 0.3, T * 0.07);
+    const flowers = ['#ffafcc', '#ffd166', '#fff', '#e63946'];
+    for (let k = 0; k < 8; k++) {
+      ctx.fillStyle = flowers[k % 4];
+      ctx.beginPath(); ctx.arc(X + T * (0.25 + 1.5 * tileHash(x, y, k + 30)), Y + T * (0.25 + 1.5 * tileHash(x, y, k + 40)), T * 0.04, 0, Math.PI * 2); ctx.fill();
+    }
+    sprTree(X + T * 0.45, Y + T * 0.45, T * 0.28, treeColor(x, y));
+    sprTree(X + T * 1.5, Y + T * 1.0, T * 0.24, treeColor(x + 1, y));
+    sprTree(X + T * 0.5, Y + T * 1.45, T * 0.22, treeColor(x, y + 1));
+  },
+  firestation(X, Y, W, H) {
+    const r = sprHouse(X, Y, W, H, { roof: ['#3d405b', '#565a7a'], wall: '#b23a48', windows: 2, door: false, inset: T * 0.08 });
+    const dw = T * 0.5, dx = r.x0 + (r.x1 - r.x0) * 0.32 - dw / 2, dh = (r.y1 - r.eave) * 0.8;
+    ctx.fillStyle = '#ddd'; ctx.fillRect(dx, r.y1 - dh, dw, dh);
+    ctx.fillStyle = '#bbb';
+    for (let k = 1; k < 4; k++) ctx.fillRect(dx, r.y1 - dh + k * dh / 4, dw, T * 0.015);
+    ctx.fillStyle = '#ffd166';
+    ctx.beginPath(); ctx.arc(r.x1 - T * 0.35, r.ridge, T * 0.09, 0, Math.PI * 2); ctx.fill();
+  },
+  scriptorium(X, Y, W, H) {
+    const r = sprHouse(X, Y, W, H, { roof: ['#4a4e69', '#62668a'], wall: '#d4c5a9', windows: 1, windowColor: '#ffd77a', inset: T * 0.12, doorAt: 0.7 });
+    ctx.fillStyle = '#fefae0';
+    ctx.fillRect(r.x0 + T * 0.06, r.eave + T * 0.04, T * 0.14, T * 0.1);
+  },
+  carpentry(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#e3cfae');
+    sprHouse(X, Y, T * 1.2, H, { roof: ['#99582a', '#b86f3b'], wall: '#e6ccb2', windows: 1, inset: T * 0.1, chimney: 0.7 });
+    for (let k = 0; k < 4; k++) {
+      ctx.fillStyle = k % 2 ? '#e9c89b' : '#d4a373';
+      ctx.fillRect(X + T * 1.3, Y + T * (0.3 + k * 0.12), T * 0.6, T * 0.1);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.fillRect(X + T * 1.3, Y + T * 0.78, T * 0.6, T * 0.04);
+  },
+  brickworks(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#d8b4a0');
+    sprShadow(X + T * 0.1, Y + T * 0.2, T * 0.9, H - T * 0.3, T * 0.35);
+    ctx.fillStyle = '#9c6644';
+    roundRect(X + T * 0.12, Y + T * 0.22, T * 0.86, H - T * 0.36, T * 0.38); ctx.fill();
+    ctx.fillStyle = '#7f4f24';
+    ctx.beginPath(); ctx.arc(X + T * 0.55, Y + H - T * 0.2, T * 0.14, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = '#ff9f1c';
+    ctx.beginPath(); ctx.arc(X + T * 0.55, Y + H - T * 0.2, T * 0.08, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = '#6f4518';
+    ctx.fillRect(X + T * 0.72, Y + T * 0.05, T * 0.14, T * 0.4);
+    for (let row = 0; row < 3; row++) for (let n = 0; n < 3; n++) {
+      ctx.fillStyle = (row + n) % 2 ? '#c0603f' : '#a44a3f';
+      ctx.fillRect(X + T * (1.15 + n * 0.22), Y + T * (0.3 + row * 0.14), T * 0.2, T * 0.12);
+    }
+  },
+  bakery(X, Y, W, H) {
+    const r = sprHouse(X, Y, W, H, { roof: ['#d1495b', '#e76f51'], wall: '#fefae0', windows: 1, windowColor: '#ffd77a', inset: T * 0.1, chimney: 0.25, doorAt: 0.68 });
+    ctx.fillStyle = '#c68b59';
+    ctx.beginPath(); ctx.ellipse(r.x0 + T * 0.18, r.eave + T * 0.09, T * 0.1, T * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+  },
+  well(X, Y, W, H) {
+    const cx = X + W / 2, cy = Y + H * 0.55;
+    ctx.fillStyle = '#d6ccc0';
+    ctx.beginPath(); ctx.arc(cx, cy, T * 0.42, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(20,30,20,0.25)';
+    ctx.beginPath(); ctx.arc(cx + T * 0.05, cy + T * 0.06, T * 0.27, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#8d8a83';
+    ctx.beginPath(); ctx.arc(cx, cy, T * 0.26, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#6f6c66'; ctx.lineWidth = T * 0.015;
+    for (let k = 0; k < 8; k++) {
+      const a = k * Math.PI / 4;
+      ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * T * 0.17, cy + Math.sin(a) * T * 0.17); ctx.lineTo(cx + Math.cos(a) * T * 0.26, cy + Math.sin(a) * T * 0.26); ctx.stroke();
+    }
+    ctx.fillStyle = season().id === 'winter' ? '#cfe6ef' : '#3d85c6';
+    ctx.beginPath(); ctx.arc(cx, cy, T * 0.16, 0, Math.PI * 2); ctx.fill();
+    // Holzgestell mit Dach und Eimer
+    ctx.fillStyle = '#6b4226';
+    ctx.fillRect(cx - T * 0.3, cy - T * 0.32, T * 0.05, T * 0.36);
+    ctx.fillRect(cx + T * 0.25, cy - T * 0.32, T * 0.05, T * 0.36);
+    ctx.fillStyle = '#9c4a3a';
+    ctx.beginPath(); ctx.moveTo(cx - T * 0.38, cy - T * 0.28); ctx.lineTo(cx, cy - T * 0.46); ctx.lineTo(cx + T * 0.38, cy - T * 0.28); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#7f5539';
+    ctx.fillRect(cx - T * 0.3, cy - T * 0.3, T * 0.6, T * 0.04);
+    ctx.fillStyle = '#8d6e63';
+    ctx.fillRect(cx - T * 0.05, cy - T * 0.2, T * 0.1, T * 0.1);
+  },
+  school(X, Y, W, H, x, y) {
+    sprGround(X, Y, W, H, '#e9dcc9');
+    const r = sprHouse(X, Y, W, H * 0.68, { roof: ['#bc4749', '#d0605f'], wall: '#f2e8cf', windows: 4, inset: T * 0.1 });
+    ctx.fillStyle = '#f2e8cf';
+    ctx.fillRect(X + W / 2 - T * 0.14, r.y0 - T * 0.05, T * 0.28, T * 0.28);
+    ctx.fillStyle = '#bc4749';
+    ctx.beginPath(); ctx.moveTo(X + W / 2 - T * 0.2, r.y0); ctx.lineTo(X + W / 2, r.y0 - T * 0.18); ctx.lineTo(X + W / 2 + T * 0.2, r.y0); ctx.fill();
+    ctx.fillStyle = '#ffd166';
+    ctx.beginPath(); ctx.arc(X + W / 2, r.y0 + T * 0.1, T * 0.06, 0, Math.PI * 2); ctx.fill();
+    // Schulhof mit Baum und Hüpfkästchen
+    sprTree(X + T * 0.4, Y + H - T * 0.35, T * 0.22, treeColor(x, y));
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = T * 0.02;
+    for (let k = 0; k < 4; k++) ctx.strokeRect(X + T * (1.0 + k * 0.16), Y + H - T * 0.42, T * 0.16, T * 0.16);
+  },
+  library(X, Y, W, H) {
+    const r = sprHouse(X, Y, W, H, { roof: ['#6d6875', '#8a8494'], wall: '#efe6d8', windows: 0, inset: T * 0.08, hip: true });
+    ctx.fillStyle = '#d9cbb5';
+    for (let k = 0; k < 6; k++) ctx.fillRect(r.x0 + T * 0.08 + k * (r.x1 - r.x0 - T * 0.2) / 5, r.eave, T * 0.05, r.y1 - r.eave - T * 0.04);
+    ctx.fillStyle = '#457b9d';
+    ctx.fillRect(r.x0 + T * 0.18, r.eave + T * 0.06, T * 0.1, T * 0.12);
+    ctx.fillStyle = '#e63946';
+    ctx.fillRect(r.x0 + T * 0.3, r.eave + T * 0.06, T * 0.08, T * 0.12);
+  },
+  guard(X, Y, W, H) {
+    const r = sprHouse(X, Y, W, H, { roof: ['#495057', '#6c757d'], wall: '#adb5bd', windows: 1, inset: T * 0.12, doorAt: 0.68 });
+    sprFlag(r.x1 - T * 0.12, r.y0 - T * 0.18, '#c1121f');
+  },
+  tower(X, Y, W, H) {
+    const cx = X + W / 2, cy = Y + H / 2;
+    ctx.fillStyle = 'rgba(20,30,20,0.3)';
+    ctx.beginPath(); ctx.ellipse(cx + T * 0.18, cy + T * 0.18, T * 0.4, T * 0.32, 0.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#8f8a84';
+    ctx.beginPath(); ctx.arc(cx, cy, T * 0.38, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#a8a39c';
+    for (let k = 0; k < 8; k++) {   // Zinnen
+      const a = k * Math.PI / 4;
+      ctx.fillRect(cx + Math.cos(a) * T * 0.31 - T * 0.06, cy + Math.sin(a) * T * 0.31 - T * 0.06, T * 0.12, T * 0.12);
+    }
+    ctx.fillStyle = '#6f6a64';
+    ctx.beginPath(); ctx.arc(cx, cy, T * 0.22, 0, Math.PI * 2); ctx.fill();
+    sprFlag(cx - T * 0.01, cy - T * 0.3, '#c1121f');
+  },
+  hospital(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#b7e4c7');
+    const r = sprHouse(X, Y, W, H * 0.82, { roof: ['#ced4da', '#e9ecef'], wall: '#f8f9fa', windows: 4, inset: T * 0.1, hip: true });
+    const cx = X + W / 2, cy = (r.y0 + r.eave) / 2;
+    ctx.fillStyle = '#e63946';
+    ctx.fillRect(cx - T * 0.22, cy - T * 0.07, T * 0.44, T * 0.14);
+    ctx.fillRect(cx - T * 0.07, cy - T * 0.22, T * 0.14, T * 0.44);
+  },
+  townhall(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#d6ccc2');
+    const r = sprHouse(X, Y, W, H, { roof: ['#52796f', '#6b9a8e'], wall: '#f1e9da', windows: 0, inset: T * 0.08, hip: true, wallRatio: 0.4 });
+    ctx.fillStyle = '#e0d5c1';
+    for (let k = 0; k < 6; k++) ctx.fillRect(r.x0 + T * 0.1 + k * (r.x1 - r.x0 - T * 0.26) / 5, r.eave + T * 0.04, T * 0.06, r.y1 - r.eave - T * 0.1);
+    // Uhrturm
+    const cx = X + W / 2;
+    ctx.fillStyle = '#f1e9da';
+    ctx.fillRect(cx - T * 0.22, r.y0 - T * 0.1, T * 0.44, T * 0.5);
+    ctx.fillStyle = '#354f52';
+    ctx.beginPath(); ctx.moveTo(cx - T * 0.28, r.y0 - T * 0.08); ctx.lineTo(cx, r.y0 - T * 0.4); ctx.lineTo(cx + T * 0.28, r.y0 - T * 0.08); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(cx, r.y0 + T * 0.15, T * 0.13, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#333'; ctx.lineWidth = T * 0.02;
+    ctx.beginPath(); ctx.moveTo(cx, r.y0 + T * 0.15); ctx.lineTo(cx, r.y0 + T * 0.06); ctx.moveTo(cx, r.y0 + T * 0.15); ctx.lineTo(cx + T * 0.07, r.y0 + T * 0.15); ctx.stroke();
+    sprFlag(cx - T * 0.01, r.y0 - T * 0.68, '#2a9d8f');
+  },
+  plaza(X, Y, W, H, x, y) {
+    // Pflaster mit Ringen um den Brunnen
+    sprGround(X, Y, W, H, '#d8cfc4', T * 0.3);
+    const cx = X + W / 2, cy = Y + H / 2;
+    ctx.save();
+    roundRect(X + T * 0.04, Y + T * 0.04, W - T * 0.08, H - T * 0.08, T * 0.3);
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(120,100,80,0.18)';
+    ctx.lineWidth = T * 0.03;
+    for (let r = T * 0.95; r < W * 0.7; r += T * 0.22) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.restore();
+    // Blumenbeete und Bäume in den Ecken
+    [[0.45, 0.45], [W / T - 0.45, 0.45], [0.45, H / T - 0.45], [W / T - 0.45, H / T - 0.45]].forEach(([bx, by], n) => {
+      ctx.fillStyle = '#6a994e';
+      ctx.beginPath(); ctx.arc(X + bx * T, Y + by * T, T * 0.36, 0, Math.PI * 2); ctx.fill();
+      const fl = ['#ffafcc', '#ffd166', '#fff', '#e63946'];
+      for (let k = 0; k < 6; k++) {
+        const a = k * Math.PI / 3 + n;
+        ctx.fillStyle = fl[(k + n) % 4];
+        ctx.beginPath(); ctx.arc(X + bx * T + Math.cos(a) * T * 0.24, Y + by * T + Math.sin(a) * T * 0.24, T * 0.05, 0, Math.PI * 2); ctx.fill();
+      }
+      sprTree(X + bx * T, Y + by * T - T * 0.04, T * 0.17, treeColor(x + n, y));
+    });
+    // Bänke
+    ctx.fillStyle = '#7f5539';
+    ctx.fillRect(cx - T * 0.25, Y + T * 0.2, T * 0.5, T * 0.08);
+    ctx.fillRect(cx - T * 0.25, Y + H - T * 0.28, T * 0.5, T * 0.08);
+    ctx.fillRect(X + T * 0.2, cy - T * 0.25, T * 0.08, T * 0.5);
+    ctx.fillRect(X + W - T * 0.28, cy - T * 0.25, T * 0.08, T * 0.5);
+    // Brunnen: Becken, Wasser, Sockel und springende Fontänen
+    const frozen = season().id === 'winter';
+    ctx.fillStyle = 'rgba(20,30,20,0.25)';
+    ctx.beginPath(); ctx.arc(cx + T * 0.08, cy + T * 0.1, T * 0.82, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#bfb5a8';
+    ctx.beginPath(); ctx.arc(cx, cy, T * 0.82, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = frozen ? '#d7ecf4' : '#5fa8d3';
+    ctx.beginPath(); ctx.arc(cx, cy, T * 0.68, 0, Math.PI * 2); ctx.fill();
+    const time = performance.now() / 1000;
+    if (!frozen) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = T * 0.02;
+      for (let k = 0; k < 2; k++) {
+        const rr = T * (0.32 + ((time * 0.35 + k * 0.5) % 1) * 0.34);
+        ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    ctx.fillStyle = '#a39e93';
+    ctx.beginPath(); ctx.arc(cx, cy, T * 0.24, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#cfc8bd';
+    ctx.beginPath(); ctx.arc(cx, cy, T * 0.15, 0, Math.PI * 2); ctx.fill();
+    if (!frozen) {
+      ctx.fillStyle = 'rgba(230,245,255,0.9)';
+      for (let k = 0; k < 8; k++) {
+        const a = k * Math.PI / 4 + time * 0.3;
+        const p = (time * 1.2 + k * 0.13) % 1;                // Tropfen fliegen nach außen
+        const d = T * (0.12 + p * 0.4), lift = Math.sin(p * Math.PI) * T * 0.25;
+        ctx.beginPath(); ctx.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d - lift, T * 0.035, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(cx, cy - T * 0.12 - Math.abs(Math.sin(time * 3)) * T * 0.06, T * 0.06, 0, Math.PI * 2); ctx.fill();
+    }
+  },
+  cathedral(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#d6ccc2', T * 0.2);
+    const cx = X + W / 2;
+    sprShadow(X + T * 0.3, Y + T * 0.25, W - T * 0.6, H - T * 0.45, T * 0.1);
+    // Kreuzförmiges Dach: Langhaus senkrecht, Querhaus waagerecht
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(cx - T * 0.55, Y + T * 0.25, T * 1.1, H - T * 0.9);
+    ctx.fillRect(X + T * 0.3, Y + T * 0.85, W - T * 0.6, T * 0.8);
+    ctx.fillStyle = '#5c677d';
+    ctx.fillRect(cx - T * 0.55, Y + T * 0.25, T * 0.55, H - T * 0.9);
+    ctx.fillRect(X + T * 0.3, Y + T * 0.85, W - T * 0.6, T * 0.4);
+    ctx.fillStyle = '#2d3748';
+    ctx.fillRect(cx - T * 0.02, Y + T * 0.25, T * 0.04, H - T * 0.9);
+    // Fassade mit Rosette und zwei Türmen
+    ctx.fillStyle = '#e9dcc9';
+    ctx.fillRect(cx - T * 0.8, Y + H - T * 0.75, T * 1.6, T * 0.6);
+    ctx.fillStyle = '#c1121f';
+    ctx.beginPath(); ctx.arc(cx, Y + H - T * 0.52, T * 0.14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffd166';
+    ctx.beginPath(); ctx.arc(cx, Y + H - T * 0.52, T * 0.07, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#6b4226';
+    ctx.fillRect(cx - T * 0.1, Y + H - T * 0.34, T * 0.2, T * 0.2);
+    [-0.8, 0.5].forEach(dx => {
+      const tx = cx + dx * T, ty = Y + H - T * 1.05;
+      ctx.fillStyle = '#e9dcc9'; ctx.fillRect(tx, ty, T * 0.3, T * 0.9);
+      ctx.fillStyle = '#4a5568';
+      ctx.beginPath(); ctx.moveTo(tx - T * 0.04, ty); ctx.lineTo(tx + T * 0.15, ty - T * 0.4); ctx.lineTo(tx + T * 0.34, ty); ctx.fill();
+      ctx.fillStyle = '#ffd77a'; ctx.fillRect(tx + T * 0.1, ty + T * 0.2, T * 0.1, T * 0.16);
+    });
+  },
+  fishery(X, Y, W, H, x, y) {
+    // Steg zum Wasser hin
+    const dirs = [[0, 1], [1, 0], [-1, 0], [0, -1]];
+    const water = dirs.find(([dx, dy]) => x + dx >= 0 && y + dy >= 0 && x + dx < N && y + dy < N && terrainAt(x + dx, y + dy) === TERRAIN_ID.water);
+    if (water) {
+      const [dx, dy] = water;
+      ctx.fillStyle = '#a47148';
+      const len = T * 0.75, wid = T * 0.18;
+      const sx = X + W / 2 + (dx ? dx * T * 0.3 : -wid / 2), sy = Y + H / 2 + (dy ? dy * T * 0.3 : -wid / 2);
+      ctx.fillRect(dx < 0 ? sx - len : sx, dy < 0 ? sy - len : sy, dx ? len : wid, dy ? len : wid);
+      // kleines Boot
+      ctx.fillStyle = '#8d5524';
+      const bx = X + W / 2 + dx * T * 0.85 + dy * T * 0.25, by = Y + H / 2 + dy * T * 0.85 + dx * T * 0.25;
+      ctx.beginPath(); ctx.ellipse(bx, by, T * 0.16, T * 0.07, dx ? Math.PI / 2 : 0, 0, Math.PI * 2); ctx.fill();
+    }
+    const r = sprHouse(X, Y, W, H, { roof: ['#5c677d', '#76829a'], wall: '#b08968', windows: 1, inset: T * 0.14, doorAt: 0.7 });
+    // Fische zum Trocknen
+    ctx.strokeStyle = '#5d4037'; ctx.lineWidth = T * 0.015;
+    ctx.beginPath(); ctx.moveTo(r.x0, r.y0 - T * 0.02); ctx.lineTo(r.x1, r.y0 - T * 0.02); ctx.stroke();
+    ctx.fillStyle = '#adb5bd';
+    for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.ellipse(r.x0 + T * (0.12 + k * 0.17), r.y0 + T * 0.04, T * 0.03, T * 0.06, 0, 0, Math.PI * 2); ctx.fill(); }
+  },
+};
+
+// Brücke: Holzplanken über dem Wasser, quer zur Fahrtrichtung
+function drawBridge(x, y, alpha) {
+  const X = x * T, Y = y * T;
+  const road = (dx, dy) => { const n = getCell(x + dx, y + dy); return n && BUILDINGS[n.type].isRoad; };
+  const horizontal = road(-1, 0) || road(1, 0) || !(road(0, -1) || road(0, 1)) && terrainAt(x, y - 1) === TERRAIN_ID.water;
+  ctx.globalAlpha = alpha;
+  ctx.save();
+  if (!horizontal) { ctx.translate(X + T / 2, Y + T / 2); ctx.rotate(Math.PI / 2); ctx.translate(-X - T / 2, -Y - T / 2); }
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(X, Y + T * 0.3, T, T * 0.5);
+  ctx.fillStyle = '#a47148';
+  ctx.fillRect(X - T * 0.02, Y + T * 0.22, T * 1.04, T * 0.56);
+  ctx.strokeStyle = '#7f5539'; ctx.lineWidth = T * 0.02;
+  ctx.beginPath();
+  for (let k = 1; k < 6; k++) { ctx.moveTo(X + k * T / 6, Y + T * 0.22); ctx.lineTo(X + k * T / 6, Y + T * 0.78); }
+  ctx.stroke();
+  ctx.fillStyle = '#6b4226';   // Geländer
+  ctx.fillRect(X - T * 0.02, Y + T * 0.18, T * 1.04, T * 0.06);
+  ctx.fillRect(X - T * 0.02, Y + T * 0.76, T * 1.04, T * 0.06);
+  ctx.restore();
+  ctx.globalAlpha = 1;
 }
 
 // Sichtbarer Kartenausschnitt in Feldern (mit einem Feld Rand)

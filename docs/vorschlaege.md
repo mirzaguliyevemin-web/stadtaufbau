@@ -5,8 +5,6 @@ wenn Emin zugestimmt hat.** Neue Einträge oben, mit Datum und kurzer Begründun
 
 ## Offen
 
-- **Brücken und Fischerhütte** (2026-10-25) – Brücken, um Straßen über Seen zu führen; Fischerhütte am Ufer als
-  zweite Nahrungsquelle. Passt zum neuen Gelände (Version 39).
 - **Bot nutzt Geländeboni** (2026-10-25) – der Balancing-Bot stellt Sägewerke/Steinbrüche noch nicht gezielt an
   Wald/Berg; seit dem Gelände braucht er bis zur Stadt ~31 statt ~23 min.
 
@@ -26,4 +24,4 @@ wenn Emin zugestimmt hat.** Neue Einträge oben, mit Datum und kurzer Begründun
 
 ## Erledigt
 
-- (noch nichts aus dieser Liste)
+- **Brücken und Fischerhütte** – von Emin gewünscht, eingebaut in Version 40 (2026-10-25).

@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 30;
+const APP_VERSION = 31;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -65,9 +65,15 @@ const CONFIG = {
   seasonLength: 240,      // Sekunden je Jahreszeit (ein Jahr = 4 Jahreszeiten)
   heatingPerCitizen: 0.01, // Holz pro Einwohner und Sekunde im Winter
   coldPenalty: 20,        // Zufriedenheitsabzug, wenn im Winter das Holz fehlt
-  guardDefense: 10,       // Abwehr je voll besetztem Wachhaus (× Ausbaustufe)
-  banditBase: 10,         // Grundstärke eines Banditenüberfalls …
-  banditPerCitizen: 0.15, // … plus so viel je Einwohner (± 30 % Zufall)
+  banditBase: 10,         // Höchststärke eines Banditenlagers: Grundwert …
+  banditPerCitizen: 0.15, // … plus so viel je Einwohner
+  wallDefense: 0.5,       // Abwehr je Mauerstück (gilt überall) …
+  wallDefenseMax: 40,     // … höchstens so viel durch Mauern
+  campMinPop: 30,         // ab so vielen Einwohnern tauchen Banditenlager auf
+  maxCamps: 3,            // höchstens so viele Lager gleichzeitig
+  campSpawnSeconds: [180, 360],  // Abstand zwischen neuen Lagern
+  campGrowthSeconds: 45,  // alle so viele Sekunden wird ein Lager um 1 stärker
+  campRaidSeconds: [100, 200],   // so oft überfällt ein Lager die Stadt
   legacyBonus: 0.1,       // Gründerruhm: +10 % Ertrag je Stern (in allen Städten) …
   legacyMaxStars: 5,      // … höchstens für so viele Sterne
   legacyStart: { money: 100, wood: 30, stone: 15 },   // Extra-Startvorrat je Stern
@@ -152,10 +158,10 @@ const MAX_BUILDING_LEVEL = UPGRADES.length - 1;
 // Kategorien der Bauleiste – Reihenfolge = Reihenfolge der Reiter
 const CATEGORIES = {
   housing:   { name: 'Wohnen',     icon: '🏠' },
-  resources: { name: 'Rohstoffe',  icon: '🌾' },
+  resources: { name: 'Wirtschaft', icon: '🌾' },
   crafts:    { name: 'Handwerk',   icon: '🔨' },
-  trade:     { name: 'Handel',     icon: '🏪' },
   services:  { name: 'Dienste',    icon: '🏥' },
+  defense:   { name: 'Schutz',     icon: '🛡️' },
   education: { name: 'Bildung',    icon: '📚' },
   prestige:  { name: 'Prestige',   icon: '🏛️' },
 };
@@ -166,6 +172,8 @@ const CATEGORIES = {
 //   produces:      feste Menge pro Intervall  { ressource: menge }
 //   perPopulation: Menge je Einwohner pro Intervall
 //   consumes:      Verbrauch pro Intervall (Verarbeitung) – fehlt etwas, pausiert das Gebäude
+//   defense:       Schutz vor Banditen { radius, strength } für Gebäude im Umkreis (× Stufe × Besetzung)
+//   isWall:        Mauerstück – wird wie eine Straße gezeichnet, stärkt die Abwehr der ganzen Stadt
 //   size:          [Breite, Höhe] in Feldern (Standard 1×1); das angetippte Feld ist die linke obere Ecke
 //   jobs:          benötigtes Personal { beruf: anzahl } (ein Beruf je Gebäude, siehe JOBS)
 //   servesUpTo:    perPopulation zählt höchstens so viele Einwohner je Gebäude
@@ -244,7 +252,7 @@ const BUILDINGS = {
     servesUpTo: 15,
     needsRoad: true,
     jobs: { trader: 3 },
-    category: 'trade',
+    category: 'resources',
     size: [2, 1],
   },
   warehouse: {
@@ -254,7 +262,7 @@ const BUILDINGS = {
     storage: 100,
     needsRoad: true,
     jobs: { worker: 1 },
-    category: 'trade',
+    category: 'resources',
     size: [2, 1],
   },
   park: {
@@ -274,7 +282,7 @@ const BUILDINGS = {
     fireRadius: 4,
     needsRoad: true,
     jobs: { worker: 2 },
-    category: 'services',
+    category: 'defense',
     size: [2, 1],
   },
   scriptorium: {
@@ -373,7 +381,28 @@ const BUILDINGS = {
     unlockLevel: 1,
     needsRoad: true,
     jobs: { worker: 2 },
-    category: 'services',
+    category: 'defense',
+    defense: { radius: 4, strength: 10 },
+  },
+  tower: {
+    name: 'Wachturm', icon: '🗼', color: '#b8c0c8',
+    description: 'Ein hoher Turm mit Ausguck: schützt einen großen Umkreis vor Banditen.',
+    cost: { money: 60, wood: 20, stone: 40 },
+    defense: { radius: 6, strength: 20 },
+    unlockLevel: 1,
+    needsRoad: true,
+    jobs: { worker: 2 },
+    category: 'defense',
+  },
+  wall: {
+    name: 'Mauer', icon: '🏰', color: '#7d7468',
+    description: 'Mauerstücke am Stück ziehen. Jedes Stück stärkt die Abwehr der ganzen Stadt ein wenig.',
+    cost: { stone: 3 },
+    fixedCost: true,
+    isWall: true,
+    dragBuild: true,
+    unlockLevel: 1,
+    category: 'defense',
   },
   hospital: {
     name: 'Krankenhaus', icon: '🏥', color: '#f8f9fa',
@@ -455,6 +484,7 @@ const QUESTS = [
   { id: 'pop50',      title: 'Wachsende Stadt',      goal: { type: 'population', count: 50 },                  reward: { wood: 100, stone: 100 } },
   { id: 'traders6',   title: 'Reger Handel',         goal: { type: 'jobs', job: 'trader', count: 6 },          reward: { money: 100 } },
   { id: 'bandits1',   title: 'Sichere Straßen',      goal: { type: 'repelled', count: 1 },                     reward: { money: 150 } },
+  { id: 'camp1',      title: 'Räubernest',           goal: { type: 'camps', count: 1 },                        reward: { money: 200, stone: 40 } },
   { id: 'townhall',   title: 'Prestige',             goal: { type: 'build', building: 'townhall', count: 1 },  reward: { money: 150, stone: 50 } },
   { id: 'research4',  title: 'Zeitalter der Gelehrten', goal: { type: 'research', count: 4 },                  reward: { money: 150 } },
   { id: 'money500',   title: 'Volle Stadtkasse',     goal: { type: 'resource', resource: 'money', count: 500 }, reward: { stone: 80 } },
@@ -491,6 +521,7 @@ const ACHIEVEMENTS = [
   { id: 'allQuests',  icon: '📜', name: 'Auftragsheld',        text: 'Erledige alle Aufträge.',                  check: () => state.questsClaimed.length === QUESTS.length },
   { id: 'streak7',    icon: '📅', name: 'Treue Seele',         text: 'Spiele 7 Tage in Folge.',                  check: () => state.daily.streak >= 7 },
   { id: 'dynasty',    icon: '👑', name: 'Dynastie',            text: 'Vollende 3 Städte.',                        check: () => legacy.stars >= 3 },
+  { id: 'fortress',   icon: '🏰', name: 'Festungsstadt',       text: '40 Mauerstücke und 3 Wachtürme.',           check: () => countBuildings('wall') >= 40 && countBuildings('tower') >= 3 },
   { id: 'lawman',     icon: '⚖️', name: 'Gesetzeshüter',       text: 'Schlage 5 Banditenüberfälle zurück.',      check: () => (state.counters.repelled || 0) >= 5 },
   { id: 'gold10',     icon: '🌟', name: 'Prachtbauten',        text: '10 Gebäude auf Stufe 3.',                  check: () => state.grid.filter(c => c && levelOf(c) >= 3).length >= 10 },
   { id: 'land20',     icon: '🗺️', name: 'Landesherr',          text: 'Kaufe 20 Flächen dazu.',                   check: () => plotsBought() >= 20 },
@@ -541,7 +572,7 @@ const TECHS = {
     cost: { knowledge: 120 }, seconds: 75,
   },
   stonewalls: {
-    name: 'Steinmauern', icon: '🏰',
+    name: 'Steinmauern', icon: '⛰️',
     description: 'Häuser bieten 2 Wohnplätze mehr. Brände greifen nicht über und brennen doppelt so lange.',
     cost: { knowledge: 180, stone: 120 }, seconds: 90,
     requires: ['tools'],
@@ -607,7 +638,7 @@ const EVENTS = {
   },
   bandits: {
     name: 'Banditen', icon: '🏴‍☠️', weight: 2, minPop: 30,
-    start: () => startBandits(),
+    start: () => spawnCamp(),
   },
   festival: {
     name: 'Festtag', icon: '🎉', weight: 2, minPop: 10,
@@ -637,6 +668,8 @@ const state = {
   plots: [],         // plots[i] = true, wenn die Parzelle gekauft ist
   cityName: '',      // vom Spieler vergebener Name (leer = „Stadt <Platz>“)
   completed: false,  // Stadt wurde vollendet (gibt nur einmal Gründerruhm)
+  camps: [],         // Banditenlager { x, y, strength, raidIn }
+  campSpawnIn: 240,  // Sekunden bis zum nächsten möglichen Lager
   plotsGranted: 0,   // geschenkte Flächen (alter Spielstand mit Gebäuden außerhalb) – zählen nicht als gekauft
   dayTime: 0.15,     // Tageszeit 0–1 (0 = Mittag, 0.5 = Mitternacht)
   yearTime: 0,       // Sekunden im laufenden Jahr (Jahreszeit = yearTime / seasonLength)
@@ -695,6 +728,8 @@ function newGame() {
   state.plotsGranted = 0;
   state.cityName = '';
   state.completed = false;
+  state.camps = [];
+  state.campSpawnIn = 240;
   state.population = 0;
   state.maxLevel = 0;
   state.questsClaimed = [];
@@ -764,6 +799,7 @@ function buyPlot(p) {
   state.plots[p] = true;
   sound.play('build');
   showToast('🏞️ Neues Land gekauft!');
+  removeCampsOnPlot(p);
   emit('plotBought', { plot: p });
   closeInfo();
   recalcStats();
@@ -951,7 +987,7 @@ function levelFactor(cell) {
 
 function canUpgradeType(type) {
   const def = BUILDINGS[type];
-  return !def.isRoad && !def.landmark;
+  return !def.isRoad && !def.isWall && !def.landmark;
 }
 
 function upgradeCost(type, toLevel) {
@@ -1509,6 +1545,7 @@ function questProgress(quest) {
     case 'plots':      current = plotsBought(); break;
     case 'upgrades':   current = state.counters.upgrades || 0; break;
     case 'repelled':   current = state.counters.repelled || 0; break;
+    case 'camps':      current = state.counters.campsCleared || 0; break;
   }
   return { current: Math.min(current, g.count), target: g.count, done: current >= g.count };
 }
@@ -1529,6 +1566,7 @@ function goalText(goal) {
     case 'plots':      return goal.count === 1 ? 'Kaufe eine neue Fläche 🏞️' : `Kaufe ${goal.count} neue Flächen 🏞️`;
     case 'upgrades':   return goal.count === 1 ? 'Baue ein Gebäude aus ⬆️' : `Baue ${goal.count} Gebäude aus ⬆️`;
     case 'repelled':   return goal.count === 1 ? 'Schlage Banditen zurück 🏴‍☠️' : `Schlage ${goal.count}-mal Banditen zurück 🏴‍☠️`;
+    case 'camps':      return goal.count === 1 ? 'Hebe ein Banditenlager aus ⛺' : `Hebe ${goal.count} Banditenlager aus ⛺`;
   }
   return '';
 }
@@ -1624,7 +1662,7 @@ function fireProtected(x, y) {
 function burnableCells() {
   const list = [];
   state.grid.forEach((cell, i) => {
-    if (cell && !cell.fire && !BUILDINGS[cell.type].isRoad) list.push(i);
+    if (cell && !cell.fire && !BUILDINGS[cell.type].isRoad && !BUILDINGS[cell.type].isWall) list.push(i);
   });
   return list;
 }
@@ -1662,7 +1700,7 @@ function spreadFire(i) {
   const targets = new Set();
   for (const [px, py] of perimeterTiles(i % N, Math.floor(i / N), ...sizeOf(cell))) {
     const a = anchorAt(px, py);
-    if (a >= 0 && a !== i && !state.grid[a].fire && !BUILDINGS[state.grid[a].type].isRoad) targets.add(a);
+    if (a >= 0 && a !== i && !state.grid[a].fire && !BUILDINGS[state.grid[a].type].isRoad && !BUILDINGS[state.grid[a].type].isWall) targets.add(a);
   }
   if (targets.size === 0) return;
   const t = randomItem([...targets]);
@@ -1737,34 +1775,144 @@ function startPlague() {
 
 // ---------- Banditen ----------
 
-// Abwehr: Wachhäuser (Besetzung × Stufe), Bürgerwehr +50 %
-function defenseStrength() {
-  let d = 0;
+// Mauern stärken die Abwehr überall ein wenig (gedeckelt)
+function wallBonus() {
+  return Math.min(countBuildings('wall') * CONFIG.wallDefense, CONFIG.wallDefenseMax);
+}
+
+// Stärke eines Wachpostens (Wachhaus, Wachturm): Grundwert × Stufe × Besetzung
+function postStrength(cell) {
+  const def = BUILDINGS[cell.type];
+  return def.defense ? def.defense.strength * levelFactor(cell) * staffOf(cell.type) : 0;
+}
+
+function postRadius(cell) {
+  return BUILDINGS[cell.type].defense.radius + levelOf(cell) - 1;
+}
+
+// Schutz vor Ort: alle Wachposten, deren Umkreis das Rechteck erreicht, plus Mauern; Bürgerwehr +50 %
+function defenseAt(x, y, w = 1, h = 1) {
+  let d = wallBonus();
   state.grid.forEach((cell, i) => {
-    if (cell && cell.type === 'guard' && isActive(i % N, Math.floor(i / N))) d += CONFIG.guardDefense * levelFactor(cell);
+    if (!cell || !BUILDINGS[cell.type].defense || !isActive(i % N, Math.floor(i / N))) return;
+    if (rectGap(i % N, Math.floor(i / N), cell.w || 1, cell.h || 1, x, y, w, h) <= postRadius(cell)) d += postStrength(cell);
   });
-  d *= staffOf('guard');
   return Math.round(d * (hasFlag('militia') ? 1.5 : 1));
 }
 
-function banditStrength() {
-  return CONFIG.banditBase + state.population * CONFIG.banditPerCitizen;
+// Alle Wachen der Stadt zusammen (zum Ausheben von Lagern)
+function cityDefense() {
+  let d = wallBonus();
+  state.grid.forEach((cell, i) => {
+    if (cell && BUILDINGS[cell.type].defense && isActive(i % N, Math.floor(i / N))) d += postStrength(cell);
+  });
+  return Math.round(d * (hasFlag('militia') ? 1.5 : 1));
+}
+
+function campMaxStrength() {
+  return Math.round(CONFIG.banditBase + state.population * CONFIG.banditPerCitizen);
+}
+
+// Neues Lager auf fremdem Land, das an die Stadt grenzt (auch diagonal)
+function spawnCamp() {
+  if (state.population < CONFIG.campMinPop || state.camps.length >= CONFIG.maxCamps) return false;
+  const candidates = [];
+  for (let p = 0; p < P * P; p++) {
+    if (state.plots[p]) continue;
+    const px = p % P, py = Math.floor(p / P);
+    let near = false;
+    for (let dy = -1; dy <= 1 && !near; dy++) for (let dx = -1; dx <= 1 && !near; dx++) {
+      const qx = px + dx, qy = py + dy;
+      near = qx >= 0 && qy >= 0 && qx < P && qy < P && state.plots[qy * P + qx];
+    }
+    if (near && !state.camps.some(c => plotOf(c.x, c.y) === p)) candidates.push(p);
+  }
+  if (!candidates.length) return false;
+  const p = randomItem(candidates);
+  const S = CONFIG.plotSize;
+  const camp = {
+    x: (p % P) * S + 2 + Math.floor(Math.random() * (S - 4)),
+    y: Math.floor(p / P) * S + 2 + Math.floor(Math.random() * (S - 4)),
+    strength: Math.max(3, Math.round(campMaxStrength() * 0.4)),
+    raidIn: randomBetween(...CONFIG.campRaidSeconds),
+  };
+  state.camps.push(camp);
+  showToast('⛺ Banditen haben in der Nähe ein Lager aufgeschlagen!', 4000);
+  sound.play('event');
+  return true;
+}
+
+function updateCamps(dt) {
+  if (state.population >= CONFIG.campMinPop) {
+    state.campSpawnIn -= dt;
+    if (state.campSpawnIn <= 0) {
+      state.campSpawnIn = randomBetween(...CONFIG.campSpawnSeconds);
+      spawnCamp();
+    }
+  }
+  const max = campMaxStrength();
+  for (const camp of [...state.camps]) {
+    camp.strength = Math.min(max, camp.strength + dt / CONFIG.campGrowthSeconds);
+    camp.raidIn -= dt;
+    if (camp.raidIn <= 0) {
+      camp.raidIn = randomBetween(...CONFIG.campRaidSeconds);
+      startRaid(camp);
+    }
+  }
+}
+
+function campCost(camp) {
+  return { money: Math.round(camp.strength * 4) };
+}
+
+function clearCamp(index) {
+  const camp = state.camps[index];
+  if (!camp) return;
+  const defense = cityDefense();
+  if (defense < camp.strength) {
+    sound.play('error');
+    showToast(`Deine Wachen sind zu schwach (${defense} gegen ${Math.round(camp.strength)})`);
+    return;
+  }
+  const cost = campCost(camp);
+  if (!canAfford(cost)) {
+    sound.play('error');
+    showToast(`Nicht genug ${missingText(cost)} für den Einsatz`);
+    return;
+  }
+  const loot = { money: Math.round(camp.strength * 15) };
+  addResources(cost, -1);
+  addResources(loot);
+  state.camps.splice(index, 1);
+  state.counters.campsCleared = (state.counters.campsCleared || 0) + 1;
+  state.counters.repelled = (state.counters.repelled || 0) + 1;
+  sound.play('levelup');
+  showToast(`⚔️ Lager ausgehoben! Beute: ${formatAmounts(loot)}`, 3500);
+  closeInfo();
+  updateUI();
+}
+
+// Kaufst du Land mit einem Lager darauf, ziehen die Banditen ab
+function removeCampsOnPlot(p) {
+  const before = state.camps.length;
+  state.camps = state.camps.filter(c => plotOf(c.x, c.y) !== p);
+  if (state.camps.length < before) showToast('🏞️ Land gekauft – die Banditen sind abgezogen', 3000);
 }
 
 function tradeBlocked() {
   return state.effects.some(e => e.tradeBlocked);
 }
 
-function startBandits() {
-  const attack = Math.round(banditStrength() * randomBetween(0.7, 1.3));
-  const defense = defenseStrength();
+// Überfall aus einem Lager (wird im nächsten Schritt sichtbar auf der Karte)
+function startRaid(camp) {
+  const attack = Math.round(camp.strength * randomBetween(0.85, 1.15));
+  const defense = cityDefense();
   if (defense >= attack) {
     const bounty = Math.round(20 + attack * 1.5);
     addResources({ money: bounty });
     state.counters.repelled = (state.counters.repelled || 0) + 1;
-    showEventPopup('🛡️', 'Banditen vertrieben!',
-      `Eine Bande wollte die Handelswege überfallen, aber deine Wachen waren stärker (Abwehr ${defense} gegen ${attack}).\n` +
-      `Kopfgeld: ${formatAmounts({ money: bounty })}`);
+    camp.strength = Math.max(1, camp.strength * 0.6);   // die Bande ist geschwächt
+    showToast(`🛡️ Banditen vertrieben (Abwehr ${defense} gegen ${attack}) – Kopfgeld ${formatAmounts({ money: bounty })}`, 3500);
     return true;
   }
   // Je stärker die Abwehr, desto kleiner der Schaden
@@ -1782,8 +1930,9 @@ function startBandits() {
     `Banditen haben die Handelswege überfallen (Angriff ${attack}, deine Abwehr ${defense}).`,
     Object.keys(stolen).length ? `Geraubt: ${formatAmounts(stolen)}` : 'Zum Glück war nichts zu holen.',
     '60 Sekunden lang ist der Handel unsicher: kein Kauf und Verkauf am Markt, Märkte bringen nur die Hälfte.',
-    defense === 0 ? 'Tipp: Wachhäuser (ab Kleinstadt) wehren Banditen ab.' : 'Tipp: Mehr oder ausgebaute Wachhäuser stärken die Abwehr.',
+    defense === 0 ? 'Tipp: Wachhäuser, Wachtürme und Mauern (Reiter 🛡️ Schutz) wehren Banditen ab.' : 'Tipp: Mehr oder ausgebaute Wachposten und Mauern stärken die Abwehr.',
   ].join('\n'));
+  camp.strength = Math.min(campMaxStrength(), camp.strength + 2);   // Erfolg macht die Bande stärker
   return true;
 }
 
@@ -2064,6 +2213,7 @@ function update(dt) {
   updateResearch(dt);
   updateTaxes(dt);
   updatePrices(dt);
+  updateCamps(dt);
 }
 
 // =====================================================================
@@ -2229,6 +2379,8 @@ function buildSaveData() {
     plotsGranted: state.plotsGranted,
     cityName: state.cityName,
     completed: state.completed,
+    camps: state.camps,
+    campSpawnIn: state.campSpawnIn,
     buildings,
   };
   return data;
@@ -2313,6 +2465,10 @@ function load() {
   if (data.counters && typeof data.counters === 'object') state.counters = data.counters;
   if (typeof data.cityName === 'string') state.cityName = data.cityName.slice(0, 30);
   state.completed = data.completed === true;
+  if (Array.isArray(data.camps)) {
+    state.camps = data.camps.filter(c => Number.isFinite(c.x) && Number.isFinite(c.y) && !isOwned(c.x, c.y)).slice(0, CONFIG.maxCamps);
+  }
+  if (Number.isFinite(data.campSpawnIn)) state.campSpawnIn = data.campSpawnIn;
   if (Array.isArray(data.achievements)) {
     state.achievements = data.achievements.filter(id => ACHIEVEMENTS.some(a => a.id === id));
   }
@@ -2435,6 +2591,7 @@ function render(dt) {
   // Straßen zuerst, damit sie unter allem liegen
   forEachVisible(vis, (cell, x, y) => {
     if (BUILDINGS[cell.type].isRoad) drawRoad(x, y, BUILDINGS[cell.type], 1);
+    else if (BUILDINGS[cell.type].isWall) drawWall(x, y, 1);
   });
   drawWalkers();
 
@@ -2442,7 +2599,7 @@ function render(dt) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   forEachVisible(vis, (cell, x, y) => {
-    if (BUILDINGS[cell.type].isRoad) return;
+    if (BUILDINGS[cell.type].isRoad || BUILDINGS[cell.type].isWall) return;
     const active = isActive(x, y);
     const [w, h] = sizeOf(cell);
     const age = (performance.now() - (cell.builtAt || 0)) / 1000;
@@ -2492,6 +2649,7 @@ function render(dt) {
 
   // Bau-Vorschau unter der Maus
   drawPlotPrices(vis);
+  drawCamps(dark);
 
   if (selectedType && hoverTile && getCell(hoverTile.x, hoverTile.y) === null) {
     const def = BUILDINGS[selectedType];
@@ -2500,6 +2658,7 @@ function render(dt) {
       outlineRect(hoverTile.x, hoverTile.y, w, h, '#c0392b');
     } else {
       if (def.isRoad) drawRoad(hoverTile.x, hoverTile.y, def, 0.5);
+      else if (def.isWall) drawWall(hoverTile.x, hoverTile.y, 0.5);
       else drawBuilding(hoverTile.x, hoverTile.y, def, 0.5, 1, w, h);
       if (!canAfford(costOf(selectedType))) outlineRect(hoverTile.x, hoverTile.y, w, h, '#c0392b');
     }
@@ -2660,7 +2819,11 @@ function drawPlotPrices(vis) {
     for (let px = Math.floor(vis.x0 / S); px <= Math.floor(vis.x1 / S); px++) {
       const p = py * P + px;
       if (!canBuyPlot(p)) continue;
-      const cx = (px + 0.5) * S * T, cy = (py + 0.5) * S * T;
+      const cx = (px + 0.5) * S * T;
+      let cy = (py + 0.5) * S * T;
+      // Steht hier ein Banditenlager, rückt das Preisschild in die andere Hälfte der Fläche
+      const camp = state.camps.find(c => plotOf(c.x, c.y) === p);
+      if (camp) cy += (camp.y + 0.5) * T < cy ? S * T * 0.3 : -S * T * 0.3;
       const text = `🏷️ ${formatNumber(price)}`;
       const w = ctx.measureText(text).width + size;
       ctx.fillStyle = affordable ? 'rgba(45, 106, 79, 0.9)' : 'rgba(0, 0, 0, 0.55)';
@@ -2766,6 +2929,8 @@ function drawLights(dark, vis) {
     const cx = (x + w / 2) * T, cy = (y + h / 2) * T;
     if (cell.fire) {
       glow(cx, cy, T * 1.4 * Math.max(w, h), `rgba(255, 110, 30, ${0.8 * k})`);
+    } else if (def.isWall) {
+      // Mauern leuchten nicht
     } else if (def.isRoad) {
       if ((x * 7 + y * 13) % 4 === 0) glow(cx, cy, T * 0.6, `rgba(255, 220, 150, ${0.35 * k})`);
     } else if (isActive(x, y) && (!def.population || state.population > 0)) {
@@ -2904,6 +3069,52 @@ function drawRoad(x, y, def, alpha) {
     if (getCell(x + dx, y + dy)) ctx.fillRect(rx, ry, rw, rh);
   }
   ctx.globalAlpha = 1;
+}
+
+// Mauerstück: dicker Steinstrang mit Zinnen, verbunden mit Nachbarmauern
+function drawWall(x, y, alpha) {
+  const w = T * 0.36, c = (T - w) / 2, px = x * T, py = y * T;
+  const isWallAt = (dx, dy) => { const n = getCell(x + dx, y + dy); return n && BUILDINGS[n.type].isWall; };
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#7d7468';
+  ctx.fillRect(px + c, py + c, w, w);
+  if (isWallAt(0, -1)) ctx.fillRect(px + c, py, w, c);
+  if (isWallAt(1, 0)) ctx.fillRect(px + c + w, py + c, c, w);
+  if (isWallAt(0, 1)) ctx.fillRect(px + c, py + c + w, w, c);
+  if (isWallAt(-1, 0)) ctx.fillRect(px, py + c, c, w);
+  ctx.fillStyle = '#5c544a';   // Zinnen
+  const z = T * 0.12;
+  ctx.fillRect(px + c, py + c, z, z);
+  ctx.fillRect(px + c + w - z, py + c, z, z);
+  ctx.fillRect(px + c, py + c + w - z, z, z);
+  ctx.fillRect(px + c + w - z, py + c + w - z, z, z);
+  ctx.globalAlpha = 1;
+}
+
+// Banditenlager: Zelt mit Flagge und Stärke; nachts glimmt das Lagerfeuer
+function drawCamps(dark) {
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (const camp of state.camps) {
+    const cx = (camp.x + 0.5) * T, cy = (camp.y + 0.5) * T;
+    if (dark > 0) glow(cx, cy + T * 0.4, T * 1.6, `rgba(255, 120, 40, ${0.6 * dark / CONFIG.nightDarkness})`);
+    ctx.fillStyle = 'rgba(60, 20, 20, 0.35)';
+    ctx.beginPath();
+    ctx.arc(cx, cy + T * 0.1, T * 1.1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = `${T * 1.2}px ${EMOJI_FONT}`;
+    ctx.fillText('⛺', cx, cy);
+    ctx.font = `${T * 0.55}px ${EMOJI_FONT}`;
+    ctx.fillText('🏴‍☠️', cx + T * 0.55, cy - T * 0.55);
+    const label = `⚔️ ${Math.round(camp.strength)}`;
+    ctx.font = `bold ${Math.max(T * 0.36, 12 / view.zoom)}px system-ui, sans-serif`;
+    const tw = ctx.measureText(label).width + T * 0.3;
+    ctx.fillStyle = 'rgba(122, 46, 46, 0.9)';
+    roundRect(cx - tw / 2, cy + T * 0.7, tw, T * 0.5, T * 0.2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillText(label, cx, cy + T * 0.95);
+  }
 }
 
 function outlineRect(x, y, w, h, color) {
@@ -3129,6 +3340,11 @@ function handleTap(sx, sy) {
   }
   if (cell) {
     showInfo(x, y);
+    return;
+  }
+  const campIndex = state.camps.findIndex(c => Math.abs(c.x - x) <= 1 && Math.abs(c.y - y) <= 1);
+  if (campIndex >= 0) {
+    showCampInfo(campIndex);
     return;
   }
   if (cell === null && !isOwned(x, y)) {
@@ -3479,6 +3695,11 @@ function buildUI() {
   document.getElementById('info-close').addEventListener('click', closeInfo);
   effectsEl.addEventListener('click', e => {
     if (e.target.closest('[data-action="jobs"]')) showJobsInfo();
+    if (e.target.closest('[data-action="camp"]') && state.camps.length) {
+      const i = state.camps.indexOf(state.camps.reduce((a, b) => (b.strength > a.strength ? b : a)));
+      showCampInfo(i);
+      panCameraToTile(state.camps[i].x, state.camps[i].y);
+    }
   });
   document.getElementById('info-more-toggle').addEventListener('click', () => {
     infoExpanded = !infoExpanded;
@@ -3512,6 +3733,7 @@ function buildUI() {
   document.getElementById('info-action').addEventListener('click', () => {
     if (!infoClickAllowed()) return;
     if (infoMode === 'plot') buyPlot(infoPlot);
+    else if (infoMode === 'camp') clearCamp(infoCamp);
     else if (infoMode === 'city') completeCity();
     else if (infoTile) extinguish(infoTile.x, infoTile.y);
   });
@@ -3897,7 +4119,8 @@ function describeBuilding(type) {
   if (type === 'market') lines.push('🤝 Antippen zum Handeln: Waren kaufen und verkaufen');
   if (def.service) lines.push(`${NEEDS[def.service.need].icon} ${NEEDS[def.service.need].name} für Häuser im Umkreis von ${def.service.radius} Feldern`);
   if (def.fireRadius) lines.push(`🚒 Löscht Brände im Umkreis von ${def.fireRadius} Feldern`);
-  if (type === 'guard') lines.push(`🏴‍☠️ Abwehr gegen Banditen: +${CONFIG.guardDefense} je Wachhaus (mit Ausbau mehr)`);
+  if (def.defense) lines.push(`🏴‍☠️ Schützt Gebäude im Umkreis von ${def.defense.radius} Feldern vor Banditen (Abwehr ${def.defense.strength})`);
+  if (def.isWall) lines.push(`🏴‍☠️ Jedes Stück: Abwehr +${CONFIG.wallDefense} für die ganze Stadt (höchstens +${CONFIG.wallDefenseMax})`);
   if (def.storage) lines.push(`📦 +${def.storage} Lagerplatz für Holz, Stein, Nahrung und Waren`);
   if (def.beautifies) lines.push(`✨ Häuser direkt daneben bekommen +${CONFIG.niceHouseBonus} Wohnplätze`);
   if (def.landmark) lines.push(`🏛️ Zufriedenheit +${def.landmark} für die ganze Stadt – gibt es nur einmal`);
@@ -4011,6 +4234,13 @@ function keepTileVisible(x, y) {
   if (tx !== view.x || ty !== view.y) panCameraTo(tx, ty);
 }
 
+// Karte so verschieben, dass ein Feld mittig über dem Info-Fenster liegt
+function panCameraToTile(x, y) {
+  const size = T * view.zoom;
+  const bottom = view.h - (infoEl.classList.contains('hidden') ? 0 : infoEl.offsetHeight + 20);
+  panCameraTo(view.w / 2 - (x + 0.5) * size, (56 + bottom) / 2 - (y + 0.5) * size);
+}
+
 let cameraTween = null;
 
 function panCameraTo(x, y) {
@@ -4082,8 +4312,47 @@ function renderJobsInfo() {
   document.getElementById('info-action').classList.add('hidden');
 }
 
+let infoCamp = null;
+
+function showCampInfo(index) {
+  closeQuests();
+  closeResearch();
+  closeSettings();
+  infoMode = 'camp';
+  infoTile = null;
+  infoCamp = index;
+  infoOpenedAt = performance.now();
+  clearInfoExtra();
+  infoEl.classList.remove('hidden');
+  renderInfo();
+}
+
+function renderCampInfo() {
+  const camp = state.camps[infoCamp];
+  if (!camp) return closeInfo();
+  const defense = cityDefense();
+  const strong = defense >= camp.strength;
+  const lines = [
+    `Stärke ⚔️ ${Math.round(camp.strength)} (wächst bis ${campMaxStrength()}) · nächster Überfall in etwa ${Math.ceil(camp.raidIn)} s`,
+    `Deine Wachen zusammen: 🛡️ ${defense}` + (strong ? ' – stark genug zum Ausheben!' : ' – noch zu schwach.'),
+    strong ? `Ausheben bringt Beute: ${formatAmounts({ money: Math.round(camp.strength * 15) })}`
+      : 'Baue Wachhäuser, Wachtürme oder Mauern (Reiter 🛡️ Schutz) oder baue sie aus.',
+  ];
+  document.getElementById('info-icon').textContent = '⛺';
+  document.getElementById('info-name').textContent = 'Banditenlager';
+  setInfoLines(lines, ['Von hier aus überfallen Banditen deine Stadt. Je länger das Lager steht, desto stärker wird es.',
+    'Kaufst du das Land, auf dem es steht, ziehen die Banditen ab.']);
+  document.getElementById('info-demolish').classList.add('hidden');
+  document.getElementById('info-upgrade').classList.add('hidden');
+  const btn = document.getElementById('info-action');
+  btn.classList.remove('hidden');
+  btn.textContent = strong ? `⚔️ Ausheben · ${formatAmounts(campCost(camp))}` : `🔒 Wachen zu schwach (${defense} / ${Math.round(camp.strength)})`;
+  btn.classList.toggle('unaffordable', !strong || !canAfford(campCost(camp)));
+}
+
 function renderInfo() {
   if (infoMode === 'city') renderCityInfo();
+  else if (infoMode === 'camp') renderCampInfo();
   else if (infoMode === 'jobs') renderJobsInfo();
   else if (infoMode === 'plot') renderPlotInfo();
   else renderTileInfo();
@@ -4273,8 +4542,9 @@ function renderCityInfo() {
     state.completed ? '✅ Diese Stadt ist vollendet.'
       : `Ziel: Stadt vollenden (Stufe Stadt + Kathedrale) → Neustart mit Bonus${canCompleteCity() ? ' – jetzt möglich!' : ''}`,
     `Land: ${state.plots.filter(Boolean).length} von ${P * P} Flächen · nächste Fläche ${formatAmounts(plotPrice())}`,
-    `Abwehr gegen Banditen: 🛡️ ${defenseStrength()} · Angriffe sind etwa ${Math.round(banditStrength() * 0.7)}–${Math.round(banditStrength() * 1.3)} stark` +
-      (state.population < EVENTS.bandits.minPop ? ` (erst ab ${EVENTS.bandits.minPop} Einwohnern)` : ''),
+    `Schutz vor Banditen: Wachen zusammen 🛡️ ${cityDefense()} (davon Mauern +${wallBonus()})` +
+      (state.camps.length ? ` · ⛺ ${state.camps.length} Lager, stärkstes ⚔️ ${Math.round(Math.max(...state.camps.map(c => c.strength)))}`
+        : state.population < CONFIG.campMinPop ? ` · Banditen erst ab ${CONFIG.campMinPop} Einwohnern` : ' · keine Lager in Sicht'),
     `Jahreszeit: ${season().icon} ${season().name} – noch ${formatClock(seasonLeft())} · Ernte ${Math.round((season().production.farm ?? 1) * 100)} %` +
       (season().heating ? ` · Heizen: 🪵 ${formatNumber(heatingRate())} pro Sekunde` : ''),
     `Danach: ${SEASONS[(seasonIndex() + 1) % SEASONS.length].icon} ${SEASONS[(seasonIndex() + 1) % SEASONS.length].name}` +
@@ -4392,6 +4662,12 @@ function showEventPopup(icon, title, text, buttons = [{ label: 'OK', primary: tr
 }
 
 // Personal-Hinweis unten links – antippbar, öffnet die Übersicht, wo Leute fehlen
+function campPillHtml() {
+  if (!state.camps.length) return '';
+  const strongest = state.camps.reduce((a, b) => (b.strength > a.strength ? b : a));
+  return `<div class="effect clickable" data-action="camp">⛺ ${state.camps.length} Banditenlager · ⚔️ ${Math.round(strongest.strength)} ›</div>`;
+}
+
 function jobsPillHtml() {
   const missing = Object.keys(JOBS)
     .map(job => [job, (stats.jobs.demand[job] || 0) - (stats.jobs.assigned[job] || 0)])
@@ -4416,7 +4692,7 @@ function updateEffectsUI() {
     if (cell?.fire && !cell.fire.brigade) pills.push(`🔥 ${BUILDINGS[cell.type].name} brennt · ${Math.ceil(cell.fire.left)} s`);
   });
   if (isFreezing()) pills.unshift('🥶 Es ist kalt – Holz fehlt!');
-  const html = pills.map(p => `<div class="effect">${p}</div>`).join('') + jobsPillHtml();
+  const html = pills.map(p => `<div class="effect">${p}</div>`).join('') + campPillHtml() + jobsPillHtml();
   if (effectsEl.innerHTML !== html) effectsEl.innerHTML = html;
 }
 

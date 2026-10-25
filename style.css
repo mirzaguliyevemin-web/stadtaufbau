@@ -723,3 +723,6 @@ button.res { cursor: pointer; }
   font-size: 13px;
   line-height: 1.25;
 }
+
+/* Verkaufen wartet auf Bestätigung */
+#info-demolish.armed { background: #e63946; animation: pulse 0.8s ease-in-out infinite; }

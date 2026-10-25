@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 25;
+const APP_VERSION = 26;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -2934,6 +2934,9 @@ canvas.addEventListener('pointerup', e => endPointer(e, false));
 canvas.addEventListener('pointercancel', e => endPointer(e, true));
 canvas.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hoverTile = null; });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+// Nach einem Tipp auf die Karte schickt der Browser noch einen „click“ an die Fingerposition –
+// dort liegt dann oft schon ein Knopf des gerade geöffneten Info-Fensters. Das verhindern wir hier.
+canvas.addEventListener('touchend', e => e.preventDefault(), { passive: false });
 
 // Mausrad: zoomen um den Mauszeiger
 canvas.addEventListener('wheel', e => {
@@ -3343,12 +3346,22 @@ function buildUI() {
     if (taxBtn) setTaxLevel(state.taxLevel + Number(taxBtn.dataset.tax));
   });
   document.getElementById('info-demolish').addEventListener('click', () => {
-    if (infoTile) demolish(infoTile.x, infoTile.y);
+    if (!infoTile || !infoClickAllowed()) return;
+    // Verkaufen nur nach zweitem Tippen – ein versehentlicher Tipp löscht nie sofort
+    const armed = sellArmed && sellArmed.x === infoTile.x && sellArmed.y === infoTile.y && performance.now() < sellArmed.until;
+    if (!armed) {
+      sellArmed = { x: infoTile.x, y: infoTile.y, until: performance.now() + 3000 };
+      renderInfo();
+      return;
+    }
+    sellArmed = null;
+    demolish(infoTile.x, infoTile.y);
   });
   document.getElementById('info-upgrade').addEventListener('click', () => {
-    if (infoTile) upgradeBuilding(infoTile.x, infoTile.y);
+    if (infoTile && infoClickAllowed()) upgradeBuilding(infoTile.x, infoTile.y);
   });
   document.getElementById('info-action').addEventListener('click', () => {
+    if (!infoClickAllowed()) return;
     if (infoMode === 'plot') buyPlot(infoPlot);
     else if (infoMode === 'city') completeCity();
     else if (infoTile) extinguish(infoTile.x, infoTile.y);
@@ -3776,7 +3789,11 @@ function showInfo(x, y) {
   const same = infoTile && infoTile.x === x && infoTile.y === y;
   infoMode = 'tile';
   infoTile = { x, y };
-  if (!same) infoExpanded = false;
+  if (!same) {
+    infoExpanded = false;
+    sellArmed = null;
+  }
+  infoOpenedAt = performance.now();
   clearInfoExtra();
   infoEl.classList.remove('hidden');
   renderInfo();
@@ -3821,6 +3838,7 @@ function showCityInfo() {
   closeSettings();
   infoMode = 'city';
   infoTile = null;
+  infoOpenedAt = performance.now();
   clearInfoExtra();
   infoEl.classList.remove('hidden');
   renderInfo();
@@ -3838,6 +3856,7 @@ function showPlotInfo(p) {
   closeSettings();
   infoMode = 'plot';
   infoTile = null;
+  infoOpenedAt = performance.now();
   infoPlot = p;
   clearInfoExtra();
   infoEl.classList.remove('hidden');
@@ -3943,11 +3962,21 @@ function renderTileInfo() {
   setInfoLines(lines.slice(1, 4), [lines[0], ...lines.slice(4), ...(upgradeHint ? [upgradeHint] : [])]);
   const btn = document.getElementById('info-demolish');
   btn.classList.remove('hidden');
-  btn.textContent = `${def.isRoad ? '🗑️ Löschen' : '💰 Verkaufen'} +${formatAmounts(refund) || '0'}`;
+  const armed = sellArmed && sellArmed.x === infoTile.x && sellArmed.y === infoTile.y && performance.now() < sellArmed.until;
+  btn.classList.toggle('armed', !!armed);
+  btn.textContent = armed
+    ? '⚠️ Wirklich? Nochmal tippen'
+    : `${def.isRoad ? '🗑️ Löschen' : '💰 Verkaufen'} +${formatAmounts(refund) || '0'}`;
 }
 
 // Zusammenfassung sichtbar, Details aufklappbar (Zustand bleibt beim Aktualisieren erhalten)
 let infoExpanded = false;
+let infoOpenedAt = 0;     // Knöpfe reagieren erst kurz nach dem Öffnen (Schutz vor Fehlklicks)
+let sellArmed = null;     // { x, y, until }: erster Tipp auf Verkaufen, wartet auf Bestätigung
+
+function infoClickAllowed() {
+  return performance.now() - infoOpenedAt > 400;
+}
 
 function setInfoLines(summary, details = []) {
   document.getElementById('info-text').textContent = summary.join('\n');

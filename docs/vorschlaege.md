@@ -5,6 +5,12 @@ wenn Emin zugestimmt hat.** Neue Einträge oben, mit Datum und kurzer Begründun
 
 ## Offen
 
+- **Zeitalter** (2026-10-25, Wunsch Emin – Entscheidung offen, erst in einer Sitzung mit Emin bauen) – Vorschlag:
+  Mittelalter → Renaissance → Industrie; Aufstieg kostet Wissen, Geld und Waren (Sinn für späte Überschüsse),
+  neues Aussehen und neue Gebäude je Zeitalter. Alternativen: Steinzeit → Antike → Mittelalter, oder 5 Zeitalter bis heute.
+- **Weitere Ideen zur Auswahl** (2026-10-25): schönere Straßen (Pflaster, Bordstein), mehr Leben (Kinder, Händler,
+  Bewohner mit Namen/Wünschen), Handelsverträge mit Nachbarstädten, Statistik-Seite mit Diagrammen.
+
 
 - **Mehr Inhalte fürs späte Spiel** (2026-10-25) – ab etwa 150 Einwohnern sammelt sich Geld an,
   ohne dass es etwas Sinnvolles zu kaufen gibt. Ideen: weitere Sehenswürdigkeiten, Handelsverträge,

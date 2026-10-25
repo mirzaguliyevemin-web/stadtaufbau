@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 21;
+const APP_VERSION = 22;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -64,6 +64,9 @@ const CONFIG = {
   seasonLength: 240,      // Sekunden je Jahreszeit (ein Jahr = 4 Jahreszeiten)
   heatingPerCitizen: 0.01, // Holz pro Einwohner und Sekunde im Winter
   coldPenalty: 20,        // Zufriedenheitsabzug, wenn im Winter das Holz fehlt
+  guardDefense: 10,       // Abwehr je voll besetztem Wachhaus (× Ausbaustufe)
+  banditBase: 10,         // Grundstärke eines Banditenüberfalls …
+  banditPerCitizen: 0.15, // … plus so viel je Einwohner (± 30 % Zufall)
 };
 
 // Jahreszeiten. production: Faktor je Gebäudeart  | heating: Einwohner verbrauchen Holz zum Heizen
@@ -431,6 +434,7 @@ const QUESTS = [
   { id: 'happy75',    title: 'Glückliche Leute',     goal: { type: 'happiness', count: 75 },                   reward: { money: 150 } },
   { id: 'pop50',      title: 'Wachsende Stadt',      goal: { type: 'population', count: 50 },                  reward: { wood: 100, stone: 100 } },
   { id: 'traders6',   title: 'Reger Handel',         goal: { type: 'jobs', job: 'trader', count: 6 },          reward: { money: 100 } },
+  { id: 'bandits1',   title: 'Sichere Straßen',      goal: { type: 'repelled', count: 1 },                     reward: { money: 150 } },
   { id: 'townhall',   title: 'Prestige',             goal: { type: 'build', building: 'townhall', count: 1 },  reward: { money: 150, stone: 50 } },
   { id: 'research4',  title: 'Zeitalter der Gelehrten', goal: { type: 'research', count: 4 },                  reward: { money: 150 } },
   { id: 'money500',   title: 'Volle Stadtkasse',     goal: { type: 'resource', resource: 'money', count: 500 }, reward: { stone: 80 } },
@@ -466,6 +470,7 @@ const ACHIEVEMENTS = [
   { id: 'landmarks',  icon: '🏛️', name: 'Wahrzeichen',         text: 'Baue alle Sehenswürdigkeiten.',            check: () => Object.keys(BUILDINGS).filter(t => BUILDINGS[t].landmark).every(t => countBuildings(t) > 0) },
   { id: 'allQuests',  icon: '📜', name: 'Auftragsheld',        text: 'Erledige alle Aufträge.',                  check: () => state.questsClaimed.length === QUESTS.length },
   { id: 'streak7',    icon: '📅', name: 'Treue Seele',         text: 'Spiele 7 Tage in Folge.',                  check: () => state.daily.streak >= 7 },
+  { id: 'lawman',     icon: '⚖️', name: 'Gesetzeshüter',       text: 'Schlage 5 Banditenüberfälle zurück.',      check: () => (state.counters.repelled || 0) >= 5 },
   { id: 'gold10',     icon: '🌟', name: 'Prachtbauten',        text: '10 Gebäude auf Stufe 3.',                  check: () => state.grid.filter(c => c && levelOf(c) >= 3).length >= 10 },
   { id: 'land20',     icon: '🗺️', name: 'Landesherr',          text: 'Kaufe 20 Flächen dazu.',                   check: () => plotsBought() >= 20 },
   { id: 'warmWinter', icon: '🔥', name: 'Warme Stuben',        text: 'Überstehe einen Winter mit mindestens 50 Einwohnern, ohne dass jemand friert.', check: () => (state.counters.warmWinters || 0) >= 1 },
@@ -542,6 +547,13 @@ const TECHS = {
     requires: ['stonewalls'],
     effect: { happiness: 5, flags: { plagueResistant: true } },
   },
+  militia: {
+    name: 'Bürgerwehr', icon: '⚔️',
+    description: 'Ausgebildete Bürger helfen den Wachen: Abwehr gegen Banditen +50 %.',
+    cost: { knowledge: 140, money: 150 }, seconds: 75,
+    requires: ['stonewalls'],
+    effect: { flags: { militia: true } },
+  },
   administration: {
     name: 'Verwaltung', icon: '🏛️',
     description: 'Eine gut geführte Stadt: Zufriedenheit +5.',
@@ -571,6 +583,10 @@ const EVENTS = {
   plague: {
     name: 'Seuche', icon: '🦠', weight: 1, minPop: 20,
     start: () => startPlague(),
+  },
+  bandits: {
+    name: 'Banditen', icon: '🏴‍☠️', weight: 2, minPop: 30,
+    start: () => startBandits(),
   },
   festival: {
     name: 'Festtag', icon: '🎉', weight: 2, minPop: 10,
@@ -1054,6 +1070,11 @@ function hasMarket() {
 
 function trade(id, buy) {
   if (!hasMarket()) return;
+  if (tradeBlocked()) {
+    sound.play('error');
+    showToast('🏴‍☠️ Die Handelswege sind gerade unsicher – warte, bis die Banditen weg sind');
+    return;
+  }
   const lot = CONFIG.tradeLot;
   const r = RESOURCES[id];
   if (buy) {
@@ -1361,6 +1382,7 @@ function questProgress(quest) {
     case 'winters':    current = state.counters.winters || 0; break;
     case 'plots':      current = plotsBought(); break;
     case 'upgrades':   current = state.counters.upgrades || 0; break;
+    case 'repelled':   current = state.counters.repelled || 0; break;
   }
   return { current: Math.min(current, g.count), target: g.count, done: current >= g.count };
 }
@@ -1380,6 +1402,7 @@ function goalText(goal) {
     case 'winters':    return goal.count === 1 ? 'Überstehe einen Winter ❄️' : `Überstehe ${goal.count} Winter ❄️`;
     case 'plots':      return goal.count === 1 ? 'Kaufe eine neue Fläche 🏞️' : `Kaufe ${goal.count} neue Flächen 🏞️`;
     case 'upgrades':   return goal.count === 1 ? 'Baue ein Gebäude aus ⬆️' : `Baue ${goal.count} Gebäude aus ⬆️`;
+    case 'repelled':   return goal.count === 1 ? 'Schlage Banditen zurück 🏴‍☠️' : `Schlage ${goal.count}-mal Banditen zurück 🏴‍☠️`;
   }
   return '';
 }
@@ -1578,7 +1601,60 @@ function startPlague() {
 
 // ---------- Händlerkarawane ----------
 
+// ---------- Banditen ----------
+
+// Abwehr: Wachhäuser (Besetzung × Stufe), Bürgerwehr +50 %
+function defenseStrength() {
+  let d = 0;
+  state.grid.forEach((cell, i) => {
+    if (cell && cell.type === 'guard' && isActive(i % N, Math.floor(i / N))) d += CONFIG.guardDefense * levelFactor(cell);
+  });
+  d *= staffOf('guard');
+  return Math.round(d * (hasFlag('militia') ? 1.5 : 1));
+}
+
+function banditStrength() {
+  return CONFIG.banditBase + state.population * CONFIG.banditPerCitizen;
+}
+
+function tradeBlocked() {
+  return state.effects.some(e => e.tradeBlocked);
+}
+
+function startBandits() {
+  const attack = Math.round(banditStrength() * randomBetween(0.7, 1.3));
+  const defense = defenseStrength();
+  if (defense >= attack) {
+    const bounty = Math.round(20 + attack * 1.5);
+    addResources({ money: bounty });
+    state.counters.repelled = (state.counters.repelled || 0) + 1;
+    showEventPopup('🛡️', 'Banditen vertrieben!',
+      `Eine Bande wollte die Handelswege überfallen, aber deine Wachen waren stärker (Abwehr ${defense} gegen ${attack}).\n` +
+      `Kopfgeld: ${formatAmounts({ money: bounty })}`);
+    return true;
+  }
+  // Je stärker die Abwehr, desto kleiner der Schaden
+  const damage = 1 - defense / attack;
+  const stolen = { money: Math.floor(state.resources.money * 0.15 * damage) };
+  const goods = Object.keys(RESOURCES).filter(id => RESOURCES[id].stored && state.resources[id] > 0);
+  for (let n = 0; n < 2 && goods.length; n++) {
+    const id = goods.splice(Math.floor(Math.random() * goods.length), 1)[0];
+    stolen[id] = Math.floor(state.resources[id] * 0.2 * damage);
+  }
+  for (const id in stolen) if (!stolen[id]) delete stolen[id];
+  addResources(stolen, -1);
+  addEffect('bandits', 60, { production: { money: 0.5 }, tradeBlocked: true });
+  showEventPopup('🏴‍☠️', 'Banditen!', [
+    `Banditen haben die Handelswege überfallen (Angriff ${attack}, deine Abwehr ${defense}).`,
+    Object.keys(stolen).length ? `Geraubt: ${formatAmounts(stolen)}` : 'Zum Glück war nichts zu holen.',
+    '60 Sekunden lang ist der Handel unsicher: kein Kauf und Verkauf am Markt, Märkte bringen nur die Hälfte.',
+    defense === 0 ? 'Tipp: Wachhäuser (ab Kleinstadt) wehren Banditen ab.' : 'Tipp: Mehr oder ausgebaute Wachhäuser stärken die Abwehr.',
+  ].join('\n'));
+  return true;
+}
+
 function offerTrade() {
+  if (tradeBlocked()) return false;   // keine Karawanen, solange Banditen die Wege unsicher machen
   const res = randomItem(['wood', 'stone', 'food']);
   const amount = 20 + 10 * Math.floor(Math.random() * 4);   // 20–50
   const sell = state.resources[res] >= amount && Math.random() < 0.5;
@@ -3484,6 +3560,7 @@ function describeBuilding(type) {
   if (type === 'market') lines.push('🤝 Antippen zum Handeln: Waren kaufen und verkaufen');
   if (def.service) lines.push(`${NEEDS[def.service.need].icon} ${NEEDS[def.service.need].name} für Häuser im Umkreis von ${def.service.radius} Feldern`);
   if (def.fireRadius) lines.push(`🚒 Löscht Brände im Umkreis von ${def.fireRadius} Feldern`);
+  if (type === 'guard') lines.push(`🏴‍☠️ Abwehr gegen Banditen: +${CONFIG.guardDefense} je Wachhaus (mit Ausbau mehr)`);
   if (def.storage) lines.push(`📦 +${def.storage} Lagerplatz für Holz, Stein, Nahrung und Waren`);
   if (def.beautifies) lines.push(`✨ Häuser direkt daneben bekommen +${CONFIG.niceHouseBonus} Wohnplätze`);
   if (def.landmark) lines.push(`🏛️ Zufriedenheit +${def.landmark} für die ganze Stadt – gibt es nur einmal`);
@@ -3644,7 +3721,7 @@ function renderTileInfo() {
     lines.push(`🏛️ Sehenswürdigkeit: Zufriedenheit +${def.landmark} für die ganze Stadt.`);
   }
   if (cell.type === 'market' && active) {
-    lines.push('Handel: Kaufe oder verkaufe Waren – die Preise schwanken.');
+    lines.push(tradeBlocked() ? '🏴‍☠️ Handel gesperrt – Banditen machen die Wege unsicher.' : 'Handel: Kaufe oder verkaufe Waren – die Preise schwanken.');
     renderTradeUI();
   } else {
     clearInfoExtra();
@@ -3700,6 +3777,8 @@ function renderCityInfo() {
     next ? `Nächste Stufe: ${next.icon} ${next.name} ab ${next.minPop} Einwohnern` : 'Höchste Stufe erreicht',
     `Nahrungsverbrauch: 🍞 ${consumption} pro Sekunde`,
     `Land: ${state.plots.filter(Boolean).length} von ${P * P} Flächen · nächste Fläche ${formatAmounts(plotPrice())}`,
+    `Abwehr gegen Banditen: 🛡️ ${defenseStrength()} · Angriffe sind etwa ${Math.round(banditStrength() * 0.7)}–${Math.round(banditStrength() * 1.3)} stark` +
+      (state.population < EVENTS.bandits.minPop ? ` (erst ab ${EVENTS.bandits.minPop} Einwohnern)` : ''),
     `Jahreszeit: ${season().icon} ${season().name} – noch ${formatClock(seasonLeft())} · Ernte ${Math.round((season().production.farm ?? 1) * 100)} %` +
       (season().heating ? ` · Heizen: 🪵 ${formatNumber(heatingRate())} pro Sekunde` : ''),
     `Danach: ${SEASONS[(seasonIndex() + 1) % SEASONS.length].icon} ${SEASONS[(seasonIndex() + 1) % SEASONS.length].name}` +

@@ -23,3 +23,10 @@ Lokal starten: `python3 -m http.server 8000` und `http://localhost:8000` öffnen
 
 Bei jeder Änderung die Version an drei Stellen gemeinsam erhöhen: `APP_VERSION` in `game.js`,
 `<meta name="app-version">` in `index.html` und `CACHE` in `service-worker.js`.
+
+## Tests und Balancing-Bot
+
+`node tools/test.mjs` prüft das Spiel automatisch (inkl. eines Bots, der 90 Minuten spielt).
+Details in [`tools/README.md`](tools/README.md); Ideen für neue Funktionen in
+[`docs/vorschlaege.md`](docs/vorschlaege.md), Berichte des täglichen Agenten in
+[`docs/agent-log.md`](docs/agent-log.md).

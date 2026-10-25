@@ -445,6 +445,20 @@ button {
   color: #fff;
 }
 
+/* Restzeit, bis sich die Meldung selbst schließt */
+#event { overflow: hidden; }
+#event-timer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 4px;
+  width: 100%;
+  background: #95d5b2;
+  transform-origin: left;
+}
+#event-timer.hidden { display: none; }
+@keyframes event-timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
 /* ---------- Bauleiste unten ---------- */
 #buildnav {
   background: #2d6a4f;

@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 37;
+const APP_VERSION = 38;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -5131,6 +5131,22 @@ const effectsEl = document.getElementById('effects');
 
 // buttons: [{ label, primary, action }] – action darf false zurückgeben, dann bleibt das Fenster offen
 const popupQueue = [];
+// Meldungen schließen sich nach einer Weile selbst (Wunsch Emin: nach langer Pause nicht alles wegklicken).
+// Tippt man ins Fenster, bleibt es offen.
+const POPUP_AUTO_CLOSE = { info: 10, choice: 30 };   // Sekunden: nur „OK“ / mit Auswahl
+let popupTimer = 0;
+
+function closeEventPopup() {
+  clearTimeout(popupTimer);
+  eventEl.classList.add('hidden');
+  if (popupQueue.length) showEventPopup(...popupQueue.shift());
+}
+
+// Beim Ablaufen: einziger Knopf wird ausgelöst (z. B. Belohnung abholen), bei Auswahl der Knopf ohne Aktion (Ablehnen)
+function autoChoice(buttons) {
+  if (buttons.length === 1) return buttons[0];
+  return buttons.find(b => !b.action) || null;
+}
 
 function showEventPopup(icon, title, text, buttons = [{ label: 'OK', primary: true }]) {
   if (!eventEl.classList.contains('hidden')) {
@@ -5148,13 +5164,33 @@ function showEventPopup(icon, title, text, buttons = [{ label: 'OK', primary: tr
     if (b.primary) btn.className = 'primary';
     btn.addEventListener('click', () => {
       if (b.action && b.action() === false) return;
-      eventEl.classList.add('hidden');
-      if (popupQueue.length) showEventPopup(...popupQueue.shift());
+      closeEventPopup();
     });
     wrap.appendChild(btn);
   }
   eventEl.classList.remove('hidden');
+
+  clearTimeout(popupTimer);
+  const fallback = autoChoice(buttons);
+  const bar = document.getElementById('event-timer');
+  bar.classList.toggle('hidden', !fallback);
+  if (!fallback) return;
+  const seconds = buttons.length === 1 ? POPUP_AUTO_CLOSE.info : POPUP_AUTO_CLOSE.choice;
+  bar.style.animation = 'none';
+  void bar.offsetWidth;                                // Animation neu starten
+  bar.style.animation = `event-timer ${seconds}s linear forwards`;
+  popupTimer = setTimeout(() => {
+    if (fallback.action && fallback.action() === false) return;
+    closeEventPopup();
+  }, seconds * 1000);
 }
+
+// Ins Fenster getippt: offen lassen, bis man selbst schließt
+eventEl.addEventListener('pointerdown', e => {
+  if (e.target.closest && e.target.closest('button')) return;
+  clearTimeout(popupTimer);
+  document.getElementById('event-timer').classList.add('hidden');
+});
 
 // Personal-Hinweis unten links – antippbar, öffnet die Übersicht, wo Leute fehlen
 function campPillHtml() {

@@ -131,6 +131,26 @@ test('Alte Spielstände (16×16, 32×32) lassen sich laden', () => {
   return 'ok';
 });
 
+test('Meldungen schließen sich selbst', () => {
+  const game = fresh({ seed: 6 });
+  const r = game.run(`
+    let got = 0;
+    popupQueue.length = 0; eventEl.classList.add('hidden');   // Start-Meldungen (Tagesbelohnung) wegräumen
+    showEventPopup('🌵', 'Dürre', 'a');
+    showEventPopup('🎁', 'Belohnung', 'b', [{ label: 'Abholen', primary: true, action: () => { got++; } }]);
+    const first = document.getElementById('event-title').textContent;
+    const queued = popupQueue.length;
+    closeEventPopup();
+    const second = document.getElementById('event-title').textContent;
+    const auto = autoChoice([{ label: 'Ablehnen' }, { label: 'Annehmen', primary: true, action() {} }]).label;
+    autoChoice([{ label: 'Abholen', action: () => { got++; } }]).action();
+    JSON.stringify({ first, queued, second, auto, got, timer: !document.getElementById('event-timer').classList.contains('hidden') })
+  `);
+  noErrors(game, 'bei Meldungen');
+  assert(r === '{"first":"Dürre","queued":1,"second":"Belohnung","auto":"Ablehnen","got":1,"timer":true}', r);
+  return 'ok';
+});
+
 if (!quick) {
   test('Bot spielt 90 Minuten: Tempo und keine Dauerprobleme', () => {
     const { report, errors } = runBot(90, 1);

@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 27;
+const APP_VERSION = 28;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -166,6 +166,7 @@ const CATEGORIES = {
 //   produces:      feste Menge pro Intervall  { ressource: menge }
 //   perPopulation: Menge je Einwohner pro Intervall
 //   consumes:      Verbrauch pro Intervall (Verarbeitung) – fehlt etwas, pausiert das Gebäude
+//   size:          [Breite, Höhe] in Feldern (Standard 1×1); das angetippte Feld ist die linke obere Ecke
 //   jobs:          benötigtes Personal { beruf: anzahl } (ein Beruf je Gebäude, siehe JOBS)
 //   servesUpTo:    perPopulation zählt höchstens so viele Einwohner je Gebäude
 //   fixedCost:     Kosten steigen nicht mit der Anzahl (z. B. Straßen)
@@ -209,6 +210,7 @@ const BUILDINGS = {
     needsRoad: true,
     jobs: { worker: 2 },
     category: 'resources',
+    size: [2, 2],
   },
   sawmill: {
     name: 'Sägewerk', icon: '🪚', color: '#b08968',
@@ -220,6 +222,7 @@ const BUILDINGS = {
     needsRoad: true,
     jobs: { worker: 2 },
     category: 'resources',
+    size: [2, 1],
   },
   quarry: {
     name: 'Steinbruch', icon: '⛏️', color: '#adb5bd',
@@ -230,6 +233,7 @@ const BUILDINGS = {
     needsRoad: true,
     jobs: { worker: 3 },
     category: 'resources',
+    size: [2, 2],
   },
   market: {
     name: 'Markt', icon: '🏪', color: '#e76f51',
@@ -241,6 +245,7 @@ const BUILDINGS = {
     needsRoad: true,
     jobs: { trader: 3 },
     category: 'trade',
+    size: [2, 1],
   },
   warehouse: {
     name: 'Lagerhaus', icon: '📦', color: '#ddb892',
@@ -250,6 +255,7 @@ const BUILDINGS = {
     needsRoad: true,
     jobs: { worker: 1 },
     category: 'trade',
+    size: [2, 1],
   },
   park: {
     name: 'Park', icon: '🌳', color: '#52b788',
@@ -259,6 +265,7 @@ const BUILDINGS = {
     beautifies: true,
     needsRoad: true,
     category: 'services',
+    size: [2, 2],
   },
   firestation: {
     name: 'Feuerwache', icon: '🚒', color: '#ff8fa3',
@@ -268,6 +275,7 @@ const BUILDINGS = {
     needsRoad: true,
     jobs: { worker: 2 },
     category: 'services',
+    size: [2, 1],
   },
   scriptorium: {
     name: 'Schreibstube', icon: '🕯️', color: '#d4a373',
@@ -292,6 +300,7 @@ const BUILDINGS = {
     needsRoad: true,
     jobs: { worker: 3 },
     category: 'crafts',
+    size: [2, 1],
   },
   brickworks: {
     name: 'Ziegelei', icon: '🏺', color: '#e07a5f',
@@ -305,6 +314,7 @@ const BUILDINGS = {
     needsRoad: true,
     jobs: { worker: 3 },
     category: 'crafts',
+    size: [2, 1],
   },
   bakery: {
     name: 'Bäckerei', icon: '🥐', color: '#f6bd60',
@@ -340,6 +350,7 @@ const BUILDINGS = {
     needsRoad: true,
     jobs: { scholar: 2 },
     category: 'education',
+    size: [2, 2],
   },
   library: {
     name: 'Bibliothek', icon: '📚', color: '#cdb4db',
@@ -352,6 +363,7 @@ const BUILDINGS = {
     needsRoad: true,
     jobs: { scholar: 3 },
     category: 'education',
+    size: [2, 1],
   },
   guard: {
     name: 'Wachhaus', icon: '💂', color: '#ced4da',
@@ -372,6 +384,7 @@ const BUILDINGS = {
     needsRoad: true,
     jobs: { scholar: 3 },
     category: 'services',
+    size: [2, 2],
   },
   townhall: {
     name: 'Rathaus', icon: '🏛️', color: '#e9ecef',
@@ -381,6 +394,7 @@ const BUILDINGS = {
     unlockLevel: 1,
     needsRoad: true,
     category: 'prestige',
+    size: [2, 2],
   },
   plaza: {
     name: 'Brunnenplatz', icon: '⛲', color: '#a2d2ff',
@@ -391,6 +405,7 @@ const BUILDINGS = {
     unlockLevel: 1,
     needsRoad: true,
     category: 'prestige',
+    size: [3, 3],
   },
   cathedral: {
     name: 'Kathedrale', icon: '⛪', color: '#f1e3c8',
@@ -400,6 +415,7 @@ const BUILDINGS = {
     unlockLevel: 2,
     needsRoad: true,
     category: 'prestige',
+    size: [3, 3],
   },
 };
 
@@ -674,6 +690,7 @@ function newGame() {
   state.resources = {};
   for (const id in RESOURCES) state.resources[id] = RESOURCES[id].start + (CONFIG.legacyStart[id] || 0) * legacy.stars;
   state.grid = new Array(N * N).fill(null);
+  occ.fill(-1);
   state.plots = startPlots();
   state.plotsGranted = 0;
   state.cityName = '';
@@ -753,9 +770,74 @@ function buyPlot(p) {
   updateUI();
 }
 
-function getCell(x, y) {
+// Ein Gebäude steht in state.grid nur an seiner linken oberen Ecke. Die Belegungskarte merkt sich
+// für jedes Feld, zu welcher Ecke es gehört (−1 = frei). Sie wird nicht gespeichert, sondern aufgebaut.
+const occ = new Int32Array(N * N).fill(-1);
+
+function sizeOf(cell) {
+  return [cell.w || 1, cell.h || 1];
+}
+
+function footprintSize(type) {
+  const size = BUILDINGS[type].size;
+  return size ? [size[0], size[1]] : [1, 1];
+}
+
+function setOccupied(ax, ay, w, h, value) {
+  for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) occ[(ay + dy) * N + ax + dx] = value;
+}
+
+function rebuildOccupancy() {
+  occ.fill(-1);
+  state.grid.forEach((cell, i) => {
+    if (cell) setOccupied(i % N, Math.floor(i / N), ...sizeOf(cell), i);
+  });
+}
+
+// Index der Gebäude-Ecke auf Feld (x, y), −1 = frei, undefined = außerhalb der Karte
+function anchorAt(x, y) {
   if (x < 0 || y < 0 || x >= N || y >= N) return undefined;
-  return state.grid[y * N + x];
+  return occ[y * N + x];
+}
+
+// Das Gebäude auf Feld (x, y) – auch für jedes Feld eines großen Gebäudes
+function getCell(x, y) {
+  const a = anchorAt(x, y);
+  if (a === undefined) return undefined;
+  return a >= 0 ? state.grid[a] : null;
+}
+
+// Passt ein Gebäude mit der Ecke auf (x, y)? Alle Felder müssen frei und eigenes Land sein
+function canPlaceAt(type, x, y) {
+  const [w, h] = footprintSize(type);
+  for (let dy = 0; dy < h; dy++) {
+    for (let dx = 0; dx < w; dx++) {
+      if (anchorAt(x + dx, y + dy) !== -1 || !isOwned(x + dx, y + dy)) return false;
+    }
+  }
+  return true;
+}
+
+function removeBuildingAt(i) {
+  const cell = state.grid[i];
+  if (!cell) return;
+  setOccupied(i % N, Math.floor(i / N), ...sizeOf(cell), -1);
+  state.grid[i] = null;
+}
+
+// Abstand zweier Rechtecke in Feldern (0 = berühren sich oder überlappen; Diagonalen zählen wie gerade)
+function rectGap(ax, ay, aw, ah, bx, by, bw, bh) {
+  const dx = Math.max(0, ax - (bx + bw - 1), bx - (ax + aw - 1));
+  const dy = Math.max(0, ay - (by + bh - 1), by - (ay + ah - 1));
+  return Math.max(dx, dy);
+}
+
+// Felder rund um ein Gebäude (oben, unten, links, rechts – ohne Ecken)
+function perimeterTiles(ax, ay, w, h) {
+  const tiles = [];
+  for (let dx = 0; dx < w; dx++) tiles.push([ax + dx, ay - 1], [ax + dx, ay + h]);
+  for (let dy = 0; dy < h; dy++) tiles.push([ax - 1, ay + dy], [ax + w, ay + dy]);
+  return tiles;
 }
 
 // Nachbarfelder (oben, rechts, unten, links) – Grundlage für Straßen/Nachbarschaftsbonus
@@ -765,15 +847,25 @@ function neighbors(x, y) {
     .map(([nx, ny]) => ({ x: nx, y: ny, cell: getCell(nx, ny) }));
 }
 
+// Straße an irgendeiner Seite des Gebäudes auf (x, y)?
 function hasRoadAccess(x, y) {
-  return neighbors(x, y).some(n => n.cell && BUILDINGS[n.cell.type].isRoad);
+  const a = anchorAt(x, y);
+  if (a === undefined) return false;
+  if (a < 0) return neighbors(x, y).some(n => n.cell && BUILDINGS[n.cell.type].isRoad);   // freies Feld (Vorschau)
+  const [w, h] = sizeOf(state.grid[a]);
+  return perimeterTiles(a % N, Math.floor(a / N), w, h).some(([px, py]) => {
+    const cell = getCell(px, py);
+    return cell && BUILDINGS[cell.type].isRoad;
+  });
 }
 
-// Arbeitet das Gebäude auf (x, y)? Hier kommen später weitere Bedingungen hinzu.
+// Arbeitet das Gebäude auf (x, y)? (beliebiges Feld des Gebäudes)
 function isActive(x, y) {
-  const cell = getCell(x, y);
-  if (!cell || cell.fire) return false;
-  return !BUILDINGS[cell.type].needsRoad || hasRoadAccess(x, y);
+  const a = anchorAt(x, y);
+  if (a === undefined || a < 0) return false;
+  const cell = state.grid[a];
+  if (cell.fire) return false;
+  return !BUILDINGS[cell.type].needsRoad || hasRoadAccess(a % N, Math.floor(a / N));
 }
 
 // Wirkungsbereich eines Gebäudes (Versorgung oder Brandschutz), sonst null
@@ -781,10 +873,6 @@ function areaOf(def) {
   if (def.service) return { key: def.service.need, radius: def.service.radius };
   if (def.fireRadius) return { key: 'fire', radius: def.fireRadius };
   return null;
-}
-
-function inRange(ax, ay, bx, by, radius) {
-  return Math.max(Math.abs(ax - bx), Math.abs(ay - by)) <= radius;
 }
 
 function levelFor(pop) {
@@ -975,6 +1063,12 @@ function placeBuilding(x, y, type) {
   const def = BUILDINGS[type];
   if (getCell(x, y) !== null) return false;
   if (!isOwned(x, y)) return false;
+  const [w, h] = footprintSize(type);
+  if (!canPlaceAt(type, x, y)) {
+    sound.play('error');
+    showToast(`Kein Platz: ${def.name} braucht ${w}×${h} freie Felder auf eigenem Land`);
+    return false;
+  }
   if (def.landmark && countBuildings(type) > 0) {
     sound.play('error');
     showToast(`${def.name} gibt es nur einmal`);
@@ -987,7 +1081,10 @@ function placeBuilding(x, y, type) {
     return false;
   }
   addResources(cost, -1);
-  state.grid[y * N + x] = { type, timer: 0, builtAt: performance.now() };
+  const cell = { type, timer: 0, builtAt: performance.now() };
+  if (w > 1 || h > 1) { cell.w = w; cell.h = h; }
+  state.grid[y * N + x] = cell;
+  setOccupied(x, y, w, h, y * N + x);
   emit('build', { x, y, type });
   recalcStats();
   if (def.needsRoad && !hasRoadAccess(x, y)) showToast('⚠️ Braucht eine Straße direkt daneben');
@@ -1013,11 +1110,12 @@ function refundOf(cell, offset = -1) {
 }
 
 function demolish(x, y) {
-  const cell = getCell(x, y);
-  if (!cell) return;
+  const a = anchorAt(x, y);
+  if (a === undefined || a < 0) return;
+  const cell = state.grid[a];
   addResources(refundOf(cell), 1);
-  state.grid[y * N + x] = null;
-  emit('demolish', { x, y, type: cell.type });
+  removeBuildingAt(a);
+  emit('demolish', { x: a % N, y: Math.floor(a / N), type: cell.type, w: cell.w || 1, h: cell.h || 1 });
   closeInfo();
   recalcStats();
   updateUI();
@@ -1255,7 +1353,7 @@ function recalcStats() {
     const x = i % N, y = Math.floor(i / N);
     if (!isActive(x, y)) return;
     const def = BUILDINGS[cell.type];
-    if (def.service) providers.push({ x, y, type: cell.type, need: def.service.need, radius: def.service.radius + levelOf(cell) - 1 });
+    if (def.service) providers.push({ x, y, w: cell.w || 1, h: cell.h || 1, type: cell.type, need: def.service.need, radius: def.service.radius + levelOf(cell) - 1 });
     if (def.population) houses.push({ i, x, y, cap: houseCapacity(x, y) });
     if (def.storage) storage += def.storage * levelOf(cell);
     if (def.landmark) landmarks += def.landmark;
@@ -1279,7 +1377,7 @@ function recalcStats() {
     // Versorgungsgrad = bester Anbieter in Reichweite, gewichtet mit dessen Besetzung
     const levels = new Map();
     for (const p of providers) {
-      if (inRange(p.x, p.y, h.x, h.y, p.radius)) levels.set(p.need, Math.max(levels.get(p.need) || 0, staffOf(p.type)));
+      if (rectGap(p.x, p.y, p.w, p.h, h.x, h.y, 1, 1) <= p.radius) levels.set(p.need, Math.max(levels.get(p.need) || 0, staffOf(p.type)));
     }
     stats.houseNeeds.set(h.i, levels);
     for (const [need, level] of levels) covered[need] += h.cap * level;
@@ -1513,9 +1611,13 @@ function updateEvents(dt) {
 // ---------- Feuer ----------
 
 function fireProtected(x, y) {
+  const a = anchorAt(x, y);
+  const [tw, th] = a >= 0 ? sizeOf(state.grid[a]) : [1, 1];
+  const tx = a >= 0 ? a % N : x, ty = a >= 0 ? Math.floor(a / N) : y;
   return state.grid.some((cell, i) => {
     const r = cell && BUILDINGS[cell.type].fireRadius && BUILDINGS[cell.type].fireRadius + levelOf(cell) - 1;
-    return r && staffOf(cell.type) > 0 && isActive(i % N, Math.floor(i / N)) && inRange(i % N, Math.floor(i / N), x, y, r);
+    return r && staffOf(cell.type) > 0 && isActive(i % N, Math.floor(i / N)) &&
+      rectGap(i % N, Math.floor(i / N), cell.w || 1, cell.h || 1, tx, ty, tw, th) <= r;
   });
 }
 
@@ -1556,12 +1658,16 @@ function startFire() {
 }
 
 function spreadFire(i) {
-  const x = i % N, y = Math.floor(i / N);
-  const targets = neighbors(x, y).filter(n => n.cell && !n.cell.fire && !BUILDINGS[n.cell.type].isRoad);
-  if (targets.length === 0) return;
-  const t = randomItem(targets);
-  igniteCell(t.y * N + t.x);
-  showToast(`🔥 Das Feuer greift auf ${BUILDINGS[t.cell.type].name} über!`, 3000);
+  const cell = state.grid[i];
+  const targets = new Set();
+  for (const [px, py] of perimeterTiles(i % N, Math.floor(i / N), ...sizeOf(cell))) {
+    const a = anchorAt(px, py);
+    if (a >= 0 && a !== i && !state.grid[a].fire && !BUILDINGS[state.grid[a].type].isRoad) targets.add(a);
+  }
+  if (targets.size === 0) return;
+  const t = randomItem([...targets]);
+  igniteCell(t);
+  showToast(`🔥 Das Feuer greift auf ${BUILDINGS[state.grid[t].type].name} über!`, 3000);
 }
 
 function updateFires(dt) {
@@ -1581,7 +1687,7 @@ function updateFires(dt) {
       state.counters.extinguished = (state.counters.extinguished || 0) + 1;
       showToast(`🚒 Feuer gelöscht: ${def.name}`);
     } else {
-      state.grid[i] = null;
+      removeBuildingAt(i);
       if (infoTile && infoTile.x === x && infoTile.y === y) closeInfo();
       showToast(`🔥 ${def.name} ist abgebrannt`, 3000);
       emit('burned', { x, y, type: cell.type });
@@ -2096,7 +2202,7 @@ let saveBlocked = false;   // beim Import: verhindert, dass der alte Stand beim 
 function buildSaveData() {
   const buildings = [];
   state.grid.forEach((cell, i) => {
-    if (cell) buildings.push({ x: i % N, y: Math.floor(i / N), type: cell.type, timer: cell.timer, fire: cell.fire, level: cell.level });
+    if (cell) buildings.push({ x: i % N, y: Math.floor(i / N), type: cell.type, timer: cell.timer, fire: cell.fire, level: cell.level, w: cell.w, h: cell.h });
   });
   const data = {
     v: CONFIG.saveVersion,
@@ -2162,8 +2268,14 @@ function load() {
   for (const b of data.buildings || []) {
     b.x += offset;
     b.y += offset;
-    if (BUILDINGS[b.type] && getCell(b.x, b.y) === null) {
+    // Größe aus dem Spielstand; ohne Angabe ist es ein Altbau mit 1×1
+    const w = Number.isInteger(b.w) && b.w > 1 ? b.w : 1, h = Number.isInteger(b.h) && b.h > 1 ? b.h : 1;
+    let fits = !!BUILDINGS[b.type];
+    for (let dy = 0; dy < h && fits; dy++) for (let dx = 0; dx < w && fits; dx++) fits = anchorAt(b.x + dx, b.y + dy) === -1;
+    if (fits) {
       const cell = { type: b.type, timer: b.timer || 0 };
+      if (w > 1 || h > 1) { cell.w = w; cell.h = h; }
+      setOccupied(b.x, b.y, w, h, b.y * N + b.x);
       if (Number.isInteger(b.level) && b.level > 1 && b.level <= MAX_BUILDING_LEVEL && canUpgradeType(b.type)) cell.level = b.level;
       if (b.fire && typeof b.fire.left === 'number') cell.fire = b.fire;
       state.grid[b.y * N + b.x] = cell;
@@ -2176,7 +2288,11 @@ function load() {
     if (Number.isFinite(data.plotsGranted)) state.plotsGranted = data.plotsGranted;
   }
   const ownedBefore = state.plots.filter(Boolean).length;
-  state.grid.forEach((cell, i) => { if (cell) state.plots[plotOf(i % N, Math.floor(i / N))] = true; });
+  state.grid.forEach((cell, i) => {
+    if (!cell) return;
+    const [w, h] = sizeOf(cell);
+    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) state.plots[plotOf(i % N + dx, Math.floor(i / N) + dy)] = true;
+  });
   state.plotsGranted += state.plots.filter(Boolean).length - ownedBefore;   // geschenkt, nicht gekauft
   if (Array.isArray(data.effects)) {
     state.effects = data.effects.filter(e => EVENTS[e.event] && typeof e.left === 'number');
@@ -2328,23 +2444,25 @@ function render(dt) {
   forEachVisible(vis, (cell, x, y) => {
     if (BUILDINGS[cell.type].isRoad) return;
     const active = isActive(x, y);
+    const [w, h] = sizeOf(cell);
     const age = (performance.now() - (cell.builtAt || 0)) / 1000;
     const scale = age < 0.35 ? easeOutBack(age / 0.35) : 1;   // Plopp beim Bauen
-    drawBuilding(x, y, BUILDINGS[cell.type], active || cell.fire ? 1 : 0.55, scale);
+    drawBuilding(x, y, BUILDINGS[cell.type], active || cell.fire ? 1 : 0.55, scale, w, h);
+    const mx = (x + w - 0.2) * T, my = (y + 0.22) * T;      // Ecke oben rechts für Hinweise
     if (cell.fire) {
-      drawFire(x, y, cell.fire);
+      drawFire(x, y, cell.fire, w, h);
     } else if (active && BUILDINGS[cell.type].jobs && staffOf(cell.type) < 0.995) {
       ctx.font = `${T * 0.28}px ${EMOJI_FONT}`;
-      ctx.fillText('👷', (x + 0.8) * T, (y + 0.22) * T);
+      ctx.fillText('👷', mx, my);
     } else if (active && cell.waiting) {
       ctx.font = `${T * 0.28}px ${EMOJI_FONT}`;
-      ctx.fillText('⏸️', (x + 0.8) * T, (y + 0.22) * T);
+      ctx.fillText('⏸️', mx, my);
     } else if (active && BUILDINGS[cell.type].population && isNiceHouse(x, y)) {
       ctx.font = `${T * 0.26}px ${EMOJI_FONT}`;
       ctx.fillText('✨', (x + 0.2) * T, (y + 0.22) * T);
     } else if (!active) {
       ctx.font = `${T * 0.3}px ${EMOJI_FONT}`;
-      ctx.fillText('⚠️', (x + 0.8) * T, (y + 0.22) * T);
+      ctx.fillText('⚠️', mx, my);
     }
   });
 
@@ -2356,8 +2474,9 @@ function render(dt) {
   forEachVisible(vis, (cell, x, y) => {
     if (levelOf(cell) < 2) return;
     const stars = '★'.repeat(levelOf(cell) - 1);
-    ctx.strokeText(stars, (x + 0.5) * T, (y + 0.88) * T);
-    ctx.fillText(stars, (x + 0.5) * T, (y + 0.88) * T);
+    const [w, h] = sizeOf(cell);
+    ctx.strokeText(stars, (x + w / 2) * T, (y + h - 0.12) * T);
+    ctx.fillText(stars, (x + w / 2) * T, (y + h - 0.12) * T);
   });
 
   drawSmoke();
@@ -2374,18 +2493,22 @@ function render(dt) {
   // Bau-Vorschau unter der Maus
   drawPlotPrices(vis);
 
-  if (selectedType && hoverTile && getCell(hoverTile.x, hoverTile.y) === null && !isOwned(hoverTile.x, hoverTile.y)) {
-    outlineTile(hoverTile, '#c0392b');
-  } else if (selectedType && hoverTile && getCell(hoverTile.x, hoverTile.y) === null) {
+  if (selectedType && hoverTile && getCell(hoverTile.x, hoverTile.y) === null) {
     const def = BUILDINGS[selectedType];
-    if (def.isRoad) drawRoad(hoverTile.x, hoverTile.y, def, 0.5);
-    else drawBuilding(hoverTile.x, hoverTile.y, def, 0.5);
-    if (!canAfford(costOf(selectedType))) outlineTile(hoverTile, '#c0392b');
+    const [w, h] = footprintSize(selectedType);
+    if (!canPlaceAt(selectedType, hoverTile.x, hoverTile.y)) {
+      outlineRect(hoverTile.x, hoverTile.y, w, h, '#c0392b');
+    } else {
+      if (def.isRoad) drawRoad(hoverTile.x, hoverTile.y, def, 0.5);
+      else drawBuilding(hoverTile.x, hoverTile.y, def, 0.5, 1, w, h);
+      if (!canAfford(costOf(selectedType))) outlineRect(hoverTile.x, hoverTile.y, w, h, '#c0392b');
+    }
   } else if (hoverTile && getCell(hoverTile.x, hoverTile.y) !== undefined) {
     outlineTile(hoverTile, 'rgba(255,255,255,0.6)');
   }
 
-  if (infoTile) outlineTile(infoTile, '#ffd166');
+  const infoCellNow = infoTile && state.grid[infoTile.y * N + infoTile.x];
+  if (infoCellNow) outlineRect(infoTile.x, infoTile.y, ...sizeOf(infoCellNow), '#ffd166');
   if (demolishSelection.size) drawDemolishSelection();
   if (infoMode === 'plot') outlinePlot(infoPlot);
 
@@ -2411,56 +2534,65 @@ function drawServiceAreas() {
   if (selArea) {
     state.grid.forEach((cell, i) => {
       const area = cell && areaOfCell(cell);
-      if (area && area.key === selArea.key) drawArea(i % N, Math.floor(i / N), area.radius, 'rgba(255,255,255,0.15)');
+      if (area && area.key === selArea.key) drawArea(i % N, Math.floor(i / N), area.radius, 'rgba(255,255,255,0.15)', ...sizeOf(cell));
     });
     if (hoverTile && getCell(hoverTile.x, hoverTile.y) === null) {
-      drawArea(hoverTile.x, hoverTile.y, selArea.radius, 'rgba(255,209,102,0.3)');
+      drawArea(hoverTile.x, hoverTile.y, selArea.radius, 'rgba(255,209,102,0.3)', ...footprintSize(selectedType));
     }
   }
-  const infoCell = infoTile && getCell(infoTile.x, infoTile.y);
+  const infoCell = infoTile && state.grid[infoTile.y * N + infoTile.x];
   const infoArea = infoCell && areaOfCell(infoCell);
-  if (infoArea) drawArea(infoTile.x, infoTile.y, infoArea.radius, 'rgba(255,209,102,0.3)');
+  if (infoArea) drawArea(infoTile.x, infoTile.y, infoArea.radius, 'rgba(255,209,102,0.3)', ...sizeOf(infoCell));
 }
 
-function drawFire(x, y, fire) {
+function drawFire(x, y, fire, w = 1, h = 1) {
   const t = performance.now() / 1000;
   ctx.fillStyle = `rgba(230, 57, 70, ${0.35 + 0.15 * Math.sin(t * 8)})`;
-  ctx.fillRect(x * T, y * T, T, T);
-  const size = T * (0.5 + 0.06 * Math.sin(t * 11 + x + y));
+  ctx.fillRect(x * T, y * T, w * T, h * T);
+  const size = T * Math.min(w, h) * (0.5 + 0.06 * Math.sin(t * 11 + x + y));
   ctx.font = `${size}px ${EMOJI_FONT}`;
-  ctx.fillText(fire.brigade ? '🚒' : '🔥', (x + 0.5) * T, (y + 0.45) * T);
+  ctx.fillText(fire.brigade ? '🚒' : '🔥', (x + w / 2) * T, (y + h / 2 - 0.05) * T);
   // Restzeit als Balken
   const max = fire.max || (fire.brigade ? CONFIG.fireBrigadeSeconds : CONFIG.fireBurnSeconds);
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(x * T + 4, (y + 1) * T - 8, T - 8, 4);
+  ctx.fillRect(x * T + 4, (y + h) * T - 8, w * T - 8, 4);
   ctx.fillStyle = fire.brigade ? '#4dabf7' : '#ffd166';
-  ctx.fillRect(x * T + 4, (y + 1) * T - 8, (T - 8) * Math.max(0, fire.left / max), 4);
+  ctx.fillRect(x * T + 4, (y + h) * T - 8, (w * T - 8) * Math.max(0, fire.left / max), 4);
 }
 
-function drawArea(x, y, r, color) {
+function drawArea(x, y, r, color, w = 1, h = 1) {
   const x0 = Math.max(0, x - r), y0 = Math.max(0, y - r);
-  const x1 = Math.min(N - 1, x + r), y1 = Math.min(N - 1, y + r);
+  const x1 = Math.min(N - 1, x + w - 1 + r), y1 = Math.min(N - 1, y + h - 1 + r);
   ctx.fillStyle = color;
   ctx.fillRect(x0 * T, y0 * T, (x1 - x0 + 1) * T, (y1 - y0 + 1) * T);
 }
 
 const EMOJI_FONT = 'system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
 
-function drawBuilding(x, y, def, alpha, scale = 1) {
+function drawBuilding(x, y, def, alpha, scale = 1, w = 1, h = 1) {
   const pad = T * 0.06;
+  const cx = (x + w / 2) * T, cy = (y + h / 2) * T;
   ctx.save();
   if (scale !== 1) {
-    ctx.translate((x + 0.5) * T, (y + 0.5) * T);
+    ctx.translate(cx, cy);
     ctx.scale(scale, scale);
-    ctx.translate(-(x + 0.5) * T, -(y + 0.5) * T);
+    ctx.translate(-cx, -cy);
   }
   ctx.globalAlpha = alpha;
   ctx.fillStyle = def.color;
-  roundRect(x * T + pad, y * T + pad, T - pad * 2, T - pad * 2, T * 0.15);
+  roundRect(x * T + pad, y * T + pad, w * T - pad * 2, h * T - pad * 2, T * 0.15);
   ctx.fill();
+  if (w > 1 || h > 1) {
+    // Große Gebäude: dezente Kante, damit man die Fläche erkennt
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
   ctx.fillStyle = '#000';
-  ctx.font = `${T * 0.6}px ${EMOJI_FONT}`;
-  ctx.fillText(def.icon, (x + 0.5) * T, (y + 0.54) * T);
+  // Symbolgröße: 1×1 normal, 2×1 etwas größer, 2×2 und 3×3 deutlich größer
+  const iconScale = Math.min(w, h) >= 3 ? 2.4 : Math.min(w, h) === 2 ? 1.8 : Math.max(w, h) > 1 ? 1.25 : 1;
+  ctx.font = `${T * 0.6 * iconScale}px ${EMOJI_FONT}`;
+  ctx.fillText(def.icon, cx, cy + T * 0.04 * Math.min(w, h));
   ctx.restore();
 }
 
@@ -2468,8 +2600,8 @@ function drawBuilding(x, y, def, alpha, scale = 1) {
 function visibleRange() {
   const left = -view.x / view.zoom / T, top = -view.y / view.zoom / T;
   return {
-    x0: clamp(Math.floor(left) - 1, 0, N - 1),
-    y0: clamp(Math.floor(top) - 1, 0, N - 1),
+    x0: clamp(Math.floor(left) - 3, 0, N - 1),   // große Gebäude links/oben vom Bild ragen hinein
+    y0: clamp(Math.floor(top) - 3, 0, N - 1),
     x1: clamp(Math.ceil(left + view.w / view.zoom / T) + 1, 0, N - 1),
     y1: clamp(Math.ceil(top + view.h / view.zoom / T) + 1, 0, N - 1),
   };
@@ -2545,14 +2677,17 @@ function drawDemolishSelection() {
   ctx.textBaseline = 'middle';
   ctx.font = `bold ${T * 0.4}px system-ui, sans-serif`;
   for (const i of demolishSelection) {
+    const cell = state.grid[i];
+    if (!cell) continue;
     const x = i % N, y = Math.floor(i / N);
+    const [w, h] = sizeOf(cell);
     ctx.fillStyle = 'rgba(230, 57, 70, 0.45)';
-    ctx.fillRect(x * T, y * T, T, T);
+    ctx.fillRect(x * T, y * T, w * T, h * T);
     ctx.strokeStyle = '#e63946';
     ctx.lineWidth = 2 / view.zoom;
-    ctx.strokeRect(x * T + 1, y * T + 1, T - 2, T - 2);
+    ctx.strokeRect(x * T + 1, y * T + 1, w * T - 2, h * T - 2);
     ctx.fillStyle = '#fff';
-    ctx.fillText('✖', (x + 0.5) * T, (y + 0.5) * T);
+    ctx.fillText('✖', (x + w / 2) * T, (y + h / 2) * T);
   }
 }
 
@@ -2627,13 +2762,14 @@ function drawLights(dark, vis) {
   ctx.globalCompositeOperation = 'lighter';
   forEachVisible(vis, (cell, x, y) => {
     const def = BUILDINGS[cell.type];
-    const cx = (x + 0.5) * T, cy = (y + 0.5) * T;
+    const [w, h] = sizeOf(cell);
+    const cx = (x + w / 2) * T, cy = (y + h / 2) * T;
     if (cell.fire) {
-      glow(cx, cy, T * 1.4, `rgba(255, 110, 30, ${0.8 * k})`);
+      glow(cx, cy, T * 1.4 * Math.max(w, h), `rgba(255, 110, 30, ${0.8 * k})`);
     } else if (def.isRoad) {
       if ((x * 7 + y * 13) % 4 === 0) glow(cx, cy, T * 0.6, `rgba(255, 220, 150, ${0.35 * k})`);
     } else if (isActive(x, y) && (!def.population || state.population > 0)) {
-      glow(cx, cy, T * 0.8, `rgba(255, 190, 90, ${0.45 * k})`);
+      glow(cx, cy, T * 0.8 * Math.max(w, h), `rgba(255, 190, 90, ${0.45 * k})`);
       if (def.population) {
         // erleuchtete Fenster
         ctx.fillStyle = `rgba(255, 220, 120, ${0.9 * k})`;
@@ -2666,7 +2802,7 @@ function updateParticles(dt) {
     const x = i % N, y = Math.floor(i / N);
     if (!isActive(x, y)) return;
     particles.push({
-      x: (x + 0.75) * T, y: (y + 0.18) * T,
+      x: (x + (cell.w || 1) - 0.25) * T, y: (y + 0.18) * T,
       vx: randomBetween(-3, 6), vy: -T * 0.35,
       age: 0, life: 2.4, size: T * 0.1, color: '235, 235, 235',
     });
@@ -2768,6 +2904,12 @@ function drawRoad(x, y, def, alpha) {
     if (getCell(x + dx, y + dy)) ctx.fillRect(rx, ry, rw, rh);
   }
   ctx.globalAlpha = 1;
+}
+
+function outlineRect(x, y, w, h, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3 / view.zoom;
+  ctx.strokeRect(x * T + 1, y * T + 1, w * T - 2, h * T - 2);
 }
 
 function outlineTile(tile, color) {
@@ -3650,8 +3792,8 @@ function exitDemolishMode() {
 
 // add: true = nur hinzufügen (beim Ziehen), sonst umschalten (beim Tippen)
 function markForDemolish(x, y, add = false) {
-  if (!getCell(x, y)) return;
-  const i = y * N + x;
+  const i = anchorAt(x, y);
+  if (i === undefined || i < 0) return;
   if (add || !demolishSelection.has(i)) demolishSelection.add(i);
   else demolishSelection.delete(i);
 }
@@ -3700,8 +3842,8 @@ function sellSelection() {
     const cell = state.grid[i];
     if (!cell) continue;
     addResources(refundOf(cell), 1);
-    state.grid[i] = null;
-    emit('demolish', { x: i % N, y: Math.floor(i / N), type: cell.type });
+    removeBuildingAt(i);
+    emit('demolish', { x: i % N, y: Math.floor(i / N), type: cell.type, w: cell.w || 1, h: cell.h || 1 });
   }
   demolishSelection.clear();
   showToast(`🧹 ${count} ${count === 1 ? 'Objekt' : 'Objekte'} abgerissen`);
@@ -3734,6 +3876,8 @@ function describeBuilding(type) {
   const def = BUILDINGS[type];
   const lines = [];
   if (def.isRoad) lines.push('🛣️ Gebäude direkt daneben bekommen Anschluss – ohne Straße arbeitet nichts.');
+  const [fw, fh] = footprintSize(type);
+  if (fw > 1 || fh > 1) lines.push(`📐 Braucht ${fw} × ${fh} Felder (angetipptes Feld = linke obere Ecke)`);
   if (def.population) lines.push(`👥 ${capacityOf(type)} Wohnplätze (+${CONFIG.niceHouseBonus} neben Park oder Brunnen)`);
   if (def.interval && def.consumes) {
     lines.push(`🔁 Verarbeitet ${formatAmounts(def.consumes)} → ${formatAmounts(def.produces)} alle ${def.interval} s`);
@@ -3789,6 +3933,8 @@ function hideBuildInfo() {
 }
 
 function showInfo(x, y) {
+  const a = anchorAt(x, y);
+  if (a >= 0) { x = a % N; y = Math.floor(a / N); }   // großes Gebäude: immer die linke obere Ecke
   closeQuests();
   closeResearch();
   closeSettings();
@@ -3813,8 +3959,10 @@ function keepTileVisible(x, y) {
   const size = T * view.zoom;
   const top = 56;                                            // unter der Auftragsanzeige
   const bottom = view.h - infoEl.offsetHeight - 20;          // Oberkante des Info-Fensters
-  const sx = view.x + (x + 0.5) * size;
-  const sy = view.y + (y + 0.5) * size;
+  const cell = state.grid[y * N + x];
+  const [w, h] = cell ? sizeOf(cell) : [1, 1];
+  const sx = view.x + (x + w / 2) * size;
+  const sy = view.y + (y + h / 2) * size;
   let tx = view.x, ty = view.y;
   if (sy + size > bottom || sy - size < top) ty += (top + bottom) / 2 - sy;
   if (sx - size < 0 || sx + size > view.w) tx += view.w / 2 - sx;

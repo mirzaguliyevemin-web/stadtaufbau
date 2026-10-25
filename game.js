@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 28;
+const APP_VERSION = 29;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -2960,6 +2960,7 @@ function startPinch() {
 }
 
 canvas.addEventListener('pointerdown', e => {
+  collapseOverlays();
   if (e.pointerType === 'mouse' && e.button === 2) {
     // Rechtsklick: Baumodus bzw. Fenster schließen
     selectBuild(null);
@@ -3576,6 +3577,11 @@ function updateUI() {
   if (buildInfoEl.dataset.type && !buildInfoEl.classList.contains('hidden')) {
     const status = buildInfoEl.querySelector('.bi-status');
     const type = buildInfoEl.dataset.type;
+    const meta = buildInfoEl.querySelector('.bi-meta');
+    if (meta) {
+      meta.textContent = buildInfoMeta(type);
+      meta.classList.toggle('unaffordable', isUnlocked(type) && !canAfford(costOf(type)));
+    }
     if (status && isUnlocked(type) && !(BUILDINGS[type].landmark && countBuildings(type) > 0)) {
       status.textContent = `Kosten: ${formatAmounts(costOf(type))}${BUILDINGS[type].fixedCost ? '' : ' (jedes weitere kostet mehr)'}`;
       status.classList.toggle('unaffordable', !canAfford(costOf(type)));
@@ -3906,8 +3912,22 @@ function describeBuilding(type) {
 
 const buildInfoEl = document.getElementById('build-info');
 
+// Kurzinfo: standardmäßig nur eine schmale Zeile (die Karte bleibt frei), Details über ⓘ
+let buildInfoExpanded = false;
+
+// Kurze Zustandsangabe für die Zeile: Kosten, „gesperrt“ oder „schon gebaut“
+function buildInfoMeta(type) {
+  const def = BUILDINGS[type];
+  const [w, h] = footprintSize(type);
+  const size = w > 1 || h > 1 ? `${w}×${h} · ` : '';
+  if (!isUnlocked(type)) return `${size}🔒 ${lockReason(type)}`;
+  if (def.landmark && countBuildings(type) > 0) return `${size}✔ gebaut`;
+  return size + formatAmounts(costOf(type));
+}
+
 function showBuildInfo(type) {
   const def = BUILDINGS[type];
+  if (buildInfoEl.dataset.type !== type) buildInfoExpanded = !isUnlocked(type);   // gesperrt: gleich erklären, warum
   buildInfoEl.dataset.type = type;
   const locked = !isUnlocked(type);
   const built = def.landmark && countBuildings(type) > 0;
@@ -3916,15 +3936,37 @@ function showBuildInfo(type) {
     : `Kosten: ${formatAmounts(costOf(type))}${def.fixedCost ? '' : ' (jedes weitere kostet mehr)'}`;
   buildInfoEl.innerHTML = `
     <div class="bi-head"><span class="bi-icon">${def.icon}</span><strong>${def.name}</strong>
+      <span class="bi-meta"></span>
+      <button class="bi-more" title="Was macht das Gebäude?">ⓘ</button>
       <button class="bi-close" title="Schließen">✕</button></div>
-    <div class="bi-desc">${def.description}</div>
-    <ul class="bi-facts">${describeBuilding(type).map(l => `<li>${l}</li>`).join('')}</ul>
-    <div class="bi-status${locked ? ' locked' : ''}">${status}</div>`;
+    <div class="bi-details">
+      <div class="bi-desc">${def.description}</div>
+      <ul class="bi-facts">${describeBuilding(type).map(l => `<li>${l}</li>`).join('')}</ul>
+      <div class="bi-status${locked ? ' locked' : ''}">${status}</div>
+    </div>`;
+  buildInfoEl.querySelector('.bi-meta').textContent = buildInfoMeta(type);
+  buildInfoEl.classList.toggle('expanded', buildInfoExpanded);
+  buildInfoEl.querySelector('.bi-more').addEventListener('click', () => {
+    buildInfoExpanded = !buildInfoExpanded;
+    buildInfoEl.classList.toggle('expanded', buildInfoExpanded);
+  });
   buildInfoEl.querySelector('.bi-close').addEventListener('click', () => {
     if (selectedType === type) selectBuild(null);
     else hideBuildInfo();
   });
   buildInfoEl.classList.remove('hidden');
+}
+
+// Wer die Karte berührt, will sie sehen: Details zuklappen
+function collapseOverlays() {
+  if (buildInfoExpanded) {
+    buildInfoExpanded = false;
+    buildInfoEl.classList.remove('expanded');
+  }
+  if (infoExpanded && infoMode) {
+    infoExpanded = false;
+    renderInfo();
+  }
 }
 
 function hideBuildInfo() {

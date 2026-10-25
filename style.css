@@ -734,3 +734,24 @@ button.res { cursor: pointer; }
   background: rgba(192, 57, 43, .85);
   font-weight: 600;
 }
+
+/* Kurzinfo kompakt: nur eine Zeile, Details erst nach ⓘ */
+#build-info { padding: 6px 8px 6px 10px; }
+#build-info .bi-head { font-size: 14px; }
+#build-info .bi-icon { font-size: 20px; }
+#build-info .bi-head strong { flex: 0 1 auto; white-space: nowrap; }
+.bi-meta {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2d6a4f;
+}
+.bi-meta.unaffordable { color: #c0392b; }
+.bi-more { width: 28px; height: 28px; border-radius: 50%; background: #e3f4d7; font-size: 15px; }
+#build-info .bi-details { display: none; margin-top: 4px; }
+#build-info.expanded .bi-details { display: block; }
+#build-info.expanded .bi-more { background: #2d6a4f; color: #fff; }

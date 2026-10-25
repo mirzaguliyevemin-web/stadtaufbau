@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 16;
+const APP_VERSION = 17;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -1692,7 +1692,9 @@ function update(dt) {
 // SPEICHERN / LADEN
 // =====================================================================
 
-function save() {
+let saveBlocked = false;   // beim Import: verhindert, dass der alte Stand beim Neuladen zurückgeschrieben wird
+
+function buildSaveData() {
   const buildings = [];
   state.grid.forEach((cell, i) => {
     if (cell) buildings.push({ x: i % N, y: Math.floor(i / N), type: cell.type, timer: cell.timer, fire: cell.fire });
@@ -1720,8 +1722,13 @@ function save() {
     daily: state.daily,
     buildings,
   };
+  return data;
+}
+
+function save() {
+  if (saveBlocked) return;
   try {
-    localStorage.setItem(CONFIG.saveKey, JSON.stringify(data));
+    localStorage.setItem(CONFIG.saveKey, JSON.stringify(buildSaveData()));
   } catch (e) {
     console.warn('Speichern fehlgeschlagen', e);
   }
@@ -2763,6 +2770,7 @@ function buildUI() {
     const btn = e.target.closest('[data-setting]');
     if (btn) toggleSetting(btn.dataset.setting);
   });
+  setupTransfer();
   document.getElementById('btn-reset').addEventListener('click', () => {
     if (!confirm('Neues Spiel starten? Der aktuelle Spielstand geht verloren.')) return;
     newGame();
@@ -2913,6 +2921,7 @@ function showSettings() {
 
 function closeSettings() {
   settingsEl.classList.add('hidden');
+  document.getElementById('transfer').classList.add('hidden');
 }
 
 function updateSettingsUI() {
@@ -3260,6 +3269,161 @@ function showToast(text, ms = 1800) {
   toastEl.classList.remove('hidden');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toastEl.classList.add('hidden'), ms);
+}
+
+// =====================================================================
+// SPIELSTAND ÜBERTRAGEN (Export / Import als Text-Code oder Datei)
+// =====================================================================
+// Code-Format: "STADT1Z:" + Base64 (komprimiert) oder "STADT1:" + Base64 (falls der Browser
+// nicht komprimieren kann). Reines JSON wird beim Import ebenfalls angenommen.
+
+const TRANSFER_PREFIX = 'STADT1:';
+const TRANSFER_PREFIX_Z = 'STADT1Z:';
+
+function bytesToBase64(bytes) {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+function base64ToBytes(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+async function pipeBytes(bytes, stream) {
+  const out = new Blob([bytes]).stream().pipeThrough(stream);
+  return new Uint8Array(await new Response(out).arrayBuffer());
+}
+
+async function exportCode() {
+  const bytes = new TextEncoder().encode(JSON.stringify(buildSaveData()));
+  if (typeof CompressionStream === 'function') {
+    return TRANSFER_PREFIX_Z + bytesToBase64(await pipeBytes(bytes, new CompressionStream('deflate-raw')));
+  }
+  return TRANSFER_PREFIX + bytesToBase64(bytes);
+}
+
+// Gibt die Spielstand-Daten zurück oder wirft einen Fehler mit verständlicher Meldung
+async function decodeCode(text) {
+  const code = text.replace(/\s+/g, '');
+  let json;
+  try {
+    if (code.startsWith('{')) {
+      json = text.trim();
+    } else if (code.startsWith(TRANSFER_PREFIX_Z)) {
+      if (typeof DecompressionStream !== 'function') throw new Error('old-browser');
+      json = new TextDecoder().decode(await pipeBytes(base64ToBytes(code.slice(TRANSFER_PREFIX_Z.length)), new DecompressionStream('deflate-raw')));
+    } else if (code.startsWith(TRANSFER_PREFIX)) {
+      json = new TextDecoder().decode(base64ToBytes(code.slice(TRANSFER_PREFIX.length)));
+    } else {
+      throw new Error('format');
+    }
+  } catch (e) {
+    throw new Error(e.message === 'old-browser'
+      ? 'Dieser Browser kann den Code nicht entpacken – bitte den Browser aktualisieren.'
+      : 'Das ist kein gültiger Spielstand-Code. Bitte den ganzen Code einfügen.');
+  }
+  let data;
+  try {
+    data = JSON.parse(json);
+  } catch (e) {
+    throw new Error('Der Code ist beschädigt oder unvollständig.');
+  }
+  if (!data || data.v !== CONFIG.saveVersion || !Array.isArray(data.buildings) || typeof data.resources !== 'object') {
+    throw new Error('Der Code enthält keinen passenden Spielstand.');
+  }
+  return data;
+}
+
+function importData(data) {
+  const houses = data.buildings.length;
+  if (!confirm(`Spielstand laden? (${houses} Felder bebaut, ${data.population || 0} Einwohner)\n\nDein aktueller Spielstand auf diesem Gerät wird dabei ersetzt.`)) return;
+  data.savedAt = Date.now();   // keine Offline-Einnahmen für die Zeit seit dem Export
+  saveBlocked = true;
+  try {
+    localStorage.setItem(CONFIG.saveKey, JSON.stringify(data));
+  } catch (e) {
+    saveBlocked = false;
+    showToast('Speichern fehlgeschlagen – ist der Speicher voll?', 3000);
+    return;
+  }
+  location.reload();
+}
+
+// ---------- Oberfläche in den Einstellungen ----------
+
+const transferEl = document.getElementById('transfer');
+const transferCode = document.getElementById('transfer-code');
+
+function showTransfer(mode) {
+  transferEl.classList.remove('hidden');
+  transferEl.dataset.mode = mode;
+  for (const el of transferEl.querySelectorAll('[data-for]')) el.classList.toggle('hidden', el.dataset.for !== mode);
+  transferCode.readOnly = mode === 'export';
+  transferCode.value = '';
+  if (mode === 'export') {
+    document.getElementById('transfer-hint').textContent =
+      'Kopiere den Code oder speichere ihn als Datei. Auf dem anderen Gerät unter ⚙️ → Importieren einfügen.';
+    transferCode.value = 'Wird erstellt …';
+    exportCode().then(code => {
+      transferCode.value = code;
+      transferCode.select();
+    });
+  } else {
+    document.getElementById('transfer-hint').textContent =
+      'Füge hier den Code ein oder wähle eine gespeicherte Datei.';
+    transferCode.focus();
+  }
+}
+
+async function copyTransferCode() {
+  try {
+    await navigator.clipboard.writeText(transferCode.value);
+  } catch (e) {
+    transferCode.select();
+    document.execCommand('copy');   // Rückfall für ältere Browser
+  }
+  showToast('📋 Code kopiert');
+}
+
+function downloadTransferCode() {
+  const blob = new Blob([transferCode.value], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `stadtaufbau-${dateString(new Date())}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function loadTransferCode(text) {
+  try {
+    importData(await decodeCode(text));
+  } catch (e) {
+    sound.play('error');
+    showToast(e.message, 3500);
+  }
+}
+
+function setupTransfer() {
+  document.getElementById('btn-export').addEventListener('click', () => showTransfer('export'));
+  document.getElementById('btn-import').addEventListener('click', () => showTransfer('import'));
+  document.getElementById('transfer-copy').addEventListener('click', copyTransferCode);
+  document.getElementById('transfer-file').addEventListener('click', downloadTransferCode);
+  document.getElementById('transfer-load').addEventListener('click', () => loadTransferCode(transferCode.value));
+  document.getElementById('transfer-input').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    file.text().then(text => {
+      transferCode.value = text;
+      loadTransferCode(text);
+    });
+    e.target.value = '';
+  });
 }
 
 // =====================================================================

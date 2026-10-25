@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#2d6a4f">
-  <meta name="app-version" content="16">
+  <meta name="app-version" content="17">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Stadtaufbau</title>
@@ -52,6 +52,23 @@
       <button class="setting" data-setting="sfx"></button>
       <button class="setting" data-setting="music"></button>
       <button class="setting" data-setting="daynight"></button>
+      <div class="settings-title">Spielstand übertragen</div>
+      <div class="transfer-row">
+        <button id="btn-export" class="setting-action">📤 Exportieren</button>
+        <button id="btn-import" class="setting-action">📥 Importieren</button>
+      </div>
+      <div id="transfer" class="hidden">
+        <p id="transfer-hint"></p>
+        <textarea id="transfer-code" rows="4" spellcheck="false" autocomplete="off"></textarea>
+        <div class="transfer-row">
+          <button id="transfer-copy" class="setting-action" data-for="export">📋 Kopieren</button>
+          <button id="transfer-file" class="setting-action" data-for="export">💾 Als Datei</button>
+          <button id="transfer-load" class="setting-action primary" data-for="import">✅ Laden</button>
+          <label class="setting-action file-btn" data-for="import">📂 Datei wählen
+            <input type="file" id="transfer-input" accept=".txt,.json,text/plain,application/json" hidden>
+          </label>
+        </div>
+      </div>
       <button id="btn-reset" class="danger">⟳ Neues Spiel</button>
     </section>
     <section id="info" class="hidden">

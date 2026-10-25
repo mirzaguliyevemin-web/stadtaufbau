@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 29;
+const APP_VERSION = 30;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -4636,6 +4636,45 @@ function reloadFresh() {
   return true;
 }
 
+// ---------- Neue Version erkennen (wichtig für die installierte App am Handy) ----------
+
+// Holt die Versionsnummer der Online-Seite; ist sie neuer, erscheint ein Hinweis zum Neuladen
+async function checkForNewVersion() {
+  try {
+    const res = await fetch(`./?v=${Date.now()}`, { cache: 'no-store' });
+    const html = await res.text();
+    const online = Number((html.match(/name="app-version" content="(\d+)"/) || [])[1]);
+    if (online > APP_VERSION) showUpdateBanner();
+  } catch (e) { /* offline – später nochmal */ }
+}
+
+function showUpdateBanner() {
+  if (document.getElementById('update-banner')) return;
+  const banner = document.createElement('button');
+  banner.id = 'update-banner';
+  banner.textContent = '🔄 Neue Version – tippen zum Laden';
+  banner.addEventListener('click', () => {
+    save();
+    saveBlocked = true;
+    try { sessionStorage.removeItem('fresh-reload'); } catch (e) { /* egal */ }
+    Promise.all(['./', 'index.html', 'game.js', 'style.css', 'service-worker.js']
+      .map(url => fetch(url, { cache: 'reload' }).catch(() => null)))
+      .then(() => location.reload());
+  });
+  document.body.appendChild(banner);
+}
+
+function watchForUpdates(registration) {
+  checkForNewVersion();
+  setInterval(() => {
+    registration.update().catch(() => null);
+    checkForNewVersion();
+  }, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkForNewVersion();
+  });
+}
+
 function start() {
   if (versionMismatch() && reloadFresh()) return;
   loadSettings();
@@ -4665,7 +4704,9 @@ function start() {
   window.addEventListener('pagehide', save);
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js').catch(err => console.warn('Service Worker', err));
+    navigator.serviceWorker.register('service-worker.js')
+      .then(watchForUpdates)
+      .catch(err => console.warn('Service Worker', err));
   }
 
   requestAnimationFrame(loop);

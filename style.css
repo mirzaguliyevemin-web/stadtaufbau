@@ -726,3 +726,11 @@ button.res { cursor: pointer; }
 
 /* Verkaufen wartet auf Bestätigung */
 #info-demolish.armed { background: #e63946; animation: pulse 0.8s ease-in-out infinite; }
+
+/* Antippbare Hinweise unten links (z. B. „Arbeiter fehlen“) */
+.effect.clickable {
+  pointer-events: auto;
+  cursor: pointer;
+  background: rgba(192, 57, 43, .85);
+  font-weight: 600;
+}

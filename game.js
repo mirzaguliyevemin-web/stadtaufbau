@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 26;
+const APP_VERSION = 27;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -123,9 +123,9 @@ const HAPPINESS = {
 // Berufe. Gebäude mit `jobs` brauchen Personal – ohne volle Besetzung arbeiten sie anteilig langsamer.
 // Einwohner werden automatisch verteilt (Farmen zuerst, soweit für die Ernährung nötig). Gelehrte gibt es nur mit Bildung.
 const JOBS = {
-  worker:  { name: 'Arbeiter', icon: '👷' },
-  trader:  { name: 'Händler',  icon: '🧑‍💼' },
-  scholar: { name: 'Gelehrte', icon: '🧑‍🎓' },
+  worker:  { name: 'Arbeiter', one: 'Arbeiter', icon: '👷' },
+  trader:  { name: 'Händler',  one: 'Händler',  icon: '🧑‍💼' },
+  scholar: { name: 'Gelehrte', one: 'Gelehrter', icon: '🧑‍🎓' },
 };
 
 // Steuerstufen: Geld je Einwohner alle CONFIG.taxInterval Sekunden und Wirkung auf die Zufriedenheit
@@ -2333,6 +2333,9 @@ function render(dt) {
     drawBuilding(x, y, BUILDINGS[cell.type], active || cell.fire ? 1 : 0.55, scale);
     if (cell.fire) {
       drawFire(x, y, cell.fire);
+    } else if (active && BUILDINGS[cell.type].jobs && staffOf(cell.type) < 0.995) {
+      ctx.font = `${T * 0.28}px ${EMOJI_FONT}`;
+      ctx.fillText('👷', (x + 0.8) * T, (y + 0.22) * T);
     } else if (active && cell.waiting) {
       ctx.font = `${T * 0.28}px ${EMOJI_FONT}`;
       ctx.fillText('⏸️', (x + 0.8) * T, (y + 0.22) * T);
@@ -3331,6 +3334,9 @@ function buildUI() {
   });
 
   document.getElementById('info-close').addEventListener('click', closeInfo);
+  effectsEl.addEventListener('click', e => {
+    if (e.target.closest('[data-action="jobs"]')) showJobsInfo();
+  });
   document.getElementById('info-more-toggle').addEventListener('click', () => {
     infoExpanded = !infoExpanded;
     renderInfo();
@@ -3844,8 +3850,51 @@ function showCityInfo() {
   renderInfo();
 }
 
+function showJobsInfo() {
+  closeQuests();
+  closeResearch();
+  closeSettings();
+  infoMode = 'jobs';
+  infoTile = null;
+  infoOpenedAt = performance.now();
+  clearInfoExtra();
+  infoEl.classList.remove('hidden');
+  renderInfo();
+}
+
+// Wo fehlt Personal? Je Beruf: Stellen, unterbesetzte Gebäudearten und was hilft
+function renderJobsInfo() {
+  const lines = [];
+  for (const [job, j] of Object.entries(JOBS)) {
+    const demand = stats.jobs.demand[job] || 0;
+    if (!demand) continue;
+    const assigned = stats.jobs.assigned[job] || 0;
+    lines.push(`${j.icon} ${j.name}: ${assigned} von ${demand} Stellen besetzt`);
+    const types = Object.keys(stats.staff).filter(t => jobOf(t) === job && stats.staff[t] < 0.995);
+    for (const t of types) {
+      lines.push(`   ${BUILDINGS[t].icon} ${BUILDINGS[t].name} ×${stats.activeCount[t] || 0}: ${Math.round(stats.staff[t] * 100)} % besetzt`);
+    }
+    if (assigned < demand) {
+      lines.push(job === 'scholar' && assigned >= stats.jobs.scholarCap
+        ? `   → Gelehrte sind auf ${stats.jobs.scholarCap} begrenzt: mehr Bildung (Schulen, Bibliothek) erhöht die Grenze.`
+        : '   → Mehr Häuser bauen – neue Einwohner füllen die Stellen.');
+    }
+  }
+  lines.push(`😴 Arbeitslos: ${stats.unemployed}` +
+    (stats.unemployed && Object.keys(JOBS).every(job => (stats.jobs.assigned[job] || 0) >= (stats.jobs.demand[job] || 0))
+      ? ' → baue mehr Betriebe, sonst sinkt die Zufriedenheit' : ''));
+  lines.push('Farmen bekommen zuerst so viele Arbeiter, wie für die Ernährung nötig sind. Unterbesetzte Gebäude tragen 👷 auf der Karte.');
+  document.getElementById('info-icon').textContent = '👷';
+  document.getElementById('info-name').textContent = 'Personal';
+  setInfoLines(lines);
+  document.getElementById('info-demolish').classList.add('hidden');
+  document.getElementById('info-upgrade').classList.add('hidden');
+  document.getElementById('info-action').classList.add('hidden');
+}
+
 function renderInfo() {
   if (infoMode === 'city') renderCityInfo();
+  else if (infoMode === 'jobs') renderJobsInfo();
   else if (infoMode === 'plot') renderPlotInfo();
   else renderTileInfo();
 }
@@ -4152,6 +4201,19 @@ function showEventPopup(icon, title, text, buttons = [{ label: 'OK', primary: tr
   eventEl.classList.remove('hidden');
 }
 
+// Personal-Hinweis unten links – antippbar, öffnet die Übersicht, wo Leute fehlen
+function jobsPillHtml() {
+  const missing = Object.keys(JOBS)
+    .map(job => [job, (stats.jobs.demand[job] || 0) - (stats.jobs.assigned[job] || 0)])
+    .filter(([, n]) => n > 0)
+    .map(([job, n]) => `${JOBS[job].icon} ${n} ${n === 1 ? JOBS[job].one + ' fehlt' : JOBS[job].name + ' fehlen'}`);
+  if (missing.length) return `<div class="effect clickable" data-action="jobs">${missing.join(' · ')} ›</div>`;
+  if (state.population >= 10 && stats.unemployed / state.population > CONFIG.unemploymentTolerance) {
+    return `<div class="effect clickable" data-action="jobs">😴 ${stats.unemployed} Arbeitslose ›</div>`;
+  }
+  return '';
+}
+
 // Laufende Ereignisse und Brände unten links auf der Karte
 function updateEffectsUI() {
   const pills = state.effects.map(e =>
@@ -4164,12 +4226,7 @@ function updateEffectsUI() {
     if (cell?.fire && !cell.fire.brigade) pills.push(`🔥 ${BUILDINGS[cell.type].name} brennt · ${Math.ceil(cell.fire.left)} s`);
   });
   if (isFreezing()) pills.unshift('🥶 Es ist kalt – Holz fehlt!');
-  const short = Object.keys(JOBS).filter(job => (stats.jobs.assigned[job] || 0) < (stats.jobs.demand[job] || 0));
-  if (short.length) pills.push(`${short.map(job => JOBS[job].icon).join('')} Personal fehlt`);
-  else if (state.population >= 10 && stats.unemployed / state.population > CONFIG.unemploymentTolerance) {
-    pills.push(`😴 ${stats.unemployed} Arbeitslose`);
-  }
-  const html = pills.map(p => `<div class="effect">${p}</div>`).join('');
+  const html = pills.map(p => `<div class="effect">${p}</div>`).join('') + jobsPillHtml();
   if (effectsEl.innerHTML !== html) effectsEl.innerHTML = html;
 }
 

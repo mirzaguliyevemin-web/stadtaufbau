@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 19;
+const APP_VERSION = 20;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -129,6 +129,18 @@ const TAXES = [
   { name: 'Hoch',      perCitizen: 0.3, happiness: -12 },
   { name: 'Sehr hoch', perCitizen: 0.4, happiness: -20 },
 ];
+
+// Ausbaustufen. Gilt für alle Gebäude außer Straßen und Sehenswürdigkeiten.
+//   minLevel: ab welcher Stadtstufe (Index in LEVELS)  | costFactor: × Grundkosten  | extra: zusätzliche Kosten
+//   Wirkung je Stufe: Ertrag und Personal ×(1 + 0,5 je Stufe), Häuser +2 Plätze, Umkreis +1, Lager ×Stufe
+//   Index = Zielstufe (UPGRADES[2] = Ausbau auf Stufe 2), höchste Stufe = UPGRADES.length - 1
+const UPGRADES = [
+  null,
+  null,                                                          // Stufe 1 = Neubau
+  { minLevel: 1, costFactor: 1.5 },                              // auf Stufe 2
+  { minLevel: 2, costFactor: 3, extra: { planks: 10, bricks: 10 } },   // auf Stufe 3
+];
+const MAX_BUILDING_LEVEL = UPGRADES.length - 1;
 
 // Kategorien der Bauleiste – Reihenfolge = Reihenfolge der Reiter
 const CATEGORIES = {
@@ -409,6 +421,7 @@ const QUESTS = [
   { id: 'pop21',      title: 'Auf zur Kleinstadt',   goal: { type: 'population', count: 21 },                  reward: { money: 100, stone: 20 } },
   { id: 'well',       title: 'Frisches Wasser',      goal: { type: 'build', building: 'well', count: 1 },      reward: { money: 40 } },
   { id: 'school',     title: 'Lesen und Schreiben',  goal: { type: 'build', building: 'school', count: 1 },    reward: { wood: 50 } },
+  { id: 'upgrade1',   title: 'Ausbau',               goal: { type: 'upgrades', count: 1 },                     reward: { money: 80 } },
   { id: 'scholars5',  title: 'Kluge Köpfe',          goal: { type: 'jobs', job: 'scholar', count: 5 },         reward: { knowledge: 30 } },
   { id: 'guard',      title: 'Ruhige Nächte',        goal: { type: 'build', building: 'guard', count: 1 },     reward: { stone: 50 } },
   { id: 'carpentry',  title: 'Handwerk',             goal: { type: 'build', building: 'carpentry', count: 1 }, reward: { money: 60 } },
@@ -453,6 +466,7 @@ const ACHIEVEMENTS = [
   { id: 'landmarks',  icon: '🏛️', name: 'Wahrzeichen',         text: 'Baue alle Sehenswürdigkeiten.',            check: () => Object.keys(BUILDINGS).filter(t => BUILDINGS[t].landmark).every(t => countBuildings(t) > 0) },
   { id: 'allQuests',  icon: '📜', name: 'Auftragsheld',        text: 'Erledige alle Aufträge.',                  check: () => state.questsClaimed.length === QUESTS.length },
   { id: 'streak7',    icon: '📅', name: 'Treue Seele',         text: 'Spiele 7 Tage in Folge.',                  check: () => state.daily.streak >= 7 },
+  { id: 'gold10',     icon: '🌟', name: 'Prachtbauten',        text: '10 Gebäude auf Stufe 3.',                  check: () => state.grid.filter(c => c && levelOf(c) >= 3).length >= 10 },
   { id: 'land20',     icon: '🗺️', name: 'Landesherr',          text: 'Kaufe 20 Flächen dazu.',                   check: () => plotsBought() >= 20 },
   { id: 'warmWinter', icon: '🔥', name: 'Warme Stuben',        text: 'Überstehe einen Winter mit mindestens 50 Einwohnern, ohne dass jemand friert.', check: () => (state.counters.warmWinters || 0) >= 1 },
   { id: 'fullJobs',   icon: '👷', name: 'Vollbeschäftigung',   text: 'Mindestens 50 Einwohner und niemand ist arbeitslos.', check: () => state.population >= 50 && stats.unemployed === 0 },
@@ -607,6 +621,7 @@ const stats = {
   trend: '',
   storage: CONFIG.baseStorage,   // Lagergrenze für Ressourcen mit `stored`
   activeCount: {},               // arbeitende Gebäude je Art
+  activeWeight: {},              // dasselbe, gewichtet mit der Ausbaustufe
   jobs: { demand: {}, assigned: {}, scholarCap: 0 },   // Stellen und Besetzung je Beruf
   staff: {},                     // Besetzungsgrad 0–1 je Gebäudeart
   unemployed: 0,
@@ -784,8 +799,69 @@ function isNiceHouse(x, y) {
 }
 
 function houseCapacity(x, y) {
-  const cap = capacityOf(getCell(x, y).type);
-  return cap && isNiceHouse(x, y) ? cap + CONFIG.niceHouseBonus : cap;
+  const cell = getCell(x, y);
+  let cap = capacityOf(cell.type);
+  if (!cap) return 0;
+  cap += 2 * (levelOf(cell) - 1);
+  return isNiceHouse(x, y) ? cap + CONFIG.niceHouseBonus : cap;
+}
+
+// ---------- Ausbaustufen ----------
+
+function levelOf(cell) {
+  return cell.level || 1;
+}
+
+// Ertrag und Personal wachsen je Stufe um 50 %
+function levelFactor(cell) {
+  return 1 + 0.5 * (levelOf(cell) - 1);
+}
+
+function canUpgradeType(type) {
+  const def = BUILDINGS[type];
+  return !def.isRoad && !def.landmark;
+}
+
+function upgradeCost(type, toLevel) {
+  const up = UPGRADES[toLevel];
+  const cost = {};
+  for (const [id, n] of Object.entries(BUILDINGS[type].cost)) cost[id] = Math.round(n * up.costFactor);
+  for (const [id, n] of Object.entries(up.extra || {})) cost[id] = (cost[id] || 0) + n;
+  return cost;
+}
+
+// Wirkungsbereich eines konkreten Gebäudes (Umkreis wächst mit der Stufe)
+function areaOfCell(cell) {
+  const area = areaOf(BUILDINGS[cell.type]);
+  return area && { key: area.key, radius: area.radius + levelOf(cell) - 1 };
+}
+
+function upgradeBuilding(x, y) {
+  const cell = getCell(x, y);
+  if (!cell || !canUpgradeType(cell.type)) return;
+  const to = levelOf(cell) + 1;
+  const up = UPGRADES[to];
+  if (!up) return;
+  if (state.maxLevel < up.minLevel) {
+    sound.play('error');
+    showToast(`Stufe ${to} gibt es erst ab ${LEVELS[up.minLevel].name}`);
+    return;
+  }
+  const cost = upgradeCost(cell.type, to);
+  if (!canAfford(cost)) {
+    sound.play('error');
+    showToast(`Nicht genug ${missingText(cost)}`);
+    return;
+  }
+  addResources(cost, -1);
+  cell.level = to;
+  cell.builtAt = performance.now();   // Plopp-Animation
+  state.counters.upgrades = (state.counters.upgrades || 0) + 1;
+  sound.play('levelup');
+  showToast(`⬆️ ${BUILDINGS[cell.type].name} auf Stufe ${to} ausgebaut`);
+  emit('upgrade', { x, y, type: cell.type, level: to });
+  recalcStats();
+  updateUI();
 }
 
 // Neue Waren erst zeigen, wenn die Stufe erreicht ist oder schon etwas davon da ist
@@ -881,10 +957,21 @@ function placeBuilding(x, y, type) {
   return true;
 }
 
+// Rückerstattung beim Abriss: Hälfte der zuletzt bezahlten Baukosten plus Hälfte der Ausbauten
+function refundOf(cell, offset = -1) {
+  const refund = {};
+  const add = cost => {
+    for (const [id, n] of Object.entries(cost)) refund[id] = (refund[id] || 0) + Math.floor(n * CONFIG.refundRate);
+  };
+  add(costOf(cell.type, offset));
+  for (let lvl = 2; lvl <= levelOf(cell); lvl++) add(upgradeCost(cell.type, lvl));
+  return refund;
+}
+
 function demolish(x, y) {
   const cell = getCell(x, y);
   if (!cell) return;
-  addResources(costOf(cell.type, -1), CONFIG.refundRate);
+  addResources(refundOf(cell), 1);
   state.grid[y * N + x] = null;
   emit('demolish', { x, y, type: cell.type });
   closeInfo();
@@ -906,7 +993,7 @@ function buildingOutput(type) {
   for (const [id, n] of Object.entries(def.produces || {})) out[id] = (out[id] || 0) + n;
   if (def.perPopulation) {
     // Einwohner verteilen sich auf alle Gebäude dieser Art, jedes bedient höchstens servesUpTo
-    const share = state.population / Math.max(1, stats.activeCount[type] || 1);
+    const share = state.population / Math.max(1, stats.activeWeight[type] || 1);
     const served = def.servesUpTo ? Math.min(def.servesUpTo, share) : share;
     for (const [id, n] of Object.entries(def.perPopulation)) out[id] = (out[id] || 0) + n * served;
   }
@@ -1007,17 +1094,21 @@ function updateProduction(dt) {
     if (!isActive(i % N, Math.floor(i / N))) continue;   // ohne Anschluss steht die Produktion still
     cell.timer += dt;
     while (cell.timer >= def.interval) {
+      const lf = levelFactor(cell);
       const raw = buildingOutput(cell.type);
+      for (const id in raw) raw[id] *= lf;
       // Verarbeitung: ohne Rohstoff oder bei vollem Lager pausieren (Zeit läuft nicht weiter)
       if (def.consumes) {
+        const need = {};
+        for (const [id, n] of Object.entries(def.consumes)) need[id] = Math.round(n * lf);
         const full = Object.keys(raw).every(id => state.resources[id] >= storageCap(id));
-        if (full || !canAfford(def.consumes)) {
+        if (full || !canAfford(need)) {
           cell.waiting = full ? 'full' : 'input';
           cell.timer = def.interval;
           break;
         }
         cell.waiting = null;
-        addResources(def.consumes, -1);
+        addResources(need, -1);
       }
       cell.timer -= def.interval;
       // Bruchteile je Gebäude aufsammeln, ausgezahlt werden ganze Einheiten
@@ -1053,14 +1144,15 @@ function jobOf(type) {
 }
 
 // Verteilt die Einwohner auf die Stellen der arbeitenden Gebäude
-function computeJobs(activeTypes) {
+function computeJobs(activeCells) {
   const demand = {};
   const typeDemand = {};
   for (const job in JOBS) demand[job] = 0;
-  for (const type of activeTypes) {
-    for (const [job, n] of Object.entries(BUILDINGS[type].jobs || {})) {
-      demand[job] += n;
-      typeDemand[type] = (typeDemand[type] || 0) + n;
+  for (const cell of activeCells) {
+    for (const [job, n] of Object.entries(BUILDINGS[cell.type].jobs || {})) {
+      const jobs = Math.round(n * levelFactor(cell));
+      demand[job] += jobs;
+      typeDemand[cell.type] = (typeDemand[cell.type] || 0) + jobs;
     }
   }
   const pop = state.population;
@@ -1107,23 +1199,26 @@ function recalcStats() {
   let storage = CONFIG.baseStorage;
   let landmarks = 0;
   const activeCount = {};
+  const activeWeight = {};
   const activeTypes = [];
   state.grid.forEach((cell, i) => {
     if (!cell) return;
     const x = i % N, y = Math.floor(i / N);
     if (!isActive(x, y)) return;
     const def = BUILDINGS[cell.type];
-    if (def.service) providers.push({ x, y, type: cell.type, ...def.service });
+    if (def.service) providers.push({ x, y, type: cell.type, need: def.service.need, radius: def.service.radius + levelOf(cell) - 1 });
     if (def.population) houses.push({ i, x, y, cap: houseCapacity(x, y) });
-    if (def.storage) storage += def.storage;
+    if (def.storage) storage += def.storage * levelOf(cell);
     if (def.landmark) landmarks += def.landmark;
     activeCount[cell.type] = (activeCount[cell.type] || 0) + 1;
-    activeTypes.push(cell.type);
+    activeTypes.push(cell);
+    activeWeight[cell.type] = (activeWeight[cell.type] || 0) + levelFactor(cell);
   });
   stats.activeCount = activeCount;
+  stats.activeWeight = activeWeight;
   computeJobs(activeTypes);
   stats.storage = storage;
-  stats.niceHouses = houses.filter(h => h.cap > capacityOf(state.grid[h.i].type)).length;
+  stats.niceHouses = houses.filter(h => isNiceHouse(h.x, h.y)).length;
 
   // Versorgung: Ein Haus ist versorgt, wenn ein Anbieter es im (quadratischen) Umkreis erreicht
   stats.capacity = 0;
@@ -1265,6 +1360,7 @@ function questProgress(quest) {
     case 'jobs':       current = stats.jobs.assigned[g.job] || 0; break;
     case 'winters':    current = state.counters.winters || 0; break;
     case 'plots':      current = plotsBought(); break;
+    case 'upgrades':   current = state.counters.upgrades || 0; break;
   }
   return { current: Math.min(current, g.count), target: g.count, done: current >= g.count };
 }
@@ -1283,6 +1379,7 @@ function goalText(goal) {
     case 'jobs':       return `Beschäftige ${goal.count} ${JOBS[goal.job].icon} ${JOBS[goal.job].name}`;
     case 'winters':    return goal.count === 1 ? 'Überstehe einen Winter ❄️' : `Überstehe ${goal.count} Winter ❄️`;
     case 'plots':      return goal.count === 1 ? 'Kaufe eine neue Fläche 🏞️' : `Kaufe ${goal.count} neue Flächen 🏞️`;
+    case 'upgrades':   return goal.count === 1 ? 'Baue ein Gebäude aus ⬆️' : `Baue ${goal.count} Gebäude aus ⬆️`;
   }
   return '';
 }
@@ -1366,7 +1463,7 @@ function updateEvents(dt) {
 
 function fireProtected(x, y) {
   return state.grid.some((cell, i) => {
-    const r = cell && BUILDINGS[cell.type].fireRadius;
+    const r = cell && BUILDINGS[cell.type].fireRadius && BUILDINGS[cell.type].fireRadius + levelOf(cell) - 1;
     return r && staffOf(cell.type) > 0 && isActive(i % N, Math.floor(i / N)) && inRange(i % N, Math.floor(i / N), x, y, r);
   });
 }
@@ -1629,23 +1726,25 @@ function applyOfflineProgress(savedAt) {
   state.grid.forEach((cell, i) => {
     const def = cell && BUILDINGS[cell.type];
     if (!def || !def.interval || !isActive(i % N, Math.floor(i / N))) return;
-    if (def.consumes) { processors.push(cell.type); return; }
-    for (const [id, n] of Object.entries(buildingOutput(cell.type))) rates[id] = (rates[id] || 0) + n / def.interval;
+    if (def.consumes) { processors.push(cell); return; }
+    for (const [id, n] of Object.entries(buildingOutput(cell.type))) rates[id] = (rates[id] || 0) + n * levelFactor(cell) / def.interval;
   });
   rates.money = (rates.money || 0) + state.population * TAXES[state.taxLevel].perCitizen / CONFIG.taxInterval;
   rates.food = (rates.food || 0) - state.population * CONFIG.foodPerCitizen;
   // Verarbeitung läuft nur so weit, wie Rohstoffe (Vorrat + Zufluss) reichen
   const eff = secs * CONFIG.offlineEfficiency;
-  for (const type of processors) {
+  for (const cell of processors) {
+    const type = cell.type;
     const def = BUILDINGS[type];
+    const lf = levelFactor(cell);
     let share = 1;
     for (const [id, n] of Object.entries(def.consumes)) {
-      const need = n / def.interval * eff;
+      const need = n * lf / def.interval * eff;
       const avail = Math.max(0, state.resources[id] + (rates[id] || 0) * eff);
       share = Math.min(share, avail / need);
     }
-    for (const [id, n] of Object.entries(def.consumes)) rates[id] = (rates[id] || 0) - share * n / def.interval;
-    for (const [id, n] of Object.entries(buildingOutput(type))) rates[id] = (rates[id] || 0) + share * n / def.interval;
+    for (const [id, n] of Object.entries(def.consumes)) rates[id] = (rates[id] || 0) - share * n * lf / def.interval;
+    for (const [id, n] of Object.entries(buildingOutput(type))) rates[id] = (rates[id] || 0) + share * n * lf / def.interval;
   }
   if (state.resources.bread > 0 || rates.bread > 0) rates.bread = (rates.bread || 0) - state.population * CONFIG.breadPerCitizen;
   if (season().heating) rates.wood = (rates.wood || 0) - heatingRate();
@@ -1766,7 +1865,7 @@ let saveBlocked = false;   // beim Import: verhindert, dass der alte Stand beim 
 function buildSaveData() {
   const buildings = [];
   state.grid.forEach((cell, i) => {
-    if (cell) buildings.push({ x: i % N, y: Math.floor(i / N), type: cell.type, timer: cell.timer, fire: cell.fire });
+    if (cell) buildings.push({ x: i % N, y: Math.floor(i / N), type: cell.type, timer: cell.timer, fire: cell.fire, level: cell.level });
   });
   const data = {
     v: CONFIG.saveVersion,
@@ -1832,6 +1931,7 @@ function load() {
     b.y += offset;
     if (BUILDINGS[b.type] && getCell(b.x, b.y) === null) {
       const cell = { type: b.type, timer: b.timer || 0 };
+      if (Number.isInteger(b.level) && b.level > 1 && b.level <= MAX_BUILDING_LEVEL && canUpgradeType(b.type)) cell.level = b.level;
       if (b.fire && typeof b.fire.left === 'number') cell.fire = b.fire;
       state.grid[b.y * N + b.x] = cell;
     }
@@ -2010,6 +2110,18 @@ function render(dt) {
     }
   });
 
+  // Ausbaustufe als Sterne unten am Gebäude
+  ctx.font = `bold ${T * 0.22}px system-ui, sans-serif`;
+  ctx.lineWidth = 3 / view.zoom;
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillStyle = '#ffd166';
+  forEachVisible(vis, (cell, x, y) => {
+    if (levelOf(cell) < 2) return;
+    const stars = '★'.repeat(levelOf(cell) - 1);
+    ctx.strokeText(stars, (x + 0.5) * T, (y + 0.88) * T);
+    ctx.fillText(stars, (x + 0.5) * T, (y + 0.88) * T);
+  });
+
   drawSmoke();
 
   // Nacht: abdunkeln, dann Lichter darüber
@@ -2059,7 +2171,7 @@ function drawServiceAreas() {
   const selArea = selectedType && areaOf(BUILDINGS[selectedType]);
   if (selArea) {
     state.grid.forEach((cell, i) => {
-      const area = cell && areaOf(BUILDINGS[cell.type]);
+      const area = cell && areaOfCell(cell);
       if (area && area.key === selArea.key) drawArea(i % N, Math.floor(i / N), area.radius, 'rgba(255,255,255,0.15)');
     });
     if (hoverTile && getCell(hoverTile.x, hoverTile.y) === null) {
@@ -2067,7 +2179,7 @@ function drawServiceAreas() {
     }
   }
   const infoCell = infoTile && getCell(infoTile.x, infoTile.y);
-  const infoArea = infoCell && areaOf(BUILDINGS[infoCell.type]);
+  const infoArea = infoCell && areaOfCell(infoCell);
   if (infoArea) drawArea(infoTile.x, infoTile.y, infoArea.radius, 'rgba(255,209,102,0.3)');
 }
 
@@ -2929,6 +3041,9 @@ function buildUI() {
   document.getElementById('info-demolish').addEventListener('click', () => {
     if (infoTile) demolish(infoTile.x, infoTile.y);
   });
+  document.getElementById('info-upgrade').addEventListener('click', () => {
+    if (infoTile) upgradeBuilding(infoTile.x, infoTile.y);
+  });
   document.getElementById('info-action').addEventListener('click', () => {
     if (infoMode === 'plot') buyPlot(infoPlot);
     else if (infoTile) extinguish(infoTile.x, infoTile.y);
@@ -3227,6 +3342,7 @@ function describeBuilding(type) {
     lines.push(`${JOBS[job].icon} Braucht ${def.jobs[job]} ${JOBS[job].name}`);
   }
   if (def.needsRoad) lines.push('🛣️ Braucht eine Straße direkt daneben');
+  if (canUpgradeType(type)) lines.push('⬆️ Später ausbaubar (Stufe 2 ab Kleinstadt, Stufe 3 ab Stadt)');
   return lines;
 }
 
@@ -3312,6 +3428,7 @@ function renderPlotInfo() {
   document.getElementById('info-name').textContent = 'Freie Fläche';
   document.getElementById('info-text').textContent = lines.join('\n');
   document.getElementById('info-demolish').classList.add('hidden');
+  document.getElementById('info-upgrade').classList.add('hidden');
   const btn = document.getElementById('info-action');
   btn.classList.toggle('hidden', !buyable);
   btn.textContent = `🏷️ Kaufen für ${formatAmounts(price)}`;
@@ -3335,7 +3452,7 @@ function renderTileInfo() {
   if (def.population) {
     const cap = houseCapacity(infoTile.x, infoTile.y);
     lines.push(`Wohnplätze: 👥 ${active ? cap : 0} / ${cap}`);
-    if (cap > capacityOf(cell.type)) lines.push(`✨ Schönes Wohnviertel: +${CONFIG.niceHouseBonus} Wohnplätze`);
+    if (isNiceHouse(infoTile.x, infoTile.y)) lines.push(`✨ Schönes Wohnviertel: +${CONFIG.niceHouseBonus} Wohnplätze`);
     else lines.push(`Tipp: Park oder Brunnen direkt daneben bringt +${CONFIG.niceHouseBonus} Wohnplätze.`);
     const levels = stats.houseNeeds.get(infoTile.y * N + infoTile.x) || new Map();
     lines.push('Versorgung: ' + Object.entries(NEEDS).map(([need, n]) => {
@@ -3346,25 +3463,29 @@ function renderTileInfo() {
   if (def.jobs && active) {
     const job = JOBS[jobOf(cell.type)];
     const pct = Math.round(staffOf(cell.type) * 100);
-    lines.push(`Personal: ${def.jobs[jobOf(cell.type)]} ${job.icon} ${job.name} – besetzt ${pct} %` +
+    lines.push(`Personal: ${Math.round(def.jobs[jobOf(cell.type)] * levelFactor(cell))} ${job.icon} ${job.name} – besetzt ${pct} %` +
       (pct < 100 ? ' (arbeitet langsamer)' : ''));
   }
   if (def.interval) {
+    const lf = levelFactor(cell);
     const out = buildingOutput(cell.type);
-    if (def.consumes) lines.push(`Verarbeitet: ${formatAmounts(def.consumes)} → ${formatAmounts(out)} alle ${def.interval} s`);
+    for (const id in out) out[id] = Math.round(out[id] * lf * 10) / 10;
+    const need = {};
+    for (const [id, n] of Object.entries(def.consumes || {})) need[id] = Math.round(n * lf);
+    if (def.consumes) lines.push(`Verarbeitet: ${formatAmounts(need)} → ${formatAmounts(out)} alle ${def.interval} s`);
     else lines.push(`Ertrag: ${formatAmounts(out)} alle ${def.interval} s${active ? '' : ' (gestoppt)'}`);
     if (active && cell.waiting === 'input') lines.push(`⏸️ Wartet auf ${missingText(def.consumes)}`);
     if (active && cell.waiting === 'full') lines.push('⏸️ Pause – das Lager ist voll');
   }
   if (def.service) {
     const need = NEEDS[def.service.need];
-    lines.push(`Versorgt Häuser im Umkreis von ${def.service.radius} Feldern mit ${need.icon} ${need.name}.`);
+    lines.push(`Versorgt Häuser im Umkreis von ${def.service.radius + levelOf(cell) - 1} Feldern mit ${need.icon} ${need.name}.`);
   }
   if (def.fireRadius) {
-    lines.push(`Löscht Brände im Umkreis von ${def.fireRadius} Feldern in ${CONFIG.fireBrigadeSeconds} Sekunden.`);
+    lines.push(`Löscht Brände im Umkreis von ${def.fireRadius + levelOf(cell) - 1} Feldern in ${CONFIG.fireBrigadeSeconds} Sekunden.`);
   }
   if (def.storage) {
-    lines.push(`Lagerplatz +${def.storage} für Holz, Stein und Nahrung (gesamt: ${stats.storage}).`);
+    lines.push(`Lagerplatz +${def.storage * levelOf(cell)} für Holz, Stein und Nahrung (gesamt: ${stats.storage}).`);
   }
   if (def.beautifies) {
     lines.push(`Häuser direkt daneben werden schöner: +${CONFIG.niceHouseBonus} Wohnplätze.`);
@@ -3382,14 +3503,42 @@ function renderTileInfo() {
   actionBtn.classList.toggle('hidden', !cell.fire || cell.fire.brigade);
   actionBtn.classList.remove('unaffordable');
   actionBtn.textContent = `💧 Löschen (${formatAmounts(CONFIG.extinguishCost)})`;
-  const refund = {};
-  for (const [id, n] of Object.entries(costOf(cell.type, -1))) refund[id] = Math.floor(n * CONFIG.refundRate);
+  const refund = refundOf(cell);
+  renderUpgradeButton(cell);
   document.getElementById('info-icon').textContent = def.icon;
-  document.getElementById('info-name').textContent = def.name;
+  document.getElementById('info-name').textContent =
+    def.name + (canUpgradeType(cell.type) ? `  ${'★'.repeat(levelOf(cell))}${'☆'.repeat(MAX_BUILDING_LEVEL - levelOf(cell))}` : '');
   document.getElementById('info-text').textContent = lines.join('\n');
   const btn = document.getElementById('info-demolish');
   btn.classList.remove('hidden');
   btn.textContent = `Abreißen (zurück: ${formatAmounts(refund)})`;
+}
+
+// Ausbau-Knopf im Info-Fenster: zeigt Wirkung, Kosten oder warum es (noch) nicht geht
+function renderUpgradeButton(cell) {
+  const btn = document.getElementById('info-upgrade');
+  const to = levelOf(cell) + 1;
+  const up = UPGRADES[to];
+  if (!canUpgradeType(cell.type) || !up) {
+    btn.classList.add('hidden');
+    return;
+  }
+  const def = BUILDINGS[cell.type];
+  const gains = [];
+  if (def.population) gains.push('+2 Wohnplätze');
+  if (def.interval) gains.push('Ertrag +50 %');
+  if (def.service || def.fireRadius) gains.push('Umkreis +1');
+  if (def.storage) gains.push(`Lager +${def.storage}`);
+  if (def.jobs) gains.push('braucht mehr Personal');
+  btn.classList.remove('hidden');
+  if (state.maxLevel < up.minLevel) {
+    btn.textContent = `🔒 Stufe ${to} ab ${LEVELS[up.minLevel].name}`;
+    btn.classList.add('unaffordable');
+    return;
+  }
+  const cost = upgradeCost(cell.type, to);
+  btn.textContent = `⬆️ Auf Stufe ${to} ausbauen (${gains.join(', ')}) · ${formatAmounts(cost)}`;
+  btn.classList.toggle('unaffordable', !canAfford(cost));
 }
 
 function renderCityInfo() {
@@ -3427,6 +3576,7 @@ function renderCityInfo() {
   document.getElementById('info-text').textContent = lines.join('\n');
   document.getElementById('info-demolish').classList.add('hidden');
   document.getElementById('info-action').classList.add('hidden');
+  document.getElementById('info-upgrade').classList.add('hidden');
   renderTaxUI();
 }
 

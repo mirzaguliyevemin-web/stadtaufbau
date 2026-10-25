@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 18;
+const APP_VERSION = 19;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -2992,6 +2992,14 @@ function updateUI() {
       : `🔒 ${lockReason(type)}`;
   }
   updateCategoryTabs();
+  if (buildInfoEl.dataset.type && !buildInfoEl.classList.contains('hidden')) {
+    const status = buildInfoEl.querySelector('.bi-status');
+    const type = buildInfoEl.dataset.type;
+    if (status && isUnlocked(type) && !(BUILDINGS[type].landmark && countBuildings(type) > 0)) {
+      status.textContent = `Kosten: ${formatAmounts(costOf(type))}${BUILDINGS[type].fixedCost ? '' : ' (jedes weitere kostet mehr)'}`;
+      status.classList.toggle('unaffordable', !canAfford(costOf(type)));
+    }
+  }
   if (infoMode) renderInfo();
   updateQuestUI();
   updateResearchUI();
@@ -3179,14 +3187,75 @@ function closeResearch() {
 
 function selectBuild(type) {
   if (type && !isUnlocked(type)) {
-    const def = BUILDINGS[type];
+    // Gesperrt: nicht auswählen, aber zeigen, was das Gebäude kann und wann es kommt
     sound.play('error');
-    showToast(`🔒 ${def.name} gibt es erst nach ${lockReason(type, true)}`);
+    showBuildInfo(type);
     return;
   }
   selectedType = type;
   canvas.classList.toggle('building', !!type);
+  if (type) showBuildInfo(type);
+  else hideBuildInfo();
   updateUI();
+}
+
+// ---------- Kurzinfo zu Gebäuden (Bauleiste und Info-Fenster) ----------
+
+// Was macht das Gebäude? Eine Zeile je Eigenschaft, kurz und verständlich
+function describeBuilding(type) {
+  const def = BUILDINGS[type];
+  const lines = [];
+  if (def.isRoad) lines.push('🛣️ Gebäude direkt daneben bekommen Anschluss – ohne Straße arbeitet nichts.');
+  if (def.population) lines.push(`👥 ${capacityOf(type)} Wohnplätze (+${CONFIG.niceHouseBonus} neben Park oder Brunnen)`);
+  if (def.interval && def.consumes) {
+    lines.push(`🔁 Verarbeitet ${formatAmounts(def.consumes)} → ${formatAmounts(def.produces)} alle ${def.interval} s`);
+  } else if (def.interval && def.produces) {
+    lines.push(`📦 Erzeugt ${formatAmounts(def.produces)} alle ${def.interval} s`);
+  }
+  if (def.perPopulation) {
+    lines.push(`💰 ${formatAmounts(def.perPopulation)} je Einwohner alle ${def.interval} s` +
+      (def.servesUpTo ? ` (höchstens ${def.servesUpTo} Einwohner je Gebäude)` : ''));
+  }
+  if (type === 'market') lines.push('🤝 Antippen zum Handeln: Waren kaufen und verkaufen');
+  if (def.service) lines.push(`${NEEDS[def.service.need].icon} ${NEEDS[def.service.need].name} für Häuser im Umkreis von ${def.service.radius} Feldern`);
+  if (def.fireRadius) lines.push(`🚒 Löscht Brände im Umkreis von ${def.fireRadius} Feldern`);
+  if (def.storage) lines.push(`📦 +${def.storage} Lagerplatz für Holz, Stein, Nahrung und Waren`);
+  if (def.beautifies) lines.push(`✨ Häuser direkt daneben bekommen +${CONFIG.niceHouseBonus} Wohnplätze`);
+  if (def.landmark) lines.push(`🏛️ Zufriedenheit +${def.landmark} für die ganze Stadt – gibt es nur einmal`);
+  if (def.jobs) {
+    const job = jobOf(type);
+    lines.push(`${JOBS[job].icon} Braucht ${def.jobs[job]} ${JOBS[job].name}`);
+  }
+  if (def.needsRoad) lines.push('🛣️ Braucht eine Straße direkt daneben');
+  return lines;
+}
+
+const buildInfoEl = document.getElementById('build-info');
+
+function showBuildInfo(type) {
+  const def = BUILDINGS[type];
+  buildInfoEl.dataset.type = type;
+  const locked = !isUnlocked(type);
+  const built = def.landmark && countBuildings(type) > 0;
+  const status = locked ? `🔒 Erst nach ${lockReason(type, true)}`
+    : built ? '✔ Schon gebaut'
+    : `Kosten: ${formatAmounts(costOf(type))}${def.fixedCost ? '' : ' (jedes weitere kostet mehr)'}`;
+  buildInfoEl.innerHTML = `
+    <div class="bi-head"><span class="bi-icon">${def.icon}</span><strong>${def.name}</strong>
+      <button class="bi-close" title="Schließen">✕</button></div>
+    <div class="bi-desc">${def.description}</div>
+    <ul class="bi-facts">${describeBuilding(type).map(l => `<li>${l}</li>`).join('')}</ul>
+    <div class="bi-status${locked ? ' locked' : ''}">${status}</div>`;
+  buildInfoEl.querySelector('.bi-close').addEventListener('click', () => {
+    if (selectedType === type) selectBuild(null);
+    else hideBuildInfo();
+  });
+  buildInfoEl.classList.remove('hidden');
+}
+
+function hideBuildInfo() {
+  buildInfoEl.classList.add('hidden');
+  buildInfoEl.dataset.type = '';
 }
 
 function showInfo(x, y) {
@@ -3255,6 +3324,7 @@ function renderTileInfo() {
   const def = BUILDINGS[cell.type];
   const active = isActive(infoTile.x, infoTile.y);
   const lines = [def.description];
+  if (def.isRoad) lines.push(...describeBuilding(cell.type));
   if (cell.fire) {
     lines.push(cell.fire.brigade
       ? '🚒 Brennt – die Feuerwache löscht gerade.'

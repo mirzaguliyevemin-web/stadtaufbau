@@ -359,6 +359,41 @@ button {
   pointer-events: none;
 }
 
+/* Kurzinfo zur Auswahl in der Bauleiste – weicht großen Fenstern aus */
+#build-info {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 253, 247, 0.96);
+  color: #222;
+  font-size: 13px;
+  line-height: 1.35;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+}
+
+.bi-head { display: flex; align-items: center; gap: 6px; font-size: 15px; }
+.bi-icon { font-size: 22px; }
+.bi-head strong { flex: 1; }
+.bi-close { width: 28px; height: 28px; border-radius: 50%; background: #eee; font-size: 13px; }
+.bi-desc { margin: 4px 0; color: #444; }
+.bi-facts { margin: 0; padding: 0; list-style: none; }
+.bi-facts li { margin: 2px 0; }
+.bi-status { margin-top: 6px; font-weight: 700; color: #2d6a4f; }
+.bi-status.locked, .bi-status.unaffordable { color: #c0392b; }
+
+#quests:not(.hidden) ~ #build-info,
+#research:not(.hidden) ~ #build-info,
+#settings:not(.hidden) ~ #build-info,
+#info:not(.hidden) ~ #build-info { display: none; }
+
+/* Laufende Ereignisse über die Kurzinfo schieben */
+#build-info:not(.hidden) ~ #effects { bottom: auto; top: 54px; }
+
 #quests:not(.hidden) ~ #effects,
 #research:not(.hidden) ~ #effects,
 #settings:not(.hidden) ~ #effects,

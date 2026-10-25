@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 31;
+const APP_VERSION = 32;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -730,6 +730,7 @@ function newGame() {
   state.completed = false;
   state.camps = [];
   state.campSpawnIn = 240;
+  raids = [];
   state.population = 0;
   state.maxLevel = 0;
   state.questsClaimed = [];
@@ -1903,20 +1904,102 @@ function tradeBlocked() {
   return state.effects.some(e => e.tradeBlocked);
 }
 
-// Überfall aus einem Lager (wird im nächsten Schritt sichtbar auf der Karte)
+// ---------- Sichtbare Überfälle ----------
+// Eine Bande läuft vom Lager zu einem Ziel, Wachen aus der Nähe laufen ihr entgegen.
+// Am Ziel entscheidet der Schutz vor Ort. Überfälle werden nicht gespeichert.
+
+let raids = [];
+const RAID_VALUE = { market: 3, warehouse: 3, carpentry: 2, brickworks: 2, bakery: 2, townhall: 3, cathedral: 3 };
+
+// Wertvoll und schlecht geschützt zuerst, nahe Ziele bevorzugt
+function chooseRaidTarget(camp) {
+  let best = -1, bestScore = -Infinity;
+  state.grid.forEach((cell, i) => {
+    const def = cell && BUILDINGS[cell.type];
+    if (!def || def.isRoad || def.isWall || cell.fire) return;
+    const x = i % N, y = Math.floor(i / N);
+    const [w, h] = sizeOf(cell);
+    const dist = Math.hypot(x + w / 2 - camp.x, y + h / 2 - camp.y);
+    const score = (RAID_VALUE[cell.type] || 1) / (1 + defenseAt(x, y, w, h) / 10) / (1 + dist / 25) + Math.random() * 0.3;
+    if (score > bestScore) { bestScore = score; best = i; }
+  });
+  return best;
+}
+
 function startRaid(camp) {
-  const attack = Math.round(camp.strength * randomBetween(0.85, 1.15));
-  const defense = cityDefense();
-  if (defense >= attack) {
-    const bounty = Math.round(20 + attack * 1.5);
+  const target = chooseRaidTarget(camp);
+  if (target < 0) return false;
+  const cell = state.grid[target];
+  const [w, h] = sizeOf(cell);
+  const tx = target % N + w / 2, ty = Math.floor(target / N) + h / 2;
+  const strength = Math.round(camp.strength * randomBetween(0.85, 1.15));
+  const raid = {
+    camp, target, tx, ty, strength,
+    x: camp.x + 0.5, y: camp.y + 0.5, speed: 1.4,
+    units: Array.from({ length: Math.min(8, 3 + Math.floor(strength / 8)) }, () => [randomBetween(-0.6, 0.6), randomBetween(-0.6, 0.6)]),
+    defenders: [],
+  };
+  // Wachen von allen Posten, deren Umkreis das Ziel erreicht
+  state.grid.forEach((post, i) => {
+    if (!post || !BUILDINGS[post.type].defense || !isActive(i % N, Math.floor(i / N))) return;
+    const [pw, ph] = sizeOf(post);
+    if (rectGap(i % N, Math.floor(i / N), pw, ph, target % N, Math.floor(target / N), w, h) > postRadius(post)) return;
+    for (let n = 0; n < Math.max(1, Math.round(postStrength(post) / 10)); n++) {
+      raid.defenders.push({ x: i % N + pw / 2 + randomBetween(-0.3, 0.3), y: Math.floor(i / N) + ph / 2 + randomBetween(-0.3, 0.3) });
+    }
+  });
+  raids.push(raid);
+  showToast(`🏴‍☠️ Banditen ziehen zum ${BUILDINGS[cell.type].name}!`, 3500);
+  sound.play('fire');
+  emit('raid', { target });
+  return true;
+}
+
+function updateRaids(dt) {
+  for (const raid of [...raids]) {
+    // Ziel inzwischen weg (abgerissen, abgebrannt)? Dann ein neues suchen
+    if (!state.grid[raid.target]) {
+      const next = chooseRaidTarget(raid.camp);
+      if (next < 0) { raids.splice(raids.indexOf(raid), 1); continue; }
+      const [w, h] = sizeOf(state.grid[next]);
+      Object.assign(raid, { target: next, tx: next % N + w / 2, ty: Math.floor(next / N) + h / 2 });
+    }
+    const dx = raid.tx - raid.x, dy = raid.ty - raid.y;
+    const dist = Math.hypot(dx, dy);
+    const step = raid.speed * dt;
+    for (const d of raid.defenders) {
+      const ddx = raid.tx - d.x, ddy = raid.ty - d.y, dd = Math.hypot(ddx, ddy);
+      if (dd > 0.4) { d.x += ddx / dd * Math.min(dd, 2.2 * dt); d.y += ddy / dd * Math.min(dd, 2.2 * dt); }
+    }
+    if (dist > 0.6) {
+      raid.x += dx / dist * Math.min(dist, step);
+      raid.y += dy / dist * Math.min(dist, step);
+      continue;
+    }
+    resolveRaid(raid);
+    raids.splice(raids.indexOf(raid), 1);
+  }
+}
+
+function resolveRaid(raid) {
+  const i = raid.target;
+  const cell = state.grid[i];
+  const name = BUILDINGS[cell.type].name;
+  const [w, h] = sizeOf(cell);
+  const defense = defenseAt(i % N, Math.floor(i / N), w, h);
+  const camp = raid.camp;
+  if (defense >= raid.strength) {
+    const bounty = Math.round(20 + raid.strength * 1.5);
     addResources({ money: bounty });
     state.counters.repelled = (state.counters.repelled || 0) + 1;
-    camp.strength = Math.max(1, camp.strength * 0.6);   // die Bande ist geschwächt
-    showToast(`🛡️ Banditen vertrieben (Abwehr ${defense} gegen ${attack}) – Kopfgeld ${formatAmounts({ money: bounty })}`, 3500);
-    return true;
+    if (state.camps.includes(camp)) camp.strength = Math.max(1, camp.strength * 0.6);   // die Bande ist geschwächt
+    puff(i % N, Math.floor(i / N), '200, 200, 200', 8, T * 0.1);
+    sound.play('coins');
+    showToast(`🛡️ Wachen haben die Banditen am ${name} vertrieben (${defense} gegen ${raid.strength}) – Kopfgeld ${formatAmounts({ money: bounty })}`, 4000);
+    return;
   }
-  // Je stärker die Abwehr, desto kleiner der Schaden
-  const damage = 1 - defense / attack;
+  // Plünderung: je stärker die Abwehr, desto kleiner der Schaden – und das Gebäude fängt Feuer
+  const damage = 1 - defense / raid.strength;
   const stolen = { money: Math.floor(state.resources.money * 0.15 * damage) };
   const goods = Object.keys(RESOURCES).filter(id => RESOURCES[id].stored && state.resources[id] > 0);
   for (let n = 0; n < 2 && goods.length; n++) {
@@ -1925,15 +2008,57 @@ function startRaid(camp) {
   }
   for (const id in stolen) if (!stolen[id]) delete stolen[id];
   addResources(stolen, -1);
+  if (!cell.fire && !BUILDINGS[cell.type].isRoad && !BUILDINGS[cell.type].isWall) igniteCell(i);
   addEffect('bandits', 60, { production: { money: 0.5 }, tradeBlocked: true });
-  showEventPopup('🏴‍☠️', 'Banditen!', [
-    `Banditen haben die Handelswege überfallen (Angriff ${attack}, deine Abwehr ${defense}).`,
-    Object.keys(stolen).length ? `Geraubt: ${formatAmounts(stolen)}` : 'Zum Glück war nichts zu holen.',
-    '60 Sekunden lang ist der Handel unsicher: kein Kauf und Verkauf am Markt, Märkte bringen nur die Hälfte.',
-    defense === 0 ? 'Tipp: Wachhäuser, Wachtürme und Mauern (Reiter 🛡️ Schutz) wehren Banditen ab.' : 'Tipp: Mehr oder ausgebaute Wachposten und Mauern stärken die Abwehr.',
-  ].join('\n'));
-  camp.strength = Math.min(campMaxStrength(), camp.strength + 2);   // Erfolg macht die Bande stärker
-  return true;
+  if (state.camps.includes(camp)) camp.strength = Math.min(campMaxStrength(), camp.strength + 2);   // Erfolg macht die Bande stärker
+  sound.play('burned');
+  showToast(`🏴‍☠️ Banditen plündern ${name} (${raid.strength} gegen deine ${defense})! ` +
+    (Object.keys(stolen).length ? `Geraubt: ${formatAmounts(stolen)}. ` : '') + 'Handel 60 s gesperrt.', 5000);
+}
+
+function drawRaids() {
+  if (!raids.length) return;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const t = performance.now() / 1000;
+  for (const raid of raids) {
+    // Wachen
+    for (const d of raid.defenders) {
+      ctx.fillStyle = '#1c7ed6';
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2 / view.zoom;
+      ctx.beginPath();
+      ctx.arc(d.x * T, d.y * T, T * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    // Banditen: kleine Gruppe, wackelt beim Laufen
+    raid.units.forEach(([ox, oy], n) => {
+      const bob = Math.sin(t * 10 + n) * 0.05;
+      ctx.fillStyle = '#3d0c0c';
+      ctx.strokeStyle = '#e63946';
+      ctx.lineWidth = 2 / view.zoom;
+      ctx.beginPath();
+      ctx.arc((raid.x + ox) * T, (raid.y + oy + bob) * T, T * 0.13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    });
+    ctx.font = `${T * 0.6}px ${EMOJI_FONT}`;
+    ctx.fillText('🏴‍☠️', raid.x * T, (raid.y - 0.9) * T);
+    // Ziel markieren
+    ctx.strokeStyle = `rgba(230, 57, 70, ${0.5 + 0.4 * Math.sin(t * 6)})`;
+    ctx.lineWidth = 3 / view.zoom;
+    const cell = state.grid[raid.target];
+    if (cell) outlineRect(raid.target % N, Math.floor(raid.target / N), ...sizeOf(cell), ctx.strokeStyle);
+  }
+}
+
+function raidPillHtml() {
+  if (!raids.length) return '';
+  const r = raids.reduce((a, b) => (Math.hypot(b.tx - b.x, b.ty - b.y) < Math.hypot(a.tx - a.x, a.ty - a.y) ? b : a));
+  const eta = Math.ceil(Math.hypot(r.tx - r.x, r.ty - r.y) / r.speed);
+  const cell = state.grid[r.target];
+  return `<div class="effect clickable" data-action="raid">🏴‍☠️ Banditen → ${cell ? BUILDINGS[cell.type].name : '…'} · ${eta} s ›</div>`;
 }
 
 function offerTrade() {
@@ -2214,6 +2339,7 @@ function update(dt) {
   updateTaxes(dt);
   updatePrices(dt);
   updateCamps(dt);
+  updateRaids(dt);
 }
 
 // =====================================================================
@@ -2645,6 +2771,7 @@ function render(dt) {
     ctx.fillRect(0, 0, N * T, N * T);
     drawLights(dark, vis);
   }
+  drawRaids();
   if (season().heating && settings.daynight) drawSnow(dt, s);
 
   // Bau-Vorschau unter der Maus
@@ -3695,6 +3822,10 @@ function buildUI() {
   document.getElementById('info-close').addEventListener('click', closeInfo);
   effectsEl.addEventListener('click', e => {
     if (e.target.closest('[data-action="jobs"]')) showJobsInfo();
+    if (e.target.closest('[data-action="raid"]') && raids.length) {
+      const r = raids[0];
+      panCameraToTile(Math.floor((r.x + r.tx) / 2), Math.floor((r.y + r.ty) / 2));
+    }
     if (e.target.closest('[data-action="camp"]') && state.camps.length) {
       const i = state.camps.indexOf(state.camps.reduce((a, b) => (b.strength > a.strength ? b : a)));
       showCampInfo(i);
@@ -4692,7 +4823,7 @@ function updateEffectsUI() {
     if (cell?.fire && !cell.fire.brigade) pills.push(`🔥 ${BUILDINGS[cell.type].name} brennt · ${Math.ceil(cell.fire.left)} s`);
   });
   if (isFreezing()) pills.unshift('🥶 Es ist kalt – Holz fehlt!');
-  const html = pills.map(p => `<div class="effect">${p}</div>`).join('') + campPillHtml() + jobsPillHtml();
+  const html = raidPillHtml() + pills.map(p => `<div class="effect">${p}</div>`).join('') + campPillHtml() + jobsPillHtml();
   if (effectsEl.innerHTML !== html) effectsEl.innerHTML = html;
 }
 

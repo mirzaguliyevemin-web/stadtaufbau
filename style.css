@@ -393,7 +393,8 @@ button {
 #info:not(.hidden) ~ #build-info { display: none; }
 
 /* Laufende Ereignisse über die Kurzinfo schieben */
-#build-info:not(.hidden) ~ #effects { bottom: auto; top: 54px; }
+#build-info:not(.hidden) ~ #effects,
+#move-bar:not(.hidden) ~ #effects { bottom: auto; top: 54px; }
 
 #quests:not(.hidden) ~ #effects,
 #research:not(.hidden) ~ #effects,
@@ -774,3 +775,35 @@ button.res { cursor: pointer; }
   box-shadow: 0 4px 14px rgba(0, 0, 0, .4);
   animation: pulse 1.4s ease-in-out infinite;
 }
+
+/* Drehen / Verschieben */
+.info-buttons.secondary { margin-top: 6px; }
+.info-buttons.secondary button {
+  flex: 1 1 0;
+  padding: 7px 6px;
+  border-radius: 8px;
+  background: #e9ecef;
+  color: #222;
+  font-size: 13px;
+  font-weight: 600;
+}
+.bi-rotate { width: 28px; height: 28px; border-radius: 50%; background: #fff3c4; font-size: 15px; }
+
+#move-bar {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  max-width: 420px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 10px;
+  border-radius: 12px;
+  background: #fff3c4;
+  color: #222;
+  font-size: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+}
+#move-bar.hidden { display: none; }

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#2d6a4f">
   <!-- Spiel hat eigene Farben: automatischen Dunkelmodus des Browsers abschalten -->
   <meta name="color-scheme" content="only light">
-  <meta name="app-version" content="35">
+  <meta name="app-version" content="36">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Stadtaufbau</title>
@@ -90,8 +90,13 @@
         <button id="info-upgrade" class="hidden"></button>
         <button id="info-demolish">Verkaufen</button>
       </div>
+      <div id="info-move-row" class="info-buttons secondary hidden">
+        <button id="info-rotate">🔄 Drehen</button>
+        <button id="info-move">✋ Verschieben</button>
+      </div>
     </section>
     <section id="build-info" class="hidden"></section>
+    <section id="move-bar" class="hidden"></section>
     <div id="effects"></div>
     <section id="event" class="hidden">
       <div id="event-icon"></div>

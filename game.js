@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 35;
+const APP_VERSION = 36;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -853,13 +853,116 @@ function getCell(x, y) {
 
 // Passt ein Gebäude mit der Ecke auf (x, y)? Alle Felder müssen frei und eigenes Land sein
 function canPlaceAt(type, x, y) {
-  const [w, h] = footprintSize(type);
+  return canPlaceSize(x, y, ...placementSize(type));
+}
+
+// Ist die Fläche frei und eigenes Land? ignore: Gebäude-Ecke, deren eigene Felder als frei zählen (Drehen, Verschieben)
+function canPlaceSize(x, y, w, h, ignore = -1) {
   for (let dy = 0; dy < h; dy++) {
     for (let dx = 0; dx < w; dx++) {
-      if (anchorAt(x + dx, y + dy) !== -1 || !isOwned(x + dx, y + dy)) return false;
+      const a = anchorAt(x + dx, y + dy);
+      if (a === undefined || (a !== -1 && a !== ignore) || !isOwned(x + dx, y + dy)) return false;
     }
   }
   return true;
+}
+
+// Größe beim Bauen – gedreht, wenn der Spieler 🔄 gewählt hat (nur bei nicht quadratischen Gebäuden)
+let buildRotated = false;
+
+function placementSize(type) {
+  const [w, h] = footprintSize(type);
+  return buildRotated && w !== h ? [h, w] : [w, h];
+}
+
+// ---------- Drehen und Verschieben ----------
+
+function rotateBuilding(i) {
+  const cell = state.grid[i];
+  if (!cell || cell.fire) return;
+  const [w, h] = sizeOf(cell);
+  if (w === h) return;
+  const x = i % N, y = Math.floor(i / N);
+  // Gedrehte Lage suchen, die das bisherige Eckfeld weiter abdeckt (nach unten/rechts zuerst, sonst nach oben/links)
+  let spot = null;
+  for (let dy = 0; dy < w && !spot; dy++) {
+    for (let dx = 0; dx < h && !spot; dx++) {
+      if (canPlaceSize(x - dx, y - dy, h, w, i)) spot = [x - dx, y - dy];
+    }
+  }
+  if (!spot) {
+    sound.play('error');
+    showToast('Kein Platz zum Drehen – die Fläche daneben ist belegt oder fremdes Land');
+    return;
+  }
+  const [nx, ny] = spot;
+  setOccupied(x, y, w, h, -1);
+  state.grid[i] = null;
+  cell.w = h;
+  cell.h = w;
+  state.grid[ny * N + nx] = cell;
+  setOccupied(nx, ny, h, w, ny * N + nx);
+  if (infoTile && infoTile.x === x && infoTile.y === y) infoTile = { x: nx, y: ny };
+  sound.play('build');
+  recalcStats();
+  updateUI();
+}
+
+let moveMode = null;   // { from: Gebäude-Ecke, rotated }
+
+function startMove(i) {
+  const cell = state.grid[i];
+  if (!cell || cell.fire) return;
+  selectBuild(null);
+  closeInfo();
+  moveMode = { from: i, rotated: false };
+  renderMoveBar();
+}
+
+function cancelMove() {
+  moveMode = null;
+  document.getElementById('move-bar').classList.add('hidden');
+}
+
+function moveSize() {
+  const [w, h] = sizeOf(state.grid[moveMode.from]);
+  return moveMode.rotated && w !== h ? [h, w] : [w, h];
+}
+
+function moveBuildingTo(x, y) {
+  const from = moveMode.from;
+  const cell = state.grid[from];
+  if (!cell) return cancelMove();
+  const [w, h] = moveSize();
+  if (!canPlaceSize(x, y, w, h, from)) {
+    sound.play('error');
+    showToast('Hier ist kein Platz (belegt oder fremdes Land)');
+    return;
+  }
+  const [ow, oh] = sizeOf(cell);
+  setOccupied(from % N, Math.floor(from / N), ow, oh, -1);
+  state.grid[from] = null;
+  if (w > 1 || h > 1) { cell.w = w; cell.h = h; } else { delete cell.w; delete cell.h; }
+  cell.builtAt = performance.now();
+  state.grid[y * N + x] = cell;
+  setOccupied(x, y, w, h, y * N + x);
+  cancelMove();
+  sound.play('build');
+  showToast(`✋ ${BUILDINGS[cell.type].name} verschoben`);
+  emit('move', { from, to: y * N + x });
+  recalcStats();
+  updateUI();
+}
+
+function renderMoveBar() {
+  const bar = document.getElementById('move-bar');
+  const cell = state.grid[moveMode.from];
+  const [w, h] = sizeOf(cell);
+  bar.innerHTML = `<span class="bi-icon">${BUILDINGS[cell.type].icon}</span>
+    <strong>✋ Ziel antippen</strong><span class="bi-meta">${BUILDINGS[cell.type].name} verschieben</span>
+    ${w !== h ? '<button class="bi-more" data-act="rotate" title="Drehen (R)">🔄</button>' : ''}
+    <button class="bi-close" data-act="cancel" title="Abbrechen (Esc)">✕</button>`;
+  bar.classList.remove('hidden');
 }
 
 function removeBuildingAt(i) {
@@ -1107,7 +1210,7 @@ function placeBuilding(x, y, type) {
   const def = BUILDINGS[type];
   if (getCell(x, y) !== null) return false;
   if (!isOwned(x, y)) return false;
-  const [w, h] = footprintSize(type);
+  const [w, h] = placementSize(type);
   if (!canPlaceAt(type, x, y)) {
     sound.play('error');
     showToast(`Kein Platz: ${def.name} braucht ${w}×${h} freie Felder auf eigenem Land`);
@@ -2897,7 +3000,9 @@ function render(dt) {
     const [w, h] = sizeOf(cell);
     const age = (performance.now() - (cell.builtAt || 0)) / 1000;
     const scale = age < 0.35 ? easeOutBack(age / 0.35) : 1;   // Plopp beim Bauen
-    drawBuilding(x, y, BUILDINGS[cell.type], active || cell.fire ? 1 : 0.55, scale, w, h);
+    const moving = moveMode && moveMode.from === y * N + x;
+    drawBuilding(x, y, BUILDINGS[cell.type], moving ? 0.35 : active || cell.fire ? 1 : 0.55, scale, w, h);
+    if (moving) outlineRect(x, y, w, h, '#ffd166');
     const mx = (x + w - 0.2) * T, my = (y + 0.22) * T;      // Ecke oben rechts für Hinweise
     if (cell.fire) {
       drawFire(x, y, cell.fire, w, h);
@@ -2948,9 +3053,13 @@ function render(dt) {
   drawPlotPrices(vis);
   drawCamps(dark);
 
-  if (selectedType && hoverTile && getCell(hoverTile.x, hoverTile.y) === null) {
+  if (moveMode && hoverTile && state.grid[moveMode.from]) {
+    const [w, h] = moveSize();
+    if (canPlaceSize(hoverTile.x, hoverTile.y, w, h, moveMode.from)) drawBuilding(hoverTile.x, hoverTile.y, BUILDINGS[state.grid[moveMode.from].type], 0.55, 1, w, h);
+    else outlineRect(hoverTile.x, hoverTile.y, w, h, '#c0392b');
+  } else if (selectedType && hoverTile && getCell(hoverTile.x, hoverTile.y) === null) {
     const def = BUILDINGS[selectedType];
-    const [w, h] = footprintSize(selectedType);
+    const [w, h] = placementSize(selectedType);
     if (!canPlaceAt(selectedType, hoverTile.x, hoverTile.y)) {
       outlineRect(hoverTile.x, hoverTile.y, w, h, '#c0392b');
     } else {
@@ -2993,7 +3102,7 @@ function drawServiceAreas() {
       if (area && area.key === selArea.key) drawArea(i % N, Math.floor(i / N), area.radius, 'rgba(255,255,255,0.15)', ...sizeOf(cell));
     });
     if (hoverTile && getCell(hoverTile.x, hoverTile.y) === null) {
-      drawArea(hoverTile.x, hoverTile.y, selArea.radius, 'rgba(255,209,102,0.3)', ...footprintSize(selectedType));
+      drawArea(hoverTile.x, hoverTile.y, selArea.radius, 'rgba(255,209,102,0.3)', ...placementSize(selectedType));
     }
   }
   const infoCell = infoTile && state.grid[infoTile.y * N + infoTile.x];
@@ -3502,7 +3611,8 @@ function startPinch() {
 canvas.addEventListener('pointerdown', e => {
   collapseOverlays();
   if (e.pointerType === 'mouse' && e.button === 2) {
-    // Rechtsklick: Baumodus bzw. Fenster schließen
+    // Rechtsklick: Baumodus, Verschieben bzw. Fenster schließen
+    if (moveMode) cancelMove();
     selectBuild(null);
     closePanels();
     return;
@@ -3638,7 +3748,12 @@ window.addEventListener('keydown', e => {
     sellSelection();
     return;
   }
+  if (e.key === 'r' || e.key === 'R') {
+    if (moveMode) { moveMode.rotated = !moveMode.rotated; return; }
+    if (selectedType) { toggleBuildRotation(); return; }
+  }
   if (e.key === 'Escape') {
+    if (moveMode) { cancelMove(); return; }
     if (demolishMode && demolishSelection.size) {
       clearDemolishSelection();
       return;
@@ -3662,6 +3777,10 @@ window.addEventListener('keydown', e => {
 function handleTap(sx, sy) {
   const { x, y } = screenToTile(sx, sy);
   const cell = getCell(x, y);
+  if (moveMode) {
+    moveBuildingTo(x, y);
+    return;
+  }
   if (demolishMode) {
     if (cell) markForDemolish(x, y);
     updateDemolishBar();
@@ -4059,6 +4178,17 @@ function buildUI() {
     }
     sellArmed = null;
     demolish(infoTile.x, infoTile.y);
+  });
+  document.getElementById('info-rotate').addEventListener('click', () => {
+    if (infoTile && infoClickAllowed()) rotateBuilding(infoTile.y * N + infoTile.x);
+  });
+  document.getElementById('info-move').addEventListener('click', () => {
+    if (infoTile && infoClickAllowed()) startMove(infoTile.y * N + infoTile.x);
+  });
+  document.getElementById('move-bar').addEventListener('click', e => {
+    const act = e.target.closest('[data-act]')?.dataset.act;
+    if (act === 'rotate') { moveMode.rotated = !moveMode.rotated; sound.play('click'); }
+    if (act === 'cancel') cancelMove();
   });
   document.getElementById('info-upgrade').addEventListener('click', () => {
     if (infoTile && infoClickAllowed()) upgradeBuilding(infoTile.x, infoTile.y);
@@ -4475,9 +4605,15 @@ const buildInfoEl = document.getElementById('build-info');
 let buildInfoExpanded = false;
 
 // Kurze Zustandsangabe für die Zeile: Kosten, „gesperrt“ oder „schon gebaut“
+function toggleBuildRotation() {
+  buildRotated = !buildRotated;
+  if (selectedType) showBuildInfo(selectedType);
+  sound.play('click');
+}
+
 function buildInfoMeta(type) {
   const def = BUILDINGS[type];
-  const [w, h] = footprintSize(type);
+  const [w, h] = placementSize(type);
   const size = w > 1 || h > 1 ? `${w}×${h} · ` : '';
   if (!isUnlocked(type)) return `${size}🔒 ${lockReason(type)}`;
   if (def.landmark && countBuildings(type) > 0) return `${size}✔ gebaut`;
@@ -4496,6 +4632,7 @@ function showBuildInfo(type) {
   buildInfoEl.innerHTML = `
     <div class="bi-head"><span class="bi-icon">${def.icon}</span><strong>${def.name}</strong>
       <span class="bi-meta"></span>
+      ${footprintSize(type)[0] !== footprintSize(type)[1] ? '<button class="bi-rotate" title="Drehen (R)">🔄</button>' : ''}
       <button class="bi-more" title="Was macht das Gebäude?">ⓘ</button>
       <button class="bi-close" title="Schließen">✕</button></div>
     <div class="bi-details">
@@ -4505,6 +4642,7 @@ function showBuildInfo(type) {
     </div>`;
   buildInfoEl.querySelector('.bi-meta').textContent = buildInfoMeta(type);
   buildInfoEl.classList.toggle('expanded', buildInfoExpanded);
+  buildInfoEl.querySelector('.bi-rotate')?.addEventListener('click', toggleBuildRotation);
   buildInfoEl.querySelector('.bi-more').addEventListener('click', () => {
     buildInfoExpanded = !buildInfoExpanded;
     buildInfoEl.classList.toggle('expanded', buildInfoExpanded);
@@ -4645,6 +4783,7 @@ function renderJobsInfo() {
   setInfoLines(lines);
   document.getElementById('info-demolish').classList.add('hidden');
   document.getElementById('info-upgrade').classList.add('hidden');
+  document.getElementById('info-move-row').classList.add('hidden');
   document.getElementById('info-action').classList.add('hidden');
 }
 
@@ -4680,6 +4819,7 @@ function renderCampInfo() {
     'Kaufst du das Land, auf dem es steht, ziehen die Banditen ab.']);
   document.getElementById('info-demolish').classList.add('hidden');
   document.getElementById('info-upgrade').classList.add('hidden');
+  document.getElementById('info-move-row').classList.add('hidden');
   const btn = document.getElementById('info-action');
   btn.classList.remove('hidden');
   btn.textContent = strong ? `⚔️ Ausheben · ${formatAmounts(campCost(camp))}` : `🔒 Wachen zu schwach (${defense} / ${Math.round(camp.strength)})`;
@@ -4722,6 +4862,7 @@ function renderPlotInfo() {
   setInfoLines(lines);
   document.getElementById('info-demolish').classList.add('hidden');
   document.getElementById('info-upgrade').classList.add('hidden');
+  document.getElementById('info-move-row').classList.add('hidden');
   const btn = document.getElementById('info-action');
   btn.classList.toggle('hidden', !buyable);
   btn.textContent = `🏷️ Kaufen für ${formatAmounts(price)}`;
@@ -4803,6 +4944,10 @@ function renderTileInfo() {
   actionBtn.textContent = `💧 Löschen (${formatAmounts(CONFIG.extinguishCost)})`;
   const refund = refundOf(cell);
   renderUpgradeButton(cell);
+  const movable = !def.isRoad && !def.isWall && !cell.fire;
+  const [cw, ch] = sizeOf(cell);
+  document.getElementById('info-move-row').classList.toggle('hidden', !movable);
+  document.getElementById('info-rotate').classList.toggle('hidden', cw === ch);
   document.getElementById('info-icon').textContent = def.icon;
   document.getElementById('info-name').textContent =
     def.name + (canUpgradeType(cell.type) ? `  ${'★'.repeat(levelOf(cell))}${'☆'.repeat(MAX_BUILDING_LEVEL - levelOf(cell))}` : '');
@@ -4916,6 +5061,7 @@ function renderCityInfo() {
   action.classList.remove('unaffordable');
   action.textContent = '🏆 Stadt vollenden & neu gründen (mit Bonus)';
   document.getElementById('info-upgrade').classList.add('hidden');
+  document.getElementById('info-move-row').classList.add('hidden');
   renderTaxUI();
 }
 

@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 22;
+const APP_VERSION = 23;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -28,7 +28,8 @@ const CONFIG = {
   plotBasePrice: 150,     // Preis der ersten gekauften Parzelle (Geld)
   plotPriceGrowth: 1.7,   // jede weitere Parzelle kostet so viel mal mehr
   tileSize: 48,           // Kachelgröße in Weltpixeln
-  saveKey: 'stadtaufbau-save-1',
+  saveKey: 'stadtaufbau-save-',   // + Nummer des Speicherplatzes
+  saveSlots: 3,           // so viele Städte können parallel gespeichert werden
   saveVersion: 1,
   autosaveSeconds: 30,
   refundRate: 0.5,        // Anteil der Baukosten beim Abreißen
@@ -614,6 +615,7 @@ const state = {
   techs: [],         // erforschte Technologien
   research: null,    // laufende Forschung { id, left }
   plots: [],         // plots[i] = true, wenn die Parzelle gekauft ist
+  cityName: '',      // vom Spieler vergebener Name (leer = „Stadt <Platz>“)
   plotsGranted: 0,   // geschenkte Flächen (alter Spielstand mit Gebäuden außerhalb) – zählen nicht als gekauft
   dayTime: 0.15,     // Tageszeit 0–1 (0 = Mittag, 0.5 = Mitternacht)
   yearTime: 0,       // Sekunden im laufenden Jahr (Jahreszeit = yearTime / seasonLength)
@@ -650,6 +652,7 @@ function newGame() {
   state.grid = new Array(N * N).fill(null);
   state.plots = startPlots();
   state.plotsGranted = 0;
+  state.cityName = '';
   state.population = 0;
   state.maxLevel = 0;
   state.questsClaimed = [];
@@ -1936,6 +1939,99 @@ function update(dt) {
 // SPEICHERN / LADEN
 // =====================================================================
 
+// ---------- Speicherplätze (mehrere Städte) ----------
+
+const ACTIVE_SLOT_KEY = 'stadtaufbau-active-slot';
+
+function saveKeyOf(slot) {
+  return CONFIG.saveKey + slot;
+}
+
+let activeSlot = (() => {
+  try {
+    const n = parseInt(localStorage.getItem(ACTIVE_SLOT_KEY), 10);
+    return n >= 1 && n <= CONFIG.saveSlots ? n : 1;
+  } catch (e) {
+    return 1;
+  }
+})();
+
+function cityNameOf(slot, data) {
+  return (data && data.cityName) || `Stadt ${slot}`;
+}
+
+// Kurze Übersicht eines Speicherplatzes, ohne ihn zu laden
+function slotSummary(slot) {
+  let data = null;
+  try {
+    data = JSON.parse(localStorage.getItem(saveKeyOf(slot)));
+  } catch (e) { /* leer oder kaputt */ }
+  if (!data || !Array.isArray(data.buildings)) return { slot, empty: true, name: `Platz ${slot}` };
+  const pop = data.population || 0;
+  const level = LEVELS[levelFor(pop)];
+  const when = data.savedAt ? new Date(data.savedAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+  return { slot, empty: false, name: cityNameOf(slot, data), text: `${level.icon} ${level.name} · 👥 ${pop}${when ? ' · ' + when : ''}` };
+}
+
+function switchSlot(slot) {
+  if (slot === activeSlot) return;
+  save();
+  saveBlocked = true;   // beim Neuladen nicht den alten Stand in den neuen Platz schreiben
+  try {
+    localStorage.setItem(ACTIVE_SLOT_KEY, String(slot));
+  } catch (e) { /* ohne Speicher kein Wechsel möglich */ }
+  location.reload();
+}
+
+function deleteSlot(slot) {
+  if (slot === activeSlot) return;
+  const sum = slotSummary(slot);
+  if (!confirm(`„${sum.name}“ endgültig löschen?`)) return;
+  try { localStorage.removeItem(saveKeyOf(slot)); } catch (e) { /* egal */ }
+  renderSlots();
+}
+
+function renameCity() {
+  const name = prompt('Wie soll deine Stadt heißen?', state.cityName || `Stadt ${activeSlot}`);
+  if (name === null) return;
+  state.cityName = name.trim().slice(0, 30);
+  save();
+  renderSlots();
+  updateUI();
+}
+
+function renderSlots() {
+  const wrap = document.getElementById('slots');
+  wrap.innerHTML = '';
+  for (let slot = 1; slot <= CONFIG.saveSlots; slot++) {
+    const sum = slot === activeSlot
+      ? { slot, empty: false, name: state.cityName || `Stadt ${slot}`, text: `${LEVELS[stats.level].icon} ${LEVELS[stats.level].name} · 👥 ${state.population} · wird gerade gespielt` }
+      : slotSummary(slot);
+    const row = document.createElement('div');
+    row.className = 'slot' + (slot === activeSlot ? ' active' : '') + (sum.empty ? ' empty' : '');
+    row.innerHTML = `
+      <div class="slot-text"><strong></strong><span></span></div>
+      <div class="slot-buttons"></div>`;
+    row.querySelector('strong').textContent = sum.empty ? `Platz ${slot} – frei` : sum.name;
+    row.querySelector('span').textContent = sum.empty ? 'Hier kannst du eine neue Stadt gründen.' : sum.text;
+    const buttons = row.querySelector('.slot-buttons');
+    const add = (label, title, fn) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.title = title;
+      b.addEventListener('click', fn);
+      buttons.appendChild(b);
+    };
+    if (slot === activeSlot) add('✏️', 'Umbenennen', renameCity);
+    else if (sum.empty) add('➕ Gründen', 'Neue Stadt auf diesem Platz', () => switchSlot(slot));
+    else {
+      add('▶️ Spielen', 'Zu dieser Stadt wechseln', () => switchSlot(slot));
+      add('🗑️', 'Löschen', () => deleteSlot(slot));
+    }
+    wrap.appendChild(row);
+  }
+}
+
 let saveBlocked = false;   // beim Import: verhindert, dass der alte Stand beim Neuladen zurückgeschrieben wird
 
 function buildSaveData() {
@@ -1966,6 +2062,7 @@ function buildSaveData() {
     daily: state.daily,
     plots: state.plots.map((owned, i) => (owned ? i : -1)).filter(i => i >= 0),
     plotsGranted: state.plotsGranted,
+    cityName: state.cityName,
     buildings,
   };
   return data;
@@ -1974,7 +2071,7 @@ function buildSaveData() {
 function save() {
   if (saveBlocked) return;
   try {
-    localStorage.setItem(CONFIG.saveKey, JSON.stringify(buildSaveData()));
+    localStorage.setItem(saveKeyOf(activeSlot), JSON.stringify(buildSaveData()));
   } catch (e) {
     console.warn('Speichern fehlgeschlagen', e);
   }
@@ -1991,7 +2088,7 @@ function load() {
   newGame();
   let data;
   try {
-    data = JSON.parse(localStorage.getItem(CONFIG.saveKey));
+    data = JSON.parse(localStorage.getItem(saveKeyOf(activeSlot)));
   } catch (e) {
     return false;
   }
@@ -2038,6 +2135,7 @@ function load() {
     if (typeof data.prices?.[id] === 'number') state.prices[id] = clamp(data.prices[id], 0.6, 1.6);
   }
   if (data.counters && typeof data.counters === 'object') state.counters = data.counters;
+  if (typeof data.cityName === 'string') state.cityName = data.cityName.slice(0, 30);
   if (Array.isArray(data.achievements)) {
     state.achievements = data.achievements.filter(id => ACHIEVEMENTS.some(a => a.id === id));
   }
@@ -3349,6 +3447,7 @@ const settingsEl = document.getElementById('settings');
 function showSettings() {
   closePanels();
   updateSettingsUI();
+  renderSlots();
   settingsEl.classList.remove('hidden');
 }
 
@@ -3801,7 +3900,7 @@ function renderCityInfo() {
     `Zuzug ab ${HAPPINESS.growAbove}, Abwanderung unter ${HAPPINESS.leaveBelow}. Zufriedene Einwohner arbeiten mehr.`,
   ];
   document.getElementById('info-icon').textContent = level.icon;
-  document.getElementById('info-name').textContent = level.name;
+  document.getElementById('info-name').textContent = `${state.cityName || 'Stadt ' + activeSlot} – ${level.name}`;
   document.getElementById('info-text').textContent = lines.join('\n');
   document.getElementById('info-demolish').classList.add('hidden');
   document.getElementById('info-action').classList.add('hidden');
@@ -4000,7 +4099,7 @@ function importData(data) {
   data.savedAt = Date.now();   // keine Offline-Einnahmen für die Zeit seit dem Export
   saveBlocked = true;
   try {
-    localStorage.setItem(CONFIG.saveKey, JSON.stringify(data));
+    localStorage.setItem(saveKeyOf(activeSlot), JSON.stringify(data));
   } catch (e) {
     saveBlocked = false;
     showToast('Speichern fehlgeschlagen – ist der Speicher voll?', 3000);

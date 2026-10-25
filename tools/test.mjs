@@ -201,6 +201,27 @@ test('Brücke und Fischerhütte', () => {
   return 'ok';
 });
 
+test('Ressourcen-Info: Produktion und Verbrauch', () => {
+  const game = fresh({ seed: 12 });
+  const r = game.run(`
+    state.plots.fill(true);
+    state.terrain.fill(TERRAIN_ID.grass);
+    Object.assign(state.resources, { money: 9999, wood: 900, stone: 900 });
+    for (let x = 24; x < 40; x++) placeBuilding(x, 32, 'road');
+    placeBuilding(24, 30, 'farm'); placeBuilding(26, 31, 'sawmill'); placeBuilding(28, 31, 'house'); placeBuilding(29, 31, 'house');
+    state.population = 8; recalcStats();
+    const texts = {};
+    for (const id in RESOURCES) { showResourceInfo(id); texts[id] = document.getElementById('info-text').textContent; }
+    const food = resourceFlows('food');
+    JSON.stringify({ food: texts.food, wood: texts.wood, eat: food.uses.length, farm: food.sources.length })
+  `);
+  noErrors(game, 'bei der Ressourcen-Info');
+  const o = JSON.parse(r);
+  assert(o.eat === 1 && o.farm === 1, 'Nahrung: ' + r);
+  assert(o.food.includes('Farm') && o.food.includes('Einwohner essen') && o.wood.includes('Sägewerk'), 'Text: ' + r);
+  return o.food.split('\n').slice(0, 2).join(' · ');
+});
+
 test('Meldungen schließen sich selbst', () => {
   const game = fresh({ seed: 6 });
   const r = game.run(`

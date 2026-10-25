@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 40;
+const APP_VERSION = 41;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -4996,7 +4996,7 @@ function addChip(parent, key, title, onClick) {
 
 function buildUI() {
   const resWrap = document.getElementById('resources');
-  for (const id in RESOURCES) addChip(resWrap, id, RESOURCES[id].name);
+  for (const id in RESOURCES) addChip(resWrap, id, `${RESOURCES[id].name} – antippen für Produktion und Verbrauch`, () => showResourceInfo(id));
   addChip(resWrap, 'population', 'Einwohner / Wohnplätze', showCityInfo);
   addChip(resWrap, 'happiness', 'Zufriedenheit', showCityInfo);
   addChip(resWrap, 'level', 'Stadtstufe', showCityInfo);
@@ -5693,6 +5693,100 @@ function showJobsInfo() {
   renderInfo();
 }
 
+// ---------- Ressourcen: Produktion und Verbrauch ----------
+
+let infoResource = null;
+
+function showResourceInfo(id) {
+  closeQuests();
+  closeResearch();
+  closeSettings();
+  infoMode = 'resource';
+  infoResource = id;
+  infoTile = null;
+  infoOpenedAt = performance.now();
+  clearInfoExtra();
+  infoEl.classList.remove('hidden');
+  renderInfo();
+}
+
+// Woher kommt eine Ressource, wohin geht sie? Werte pro Minute, gruppiert nach Gebäudeart
+function resourceFlows(id) {
+  const sources = new Map(), uses = new Map();
+  const add = (map, key, label, perMin, paused = false) => {
+    const e = map.get(key) || { label, perMin: 0, count: 0, paused: 0 };
+    e.perMin += perMin;
+    e.count++;
+    if (paused) e.paused++;
+    map.set(key, e);
+  };
+  state.grid.forEach((cell, i) => {
+    const def = cell && BUILDINGS[cell.type];
+    if (!def || !def.interval || !isActive(i % N, Math.floor(i / N))) return;
+    const x = i % N, y = Math.floor(i / N);
+    const lf = levelFactor(cell);
+    const paused = !!cell.waiting;
+    const out = buildingOutput(cell.type, staffOfCell(i))[id] || 0;
+    if (out) add(sources, cell.type, `${def.icon} ${def.name}`, paused ? 0 : out * lf * (1 + terrainBonusOf(cell.type, x, y, ...sizeOf(cell))) * 60 / def.interval, paused);
+    const use = def.consumes?.[id];
+    if (use) add(uses, cell.type, `${def.icon} ${def.name}`, paused ? 0 : Math.round(use * lf) * 60 / def.interval, paused);
+  });
+  const pop = state.population;
+  if (id === 'money' && pop) add(sources, 'tax', `🏛️ Steuern (${TAXES[state.taxLevel].name})`, pop * TAXES[state.taxLevel].perCitizen * 60 / CONFIG.taxInterval);
+  if (id === 'food' && pop) add(uses, 'eat', `👥 ${pop} Einwohner essen`, pop * CONFIG.foodPerCitizen * 60);
+  if (id === 'bread' && pop && state.resources.bread > 0) add(uses, 'eat', `👥 ${pop} Einwohner essen Brot`, pop * CONFIG.breadPerCitizen * 60);
+  if (id === 'wood' && pop && season().heating) add(uses, 'heat', '🔥 Heizen im Winter', heatingRate() * 60);
+  return { sources: [...sources.values()], uses: [...uses.values()] };
+}
+
+function formatRate(perMin) {
+  const v = Math.abs(perMin);
+  return (v >= 10 ? Math.round(v) : Math.round(v * 10) / 10).toString().replace('.', ',');
+}
+
+function renderResourceInfo() {
+  const id = infoResource;
+  const r = RESOURCES[id];
+  const { sources, uses } = resourceFlows(id);
+  const inSum = sources.reduce((a, e) => a + e.perMin, 0), outSum = uses.reduce((a, e) => a + e.perMin, 0);
+  const net = inSum - outSum;
+  const have = Math.floor(state.resources[id]);
+  const cap = r.stored ? storageCap(id) : null;
+  const lines = [];
+  lines.push(`Vorrat: ${have}${cap ? ` von ${cap} (Lager)` : ''}`);
+  const sign = net > 0.05 ? '+' : net < -0.05 ? '−' : '±';
+  let trend = `Bilanz: ${sign}${formatRate(net)} pro Minute`;
+  if (net < -0.05 && have > 0) trend += ` – reicht noch ${formatClock(have / -net * 60)}`;
+  else if (net > 0.05 && cap && have < cap) trend += ` – Lager voll in ${formatClock((cap - have) / net * 60)}`;
+  else if (net > 0.05 && cap && have >= cap) trend += ' – Lager ist voll, Überschuss geht verloren';
+  lines.push(trend);
+  lines.push(sources.length
+    ? '⬆️ Produktion: +' + formatRate(inSum) + '/min'
+    : '⬆️ Produktion: keine');
+  for (const e of sources.sort((a, b) => b.perMin - a.perMin)) {
+    lines.push(`• ${e.label}${e.count > 1 ? ` ×${e.count}` : ''}: +${formatRate(e.perMin)}${e.paused ? ` (⏸️ ${e.paused} pausiert)` : ''}`);
+  }
+  lines.push(uses.length ? '⬇️ Verbrauch: −' + formatRate(outSum) + '/min' : '⬇️ Verbrauch: keiner');
+  for (const e of uses.sort((a, b) => b.perMin - a.perMin)) {
+    lines.push(`• ${e.label}${e.count > 1 ? ` ×${e.count}` : ''}: −${formatRate(e.perMin)}${e.paused ? ` (⏸️ ${e.paused} pausiert)` : ''}`);
+  }
+  const details = [];
+  if (id === 'wood' && !season().heating && state.population) details.push(`Im Winter heizen die Einwohner: −${formatRate(heatingRate() * 60)} 🪵/min.`);
+  if (r.price) details.push(`Marktpreis: ${Math.round(r.price * (state.prices[id] || 1) * 10) / 10} 💰 je Stück (Handel am Markt).`);
+  if (!sources.length) {
+    const makers = Object.values(BUILDINGS).filter(d => d.produces?.[id]).map(d => `${d.icon} ${d.name}`);
+    if (makers.length) details.push('Hergestellt von: ' + makers.join(', '));
+  }
+  details.push('Werte gelten für jetzt (Personal, Zufriedenheit, Jahreszeit, Gelände).');
+  document.getElementById('info-icon').textContent = r.icon;
+  document.getElementById('info-name').textContent = r.name;
+  setInfoLines(lines, details);
+  document.getElementById('info-demolish').classList.add('hidden');
+  document.getElementById('info-upgrade').classList.add('hidden');
+  document.getElementById('info-move-row').classList.add('hidden');
+  document.getElementById('info-action').classList.add('hidden');
+}
+
 // Wo fehlt Personal? Je Beruf: Stellen, unterbesetzte Gebäudearten und was hilft
 function renderJobsInfo() {
   const lines = [];
@@ -5768,6 +5862,7 @@ function renderInfo() {
   else if (infoMode === 'camp') renderCampInfo();
   else if (infoMode === 'jobs') renderJobsInfo();
   else if (infoMode === 'plot') renderPlotInfo();
+  else if (infoMode === 'resource') renderResourceInfo();
   else renderTileInfo();
 }
 

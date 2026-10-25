@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 36;
+const APP_VERSION = 37;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -3748,6 +3748,13 @@ window.addEventListener('keydown', e => {
     sellSelection();
     return;
   }
+  if (e.key === ' ') {
+    e.preventDefault();
+    setSpeed(gameSpeed === 0 ? 1 : 0);
+    return;
+  }
+  if (e.key === '+') { setSpeed(gameSpeed + 1); return; }
+  if (e.key === '-') { setSpeed(gameSpeed - 1); return; }
   if (e.key === 'r' || e.key === 'R') {
     if (moveMode) { moveMode.rotated = !moveMode.rotated; return; }
     if (selectedType) { toggleBuildRotation(); return; }
@@ -4200,6 +4207,7 @@ function buildUI() {
     else if (infoMode === 'city') completeCity();
     else if (infoTile) extinguish(infoTile.x, infoTile.y);
   });
+  document.getElementById('btn-speed').addEventListener('click', cycleSpeed);
   document.getElementById('btn-settings').addEventListener('click', () => {
     if (settingsEl.classList.contains('hidden')) showSettings();
     else closeSettings();
@@ -5359,11 +5367,31 @@ function setupTransfer() {
 let lastTime = performance.now();
 let uiTimer = 0;
 
+// Spielgeschwindigkeit: 0 = Pause, 1–3 = Zeitraffer (gilt für dieses Gerät, nicht im Spielstand)
+const SPEEDS = [0, 1, 2, 3];
+const SPEED_LABELS = { 0: '⏸', 1: '▶ 1×', 2: '⏩ 2×', 3: '⏭ 3×' };
+let gameSpeed = 1;
+
+function setSpeed(speed) {
+  gameSpeed = clamp(speed, 0, SPEEDS[SPEEDS.length - 1]);
+  const btn = document.getElementById('btn-speed');
+  btn.textContent = SPEED_LABELS[gameSpeed];
+  btn.classList.toggle('paused', gameSpeed === 0);
+  btn.classList.toggle('fast', gameSpeed > 1);
+  if (gameSpeed === 0) showToast('⏸ Pause – in Ruhe planen und bauen');
+  sound.play('click');
+}
+
+function cycleSpeed() {
+  setSpeed(SPEEDS[(SPEEDS.indexOf(gameSpeed) + 1) % SPEEDS.length]);
+}
+
 function loop(now) {
   // Nie negativ (der erste Zeitstempel kann vor dem Skriptstart liegen), große Sprünge begrenzen
   const dt = clamp((now - lastTime) / 1000, 0, 1);
   lastTime = now;
-  update(dt);
+  // Zeitraffer in Teilschritten, damit bei 3× nichts übersprungen wird
+  for (let n = 0; n < gameSpeed; n++) update(dt);
   uiTimer += dt;
   if (uiTimer >= 0.25) {
     uiTimer = 0;

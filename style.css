@@ -807,3 +807,16 @@ button.res { cursor: pointer; }
   box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
 }
 #move-bar.hidden { display: none; }
+
+/* Spielgeschwindigkeit */
+#topbar .speed-btn {
+  width: auto;
+  min-width: 52px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+#topbar .speed-btn.paused { background: #e63946; animation: pulse 1.2s ease-in-out infinite; }
+#topbar .speed-btn.fast { background: #f4a261; color: #222; }

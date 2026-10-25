@@ -18,7 +18,8 @@ function runBalanceBot(minutes = 90) {
       if (h > 1 && s.y % 3 !== 1) return false;               // große Gebäude: Ecke direkt unter einer Straßenreihe
       if (!canPlaceAt(type, s.x, s.y)) return false;
       const [rx, ry] = roadFor(s.x, s.y);
-      return isOwned(rx, ry) && (getCell(rx, ry) === null || BUILDINGS[getCell(rx, ry).type].isRoad);
+      const rc = getCell(rx, ry);
+      return isOwned(rx, ry) && ((rc === null && !terrainBlocked(rx, ry)) || (rc && BUILDINGS[rc.type].isRoad));
     });
   };
   const want = {};
@@ -122,8 +123,11 @@ function runBalanceBot(minutes = 90) {
 
     // Land dazukaufen, wenn der Platz knapp wird (nächstgelegene kaufbare Fläche)
     if (freeSlots('farm').length < 6) {
-      const buyable = state.plots.map((_, p) => p).filter(canBuyPlot)
-        .sort((a, b) => Math.hypot(a % P - P / 2 + 0.5, Math.floor(a / P) - P / 2 + 0.5) - Math.hypot(b % P - P / 2 + 0.5, Math.floor(b / P) - P / 2 + 0.5));
+      // nächstgelegene kaufbare Fläche, Berge und Seen machen sie weniger attraktiv
+      const S = CONFIG.plotSize;
+      const blocked = p => countTerrainNear((p % P) * S, Math.floor(p / P) * S, S, S, 'rock', 0) + countTerrainNear((p % P) * S, Math.floor(p / P) * S, S, S, 'water', 0);
+      const score = p => Math.hypot(p % P - P / 2 + 0.5, Math.floor(p / P) - P / 2 + 0.5) + blocked(p) / 16;
+      const buyable = state.plots.map((_, p) => p).filter(canBuyPlot).sort((a, b) => score(a) - score(b));
       if (buyable.length && state.resources.money >= plotPrice().money + 30) { buyPlot(buyable[0]); plotsBoughtAt.push((t / 60).toFixed(1)); }
       else if (buyable.length) want.land = (want.land || 0) + 1;
     }

@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 38;
+const APP_VERSION = 39;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -90,6 +90,26 @@ const SEASONS = [
   { id: 'autumn', name: 'Herbst',   icon: '🍂', ground: '#c2b46a', production: { farm: 1.5 } },
   { id: 'winter', name: 'Winter',   icon: '❄️', ground: '#e4edf1', production: { farm: 0.3 },  heating: true },
 ];
+
+// Gelände. blocks: darauf kann nicht gebaut werden  | clearYield: Ertrag, wenn das Feld beim Bauen gerodet wird
+const TERRAIN = [
+  { id: 'grass',  name: 'Wiese' },
+  { id: 'forest', name: 'Wald', icon: '🌲', clearYield: { wood: 2 },
+    text: 'Wird beim Bauen gerodet und bringt Holz. Sägewerke in der Nähe produzieren mehr.' },
+  { id: 'rock',   name: 'Berg', icon: '⛰️', blocks: true,
+    text: 'Hier kann man nicht bauen. Steinbrüche in der Nähe produzieren mehr.' },
+  { id: 'water',  name: 'See',  icon: '💧', blocks: true,
+    text: 'Hier kann man nicht bauen. Farmen am Wasser ernten mehr, Häuser direkt am Ufer bekommen mehr Wohnplätze.' },
+];
+const TERRAIN_ID = Object.fromEntries(TERRAIN.map((t, i) => [t.id, i]));
+
+// Geländebonus auf den Ertrag: Felder des Geländes im Umkreis `radius` um das Gebäude.
+//   perTile: Bonus je Feld bis höchstens max  | flat: fester Bonus, sobald mindestens ein Feld da ist
+const TERRAIN_BONUS = {
+  sawmill: { terrain: 'forest', radius: 2, perTile: 0.05, max: 0.5, label: 'Waldnähe' },
+  quarry:  { terrain: 'rock',   radius: 2, perTile: 0.06, max: 0.6, label: 'Bergnähe' },
+  farm:    { terrain: 'water',  radius: 2, flat: 0.25, label: 'Bewässerung' },
+};
 
 // Ressourcen. stored: unterliegt der Lagergrenze  | price: Grundpreis pro Einheit am Markt
 //   showFrom: erst ab dieser Stadtstufe oben angezeigt (oder sobald etwas davon da ist)
@@ -661,6 +681,7 @@ const T = CONFIG.tileSize;
 const state = {
   resources: {},
   grid: [],          // grid[y * N + x] = { type, timer } oder null
+  terrain: new Uint8Array(N * N),   // Gelände je Feld (Index in TERRAIN)
   population: 0,     // tatsächliche Einwohner (≤ Wohnplätze)
   maxLevel: 0,       // höchste erreichte Stufe – Freischaltungen bleiben erhalten
   questsClaimed: [], // IDs der Aufträge, deren Belohnung abgeholt wurde
@@ -730,6 +751,7 @@ function newGame() {
   for (const id in RESOURCES) state.resources[id] = RESOURCES[id].start + (CONFIG.legacyStart[id] || 0) * legacy.stars;
   state.grid = new Array(N * N).fill(null);
   occ.fill(-1);
+  state.terrain = generateTerrain(Math.floor(Math.random() * 2 ** 31));
   state.plots = startPlots();
   state.plotsGranted = 0;
   state.cityName = '';
@@ -861,10 +883,154 @@ function canPlaceSize(x, y, w, h, ignore = -1) {
   for (let dy = 0; dy < h; dy++) {
     for (let dx = 0; dx < w; dx++) {
       const a = anchorAt(x + dx, y + dy);
-      if (a === undefined || (a !== -1 && a !== ignore) || !isOwned(x + dx, y + dy)) return false;
+      if (a === undefined || (a !== -1 && a !== ignore) || !isOwned(x + dx, y + dy) || terrainBlocked(x + dx, y + dy)) return false;
     }
   }
   return true;
+}
+
+// ---------- Gelände ----------
+
+// Reproduzierbarer Zufall: gleicher Startwert = gleiche Landschaft
+function seededRng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Weiches Rauschen (Werte 0–1) mit Strukturen von etwa `cell` Feldern Größe
+function makeNoise(rng, cell) {
+  const gw = Math.ceil(N / cell) + 2;
+  const g = Array.from({ length: gw * gw }, () => rng());
+  const smooth = t => t * t * (3 - 2 * t);
+  return (x, y) => {
+    const fx = x / cell, fy = y / cell;
+    const ix = Math.floor(fx), iy = Math.floor(fy);
+    const tx = smooth(fx - ix), ty = smooth(fy - iy);
+    const a = g[iy * gw + ix], b = g[iy * gw + ix + 1], c = g[(iy + 1) * gw + ix], d = g[(iy + 1) * gw + ix + 1];
+    return a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty;
+  };
+}
+
+// Landschaft erzeugen: Wälder und Berge aus Rauschen, dazu Seen. Das Startgebiet bleibt gut bebaubar,
+// bekommt aber einen Teich und Wald, und gleich daneben liegt ein Berg – so lohnen sich die Boni von Anfang an.
+function generateTerrain(seed) {
+  const rng = seededRng(seed);
+  const t = new Uint8Array(N * N);
+  const C = N / 2, start = CONFIG.startPlots * CONFIG.plotSize / 2;
+  const forestA = makeNoise(rng, 7), forestB = makeNoise(rng, 3);
+  const rockA = makeNoise(rng, 9), rockB = makeNoise(rng, 3);
+  const shore = makeNoise(rng, 2);
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const d = Math.max(Math.abs(x + 0.5 - C), Math.abs(y + 0.5 - C));   // Abstand zur Kartenmitte
+      const far = clamp((d - start) / 6, 0, 1);
+      const r = rockA(x, y) * 0.75 + rockB(x, y) * 0.25;
+      const f = forestA(x, y) * 0.7 + forestB(x, y) * 0.3;
+      if (d > start + 1 && r > 0.8 - 0.07 * far) t[y * N + x] = TERRAIN_ID.rock;
+      else if (d > 3 && f > 0.66 - 0.07 * far) t[y * N + x] = TERRAIN_ID.forest;
+    }
+  }
+  const blob = (cx, cy, radius, id) => {
+    for (let y = Math.floor(cy - radius - 2); y <= cy + radius + 2; y++) {
+      for (let x = Math.floor(cx - radius - 2); x <= cx + radius + 2; x++) {
+        if (x < 0 || y < 0 || x >= N || y >= N) continue;
+        if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) < radius * (0.75 + 0.5 * shore(x, y))) t[y * N + x] = id;
+      }
+    }
+  };
+  // Seen außerhalb des Startgebiets
+  const lakes = 5 + Math.floor(rng() * 3);
+  for (let k = 0, tries = 0; k < lakes && tries < 200; tries++) {
+    const cx = 3 + rng() * (N - 6), cy = 3 + rng() * (N - 6);
+    const radius = 1.8 + rng() * 2.8;
+    if (Math.max(Math.abs(cx - C), Math.abs(cy - C)) < start + radius + 1) continue;
+    blob(cx, cy, radius, TERRAIN_ID.water);
+    k++;
+  }
+  // Teich im Startgebiet und ein Berg direkt daneben (auf zufälligen Seiten)
+  const side = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  const [px, py] = side[Math.floor(rng() * 4)];
+  const offset = (rng() - 0.5) * 6;
+  blob(C + px * (start - 3) + py * offset, C + py * (start - 3) + px * offset, 1.6, TERRAIN_ID.water);
+  const [mx, my] = side[Math.floor(rng() * 4)];
+  blob(C + mx * (start + 4) + my * offset * 0.5, C + my * (start + 4) + mx * offset * 0.5, 2.8, TERRAIN_ID.rock);
+  return t;
+}
+
+function terrainAt(x, y) {
+  return state.terrain[y * N + x] || 0;
+}
+
+function terrainBlocked(x, y) {
+  return !!TERRAIN[terrainAt(x, y)].blocks;
+}
+
+// Felder eines Geländes im Umkreis `radius` um die Fläche (Abstand wie rectGap: 1 = direkt daneben)
+function countTerrainNear(ax, ay, w, h, id, radius) {
+  const k = TERRAIN_ID[id];
+  let n = 0;
+  for (let y = Math.max(0, ay - radius); y < Math.min(N, ay + h + radius); y++) {
+    for (let x = Math.max(0, ax - radius); x < Math.min(N, ax + w + radius); x++) {
+      if (state.terrain[y * N + x] === k) n++;
+    }
+  }
+  return n;
+}
+
+// Ertragsbonus durch Gelände (0.3 = +30 %)
+function terrainBonusOf(type, ax, ay, w, h) {
+  const b = TERRAIN_BONUS[type];
+  if (!b) return 0;
+  const n = countTerrainNear(ax, ay, w, h, b.terrain, b.radius);
+  if (!n) return 0;
+  return b.flat ?? Math.min(b.max, n * b.perTile);
+}
+
+function terrainBonusText(type, bonus) {
+  const b = TERRAIN_BONUS[type];
+  return `${TERRAIN[TERRAIN_ID[b.terrain]].icon} ${b.label}: +${Math.round(bonus * 100)} % Ertrag`;
+}
+
+// Beim Bauen werden Wälder auf der Fläche gerodet – das bringt Holz
+function clearTerrain(ax, ay, w, h) {
+  const gained = {};
+  for (let y = ay; y < ay + h; y++) {
+    for (let x = ax; x < ax + w; x++) {
+      const def = TERRAIN[state.terrain[y * N + x]];
+      if (!def || def.blocks || !def.clearYield) continue;
+      for (const [id, n] of Object.entries(def.clearYield)) gained[id] = (gained[id] || 0) + n;
+      state.terrain[y * N + x] = TERRAIN_ID.grass;
+    }
+  }
+  if (!Object.keys(gained).length) return;
+  addResources(gained);
+  spawnFloater(ax, ay, '🪓 ' + Object.entries(gained).map(([id, n]) => `+${n}${RESOURCES[id].icon}`).join(' '));
+}
+
+function encodeTerrain() {
+  return Array.from(state.terrain, k => String(k)).join('');
+}
+
+// Gelände aus dem Spielstand; fehlt es (alter Spielstand), entsteht neue Landschaft nur auf fremdem Land
+function loadTerrain(data, sameSize) {
+  const text = data.terrain;
+  if (sameSize && typeof text === 'string' && text.length === N * N && /^[0-9]+$/.test(text)) {
+    for (let i = 0; i < N * N; i++) state.terrain[i] = Math.min(Number(text[i]), TERRAIN.length - 1);
+  } else {
+    for (let i = 0; i < N * N; i++) if (state.plots[plotOf(i % N, Math.floor(i / N))]) state.terrain[i] = TERRAIN_ID.grass;
+  }
+  // Unter Gebäuden ist immer Wiese
+  state.grid.forEach((cell, i) => {
+    if (!cell) return;
+    const [w, h] = sizeOf(cell);
+    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) state.terrain[(Math.floor(i / N) + dy) * N + i % N + dx] = TERRAIN_ID.grass;
+  });
 }
 
 // Größe beim Bauen – gedreht, wenn der Spieler 🔄 gewählt hat (nur bei nicht quadratischen Gebäuden)
@@ -936,7 +1102,7 @@ function moveBuildingTo(x, y) {
   const [w, h] = moveSize();
   if (!canPlaceSize(x, y, w, h, from)) {
     sound.play('error');
-    showToast('Hier ist kein Platz (belegt oder fremdes Land)');
+    showToast('Hier ist kein Platz (belegt, Berg/See oder fremdes Land)');
     return;
   }
   const [ow, oh] = sizeOf(cell);
@@ -946,6 +1112,7 @@ function moveBuildingTo(x, y) {
   cell.builtAt = performance.now();
   state.grid[y * N + x] = cell;
   setOccupied(x, y, w, h, y * N + x);
+  clearTerrain(x, y, w, h);
   cancelMove();
   sound.play('build');
   showToast(`✋ ${BUILDINGS[cell.type].name} verschoben`);
@@ -1066,12 +1233,13 @@ function hasFlag(name) {
 
 // ---------- Wohnviertel ----------
 
-// Haus mit Park, Brunnen o. Ä. direkt daneben (auch diagonal)?
+// Haus mit Park, Brunnen o. Ä. oder Wasser direkt daneben (auch diagonal)?
 function isNiceHouse(x, y) {
   for (let dy = -1; dy <= 1; dy++) {
     for (let dx = -1; dx <= 1; dx++) {
       const cell = getCell(x + dx, y + dy);
       if (cell && BUILDINGS[cell.type].beautifies && isActive(x + dx, y + dy)) return true;
+      if (cell === null && terrainAt(x + dx, y + dy) === TERRAIN_ID.water) return true;
     }
   }
   return false;
@@ -1213,7 +1381,13 @@ function placeBuilding(x, y, type) {
   const [w, h] = placementSize(type);
   if (!canPlaceAt(type, x, y)) {
     sound.play('error');
-    showToast(`Kein Platz: ${def.name} braucht ${w}×${h} freie Felder auf eigenem Land`);
+    let onTerrain = false;
+    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) {
+      if (x + dx < N && y + dy < N && terrainBlocked(x + dx, y + dy)) onTerrain = true;
+    }
+    showToast(onTerrain
+      ? '⛰️ Auf Bergen und Seen kann man nicht bauen'
+      : `Kein Platz: ${def.name} braucht ${w}×${h} freie Felder auf eigenem Land`);
     return false;
   }
   if (def.landmark && countBuildings(type) > 0) {
@@ -1232,6 +1406,7 @@ function placeBuilding(x, y, type) {
   if (w > 1 || h > 1) { cell.w = w; cell.h = h; }
   state.grid[y * N + x] = cell;
   setOccupied(x, y, w, h, y * N + x);
+  clearTerrain(x, y, w, h);
   emit('build', { x, y, type });
   recalcStats();
   if (def.needsRoad && !hasRoadAccess(x, y)) showToast('⚠️ Braucht eine Straße direkt daneben');
@@ -1388,7 +1563,7 @@ function updateProduction(dt) {
     if (!isActive(i % N, Math.floor(i / N))) continue;   // ohne Anschluss steht die Produktion still
     cell.timer += dt;
     while (cell.timer >= def.interval) {
-      const lf = levelFactor(cell);
+      const lf = levelFactor(cell) * (1 + terrainBonusOf(cell.type, i % N, Math.floor(i / N), ...sizeOf(cell)));
       const raw = buildingOutput(cell.type, staffOfCell(i));
       for (const id in raw) raw[id] *= lf;
       // Verarbeitung: ohne Rohstoff oder bei vollem Lager pausieren (Zeit läuft nicht weiter)
@@ -2002,9 +2177,16 @@ function spawnCamp() {
   if (!candidates.length) return false;
   const p = randomItem(candidates);
   const S = CONFIG.plotSize;
+  let cx = 0, cy = 0;
+  for (let tries = 0; tries < 30; tries++) {
+    cx = (p % P) * S + 2 + Math.floor(Math.random() * (S - 4));
+    cy = Math.floor(p / P) * S + 2 + Math.floor(Math.random() * (S - 4));
+    if (!terrainBlocked(cx, cy)) break;
+  }
+  if (terrainBlocked(cx, cy)) return false;
   const camp = {
-    x: (p % P) * S + 2 + Math.floor(Math.random() * (S - 4)),
-    y: Math.floor(p / P) * S + 2 + Math.floor(Math.random() * (S - 4)),
+    x: cx,
+    y: cy,
     strength: Math.max(3, Math.round(campMaxStrength() * 0.4)),
     raidIn: randomBetween(...CONFIG.campRaidSeconds),
   };
@@ -2777,6 +2959,7 @@ function buildSaveData() {
     completed: state.completed,
     camps: state.camps,
     campSpawnIn: state.campSpawnIn,
+    terrain: encodeTerrain(),
     buildings,
   };
   return data;
@@ -2842,6 +3025,7 @@ function load() {
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) state.plots[plotOf(i % N + dx, Math.floor(i / N) + dy)] = true;
   });
   state.plotsGranted += state.plots.filter(Boolean).length - ownedBefore;   // geschenkt, nicht gekauft
+  loadTerrain(data, oldSize === N);
   if (Array.isArray(data.effects)) {
     state.effects = data.effects.filter(e => EVENTS[e.event] && typeof e.left === 'number');
   }
@@ -2862,7 +3046,7 @@ function load() {
   if (typeof data.cityName === 'string') state.cityName = data.cityName.slice(0, 30);
   state.completed = data.completed === true;
   if (Array.isArray(data.camps)) {
-    state.camps = data.camps.filter(c => Number.isFinite(c.x) && Number.isFinite(c.y) && !isOwned(c.x, c.y)).slice(0, CONFIG.maxCamps);
+    state.camps = data.camps.filter(c => Number.isFinite(c.x) && Number.isFinite(c.y) && !isOwned(c.x, c.y) && !terrainBlocked(c.x, c.y)).slice(0, CONFIG.maxCamps);
   }
   if (Number.isFinite(data.campSpawnIn)) state.campSpawnIn = data.campSpawnIn;
   if (Array.isArray(data.achievements)) {
@@ -2972,15 +3156,17 @@ function render(dt) {
 
   // Nur den sichtbaren Ausschnitt zeichnen (die Karte ist groß)
   const vis = visibleRange();
+  drawMeadow(vis);
 
   // Rasterlinien
-  ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+  ctx.strokeStyle = 'rgba(0,0,0,0.07)';
   ctx.lineWidth = 1 / view.zoom;
   ctx.beginPath();
   for (let i = vis.x0; i <= vis.x1 + 1; i++) { ctx.moveTo(i * T, vis.y0 * T); ctx.lineTo(i * T, (vis.y1 + 1) * T); }
   for (let i = vis.y0; i <= vis.y1 + 1; i++) { ctx.moveTo(vis.x0 * T, i * T); ctx.lineTo((vis.x1 + 1) * T, i * T); }
   ctx.stroke();
 
+  drawTerrain(vis);
   drawLand(vis);
   drawServiceAreas();
 
@@ -3067,6 +3253,8 @@ function render(dt) {
       else if (def.isWall) drawWall(hoverTile.x, hoverTile.y, 0.5);
       else drawBuilding(hoverTile.x, hoverTile.y, def, 0.5, 1, w, h);
       if (!canAfford(costOf(selectedType))) outlineRect(hoverTile.x, hoverTile.y, w, h, '#c0392b');
+      const tb = terrainBonusOf(selectedType, hoverTile.x, hoverTile.y, w, h);
+      if (tb) drawTag(`+${Math.round(tb * 100)} %`, (hoverTile.x + w / 2) * T, (hoverTile.y - 0.25) * T);
     }
   } else if (hoverTile && getCell(hoverTile.x, hoverTile.y) !== undefined) {
     outlineTile(hoverTile, 'rgba(255,255,255,0.6)');
@@ -3090,6 +3278,159 @@ function render(dt) {
     ctx.fillText(f.text, f.x, fy);
   }
   ctx.globalAlpha = 1;
+}
+
+// ---------- Landschaft zeichnen ----------
+
+// Zufallswert 0–1 je Feld, immer gleich (für Blumen, Baumpositionen …)
+function tileHash(x, y, k = 0) {
+  let h = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(k, 1442695041);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+// Hellere und dunklere Flecken in der Wiese (feste Landschaft, nicht gespeichert)
+const meadowShade = (() => {
+  const noise = makeNoise(seededRng(4711), 5);
+  const a = new Float32Array(N * N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) a[y * N + x] = noise(x, y) - 0.5;
+  return a;
+})();
+
+const FLOWER_COLORS = { spring: ['#ffafcc', '#fff', '#ffd166'], summer: ['#ffd166', '#e63946', '#fff'], autumn: ['#e09f3e', '#9c6644'] };
+
+function drawMeadow(vis) {
+  const sid = season().id;
+  const flowers = FLOWER_COLORS[sid];
+  for (let y = vis.y0; y <= vis.y1; y++) {
+    for (let x = vis.x0; x <= vis.x1; x++) {
+      const v = meadowShade[y * N + x];
+      ctx.fillStyle = v > 0 ? `rgba(255,255,220,${v * 0.14})` : `rgba(0,50,10,${-v * 0.16})`;
+      ctx.fillRect(x * T, y * T, T, T);
+      if (state.terrain[y * N + x] || occ[y * N + x] !== -1) continue;
+      const h = tileHash(x, y);
+      if (flowers && h < 0.06) {
+        for (let k = 0; k < 3; k++) {
+          ctx.fillStyle = flowers[k % flowers.length];
+          ctx.beginPath();
+          ctx.arc((x + 0.2 + 0.6 * tileHash(x, y, k + 1)) * T, (y + 0.2 + 0.6 * tileHash(x, y, k + 7)) * T, T * 0.05, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (h > 0.975) {
+        ctx.fillStyle = 'rgba(110,110,110,0.55)';
+        ctx.beginPath();
+        ctx.ellipse((x + 0.3 + 0.4 * tileHash(x, y, 3)) * T, (y + 0.6) * T, T * 0.1, T * 0.06, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+}
+
+const TREE_COLORS = {
+  spring: ['#40916c', '#52b788', '#2d6a4f'],
+  summer: ['#2d6a4f', '#1b4332', '#40916c'],
+  autumn: ['#d4a017', '#c8553d', '#e09f3e', '#6a994e'],
+  winter: ['#2f4f3f', '#36574a'],
+};
+
+function drawTerrain(vis) {
+  const sid = season().id, winter = sid === 'winter';
+  const time = performance.now() / 1000;
+  const t = state.terrain;
+  const is = (x, y, k) => x >= 0 && y >= 0 && x < N && y < N && t[y * N + x] === k;
+  const W = TERRAIN_ID.water, R = TERRAIN_ID.rock, F = TERRAIN_ID.forest;
+  const detail = view.zoom >= 0.4;    // weit herausgezoomt: weniger Einzelheiten (schneller am Handy)
+
+  // Seen als weiche Form: Kreis je Feld, mit den Nachbarfeldern verbunden – erst Ufer (Sand), dann Wasser
+  const waterShape = (r, color) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    for (let y = vis.y0; y <= vis.y1; y++) {
+      for (let x = vis.x0; x <= vis.x1; x++) {
+        if (t[y * N + x] !== W) continue;
+        const cx = (x + 0.5) * T, cy = (y + 0.5) * T;
+        ctx.moveTo(cx + r * T, cy);
+        ctx.arc(cx, cy, r * T, 0, Math.PI * 2);
+        if (is(x + 1, y, W)) ctx.rect(cx, cy - r * T, T, 2 * r * T);
+        if (is(x, y + 1, W)) ctx.rect(cx - r * T, cy, 2 * r * T, T);
+      }
+    }
+    ctx.fill();
+  };
+  waterShape(0.68, winter ? '#eef5f8' : '#e9d8a6');
+  waterShape(0.56, winter ? '#cfe6ef' : '#4f9bd1');
+
+  for (let y = vis.y0; y <= vis.y1; y++) {
+    for (let x = vis.x0; x <= vis.x1; x++) {
+      const k = t[y * N + x];
+      if (!k) continue;
+      const X = x * T, Y = y * T;
+      if (k === W) {
+        if (winter || !detail) continue;
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        ctx.lineWidth = T * 0.04;
+        ctx.beginPath();
+        for (let n = 0; n < 2; n++) {
+          const wx = X + T * (0.25 + 0.3 * tileHash(x, y, n)) + Math.sin(time * 0.8 + n + x) * T * 0.05;
+          const wy = Y + T * (0.35 + 0.3 * n);
+          ctx.moveTo(wx, wy);
+          ctx.quadraticCurveTo(wx + T * 0.1, wy - T * 0.07, wx + T * 0.2, wy);
+        }
+        ctx.stroke();
+      } else if (k === R) {
+        ctx.fillStyle = winter ? '#cfd3d6' : '#a39e93';
+        ctx.fillRect(X, Y, T, T);
+        let around = 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if ((dx || dy) && is(x + dx, y + dy, R)) around++;
+        const height = 0.35 + 0.05 * around;               // innen höher als am Rand
+        const peakX = X + T * (0.35 + 0.3 * tileHash(x, y, 5));
+        const peakY = Y + T * (0.95 - height);
+        ctx.fillStyle = winter ? '#9aa0a6' : '#7d776d';    // Schattenseite
+        ctx.beginPath(); ctx.moveTo(X - T * 0.05, Y + T * 0.95); ctx.lineTo(peakX, peakY); ctx.lineTo(peakX, Y + T * 0.95); ctx.fill();
+        ctx.fillStyle = winter ? '#b9bec3' : '#958e82';    // Sonnenseite
+        ctx.beginPath(); ctx.moveTo(peakX, peakY); ctx.lineTo(X + T * 1.05, Y + T * 0.95); ctx.lineTo(peakX, Y + T * 0.95); ctx.fill();
+        if (winter || around >= 6) {                         // Schneekappe
+          const c = 0.3;
+          ctx.fillStyle = '#fafafa';
+          ctx.beginPath();
+          ctx.moveTo(peakX, peakY);
+          ctx.lineTo(peakX + (X + T * 1.05 - peakX) * c, peakY + (Y + T * 0.95 - peakY) * c);
+          ctx.lineTo(peakX - (peakX - X + T * 0.05) * c, peakY + (Y + T * 0.95 - peakY) * c);
+          ctx.fill();
+        }
+      } else if (k === F) {
+        ctx.fillStyle = winter ? 'rgba(40,60,50,0.18)' : 'rgba(20,70,35,0.28)';
+        ctx.fillRect(X, Y, T, T);
+        const colors = TREE_COLORS[sid];
+        const trees = detail ? 3 : 1;
+        for (let n = 0; n < trees; n++) {
+          const tx = X + T * (trees === 1 ? 0.5 : 0.2 + 0.6 * tileHash(x, y, n * 2 + 1));
+          const ty = Y + T * (trees === 1 ? 0.55 : 0.3 + 0.5 * tileHash(x, y, n * 2 + 2));
+          const r = T * (0.17 + 0.08 * tileHash(x, y, n + 9));
+          ctx.fillStyle = '#6b4f3a';
+          ctx.fillRect(tx - T * 0.025, ty, T * 0.05, r * 0.9);
+          ctx.fillStyle = colors[Math.floor(tileHash(x, y, n + 13) * colors.length)];
+          ctx.beginPath(); ctx.arc(tx, ty, r, 0, Math.PI * 2); ctx.fill();
+          if (winter) {
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            ctx.beginPath(); ctx.arc(tx - r * 0.2, ty - r * 0.35, r * 0.55, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+      }
+    }
+  }
+}
+
+// Kleines Schild über der Bauvorschau (z. B. Geländebonus)
+function drawTag(text, x, y) {
+  ctx.font = `bold ${T * 0.26}px system-ui, sans-serif`;
+  const w = ctx.measureText(text).width + T * 0.2;
+  ctx.fillStyle = 'rgba(27, 67, 50, 0.9)';
+  ctx.fillRect(x - w / 2, y - T * 0.18, w, T * 0.36);
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
 }
 
 // Wirkungsbereiche von Versorgungsgebäuden: beim Bauen (alle gleicher Art + Vorschau)
@@ -3808,6 +4149,10 @@ function handleTap(sx, sy) {
   }
   closePanels();
   if (cell === null && selectedType) placeBuilding(x, y, selectedType);
+  else if (cell === null && terrainAt(x, y)) {
+    const t = TERRAIN[terrainAt(x, y)];
+    showToast(`${t.icon} ${t.name}: ${t.text}`, 4000);
+  }
 }
 
 // =====================================================================
@@ -4865,6 +5210,9 @@ function renderPlotInfo() {
       : 'Diese Fläche grenzt noch nicht an dein Land. Kaufe zuerst eine Fläche dazwischen.',
     `Dein Land: ${state.plots.filter(Boolean).length} von ${P * P} Flächen.`,
   ];
+  const S = CONFIG.plotSize, ox = (infoPlot % P) * S, oy = Math.floor(infoPlot / P) * S;
+  const terrainCounts = TERRAIN.slice(1).map(t => [t, countTerrainNear(ox, oy, S, S, t.id, 0)]).filter(([, n]) => n);
+  if (terrainCounts.length) lines.splice(1, 0, 'Gelände: ' + terrainCounts.map(([t, n]) => `${t.icon} ${n} ${t.name}`).join(' · '));
   document.getElementById('info-icon').textContent = '🏞️';
   document.getElementById('info-name').textContent = 'Freie Fläche';
   setInfoLines(lines);
@@ -4895,7 +5243,7 @@ function renderTileInfo() {
     const cap = houseCapacity(infoTile.x, infoTile.y);
     lines.push(`Wohnplätze: 👥 ${active ? cap : 0} / ${cap}`);
     if (isNiceHouse(infoTile.x, infoTile.y)) lines.push(`✨ Schönes Wohnviertel: +${CONFIG.niceHouseBonus} Wohnplätze`);
-    else lines.push(`Tipp: Park oder Brunnen direkt daneben bringt +${CONFIG.niceHouseBonus} Wohnplätze.`);
+    else lines.push(`Tipp: Park, Brunnen oder Wasser direkt daneben bringt +${CONFIG.niceHouseBonus} Wohnplätze.`);
     const levels = stats.houseNeeds.get(infoTile.y * N + infoTile.x) || new Map();
     lines.push('Versorgung: ' + Object.entries(NEEDS).map(([need, n]) => {
       const level = levels.get(need) || 0;
@@ -4915,6 +5263,13 @@ function renderTileInfo() {
     for (const id in out) out[id] = Math.round(out[id] * lf * 10) / 10;
     const need = {};
     for (const [id, n] of Object.entries(def.consumes || {})) need[id] = Math.round(n * lf);
+    const tb = terrainBonusOf(cell.type, infoTile.x, infoTile.y, ...sizeOf(cell));
+    for (const id in out) out[id] = Math.round(out[id] * (1 + tb) * 10) / 10;
+    if (tb) lines.push(terrainBonusText(cell.type, tb));
+    else if (TERRAIN_BONUS[cell.type]) {
+      const b = TERRAIN_BONUS[cell.type];
+      lines.push(`Tipp: ${TERRAIN[TERRAIN_ID[b.terrain]].name} in der Nähe bringt bis zu +${Math.round((b.flat ?? b.max) * 100)} % Ertrag.`);
+    }
     if (def.consumes) lines.push(`Verarbeitet: ${formatAmounts(need)} → ${formatAmounts(out)} alle ${def.interval} s`);
     else lines.push(`Ertrag: ${formatAmounts(out)} alle ${def.interval} s${active ? '' : ' (gestoppt)'}`);
     if (active && cell.waiting === 'input') lines.push(`⏸️ Wartet auf ${missingText(def.consumes)}`);

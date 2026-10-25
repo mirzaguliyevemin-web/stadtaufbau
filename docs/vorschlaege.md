@@ -5,6 +5,11 @@ wenn Emin zugestimmt hat.** Neue Einträge oben, mit Datum und kurzer Begründun
 
 ## Offen
 
+- **Brücken und Fischerhütte** (2026-10-25) – Brücken, um Straßen über Seen zu führen; Fischerhütte am Ufer als
+  zweite Nahrungsquelle. Passt zum neuen Gelände (Version 39).
+- **Bot nutzt Geländeboni** (2026-10-25) – der Balancing-Bot stellt Sägewerke/Steinbrüche noch nicht gezielt an
+  Wald/Berg; seit dem Gelände braucht er bis zur Stadt ~31 statt ~23 min.
+
 - **Mehr Inhalte fürs späte Spiel** (2026-10-25) – ab etwa 150 Einwohnern sammelt sich Geld an,
   ohne dass es etwas Sinnvolles zu kaufen gibt. Ideen: weitere Sehenswürdigkeiten, Handelsverträge,
   Stadtfeste, eine vierte Stufe „Großstadt“.

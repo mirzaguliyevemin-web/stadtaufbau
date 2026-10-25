@@ -131,6 +131,51 @@ test('Alte Spielstände (16×16, 32×32) lassen sich laden', () => {
   return 'ok';
 });
 
+test('Gelände: Wald, Berge, Seen mit Spielwirkung', () => {
+  const game = fresh({ seed: 7 });
+  const r = game.run(`
+    const count = k => state.terrain.filter(v => v === TERRAIN_ID[k]).length;
+    const amounts = { forest: count('forest'), rock: count('rock'), water: count('water') };
+    const C = N / 2;
+    let centerBlocked = 0;
+    for (let y = C - 3; y < C + 3; y++) for (let x = C - 3; x < C + 3; x++) if (terrainBlocked(x, y)) centerBlocked++;
+    Object.assign(state.resources, { money: 9999, wood: 50, stone: 900 });
+    // Bauen auf Berg verboten
+    state.plots.fill(true);
+    const rock = state.terrain.indexOf(TERRAIN_ID.rock);
+    const onRock = placeBuilding(rock % N, Math.floor(rock / N), 'road');
+    // Bauen auf Wald rodet und bringt Holz
+    const forest = state.terrain.indexOf(TERRAIN_ID.forest);
+    const woodBefore = state.resources.wood;
+    const onForest = placeBuilding(forest % N, Math.floor(forest / N), 'road');
+    const cleared = state.terrain[forest] === TERRAIN_ID.grass;
+    // Bonus: Sägewerk mitten im Wald
+    state.terrain.fill(TERRAIN_ID.grass);
+    state.terrain.fill(TERRAIN_ID.forest, 0, 5 * N);
+    const bonus = terrainBonusOf('sawmill', 2, 2, 2, 1);
+    const farmBonus = terrainBonusOf('farm', 2, 2, 2, 2);
+    JSON.stringify({ forest: amounts.forest > 300, rock: amounts.rock > 80, water: amounts.water > 40, amounts,
+      centerBlocked, onRock, onForest, cleared, woodGain: state.resources.wood - woodBefore, bonus, farmBonus })
+  `);
+  noErrors(game, 'beim Gelände');
+  const o = JSON.parse(r);
+  assert(o.forest && o.rock && o.water, 'zu wenig Gelände: ' + r);
+  assert(o.centerBlocked === 0, 'Mitte des Startgebiets ist nicht frei: ' + r);
+  assert(o.onRock === false && o.onForest === true && o.cleared && o.woodGain === 2, 'Bauregeln: ' + r);
+  assert(o.bonus === 0.5 && o.farmBonus === 0, 'Bonus: ' + r);
+  // Gelände bleibt beim Speichern erhalten; alter Spielstand bekommt Gelände nur auf fremdem Land
+  const a = fresh({ seed: 8 });
+  const t1 = a.run('save(); encodeTerrain()');
+  const b = fresh({ storage: a.storage, seed: 99 });
+  assert(b.run('encodeTerrain()') === t1, 'Gelände nach dem Laden verändert');
+  const old = { v: 1, savedAt: Date.now(), gridSize: 64, resources: { money: 300 }, population: 0, plots: [27, 28, 35, 36], buildings: [] };
+  const c = fresh({ storage: { 'stadtaufbau-save-1': JSON.stringify(old) }, seed: 9 });
+  const oldInfo = c.run(`JSON.stringify({ owned: state.terrain.filter((v, i) => v && isOwned(i % N, Math.floor(i / N))).length, wild: state.terrain.filter(Boolean).length })`);
+  noErrors(c, 'beim alten Spielstand');
+  assert(JSON.parse(oldInfo).owned === 0 && JSON.parse(oldInfo).wild > 300, 'alter Spielstand: ' + oldInfo);
+  return `Wald ${o.amounts.forest}, Berg ${o.amounts.rock}, Wasser ${o.amounts.water} Felder`;
+});
+
 test('Meldungen schließen sich selbst', () => {
   const game = fresh({ seed: 6 });
   const r = game.run(`

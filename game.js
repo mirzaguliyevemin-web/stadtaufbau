@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 32;
+const APP_VERSION = 33;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -74,6 +74,9 @@ const CONFIG = {
   campSpawnSeconds: [180, 360],  // Abstand zwischen neuen Lagern
   campGrowthSeconds: 45,  // alle so viele Sekunden wird ein Lager um 1 stärker
   campRaidSeconds: [100, 200],   // so oft überfällt ein Lager die Stadt
+  cartSeconds: 40,        // so oft schickt ein Markt einen Handelskarren los (schneller mit Ausbau)
+  cartSpeed: 1.6,         // Felder pro Sekunde
+  cartValue: 12,          // Geld je ankommendem Karren (× Ausbaustufe × Gründerruhm)
   legacyBonus: 0.1,       // Gründerruhm: +10 % Ertrag je Stern (in allen Städten) …
   legacyMaxStars: 5,      // … höchstens für so viele Sterne
   legacyStart: { money: 100, wood: 30, stone: 15 },   // Extra-Startvorrat je Stern
@@ -521,6 +524,7 @@ const ACHIEVEMENTS = [
   { id: 'allQuests',  icon: '📜', name: 'Auftragsheld',        text: 'Erledige alle Aufträge.',                  check: () => state.questsClaimed.length === QUESTS.length },
   { id: 'streak7',    icon: '📅', name: 'Treue Seele',         text: 'Spiele 7 Tage in Folge.',                  check: () => state.daily.streak >= 7 },
   { id: 'dynasty',    icon: '👑', name: 'Dynastie',            text: 'Vollende 3 Städte.',                        check: () => legacy.stars >= 3 },
+  { id: 'carts25',    icon: '🛒', name: 'Handelsroute',        text: '25 Handelskarren kommen sicher an.',        check: () => (state.counters.carts || 0) >= 25 },
   { id: 'fortress',   icon: '🏰', name: 'Festungsstadt',       text: '40 Mauerstücke und 3 Wachtürme.',           check: () => countBuildings('wall') >= 40 && countBuildings('tower') >= 3 },
   { id: 'lawman',     icon: '⚖️', name: 'Gesetzeshüter',       text: 'Schlage 5 Banditenüberfälle zurück.',      check: () => (state.counters.repelled || 0) >= 5 },
   { id: 'gold10',     icon: '🌟', name: 'Prachtbauten',        text: '10 Gebäude auf Stufe 3.',                  check: () => state.grid.filter(c => c && levelOf(c) >= 3).length >= 10 },
@@ -731,6 +735,7 @@ function newGame() {
   state.camps = [];
   state.campSpawnIn = 240;
   raids = [];
+  carts = [];
   state.population = 0;
   state.maxLevel = 0;
   state.questsClaimed = [];
@@ -2061,6 +2066,104 @@ function raidPillHtml() {
   return `<div class="effect clickable" data-action="raid">🏴‍☠️ Banditen → ${cell ? BUILDINGS[cell.type].name : '…'} · ${eta} s ›</div>`;
 }
 
+// ---------- Handelskarren ----------
+// Märkte schicken Karren über die Straßen zum nächsten „Stadttor“ (Straße am Rand des eigenen
+// Landes bzw. der Karte). Dort gibt es Geld. Banditenlager können Karren unterwegs überfallen.
+
+let carts = [];
+
+function cartValue(market) {
+  return Math.round(CONFIG.cartValue * levelFactor(market) * legacyFactor());
+}
+
+// Stadttor: Straße, neben der fremdes Land oder der Kartenrand liegt
+function isGate(x, y) {
+  return [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]].some(([nx, ny]) => !isOwned(nx, ny));
+}
+
+// Kürzester Weg über Straßen vom Markt zum nächsten Stadttor (Breitensuche), sonst null
+function findTradeRoute(i) {
+  const cell = state.grid[i];
+  const [w, h] = sizeOf(cell);
+  const prev = new Map();
+  const queue = [];
+  for (const [x, y] of perimeterTiles(i % N, Math.floor(i / N), w, h)) {
+    const c = getCell(x, y);
+    if (c && BUILDINGS[c.type].isRoad && !prev.has(y * N + x)) { prev.set(y * N + x, -1); queue.push(y * N + x); }
+  }
+  for (let q = 0; q < queue.length; q++) {
+    const k = queue[q], x = k % N, y = Math.floor(k / N);
+    if (isGate(x, y)) {
+      const path = [];
+      for (let p = k; p !== -1; p = prev.get(p)) path.unshift([p % N, Math.floor(p / N)]);
+      return path;
+    }
+    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+      const c = getCell(nx, ny), nk = ny * N + nx;
+      if (c && BUILDINGS[c.type].isRoad && !prev.has(nk)) { prev.set(nk, k); queue.push(nk); }
+    }
+  }
+  return null;
+}
+
+function updateCarts(dt) {
+  // Neue Karren von jedem arbeitenden Markt
+  state.grid.forEach((cell, i) => {
+    if (!cell || cell.type !== 'market' || !isActive(i % N, Math.floor(i / N))) return;
+    if (cell.cartIn === undefined) cell.cartIn = randomBetween(5, CONFIG.cartSeconds);
+    cell.cartIn -= dt * levelFactor(cell) * staffOf('market');
+    if (cell.cartIn > 0) return;
+    cell.cartIn = CONFIG.cartSeconds;
+    if (tradeBlocked()) return;   // Banditen machen die Wege unsicher
+    const path = findTradeRoute(i);
+    cell.noRoute = !path;
+    if (!path) return;
+    // Überfallrisiko: stärkstes Lager gegen den Schutz am Stadttor
+    let ambushAt = -1;
+    if (state.camps.length) {
+      const camp = state.camps.reduce((a, b) => (b.strength > a.strength ? b : a));
+      const [gx, gy] = path[path.length - 1];
+      const risk = clamp((camp.strength - defenseAt(gx, gy)) / (camp.strength + 10), 0, 0.6);
+      if (Math.random() < risk) ambushAt = Math.max(0, Math.floor(path.length * 0.75) - 1);
+    }
+    carts.push({ path, pos: 0, value: cartValue(cell), ambushAt });
+  });
+  // Bewegen, ankommen, überfallen werden
+  for (const cart of [...carts]) {
+    cart.pos += CONFIG.cartSpeed * dt;
+    if (cart.ambushAt >= 0 && cart.pos >= cart.ambushAt) {
+      const [x, y] = cart.path[Math.min(cart.ambushAt, cart.path.length - 1)];
+      puff(x, y, '90, 30, 30', 8, T * 0.1);
+      const camp = state.camps.reduce((a, b) => (b.strength > a.strength ? b : a), state.camps[0]);
+      if (camp) camp.strength = Math.min(campMaxStrength(), camp.strength + 1);
+      showToast('🏴‍☠️ Ein Handelskarren wurde überfallen! Wachen am Stadttor schützen die Karren.', 3500);
+      carts.splice(carts.indexOf(cart), 1);
+      continue;
+    }
+    if (cart.pos >= cart.path.length - 1) {
+      const [x, y] = cart.path[cart.path.length - 1];
+      addResources({ money: cart.value });
+      state.counters.carts = (state.counters.carts || 0) + 1;
+      spawnFloater(x, y, `+${cart.value}💰`);
+      carts.splice(carts.indexOf(cart), 1);
+    }
+  }
+}
+
+function drawCarts() {
+  if (!carts.length) return;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `${T * 0.5}px ${EMOJI_FONT}`;
+  for (const cart of carts) {
+    const k = Math.min(Math.floor(cart.pos), cart.path.length - 1);
+    const [x0, y0] = cart.path[k];
+    const [x1, y1] = cart.path[Math.min(k + 1, cart.path.length - 1)];
+    const f = cart.pos - k;
+    ctx.fillText('🛒', (x0 + (x1 - x0) * f + 0.5) * T, (y0 + (y1 - y0) * f + 0.45) * T);
+  }
+}
+
 function offerTrade() {
   if (tradeBlocked()) return false;   // keine Karawanen, solange Banditen die Wege unsicher machen
   const res = randomItem(['wood', 'stone', 'food']);
@@ -2340,6 +2443,7 @@ function update(dt) {
   updatePrices(dt);
   updateCamps(dt);
   updateRaids(dt);
+  updateCarts(dt);
 }
 
 // =====================================================================
@@ -2771,6 +2875,7 @@ function render(dt) {
     ctx.fillRect(0, 0, N * T, N * T);
     drawLights(dark, vis);
   }
+  drawCarts();
   drawRaids();
   if (season().heating && settings.daynight) drawSnow(dt, s);
 
@@ -4247,7 +4352,10 @@ function describeBuilding(type) {
     lines.push(`💰 ${formatAmounts(def.perPopulation)} je Einwohner alle ${def.interval} s` +
       (def.servesUpTo ? ` (höchstens ${def.servesUpTo} Einwohner je Gebäude)` : ''));
   }
-  if (type === 'market') lines.push('🤝 Antippen zum Handeln: Waren kaufen und verkaufen');
+  if (type === 'market') {
+    lines.push('🤝 Antippen zum Handeln: Waren kaufen und verkaufen');
+    lines.push(`🛒 Schickt Handelskarren zum Rand deines Landes: je ${formatAmounts({ money: CONFIG.cartValue })} Extra (braucht eine Straße bis dorthin)`);
+  }
   if (def.service) lines.push(`${NEEDS[def.service.need].icon} ${NEEDS[def.service.need].name} für Häuser im Umkreis von ${def.service.radius} Feldern`);
   if (def.fireRadius) lines.push(`🚒 Löscht Brände im Umkreis von ${def.fireRadius} Feldern`);
   if (def.defense) lines.push(`🏴‍☠️ Schützt Gebäude im Umkreis von ${def.defense.radius} Feldern vor Banditen (Abwehr ${def.defense.strength})`);
@@ -4583,6 +4691,10 @@ function renderTileInfo() {
   }
   if (cell.type === 'market' && active) {
     lines.push(tradeBlocked() ? '🏴‍☠️ Handel gesperrt – Banditen machen die Wege unsicher.' : 'Handel: Kaufe oder verkaufe Waren – die Preise schwanken.');
+    lines.push(cell.noRoute
+      ? '🛒 Keine Straße bis zum Rand deines Landes – Handelskarren können nicht losfahren.'
+      : `🛒 Handelskarren etwa alle ${Math.round(CONFIG.cartSeconds / levelFactor(cell))} s, je ${formatAmounts({ money: cartValue(cell) })}` +
+        (state.camps.length ? ' – Banditen können sie überfallen, Wachen am Stadttor schützen.' : ''));
     renderTradeUI();
   } else {
     clearInfoExtra();

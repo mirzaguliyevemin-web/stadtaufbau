@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 24;
+const APP_VERSION = 25;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -2800,10 +2800,12 @@ function pointerPos(e) {
 }
 
 function startPan(p) {
+  cameraTween = null;
   pan = { startX: p.x, startY: p.y, viewX: view.x, viewY: view.y };
 }
 
 function startPinch() {
+  cameraTween = null;
   const [a, b] = [...pointers.values()];
   pinch = {
     dist: Math.hypot(a.x - b.x, a.y - b.y) || 1,
@@ -3326,6 +3328,11 @@ function buildUI() {
   });
 
   document.getElementById('info-close').addEventListener('click', closeInfo);
+  document.getElementById('info-more-toggle').addEventListener('click', () => {
+    infoExpanded = !infoExpanded;
+    renderInfo();
+    if (infoTile) requestAnimationFrame(() => keepTileVisible(infoTile.x, infoTile.y));
+  });
   infoExtraEl.addEventListener('click', e => {
     const tradeBtn = e.target.closest('[data-trade]');
     if (tradeBtn) {
@@ -3766,11 +3773,46 @@ function showInfo(x, y) {
   closeQuests();
   closeResearch();
   closeSettings();
+  const same = infoTile && infoTile.x === x && infoTile.y === y;
   infoMode = 'tile';
   infoTile = { x, y };
+  if (!same) infoExpanded = false;
   clearInfoExtra();
   infoEl.classList.remove('hidden');
   renderInfo();
+  requestAnimationFrame(() => keepTileVisible(x, y));
+}
+
+// Liegt das Feld unter dem Info-Fenster oder am Rand, schiebt sich die Karte sanft,
+// bis es mittig im freien Bereich über dem Fenster liegt
+function keepTileVisible(x, y) {
+  if (infoEl.classList.contains('hidden')) return;
+  const size = T * view.zoom;
+  const top = 56;                                            // unter der Auftragsanzeige
+  const bottom = view.h - infoEl.offsetHeight - 20;          // Oberkante des Info-Fensters
+  const sx = view.x + (x + 0.5) * size;
+  const sy = view.y + (y + 0.5) * size;
+  let tx = view.x, ty = view.y;
+  if (sy + size > bottom || sy - size < top) ty += (top + bottom) / 2 - sy;
+  if (sx - size < 0 || sx + size > view.w) tx += view.w / 2 - sx;
+  if (tx !== view.x || ty !== view.y) panCameraTo(tx, ty);
+}
+
+let cameraTween = null;
+
+function panCameraTo(x, y) {
+  cameraTween = { fx: view.x, fy: view.y, tx: x, ty: y, t: 0 };
+}
+
+function updateCamera(dt) {
+  if (!cameraTween) return;
+  const c = cameraTween;
+  c.t = Math.min(1, c.t + dt / 0.35);
+  const k = 1 - Math.pow(1 - c.t, 3);   // sanft abbremsen
+  view.x = c.fx + (c.tx - c.fx) * k;
+  view.y = c.fy + (c.ty - c.fy) * k;
+  clampView();
+  if (c.t >= 1) cameraTween = null;
 }
 
 function showCityInfo() {
@@ -3814,7 +3856,7 @@ function renderPlotInfo() {
   ];
   document.getElementById('info-icon').textContent = '🏞️';
   document.getElementById('info-name').textContent = 'Freie Fläche';
-  document.getElementById('info-text').textContent = lines.join('\n');
+  setInfoLines(lines);
   document.getElementById('info-demolish').classList.add('hidden');
   document.getElementById('info-upgrade').classList.add('hidden');
   const btn = document.getElementById('info-action');
@@ -3896,10 +3938,39 @@ function renderTileInfo() {
   document.getElementById('info-icon').textContent = def.icon;
   document.getElementById('info-name').textContent =
     def.name + (canUpgradeType(cell.type) ? `  ${'★'.repeat(levelOf(cell))}${'☆'.repeat(MAX_BUILDING_LEVEL - levelOf(cell))}` : '');
-  document.getElementById('info-text').textContent = lines.join('\n');
+  // Kurz: Zustand und Hauptwerte – Beschreibung und alles Weitere hinter „Mehr“
+  const upgradeHint = upgradeGainsText(cell);
+  setInfoLines(lines.slice(1, 4), [lines[0], ...lines.slice(4), ...(upgradeHint ? [upgradeHint] : [])]);
   const btn = document.getElementById('info-demolish');
   btn.classList.remove('hidden');
-  btn.textContent = `${def.isRoad ? '🗑️ Löschen' : '💰 Verkaufen'} (zurück: ${formatAmounts(refund)})`;
+  btn.textContent = `${def.isRoad ? '🗑️ Löschen' : '💰 Verkaufen'} +${formatAmounts(refund) || '0'}`;
+}
+
+// Zusammenfassung sichtbar, Details aufklappbar (Zustand bleibt beim Aktualisieren erhalten)
+let infoExpanded = false;
+
+function setInfoLines(summary, details = []) {
+  document.getElementById('info-text').textContent = summary.join('\n');
+  const more = document.getElementById('info-more');
+  const toggle = document.getElementById('info-more-toggle');
+  more.textContent = details.join('\n');
+  toggle.classList.toggle('hidden', details.length === 0);
+  more.classList.toggle('hidden', !infoExpanded || details.length === 0);
+  toggle.textContent = infoExpanded ? 'Weniger ▴' : 'Mehr ▾';
+}
+
+// Was bringt der nächste Ausbau? (steht in den Details, der Knopf selbst bleibt kurz)
+function upgradeGainsText(cell) {
+  const to = levelOf(cell) + 1;
+  if (!canUpgradeType(cell.type) || !UPGRADES[to]) return '';
+  const def = BUILDINGS[cell.type];
+  const gains = [];
+  if (def.population) gains.push('+2 Wohnplätze');
+  if (def.interval) gains.push('Ertrag +50 %');
+  if (def.service || def.fireRadius) gains.push('Umkreis +1');
+  if (def.storage) gains.push(`Lager +${def.storage}`);
+  if (def.jobs) gains.push('braucht mehr Personal');
+  return `⬆️ Stufe ${to} bringt: ${gains.join(', ')}`;
 }
 
 // Ausbau-Knopf im Info-Fenster: zeigt Wirkung, Kosten oder warum es (noch) nicht geht
@@ -3911,13 +3982,6 @@ function renderUpgradeButton(cell) {
     btn.classList.add('hidden');
     return;
   }
-  const def = BUILDINGS[cell.type];
-  const gains = [];
-  if (def.population) gains.push('+2 Wohnplätze');
-  if (def.interval) gains.push('Ertrag +50 %');
-  if (def.service || def.fireRadius) gains.push('Umkreis +1');
-  if (def.storage) gains.push(`Lager +${def.storage}`);
-  if (def.jobs) gains.push('braucht mehr Personal');
   btn.classList.remove('hidden');
   if (state.maxLevel < up.minLevel) {
     btn.textContent = `🔒 Stufe ${to} ab ${LEVELS[up.minLevel].name}`;
@@ -3925,7 +3989,7 @@ function renderUpgradeButton(cell) {
     return;
   }
   const cost = upgradeCost(cell.type, to);
-  btn.textContent = `⬆️ Auf Stufe ${to} ausbauen (${gains.join(', ')}) · ${formatAmounts(cost)}`;
+  btn.textContent = `⬆️ Stufe ${to} · ${formatAmounts(cost)}`;
   btn.classList.toggle('unaffordable', !canAfford(cost));
 }
 
@@ -3966,7 +4030,7 @@ function renderCityInfo() {
   ];
   document.getElementById('info-icon').textContent = level.icon;
   document.getElementById('info-name').textContent = `${state.cityName || 'Stadt ' + activeSlot} – ${level.name}`;
-  document.getElementById('info-text').textContent = lines.join('\n');
+  setInfoLines(lines.slice(0, 4), lines.slice(4));
   document.getElementById('info-demolish').classList.add('hidden');
   const action = document.getElementById('info-action');
   action.classList.toggle('hidden', !canCompleteCity());
@@ -4269,6 +4333,7 @@ function loop(now) {
     checkAchievements();
     updateUI();
   }
+  updateCamera(dt);
   updateParticles(dt);
   updateWalkers(dt);
   render(dt);

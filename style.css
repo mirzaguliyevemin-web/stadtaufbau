@@ -688,3 +688,38 @@ button.res { cursor: pointer; }
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* Kompaktes Info-Fenster: Zusammenfassung, aufklappbare Details, Knöpfe nebeneinander */
+#info { max-height: 46%; padding: 10px 12px; }
+#info .info-head { font-size: 16px; }
+#info-text { margin: 6px 0 4px; font-size: 13px; line-height: 1.35; }
+
+#info-more {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #444;
+  white-space: pre-line;
+}
+
+#info-more-toggle {
+  margin-bottom: 8px;
+  padding: 2px 0;
+  background: none;
+  color: #2d6a4f;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.info-buttons { display: flex; gap: 6px; }
+
+.info-buttons #info-upgrade,
+.info-buttons #info-demolish {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+  margin: 0;
+  padding: 9px 6px;
+  font-size: 13px;
+  line-height: 1.25;
+}

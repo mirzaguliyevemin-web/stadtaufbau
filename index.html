@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#2d6a4f">
-  <meta name="app-version" content="24">
+  <meta name="app-version" content="25">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Stadtaufbau</title>
@@ -80,10 +80,14 @@
         <button id="info-close" title="Schließen">✕</button>
       </div>
       <p id="info-text"></p>
+      <p id="info-more" class="hidden"></p>
+      <button id="info-more-toggle" class="hidden">Mehr ▾</button>
       <div id="info-extra"></div>
-      <button id="info-upgrade" class="hidden"></button>
       <button id="info-action" class="hidden"></button>
-      <button id="info-demolish">Abreißen</button>
+      <div class="info-buttons">
+        <button id="info-upgrade" class="hidden"></button>
+        <button id="info-demolish">Verkaufen</button>
+      </div>
     </section>
     <section id="build-info" class="hidden"></section>
     <div id="effects"></div>

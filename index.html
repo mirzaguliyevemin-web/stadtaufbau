@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#2d6a4f">
-  <meta name="app-version" content="20">
+  <meta name="app-version" content="21">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Stadtaufbau</title>
@@ -96,6 +96,13 @@
   <nav id="buildnav">
     <div id="build-tabs"></div>
     <div id="buildbar"></div>
+    <div id="demolish-bar" class="hidden">
+      <div id="demolish-info"></div>
+      <div class="demolish-buttons">
+        <button id="demolish-sell"></button>
+        <button id="demolish-clear">✖ Auswahl aufheben</button>
+      </div>
+    </div>
   </nav>
 
   <script src="game.js"></script>

@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 20;
+const APP_VERSION = 21;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -2148,6 +2148,7 @@ function render(dt) {
   }
 
   if (infoTile) outlineTile(infoTile, '#ffd166');
+  if (demolishSelection.size) drawDemolishSelection();
   if (infoMode === 'plot') outlinePlot(infoPlot);
 
   // Schwebende Ertragsanzeigen
@@ -2298,6 +2299,22 @@ function drawPlotPrices(vis) {
       ctx.fillStyle = '#fff';
       ctx.fillText(text, cx, cy);
     }
+  }
+}
+
+function drawDemolishSelection() {
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold ${T * 0.4}px system-ui, sans-serif`;
+  for (const i of demolishSelection) {
+    const x = i % N, y = Math.floor(i / N);
+    ctx.fillStyle = 'rgba(230, 57, 70, 0.45)';
+    ctx.fillRect(x * T, y * T, T, T);
+    ctx.strokeStyle = '#e63946';
+    ctx.lineWidth = 2 / view.zoom;
+    ctx.strokeRect(x * T + 1, y * T + 1, T - 2, T - 2);
+    ctx.fillStyle = '#fff';
+    ctx.fillText('✖', (x + 0.5) * T, (y + 0.5) * T);
   }
 }
 
@@ -2573,7 +2590,9 @@ canvas.addEventListener('pointerdown', e => {
   pointers.set(e.pointerId, p);
   if (pointers.size === 1) {
     tapStart = e.button === 1 ? null : p;   // mittlere Maustaste: nur verschieben
-    if (e.button !== 1 && selectedType && BUILDINGS[selectedType].dragBuild) {
+    if (e.button !== 1 && demolishMode) {
+      paint = { last: screenToTile(p.x, p.y), started: false, select: true };
+    } else if (e.button !== 1 && selectedType && BUILDINGS[selectedType].dragBuild) {
       paint = { last: screenToTile(p.x, p.y), started: false };
     } else {
       startPan(p);
@@ -2602,6 +2621,18 @@ function tileLine(a, b) {
 
 function paintTo(tile) {
   if (tile.x === paint.last.x && tile.y === paint.last.y) return;
+  if (paint.select) {
+    // Abriss-Modus: alles Bebaute entlang des Wegs markieren
+    if (!paint.started) {
+      paint.started = true;
+      tapStart = null;
+      markForDemolish(paint.last.x, paint.last.y, true);
+    }
+    for (const t of tileLine(paint.last, tile)) markForDemolish(t.x, t.y, true);
+    paint.last = tile;
+    updateDemolishBar();
+    return;
+  }
   if (!paint.started) {
     // Erst beim Verlassen des Startfelds bauen – so löst ein beginnender Zoom nichts aus
     paint.started = true;
@@ -2676,14 +2707,23 @@ canvas.addEventListener('wheel', e => {
 
 // Tastatur: Tab wechselt die Kategorie, 1–9 wählt ein Gebäude darin, Esc bricht ab
 window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;   // Tippen im Import-Feld
+  if (demolishMode && (e.key === 'Delete' || e.key === 'Backspace')) {
+    sellSelection();
+    return;
+  }
   if (e.key === 'Escape') {
+    if (demolishMode && demolishSelection.size) {
+      clearDemolishSelection();
+      return;
+    }
     selectBuild(null);
     closePanels();
     return;
   }
   if (e.key === 'Tab') {
     e.preventDefault();
-    const cats = Object.keys(CATEGORIES);
+    const cats = [...Object.keys(CATEGORIES), 'demolish'];
     const step = e.shiftKey ? cats.length - 1 : 1;
     showCategory(cats[(cats.indexOf(currentCategory) + step) % cats.length]);
     return;
@@ -2696,6 +2736,11 @@ window.addEventListener('keydown', e => {
 function handleTap(sx, sy) {
   const { x, y } = screenToTile(sx, sy);
   const cell = getCell(x, y);
+  if (demolishMode) {
+    if (cell) markForDemolish(x, y);
+    updateDemolishBar();
+    return;
+  }
   if (cell) {
     showInfo(x, y);
     return;
@@ -2926,6 +2971,8 @@ function categoryTypes(cat) {
 }
 
 function showCategory(cat) {
+  if (cat === 'demolish') enterDemolishMode();
+  else if (demolishMode) exitDemolishMode();
   currentCategory = cat;
   for (const [type, btn] of Object.entries(buildButtons)) {
     btn.classList.toggle('hidden', BUILDINGS[type].category !== cat);
@@ -2937,6 +2984,10 @@ function showCategory(cat) {
 
 function updateCategoryTabs() {
   for (const [cat, tab] of Object.entries(categoryTabs)) {
+    if (cat === 'demolish') {
+      tab.classList.toggle('active', demolishMode);
+      continue;
+    }
     const types = categoryTypes(cat);
     tab.classList.toggle('active', cat === currentCategory);
     tab.classList.toggle('locked', !types.some(isUnlocked));
@@ -2976,6 +3027,17 @@ function buildUI() {
     tabs.appendChild(tab);
     categoryTabs[cat] = tab;
   }
+  // Eigener Reiter zum Markieren und Abreißen
+  const demolishTab = document.createElement('button');
+  demolishTab.className = 'build-tab demolish-tab';
+  demolishTab.dataset.category = 'demolish';
+  demolishTab.title = 'Abriss: Gebäude und Straßen markieren und verkaufen';
+  demolishTab.innerHTML = '<span class="icon">🧹</span><span class="name">Abriss</span>';
+  demolishTab.addEventListener('click', () => showCategory(demolishMode ? Object.keys(CATEGORIES)[0] : 'demolish'));
+  tabs.appendChild(demolishTab);
+  categoryTabs.demolish = demolishTab;
+  document.getElementById('demolish-sell').addEventListener('click', sellSelection);
+  document.getElementById('demolish-clear').addEventListener('click', clearDemolishSelection);
 
   const bar = document.getElementById('buildbar');
   Object.entries(BUILDINGS).forEach(([type, def]) => {
@@ -3300,7 +3362,95 @@ function closeResearch() {
   researchEl.classList.add('hidden');
 }
 
+// ---------- Abriss-Modus: markieren und verkaufen ----------
+
+let demolishMode = false;
+const demolishSelection = new Set();   // Feldindizes
+
+function enterDemolishMode() {
+  demolishMode = true;
+  selectBuild(null);
+  closePanels();
+  canvas.classList.add('demolishing');
+  document.getElementById('buildbar').classList.add('hidden');
+  document.getElementById('demolish-bar').classList.remove('hidden');
+  updateDemolishBar();
+}
+
+function exitDemolishMode() {
+  demolishMode = false;
+  demolishSelection.clear();
+  canvas.classList.remove('demolishing');
+  document.getElementById('buildbar').classList.remove('hidden');
+  document.getElementById('demolish-bar').classList.add('hidden');
+}
+
+// add: true = nur hinzufügen (beim Ziehen), sonst umschalten (beim Tippen)
+function markForDemolish(x, y, add = false) {
+  if (!getCell(x, y)) return;
+  const i = y * N + x;
+  if (add || !demolishSelection.has(i)) demolishSelection.add(i);
+  else demolishSelection.delete(i);
+}
+
+function clearDemolishSelection() {
+  demolishSelection.clear();
+  updateDemolishBar();
+}
+
+// Rückerstattung für die ganze Auswahl – je Gebäudeart sinken die Preise beim Abreißen nacheinander
+function selectionRefund() {
+  const refund = {};
+  const removed = {};
+  for (const i of demolishSelection) {
+    const cell = state.grid[i];
+    if (!cell) continue;
+    removed[cell.type] = (removed[cell.type] || 0) + 1;
+    for (const [id, n] of Object.entries(refundOf(cell, -removed[cell.type]))) refund[id] = (refund[id] || 0) + n;
+  }
+  return refund;
+}
+
+function updateDemolishBar() {
+  for (const i of [...demolishSelection]) if (!state.grid[i]) demolishSelection.delete(i);   // inzwischen weg
+  const count = demolishSelection.size;
+  const onlyRoads = count > 0 && [...demolishSelection].every(i => BUILDINGS[state.grid[i].type].isRoad);
+  const refund = selectionRefund();
+  document.getElementById('demolish-info').textContent = count === 0
+    ? 'Tippe Gebäude oder Straßen an, um sie zu markieren. Ziehen markiert mehrere.'
+    : `${count} markiert · zurück: ${formatAmounts(refund) || 'nichts'}`;
+  const sell = document.getElementById('demolish-sell');
+  sell.disabled = count === 0;
+  sell.textContent = onlyRoads ? '🗑️ Löschen' : '💰 Verkaufen';
+  document.getElementById('demolish-clear').disabled = count === 0;
+}
+
+function sellSelection() {
+  const count = demolishSelection.size;
+  if (count === 0) return;
+  const houses = [...demolishSelection].filter(i => BUILDINGS[state.grid[i].type].population).length;
+  if (count > 1 || houses > 0) {
+    const warn = houses ? `\n\nAchtung: ${houses} Wohnhaus/Wohnhäuser – die Bewohner ziehen aus.` : '';
+    if (!confirm(`${count} ${count === 1 ? 'Objekt' : 'Objekte'} abreißen? Du bekommst ${formatAmounts(selectionRefund())} zurück.${warn}`)) return;
+  }
+  for (const i of [...demolishSelection]) {
+    const cell = state.grid[i];
+    if (!cell) continue;
+    addResources(refundOf(cell), 1);
+    state.grid[i] = null;
+    emit('demolish', { x: i % N, y: Math.floor(i / N), type: cell.type });
+  }
+  demolishSelection.clear();
+  showToast(`🧹 ${count} ${count === 1 ? 'Objekt' : 'Objekte'} abgerissen`);
+  recalcStats();
+  updateUI();
+  updateDemolishBar();
+}
+
 function selectBuild(type) {
+  if (type && demolishMode) {
+    showCategory(BUILDINGS[type].category);   // Bauen beendet den Abriss-Modus
+  }
   if (type && !isUnlocked(type)) {
     // Gesperrt: nicht auswählen, aber zeigen, was das Gebäude kann und wann es kommt
     sound.play('error');
@@ -3511,7 +3661,7 @@ function renderTileInfo() {
   document.getElementById('info-text').textContent = lines.join('\n');
   const btn = document.getElementById('info-demolish');
   btn.classList.remove('hidden');
-  btn.textContent = `Abreißen (zurück: ${formatAmounts(refund)})`;
+  btn.textContent = `${def.isRoad ? '🗑️ Löschen' : '💰 Verkaufen'} (zurück: ${formatAmounts(refund)})`;
 }
 
 // Ausbau-Knopf im Info-Fenster: zeigt Wirkung, Kosten oder warum es (noch) nicht geht

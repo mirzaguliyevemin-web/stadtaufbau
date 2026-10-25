@@ -627,3 +627,37 @@ button.res { cursor: pointer; }
 }
 
 #info-upgrade.unaffordable { opacity: .55; }
+
+/* Abriss-Modus */
+#map.demolishing { cursor: cell; }
+
+.build-tab.demolish-tab .name { color: #ffb4a2; }
+.build-tab.demolish-tab.active { background: #7a2e2e; }
+#buildnav:has(.demolish-tab.active) #build-tabs { background: rgba(0, 0, 0, .18); }
+
+#demolish-bar {
+  padding: 8px 10px;
+  background: #7a2e2e;
+  color: #fff;
+}
+
+#demolish-info { font-size: 13px; line-height: 1.35; margin-bottom: 6px; }
+
+.demolish-buttons { display: flex; gap: 6px; }
+
+.demolish-buttons button {
+  flex: 1;
+  padding: 10px 6px;
+  border-radius: 8px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, .15);
+}
+
+#demolish-sell { background: #e63946; }
+.demolish-buttons button:disabled { opacity: .45; cursor: default; }
+
+/* Schmale Handys: Reiternamen etwas kleiner, damit alle 8 lesbar bleiben */
+@media (max-width: 440px) {
+  .build-tab .name { font-size: 8.5px; letter-spacing: -0.2px; }
+  .build-tab .icon { font-size: 19px; }
+}

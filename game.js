@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 33;
+const APP_VERSION = 34;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -698,6 +698,7 @@ const stats = {
   storage: CONFIG.baseStorage,   // Lagergrenze für Ressourcen mit `stored`
   activeCount: {},               // arbeitende Gebäude je Art
   activeWeight: {},              // dasselbe, gewichtet mit der Ausbaustufe
+  entrances: new Map(),          // Straßenfeld -> Richtungen zu Gebäuden, deren Eingang dort liegt (Bits 1↑ 2→ 4↓ 8←)
   jobs: { demand: {}, assigned: {}, scholarCap: 0 },   // Stellen und Besetzung je Beruf
   staff: {},                     // Besetzungsgrad 0–1 je Gebäudeart
   unemployed: 0,
@@ -1382,6 +1383,30 @@ function computeJobs(activeCells) {
   stats.unemployed = pop - Object.values(assigned).reduce((a, b) => a + b, 0);
 }
 
+// Jedes Gebäude bekommt genau einen Eingang: das Straßenfeld, das der Mitte einer Seite am nächsten liegt
+function computeEntrances() {
+  const entrances = new Map();
+  state.grid.forEach((cell, i) => {
+    if (!cell || BUILDINGS[cell.type].isRoad || BUILDINGS[cell.type].isWall) return;
+    const x = i % N, y = Math.floor(i / N);
+    const [w, h] = sizeOf(cell);
+    const cx = x + w / 2, cy = y + h / 2;
+    let best = null, bestDist = Infinity;
+    for (const [px, py] of perimeterTiles(x, y, w, h)) {
+      const road = getCell(px, py);
+      if (!road || !BUILDINGS[road.type].isRoad) continue;
+      const dist = Math.hypot(px + 0.5 - cx, py + 0.5 - cy);
+      if (dist < bestDist - 1e-6) { bestDist = dist; best = [px, py]; }
+    }
+    if (!best) return;
+    const [px, py] = best;
+    const dir = py < y ? 4 : py >= y + h ? 1 : px < x ? 2 : 8;   // vom Straßenfeld zum Gebäude
+    const k = py * N + px;
+    entrances.set(k, (entrances.get(k) || 0) | dir);
+  });
+  stats.entrances = entrances;
+}
+
 function recalcStats() {
   const providers = [];
   const houses = [];
@@ -1408,6 +1433,7 @@ function recalcStats() {
   computeJobs(activeTypes);
   stats.storage = storage;
   stats.niceHouses = houses.filter(h => isNiceHouse(h.x, h.y)).length;
+  computeEntrances();
 
   // Versorgung: Ein Haus ist versorgt, wenn ein Anbieter es im (quadratischen) Umkreis erreicht
   stats.capacity = 0;
@@ -3292,13 +3318,16 @@ function drawRoad(x, y, def, alpha) {
   ctx.fillStyle = def.color;
   ctx.fillRect(px + c, py + c, w, w);
   const arms = [
-    [0, -1, px + c, py, w, c],
-    [1, 0, px + c + w, py + c, c, w],
-    [0, 1, px + c, py + c + w, w, c],
-    [-1, 0, px, py + c, c, w],
+    [0, -1, 1, px + c, py, w, c],
+    [1, 0, 2, px + c + w, py + c, c, w],
+    [0, 1, 4, px + c, py + c + w, w, c],
+    [-1, 0, 8, px, py + c, c, w],
   ];
-  for (const [dx, dy, rx, ry, rw, rh] of arms) {
-    if (getCell(x + dx, y + dy)) ctx.fillRect(rx, ry, rw, rh);
+  // Verbunden wird mit Nachbarstraßen und mit Gebäuden, deren Eingang hier liegt
+  const entrance = stats.entrances.get(y * N + x) || 0;
+  for (const [dx, dy, bit, rx, ry, rw, rh] of arms) {
+    const n = getCell(x + dx, y + dy);
+    if (n && (BUILDINGS[n.type].isRoad || entrance & bit)) ctx.fillRect(rx, ry, rw, rh);
   }
   ctx.globalAlpha = 1;
 }

@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 23;
+const APP_VERSION = 24;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -68,6 +68,9 @@ const CONFIG = {
   guardDefense: 10,       // Abwehr je voll besetztem Wachhaus (× Ausbaustufe)
   banditBase: 10,         // Grundstärke eines Banditenüberfalls …
   banditPerCitizen: 0.15, // … plus so viel je Einwohner (± 30 % Zufall)
+  legacyBonus: 0.1,       // Gründerruhm: +10 % Ertrag je Stern (in allen Städten) …
+  legacyMaxStars: 5,      // … höchstens für so viele Sterne
+  legacyStart: { money: 100, wood: 30, stone: 15 },   // Extra-Startvorrat je Stern
 };
 
 // Jahreszeiten. production: Faktor je Gebäudeart  | heating: Einwohner verbrauchen Holz zum Heizen
@@ -471,6 +474,7 @@ const ACHIEVEMENTS = [
   { id: 'landmarks',  icon: '🏛️', name: 'Wahrzeichen',         text: 'Baue alle Sehenswürdigkeiten.',            check: () => Object.keys(BUILDINGS).filter(t => BUILDINGS[t].landmark).every(t => countBuildings(t) > 0) },
   { id: 'allQuests',  icon: '📜', name: 'Auftragsheld',        text: 'Erledige alle Aufträge.',                  check: () => state.questsClaimed.length === QUESTS.length },
   { id: 'streak7',    icon: '📅', name: 'Treue Seele',         text: 'Spiele 7 Tage in Folge.',                  check: () => state.daily.streak >= 7 },
+  { id: 'dynasty',    icon: '👑', name: 'Dynastie',            text: 'Vollende 3 Städte.',                        check: () => legacy.stars >= 3 },
   { id: 'lawman',     icon: '⚖️', name: 'Gesetzeshüter',       text: 'Schlage 5 Banditenüberfälle zurück.',      check: () => (state.counters.repelled || 0) >= 5 },
   { id: 'gold10',     icon: '🌟', name: 'Prachtbauten',        text: '10 Gebäude auf Stufe 3.',                  check: () => state.grid.filter(c => c && levelOf(c) >= 3).length >= 10 },
   { id: 'land20',     icon: '🗺️', name: 'Landesherr',          text: 'Kaufe 20 Flächen dazu.',                   check: () => plotsBought() >= 20 },
@@ -616,6 +620,7 @@ const state = {
   research: null,    // laufende Forschung { id, left }
   plots: [],         // plots[i] = true, wenn die Parzelle gekauft ist
   cityName: '',      // vom Spieler vergebener Name (leer = „Stadt <Platz>“)
+  completed: false,  // Stadt wurde vollendet (gibt nur einmal Gründerruhm)
   plotsGranted: 0,   // geschenkte Flächen (alter Spielstand mit Gebäuden außerhalb) – zählen nicht als gekauft
   dayTime: 0.15,     // Tageszeit 0–1 (0 = Mittag, 0.5 = Mitternacht)
   yearTime: 0,       // Sekunden im laufenden Jahr (Jahreszeit = yearTime / seasonLength)
@@ -646,13 +651,33 @@ const stats = {
   niceHouses: 0,
 };
 
+// ---------- Gründerruhm (bleibt über alle Städte erhalten) ----------
+
+const LEGACY_KEY = 'stadtaufbau-legacy';
+const legacy = (() => {
+  try {
+    const data = JSON.parse(localStorage.getItem(LEGACY_KEY));
+    if (data && Number.isFinite(data.stars)) return { stars: data.stars, cities: Array.isArray(data.cities) ? data.cities : [] };
+  } catch (e) { /* noch nichts */ }
+  return { stars: 0, cities: [] };
+})();
+
+function saveLegacy() {
+  try { localStorage.setItem(LEGACY_KEY, JSON.stringify(legacy)); } catch (e) { /* egal */ }
+}
+
+function legacyFactor() {
+  return 1 + CONFIG.legacyBonus * Math.min(legacy.stars, CONFIG.legacyMaxStars);
+}
+
 function newGame() {
   state.resources = {};
-  for (const id in RESOURCES) state.resources[id] = RESOURCES[id].start;
+  for (const id in RESOURCES) state.resources[id] = RESOURCES[id].start + (CONFIG.legacyStart[id] || 0) * legacy.stars;
   state.grid = new Array(N * N).fill(null);
   state.plots = startPlots();
   state.plotsGranted = 0;
   state.cityName = '';
+  state.completed = false;
   state.population = 0;
   state.maxLevel = 0;
   state.questsClaimed = [];
@@ -1007,7 +1032,7 @@ function productivity() {
 // Ereignisse (z. B. Dürre) wirken als Faktor – später auch Jahreszeiten.
 function buildingOutput(type) {
   const def = BUILDINGS[type];
-  const factor = (1 + productionBonus(type)) * productivity() * staffOf(type) * (season().production?.[type] ?? 1);
+  const factor = (1 + productionBonus(type)) * productivity() * legacyFactor() * staffOf(type) * (season().production?.[type] ?? 1);
   const out = {};
   for (const [id, n] of Object.entries(def.produces || {})) out[id] = (out[id] || 0) + n;
   if (def.perPopulation) {
@@ -1973,6 +1998,40 @@ function slotSummary(slot) {
   return { slot, empty: false, name: cityNameOf(slot, data), text: `${level.icon} ${level.name} · 👥 ${pop}${when ? ' · ' + when : ''}` };
 }
 
+// ---------- Stadt vollenden → Neustart mit Bonus ----------
+
+function canCompleteCity() {
+  return !state.completed && stats.level >= LEVELS.length - 1 && countBuildings('cathedral') > 0;
+}
+
+function completeCity() {
+  if (!canCompleteCity()) return;
+  const name = state.cityName || `Stadt ${activeSlot}`;
+  let freeSlot = 0;
+  for (let slot = 1; slot <= CONFIG.saveSlots && !freeSlot; slot++) {
+    if (slot !== activeSlot && slotSummary(slot).empty) freeSlot = slot;
+  }
+  const next = legacy.stars + 1;
+  const where = freeSlot
+    ? `Deine neue Stadt entsteht auf dem freien Platz ${freeSlot} – „${name}“ bleibt erhalten.`
+    : `Alle Speicherplätze sind belegt: Die neue Stadt ersetzt „${name}“! (Vorher exportieren, wenn du sie behalten willst.)`;
+  if (!confirm(`🏆 „${name}“ vollenden?\n\nDu erhältst einen Stern Gründerruhm (dann ${next}): ` +
+    `+${Math.round(CONFIG.legacyBonus * 100)} % Ertrag in allen Städten und mehr Startvorrat.\n\n${where}`)) return;
+  legacy.stars = next;
+  legacy.cities.push({ name, population: state.population, date: dateString(new Date()) });
+  saveLegacy();
+  state.completed = true;
+  save();
+  sound.play('levelup');
+  if (freeSlot) {
+    switchSlot(freeSlot);
+  } else {
+    saveBlocked = true;
+    try { localStorage.removeItem(saveKeyOf(activeSlot)); } catch (e) { /* egal */ }
+    location.reload();
+  }
+}
+
 function switchSlot(slot) {
   if (slot === activeSlot) return;
   save();
@@ -2063,6 +2122,7 @@ function buildSaveData() {
     plots: state.plots.map((owned, i) => (owned ? i : -1)).filter(i => i >= 0),
     plotsGranted: state.plotsGranted,
     cityName: state.cityName,
+    completed: state.completed,
     buildings,
   };
   return data;
@@ -2136,6 +2196,7 @@ function load() {
   }
   if (data.counters && typeof data.counters === 'object') state.counters = data.counters;
   if (typeof data.cityName === 'string') state.cityName = data.cityName.slice(0, 30);
+  state.completed = data.completed === true;
   if (Array.isArray(data.achievements)) {
     state.achievements = data.achievements.filter(id => ACHIEVEMENTS.some(a => a.id === id));
   }
@@ -3282,6 +3343,7 @@ function buildUI() {
   });
   document.getElementById('info-action').addEventListener('click', () => {
     if (infoMode === 'plot') buyPlot(infoPlot);
+    else if (infoMode === 'city') completeCity();
     else if (infoTile) extinguish(infoTile.x, infoTile.y);
   });
   document.getElementById('btn-settings').addEventListener('click', () => {
@@ -3875,6 +3937,9 @@ function renderCityInfo() {
     `Einwohner: 👥 ${state.population} von ${stats.capacity} Wohnplätzen`,
     next ? `Nächste Stufe: ${next.icon} ${next.name} ab ${next.minPop} Einwohnern` : 'Höchste Stufe erreicht',
     `Nahrungsverbrauch: 🍞 ${consumption} pro Sekunde`,
+    ...(legacy.stars ? [`🏆 Gründerruhm: ${'★'.repeat(legacy.stars)} – +${Math.round((legacyFactor() - 1) * 100)} % Ertrag in allen Städten`] : []),
+    state.completed ? '✅ Diese Stadt ist vollendet.'
+      : `Ziel: Stadt vollenden (Stufe Stadt + Kathedrale) → Neustart mit Bonus${canCompleteCity() ? ' – jetzt möglich!' : ''}`,
     `Land: ${state.plots.filter(Boolean).length} von ${P * P} Flächen · nächste Fläche ${formatAmounts(plotPrice())}`,
     `Abwehr gegen Banditen: 🛡️ ${defenseStrength()} · Angriffe sind etwa ${Math.round(banditStrength() * 0.7)}–${Math.round(banditStrength() * 1.3)} stark` +
       (state.population < EVENTS.bandits.minPop ? ` (erst ab ${EVENTS.bandits.minPop} Einwohnern)` : ''),
@@ -3903,7 +3968,10 @@ function renderCityInfo() {
   document.getElementById('info-name').textContent = `${state.cityName || 'Stadt ' + activeSlot} – ${level.name}`;
   document.getElementById('info-text').textContent = lines.join('\n');
   document.getElementById('info-demolish').classList.add('hidden');
-  document.getElementById('info-action').classList.add('hidden');
+  const action = document.getElementById('info-action');
+  action.classList.toggle('hidden', !canCompleteCity());
+  action.classList.remove('unaffordable');
+  action.textContent = '🏆 Stadt vollenden & neu gründen (mit Bonus)';
   document.getElementById('info-upgrade').classList.add('hidden');
   renderTaxUI();
 }

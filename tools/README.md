@@ -8,6 +8,7 @@ Alles läuft mit Node (ab Version 18) direkt im Repo – ohne Browser, ohne Inst
 | `balance-bot.js` | Bot, der das Spiel automatisch spielt und einen Bericht erstellt (`runBalanceBot(minuten)`) |
 | `bot.mjs` | Bot von der Kommandozeile starten |
 | `test.mjs` | Automatische Tests – Code 1 bei Fehlschlag |
+| `bild-freistellen.py` | KI-Gebäudebild freistellen und als WebP für `bilder/` speichern (braucht Python mit Pillow) |
 
 ## Befehle
 

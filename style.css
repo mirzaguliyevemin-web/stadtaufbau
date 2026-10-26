@@ -1067,3 +1067,32 @@ button.res { cursor: pointer; }
 #resources .res:not(:has(.bar))::after { display: none; }
 #resources .res .bar.high { background: #e9a23b; }
 #resources .res.full .bar { background: #c0392b; }
+
+/* ---------- Bauleiste unten: Holz wie oben ---------- */
+html, body { background: #3b2412; }
+#buildnav {
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .05) 0 2px, transparent 2px 23px, rgba(255, 255, 255, .04) 23px 25px, transparent 25px 41px),
+    linear-gradient(#6b4423, #4f3119);
+  border-top: 3px solid #3b2412;
+  box-shadow: 0 -3px 8px rgba(0, 0, 0, .4);
+}
+#build-tabs { background: rgba(30, 18, 8, .35); }
+.build-tab { color: #f6ecd2; }
+.build-tab .name { text-shadow: 0 1px 1px rgba(0, 0, 0, .5); }
+.build-tab.active { background: #6b4423; box-shadow: inset 0 3px 0 #c9a227; }
+.build-tab.active .name { color: #ffe8a3; }
+.build-tab.new::after { box-shadow: 0 0 0 2px #4f3119; }
+.build-tab.has-selected { box-shadow: inset 0 -3px 0 #ffd166; }
+.build-btn {
+  background: #f6ecd2;
+  color: #3b2a1a;
+  border: 2px solid #c9a227;
+  box-shadow: 0 2px 0 rgba(30, 18, 8, .7);
+}
+.build-btn.selected { background: #ffe8a3; border-color: #e76f51; box-shadow: 0 0 0 2px #ffd166, 0 2px 0 rgba(30, 18, 8, .7); }
+.build-btn.locked { background: #d9ccb0; border-color: #a89060; opacity: .5; }
+@media (hover: hover) { .build-btn:hover { background: #fff6dc; } }
+#buildnav:has(.demolish-tab.active) #build-tabs { background: rgba(30, 18, 8, .35); }
+.build-tab.demolish-tab .name { color: #ffb4a2; }
+.build-tab.demolish-tab.active { background: #7a2e2e; box-shadow: inset 0 3px 0 #e63946; }

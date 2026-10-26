@@ -968,8 +968,11 @@ button.res { cursor: pointer; }
 /* Bauleiste: passt der Name nicht ganz, nur das Bild zeigen */
 .build-tab.icon-only .name, .build-btn.icon-only .name, .build-btn.icon-only .cost { display: none; }
 .build-tab.icon-only .icon { font-size: 24px; padding: 4px 0; }
-.build-btn.icon-only { justify-content: center; padding: 8px 2px; }
-.build-btn.icon-only .icon { font-size: 32px; }
+.build-btn.icon-only { flex: 1 0 54px; justify-content: center; padding: 8px 2px; }
+.build-btn.icon-only .icon { font-size: 30px; }
+/* Gesperrte Vorschau aus dem nächsten Zeitalter: kleiner, damit die eigenen Gebäude auffallen */
+.build-btn.icon-only.locked { flex-basis: 46px; }
+.build-btn.icon-only.locked .icon { font-size: 24px; }
 
 /* Zeitalter */
 .age-card { display: flex; flex-direction: column; gap: 4px; }

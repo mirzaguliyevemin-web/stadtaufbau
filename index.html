@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#2d6a4f">
   <!-- Spiel hat eigene Farben: automatischen Dunkelmodus des Browsers abschalten -->
   <meta name="color-scheme" content="only light">
-  <meta name="app-version" content="42">
+  <meta name="app-version" content="43">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Stadtaufbau</title>
@@ -30,30 +30,30 @@
     <canvas id="map"></canvas>
     <button id="quest-tracker" title="Aufträge"></button>
     <div id="toast" class="hidden"></div>
-    <section id="quests" class="hidden">
+    <section id="quests" class="hidden fullpage">
       <div class="info-head">
+        <button id="quests-close" class="back-btn" title="Zurück zur Stadt (Esc)">← Zurück</button>
         <span>📜</span>
         <strong>Aufträge</strong>
         <span id="quests-count"></span>
-        <button id="quests-close" title="Schließen">✕</button>
       </div>
       <div id="quest-list"></div>
       <div id="achievements"></div>
     </section>
-    <section id="research" class="hidden">
+    <section id="research" class="hidden fullpage">
       <div class="info-head">
+        <button id="research-close" class="back-btn" title="Zurück zur Stadt (Esc)">← Zurück</button>
         <span>🔬</span>
         <strong>Forschung</strong>
         <span id="research-count"></span>
-        <button id="research-close" title="Schließen">✕</button>
       </div>
       <div id="tech-list"></div>
     </section>
-    <section id="settings" class="hidden">
+    <section id="settings" class="hidden fullpage">
       <div class="info-head">
+        <button id="settings-close" class="back-btn" title="Zurück zur Stadt (Esc)">← Zurück</button>
         <span>⚙️</span>
         <strong>Einstellungen</strong>
-        <button id="settings-close" title="Schließen">✕</button>
       </div>
       <button class="setting" data-setting="sfx"></button>
       <button class="setting" data-setting="music"></button>
@@ -83,7 +83,7 @@
       <div class="info-head">
         <span id="info-icon"></span>
         <strong id="info-name"></strong>
-        <button id="info-close" title="Schließen">✕</button>
+        <button id="info-close" class="back-btn small" title="Zurück zur Stadt (Esc)">← Zurück</button>
       </div>
       <p id="info-text"></p>
       <p id="info-more" class="hidden"></p>
@@ -99,6 +99,7 @@
         <button id="info-move">✋ Verschieben</button>
       </div>
     </section>
+    <section id="place-bar" class="hidden"></section>
     <section id="build-info" class="hidden"></section>
     <section id="move-bar" class="hidden"></section>
     <div id="effects"></div>

@@ -24,12 +24,19 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-// Spiel laden und prüfen, dass dabei keine Fehler auftreten
-function fresh(options) {
+// Spiel laden und prüfen, dass dabei keine Fehler auftreten.
+// Gebaut wird in den Tests sofort (ohne Bauzeit), außer mit { buildTimes: true }.
+function fresh(options = {}) {
   const game = loadGame(options);
   assert(game.errors.length === 0, 'Fehler beim Start: ' + game.errors.join(' | '));
+  if (!options.buildTimes) game.run('CONFIG.buildTimeBase = 0; CONFIG.buildTimePerValue = 0;');
   return game;
 }
+
+// Testgebiet: Felder 16–47 gehören der Stadt und sind Wiese (unabhängig von der Kartengröße)
+const PREP = `
+  for (let y = 16; y < 48; y++) for (let x = 16; x < 48; x++) { state.plots[plotOf(x, y)] = true; state.terrain[y * N + x] = TERRAIN_ID.grass; }
+`;
 
 function noErrors(game, where) {
   assert(game.errors.length === 0, `Fehler ${where}: ` + game.errors.join(' | ').slice(0, 600));
@@ -53,7 +60,7 @@ test('Spiel startet ohne Fehler', () => {
 
 test('Bauen, Ausbauen, Drehen, Verschieben, Abriss', () => {
   const game = fresh({ seed: 2 });
-  const r = game.run(`
+  const r = game.run(`${PREP}
     Object.assign(state.resources, { money: 9999, wood: 900, stone: 900, planks: 50, bricks: 50 });
     stats.storage = 2000; state.maxLevel = 2;
     for (let x = 24; x < 40; x++) placeBuilding(x, 32, 'road');
@@ -77,7 +84,7 @@ test('Bauen, Ausbauen, Drehen, Verschieben, Abriss', () => {
 
 test('Zeichnen ohne Fehler (Nacht, Winter, Brand, Banditen, Karren)', () => {
   const game = fresh({ seed: 3 });
-  game.run(`
+  game.run(`${PREP}
     Object.assign(state.resources, { money: 9999, wood: 900, stone: 900 });
     stats.storage = 2000; state.maxLevel = 1;
     for (let x = 24; x < 40; x++) placeBuilding(x, 32, 'road');
@@ -92,6 +99,9 @@ test('Zeichnen ohne Fehler (Nacht, Winter, Brand, Banditen, Karren)', () => {
     state.dayTime = 0.5; state.yearTime = 3 * CONFIG.seasonLength + 10;
     selectBuild('farm'); hoverTile = { x: 30, y: 28 };
     for (let i = 0; i < 5; i++) render(0.016);
+    handleTap((26 + 0.5) * T * view.zoom + view.x, (27 + 0.5) * T * view.zoom + view.y);   // Vorschau hinstellen
+    render(0.016); renderPlaceBar(); confirmPending();
+    CONFIG.buildTimeBase = 10; placeBuilding(40, 30, 'farm'); render(0.016); showInfo(40, 30); renderInfo();
     showCategory('demolish'); markForDemolish(24, 31); render(0.016);
     showInfo(31, 30); renderInfo(); showCityInfo(); renderInfo(); showJobsInfo(); renderInfo();
   `);
@@ -101,7 +111,7 @@ test('Zeichnen ohne Fehler (Nacht, Winter, Brand, Banditen, Karren)', () => {
 
 test('Speichern und Laden erhält die Stadt', () => {
   const a = fresh({ seed: 4 });
-  const before = a.run(`
+  const before = a.run(`${PREP}
     Object.assign(state.resources, { money: 5000, wood: 500, stone: 500 });
     state.maxLevel = 1;
     for (let x = 24; x < 36; x++) placeBuilding(x, 32, 'road');
@@ -118,7 +128,7 @@ test('Speichern und Laden erhält die Stadt', () => {
   return after;
 });
 
-test('Alte Spielstände (16×16, 32×32) lassen sich laden', () => {
+test('Alte Spielstände (16×16, 32×32, 64×64) lassen sich laden', () => {
   for (const gridSize of [undefined, 32]) {
     const save = { v: 1, savedAt: Date.now(), resources: { money: 300, wood: 80 }, population: 4,
       buildings: [{ x: 0, y: 0, type: 'road' }, { x: 1, y: 0, type: 'house' }, { x: 0, y: 1, type: 'farm' }] };
@@ -128,7 +138,45 @@ test('Alte Spielstände (16×16, 32×32) lassen sich laden', () => {
     noErrors(game, `beim Laden (gridSize ${gridSize || 16})`);
     assert(r === '{"cells":3,"farm":"1x1"}', `gridSize ${gridSize || 16}: ${r}`);
   }
+  // 64×64 (bis Version 42): Stadt, gekauftes Land, Gelände und Lager landen in der Mitte der größeren Karte
+  const terrain = Array.from({ length: 64 * 64 }, (_, i) => (i % 7 === 0 ? '1' : '0')).join('');
+  const save64 = { v: 1, savedAt: Date.now(), gridSize: 64, resources: { money: 300 }, population: 0, terrain,
+    plots: [27, 28, 29, 35, 36], plotsGranted: 0, camps: [{ x: 60, y: 5, strength: 5, raidIn: 100 }],
+    buildings: [{ x: 30, y: 31, type: 'road' }, { x: 30, y: 30, type: 'house' }] };
+  const g = fresh({ storage: { 'stadtaufbau-save-1': JSON.stringify(save64) }, seed: 15 });
+  const r = g.run(`const O = (N - 64) / 2; JSON.stringify({
+    house: getCell(30 + O, 30 + O)?.type, bought: plotsBought(), owned: state.plots.filter(Boolean).length,
+    plot29: state.plots[(3 + O / 8) * P + 5 + O / 8],
+    terrain: [0, 7, 100, 4095].every(i => state.terrain[(Math.floor(i / 64) + O) * N + i % 64 + O] === (i % 7 === 0 ? 1 : 0)),
+    camp: state.camps[0] && state.camps[0].x === 60 + O })`);
+  noErrors(g, 'beim Laden (64×64)');
+  assert(r === '{"house":"house","bought":1,"owned":5,"plot29":true,"terrain":true,"camp":true}', '64×64: ' + r);
   return 'ok';
+});
+
+test('Bauzeit und höchstens 2 Baustellen', () => {
+  const game = fresh({ seed: 16, buildTimes: true });
+  const r = game.run(`${PREP}
+    Object.assign(state.resources, { money: 9999, wood: 900, stone: 900 });
+    for (let x = 24; x < 40; x++) placeBuilding(x, 32, 'road');
+    const roads = getCell(30, 32)?.build === undefined;
+    const a = placeBuilding(24, 31, 'house'), b = placeBuilding(25, 31, 'house'), c = placeBuilding(26, 31, 'house');
+    const site = constructionCount(), activeEarly = isActive(24, 31), time = buildTimeOf('house');
+    save();
+    for (let i = 0; i < time * 4 + 4; i++) update(0.25);
+    const done = !getCell(24, 31).build && isActive(24, 31);
+    const third = placeBuilding(26, 31, 'house');
+    JSON.stringify({ roads, a, b, c, site, activeEarly, done, third, time })
+  `);
+  noErrors(game, 'bei Baustellen');
+  const o = JSON.parse(r);
+  assert(o.roads && o.a && o.b && o.c === false && o.site === 2 && !o.activeEarly, 'Limit: ' + r);
+  assert(o.done && o.third && o.time >= 5, 'Fertigstellung: ' + r);
+  // Baustelle bleibt beim Speichern erhalten
+  const b = fresh({ storage: game.storage, seed: 16, buildTimes: true });
+  const after = b.run(`JSON.stringify({ build: !!getCell(24, 31)?.build, n: constructionCount() })`);
+  assert(after === '{"build":true,"n":2}', 'nach dem Laden: ' + after);
+  return `Haus ${o.time} s`;
 });
 
 test('Gelände: Wald, Berge, Seen mit Spielwirkung', () => {

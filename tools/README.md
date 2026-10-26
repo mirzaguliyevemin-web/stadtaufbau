@@ -17,6 +17,9 @@ node tools/test.mjs           # alle Tests inkl. 90-Minuten-Bot (ca. 4 Minuten)
 node tools/bot.mjs 90 3       # drei Bot-Läufe à 90 Spielminuten mit Zusammenfassung
 ```
 
+In den Tests wird ohne Bauzeit gebaut (`fresh()` setzt sie auf 0), außer im Test „Bauzeit“.
+Der Bot spielt mit echter Bauzeit und höchstens `CONFIG.maxConstructions` Baustellen.
+
 ## Bot-Bericht lesen
 
 - **Meilensteine:** Spielminute, in der 21 / 50 / 101 / 150 / 200 Einwohner erreicht wurden

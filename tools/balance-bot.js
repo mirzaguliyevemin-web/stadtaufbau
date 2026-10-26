@@ -39,6 +39,11 @@ function runBalanceBot(minutes = 90) {
   function tryBuild(type, slot) {
     const def = BUILDINGS[type];
     if (!isUnlocked(type)) return false;
+    // Alle Baustellen belegt: warten
+    if (buildTimeOf(type) > 0 && constructionCount() >= CONFIG.maxConstructions) {
+      want.site = (want.site || 0) + 1;
+      return false;
+    }
     // Keine Betriebe ohne Leute (außer Farmen und Gelehrten-Gebäude)
     if (def.jobs && type !== 'farm' && !def.jobs.scholar && stats.unemployed < 1) {
       want.people = (want.people || 0) + 1;

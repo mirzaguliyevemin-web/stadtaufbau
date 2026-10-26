@@ -5,6 +5,11 @@ wenn Emin zugestimmt hat.** Neue Einträge oben, mit Datum und kurzer Begründun
 
 ## Offen
 
+- **VIP-Modus** (2026-10-26, Wunsch Emin – „dazu später“) – mehr als 2 Baustellen gleichzeitig. Offen: wie man
+  VIP wird (Erfolg, Gründerruhm, Einstellung?). Technisch einfach: `CONFIG.maxConstructions` je nach VIP erhöhen.
+- **Gebäudebilder aus KI-Bildern** (2026-10-26, Wunsch Emin) – Emin erzeugt Bilder im festen Stil; Claude baut
+  sie ein (Bild statt Zeichnung, Zeichnung bleibt als Ersatz). Je Zeitalter eigene Bilder, sobald die Zeitalter
+  entschieden sind. Formate: 1×1, 2×2, 3×3 quadratisch, 2×1 im Format 2:1.
 - **Zeitalter** (2026-10-25, Wunsch Emin – Entscheidung offen, erst in einer Sitzung mit Emin bauen) – Vorschlag:
   Mittelalter → Renaissance → Industrie; Aufstieg kostet Wissen, Geld und Waren (Sinn für späte Überschüsse),
   neues Aussehen und neue Gebäude je Zeitalter. Alternativen: Steinzeit → Antike → Mittelalter, oder 5 Zeitalter bis heute.

@@ -145,8 +145,11 @@ button {
   border-radius: 8px;
   background: rgba(0, 0, 0, .8);
   font-size: 14px;
-  white-space: nowrap;
+  max-width: calc(100% - 24px);
+  width: max-content;
+  text-align: center;
   pointer-events: none;
+  z-index: 45;
 }
 
 /* ---------- Auftragsanzeige ---------- */
@@ -469,7 +472,7 @@ button {
   color: #222;
   text-align: center;
   box-shadow: 0 8px 32px rgba(0, 0, 0, .5);
-  z-index: 3;
+  z-index: 46;
 }
 
 #event-icon { font-size: 44px; line-height: 1.1; }
@@ -884,3 +887,86 @@ button.res { cursor: pointer; }
 #topbar .speed-btn.paused { background: #e63946; animation: pulse 1.2s ease-in-out infinite; }
 #topbar .speed-btn.fast { background: #f4a261; color: #222; }
 #resources .res.full { background: rgba(192, 57, 43, .45); }
+
+/* ---------- Große Fenster (Forschung, Aufträge, Einstellungen) als ganze Seite ---------- */
+#quests.fullpage, #research.fullpage, #settings.fullpage {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0 16px calc(24px + env(safe-area-inset-bottom));
+  border-radius: 0;
+  box-shadow: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.fullpage > * { max-width: 640px; margin-left: auto; margin-right: auto; }
+.fullpage > .info-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: calc(10px + env(safe-area-inset-top)) 0 10px;
+  margin-bottom: 8px;
+  background: #fffdf7;
+  border-bottom: 1px solid #e8e2d0;
+}
+.fullpage > .info-head strong { font-size: 20px; }
+
+/* Zurück-Knopf in allen Fenstern */
+.back-btn {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #2d6a4f;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+#info-close.back-btn { order: 3; width: auto; height: auto; background: #2d6a4f; }
+.back-btn.small { padding: 5px 10px; font-size: 13px; }
+
+/* Bau-Vorschau: bestätigen oder abbrechen */
+#place-bar {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  max-width: 420px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 10px;
+  border-radius: 12px;
+  background: rgba(255, 253, 247, 0.97);
+  color: #222;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+}
+.pb-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.pb-text strong { font-size: 14px; }
+.pb-meta { font-size: 12px; font-weight: 600; color: #2d6a4f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-meta.bad { color: #c0392b; white-space: normal; }
+.pb-cancel { width: 40px; height: 40px; border-radius: 50%; background: #eee; font-size: 16px; }
+.pb-ok {
+  width: 52px;
+  height: 44px;
+  border-radius: 12px;
+  background: #2d9a5f;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  box-shadow: 0 2px 0 #1b6b40;
+}
+.pb-ok:disabled { background: #b9c2bc; box-shadow: none; cursor: default; }
+#info:not(.hidden) ~ #place-bar { display: none; }
+#place-bar:not(.hidden) ~ #build-info { display: none; }
+#place-bar:not(.hidden) ~ #effects { bottom: auto; top: 54px; }
+
+/* Bauleiste: passt der Name nicht ganz, nur das Bild zeigen */
+.build-tab.icon-only .name, .build-btn.icon-only .name, .build-btn.icon-only .cost { display: none; }
+.build-tab.icon-only .icon { font-size: 24px; padding: 4px 0; }
+.build-btn.icon-only { justify-content: center; padding: 8px 2px; }
+.build-btn.icon-only .icon { font-size: 32px; }

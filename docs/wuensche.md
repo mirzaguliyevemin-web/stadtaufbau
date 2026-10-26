@@ -15,3 +15,17 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-26, Version 43 – Wunschliste aus der Sitzung:
+  - Forschung, Aufträge, Einstellungen als ganze Seite mit „← Zurück“; alle Fenster haben „← Zurück“,
+    auch die Zurück-Geste am Handy schließt Fenster statt das Spiel.
+  - Bauleiste am Handy: passt ein Name nicht, zeigt die Reihe nur Bilder (Kosten in der Kurzinfo).
+  - Gebäude erst als Vorschau aufs Feld stellen (grün = passt, rot = passt nicht, mit dem Finger verschiebbar),
+    gebaut wird erst mit ✔.
+  - Bauzeit für alle Gebäude (Straßen, Brücken, Mauern sofort), Baustelle mit Gerüst und Restzeit.
+  - Höchstens 2 Baustellen gleichzeitig (VIP-Modus mit mehr Baustellen steht als Plan in `vorschlaege.md`).
+  - Karte 96 × 96 statt 64 × 64 (alte Städte liegen in der Mitte, gekauftes Land bleibt).
+  - Menschen als kleine Figuren: Bauern hacken, Fischer angeln, Sägewerker sägen, Steinbrecher schlagen,
+    Schmiede hämmern, Gelehrte lesen, Händler tragen Kisten.
+  - Eigene Geräusche beim Antippen von Gebäuden (Säge, Amboss, Schaf, Glocke …), selbst erzeugt.
+  - Raster nur noch beim Bauen/Verschieben sichtbar.
+  - Offen: neue Gebäudebilder je Zeitalter – wartet auf Bilder von Emin (Anleitung siehe Sitzung/Obsidian).

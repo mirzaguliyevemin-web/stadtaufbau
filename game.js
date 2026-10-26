@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 42;
+const APP_VERSION = 43;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -22,7 +22,7 @@ window.addEventListener('unhandledrejection', e => showCrash(String(e.reason)));
 // =====================================================================
 
 const CONFIG = {
-  gridSize: 64,           // Karte ist gridSize × gridSize Felder
+  gridSize: 96,           // Karte ist gridSize × gridSize Felder
   plotSize: 8,            // Land wird in Parzellen von plotSize × plotSize Feldern gekauft
   startPlots: 2,          // zu Beginn gehören die startPlots × startPlots Parzellen in der Mitte
   plotBasePrice: 150,     // Preis der ersten gekauften Parzelle (Geld)
@@ -33,6 +33,9 @@ const CONFIG = {
   saveVersion: 1,
   autosaveSeconds: 30,
   refundRate: 0.5,        // Anteil der Baukosten beim Abreißen
+  maxConstructions: 2,    // so viele Baustellen gleichzeitig (Straßen, Brücken und Mauern zählen nicht)
+  buildTimeBase: 3,       // Bauzeit in Sekunden: Grundwert …
+  buildTimePerValue: 2,   // … plus so viel × Wurzel aus dem Wert der Grundkosten (siehe BUILD_VALUE)
   minZoom: 0.4,           // wird kleiner, falls nötig, damit die ganze Karte passt
   startTilesVisible: 12,  // so viele Felder passen beim Start in die Bildschirmbreite
   maxZoom: 3,
@@ -80,6 +83,9 @@ const CONFIG = {
   legacyMaxStars: 5,      // … höchstens für so viele Sterne
   legacyStart: { money: 100, wood: 30, stone: 15 },   // Extra-Startvorrat je Stern
 };
+
+// Wert je Einheit für die Bauzeit (nicht genannte Ressourcen zählen 2)
+const BUILD_VALUE = { money: 0.5, wood: 1, stone: 1, planks: 3, bricks: 3 };
 
 // Jahreszeiten. production: Faktor je Gebäudeart  | heating: Einwohner verbrauchen Holz zum Heizen
 //   ground: Bodenfarbe  | happiness: Bonus/Abzug für die ganze Stadt
@@ -228,6 +234,7 @@ const CATEGORIES = {
 //   needsRoad:     funktioniert nur mit angrenzender Straße
 //   isRoad:        ist selbst eine Straße (wird als Wegenetz gezeichnet)
 //   dragBuild:     kann durch Ziehen am Stück gebaut werden
+//   buildTime:     Bauzeit in Sekunden (ohne Angabe aus den Kosten berechnet, Straßen/Mauern sofort)
 const BUILDINGS = {
   road: {
     name: 'Straße', icon: '🛣️', color: '#a39887',
@@ -633,7 +640,7 @@ const DAILY_REWARDS = [
 
 // Erfolge – Auszeichnungen ohne Belohnung, bleiben auch bei einem neuen Spiel erhalten.
 const ACHIEVEMENTS = [
-  { id: 'firstHouse', icon: '🏠', name: 'Grundstein',          text: 'Baue dein erstes Haus.',                  check: () => countBuildings('house') >= 1 },
+  { id: 'firstHouse', icon: '🏠', name: 'Grundstein',          text: 'Baue dein erstes Haus.',                  check: () => countFinished('house') >= 1 },
   { id: 'pop50',      icon: '👥', name: 'Gemeinschaft',        text: 'Erreiche 50 Einwohner.',                   check: () => state.population >= 50 },
   { id: 'pop100',     icon: '🏙️', name: 'Erste 100 Einwohner', text: 'Erreiche 100 Einwohner.',                  check: () => state.population >= 100 },
   { id: 'busy10',     icon: '⚙️', name: 'Fleißige Stadt',      text: '10 Gebäude produzieren gleichzeitig.',     check: () => producingCount() >= 10 },
@@ -644,12 +651,12 @@ const ACHIEVEMENTS = [
   { id: 'fire5',      icon: '🚒', name: 'Feuerwehr',           text: 'Lösche 5 Brände.',                         check: () => (state.counters.extinguished || 0) >= 5 },
   { id: 'trade10',    icon: '🤝', name: 'Händler',             text: 'Handle 10-mal am Markt oder mit Karawanen.', check: () => (state.counters.trades || 0) >= 10 },
   { id: 'allTech',    icon: '🔬', name: 'Universalgelehrter',  text: 'Erforsche alle Technologien.',             check: () => state.techs.length === Object.keys(TECHS).length },
-  { id: 'landmarks',  icon: '🏛️', name: 'Wahrzeichen',         text: 'Baue alle Sehenswürdigkeiten.',            check: () => Object.keys(BUILDINGS).filter(t => BUILDINGS[t].landmark).every(t => countBuildings(t) > 0) },
+  { id: 'landmarks',  icon: '🏛️', name: 'Wahrzeichen',         text: 'Baue alle Sehenswürdigkeiten.',            check: () => Object.keys(BUILDINGS).filter(t => BUILDINGS[t].landmark).every(t => countFinished(t) > 0) },
   { id: 'allQuests',  icon: '📜', name: 'Auftragsheld',        text: 'Erledige alle Aufträge.',                  check: () => state.questsClaimed.length === QUESTS.length },
   { id: 'streak7',    icon: '📅', name: 'Treue Seele',         text: 'Spiele 7 Tage in Folge.',                  check: () => state.daily.streak >= 7 },
   { id: 'dynasty',    icon: '👑', name: 'Dynastie',            text: 'Vollende 3 Städte.',                        check: () => legacy.stars >= 3 },
   { id: 'carts25',    icon: '🛒', name: 'Handelsroute',        text: '25 Handelskarren kommen sicher an.',        check: () => (state.counters.carts || 0) >= 25 },
-  { id: 'fortress',   icon: '🏰', name: 'Festungsstadt',       text: '40 Mauerstücke und 3 Wachtürme.',           check: () => countBuildings('wall') >= 40 && countBuildings('tower') >= 3 },
+  { id: 'fortress',   icon: '🏰', name: 'Festungsstadt',       text: '40 Mauerstücke und 3 Wachtürme.',           check: () => countBuildings('wall') >= 40 && countFinished('tower') >= 3 },
   { id: 'lawman',     icon: '⚖️', name: 'Gesetzeshüter',       text: 'Schlage 5 Banditenüberfälle zurück.',      check: () => (state.counters.repelled || 0) >= 5 },
   { id: 'gold10',     icon: '🌟', name: 'Prachtbauten',        text: '10 Gebäude auf Stufe 3.',                  check: () => state.grid.filter(c => c && levelOf(c) >= 3).length >= 10 },
   { id: 'land20',     icon: '🗺️', name: 'Landesherr',          text: 'Kaufe 20 Flächen dazu.',                   check: () => plotsBought() >= 20 },
@@ -1076,8 +1083,8 @@ function generateTerrain(seed) {
     }
   };
   // Seen außerhalb des Startgebiets
-  const lakes = 5 + Math.floor(rng() * 3);
-  for (let k = 0, tries = 0; k < lakes && tries < 200; tries++) {
+  const lakes = Math.round((5 + rng() * 3) * N * N / 4096);   // 5–7 Seen je 64×64 Felder
+  for (let k = 0, tries = 0; k < lakes && tries < 400; tries++) {
     const cx = 3 + rng() * (N - 6), cy = 3 + rng() * (N - 6);
     const radius = 1.8 + rng() * 2.8;
     if (Math.max(Math.abs(cx - C), Math.abs(cy - C)) < start + radius + 1) continue;
@@ -1148,11 +1155,14 @@ function encodeTerrain() {
   return Array.from(state.terrain, k => String(k)).join('');
 }
 
-// Gelände aus dem Spielstand; fehlt es (alter Spielstand), entsteht neue Landschaft nur auf fremdem Land
-function loadTerrain(data, sameSize) {
+// Gelände aus dem Spielstand; fehlt es (alter Spielstand), entsteht neue Landschaft nur auf fremdem Land.
+// Stammt es von einer kleineren Karte, liegt es in der Mitte, drumherum entsteht neue Landschaft.
+function loadTerrain(data, oldSize, offset) {
   const text = data.terrain;
-  if (sameSize && typeof text === 'string' && text.length === N * N && /^[0-9]+$/.test(text)) {
-    for (let i = 0; i < N * N; i++) state.terrain[i] = Math.min(Number(text[i]), TERRAIN.length - 1);
+  if (oldSize <= N && typeof text === 'string' && text.length === oldSize * oldSize && /^[0-9]+$/.test(text)) {
+    for (let i = 0; i < text.length; i++) {
+      state.terrain[(Math.floor(i / oldSize) + offset) * N + i % oldSize + offset] = Math.min(Number(text[i]), TERRAIN.length - 1);
+    }
   } else {
     for (let i = 0; i < N * N; i++) if (state.plots[plotOf(i % N, Math.floor(i / N))]) state.terrain[i] = TERRAIN_ID.grass;
   }
@@ -1268,6 +1278,57 @@ function renderMoveBar() {
   bar.classList.remove('hidden');
 }
 
+// ---------- Bau-Vorschau: erst hinstellen, dann mit ✓ bauen ----------
+
+let pending = null;   // { x, y } – geplantes Gebäude (selectedType), wartet auf Bestätigung
+
+function setPending(x, y) {
+  pending = { x, y };
+  renderPlaceBar();
+}
+
+function clearPending() {
+  pending = null;
+  document.getElementById('place-bar').classList.add('hidden');
+}
+
+function pendingContains(x, y) {
+  if (!pending || !selectedType) return false;
+  const [w, h] = placementSize(selectedType);
+  return x >= pending.x && y >= pending.y && x < pending.x + w && y < pending.y + h;
+}
+
+function confirmPending() {
+  if (!pending || !selectedType) return;
+  if (placeBuilding(pending.x, pending.y, selectedType)) {
+    sound.play('build');
+    clearPending();
+  } else {
+    renderPlaceBar();
+  }
+}
+
+function renderPlaceBar() {
+  const bar = document.getElementById('place-bar');
+  if (!pending || !selectedType) return bar.classList.add('hidden');
+  const def = BUILDINGS[selectedType];
+  const [fw, fh] = footprintSize(selectedType);
+  const problem = placeProblem(pending.x, pending.y, selectedType);
+  const secs = buildTimeOf(selectedType);
+  const text = problem || `${formatAmounts(costOf(selectedType))}${secs ? ` · ⏱ ${secondsText(secs)}` : ''}`;
+  const key = `${selectedType}|${problem}|${text}|${fw !== fh}`;
+  if (bar.dataset.key !== key) {
+    bar.dataset.key = key;
+    bar.innerHTML = `<span class="bi-icon">${def.icon}</span>
+      <span class="pb-text"><strong>${problem ? 'Passt nicht' : 'Hier bauen?'}</strong><span class="pb-meta${problem ? ' bad' : ''}"></span></span>
+      ${fw !== fh ? '<button class="bi-rotate" data-act="rotate" title="Drehen (R)">🔄</button>' : ''}
+      <button class="pb-cancel" data-act="cancel" title="Abbrechen (Esc)">✖</button>
+      <button class="pb-ok" data-act="ok" title="Bauen (Enter)"${problem ? ' disabled' : ''}>✔</button>`;
+    bar.querySelector('.pb-meta').textContent = text;
+  }
+  bar.classList.remove('hidden');
+}
+
 function removeBuildingAt(i) {
   const cell = state.grid[i];
   if (!cell) return;
@@ -1314,7 +1375,7 @@ function isActive(x, y) {
   const a = anchorAt(x, y);
   if (a === undefined || a < 0) return false;
   const cell = state.grid[a];
-  if (cell.fire) return false;
+  if (cell.fire || cell.build) return false;
   return !BUILDINGS[cell.type].needsRoad || hasRoadAccess(a % N, Math.floor(a / N));
 }
 
@@ -1421,7 +1482,7 @@ function areaOfCell(cell) {
 
 function upgradeBuilding(x, y) {
   const cell = getCell(x, y);
-  if (!cell || !canUpgradeType(cell.type)) return;
+  if (!cell || !canUpgradeType(cell.type) || cell.build) return;
   const to = levelOf(cell) + 1;
   const up = UPGRADES[to];
   if (!up) return;
@@ -1509,6 +1570,30 @@ function costOf(type, offset = 0) {
   return cost;
 }
 
+// Warum kann hier (Ecke x, y) nicht gebaut werden? null = alles in Ordnung
+function placeProblem(x, y, type) {
+  const def = BUILDINGS[type];
+  const [w, h] = placementSize(type);
+  if (!canPlaceAt(type, x, y)) {
+    let onTerrain = false;
+    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) {
+      if (x + dx >= 0 && y + dy >= 0 && x + dx < N && y + dy < N && terrainBlocked(x + dx, y + dy)) onTerrain = true;
+    }
+    if (def.onTerrain) return `${def.icon} ${def.name} geht nur auf Wasser`;
+    if (def.nearTerrain && canPlaceSize(x, y, w, h)) return nearTerrainText(def);
+    return onTerrain
+      ? '⛰️ Auf Bergen und Seen kann man nicht bauen'
+      : `Kein Platz: ${def.name} braucht ${w}×${h} freie Felder auf eigenem Land`;
+  }
+  if (def.landmark && countBuildings(type) > 0) return `${def.name} gibt es nur einmal`;
+  if (buildTimeOf(type) > 0 && constructionCount() >= CONFIG.maxConstructions) {
+    return `🏗️ Höchstens ${CONFIG.maxConstructions} Baustellen gleichzeitig – warte, bis eine fertig ist`;
+  }
+  const cost = costOf(type);
+  if (!canAfford(cost)) return `Nicht genug ${missingText(cost)}`;
+  return null;
+}
+
 // Gibt zurück, ob gebaut wurde
 function placeBuilding(x, y, type) {
   // Straße übers Wasser wird zur Brücke
@@ -1517,39 +1602,27 @@ function placeBuilding(x, y, type) {
   if (getCell(x, y) !== null) return false;
   if (!isOwned(x, y)) return false;
   const [w, h] = placementSize(type);
-  if (!canPlaceAt(type, x, y)) {
+  const problem = placeProblem(x, y, type);
+  if (problem) {
     sound.play('error');
-    let onTerrain = false;
-    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) {
-      if (x + dx < N && y + dy < N && terrainBlocked(x + dx, y + dy)) onTerrain = true;
-    }
-    if (def.onTerrain) showToast(`${def.icon} ${def.name} geht nur auf Wasser`);
-    else if (def.nearTerrain && canPlaceSize(x, y, w, h)) showToast(nearTerrainText(def));
-    else showToast(onTerrain
-      ? '⛰️ Auf Bergen und Seen kann man nicht bauen'
-      : `Kein Platz: ${def.name} braucht ${w}×${h} freie Felder auf eigenem Land`);
+    showToast(problem, problem.startsWith('🏗️') ? 3000 : undefined);
     return false;
   }
-  if (def.landmark && countBuildings(type) > 0) {
-    sound.play('error');
-    showToast(`${def.name} gibt es nur einmal`);
-    return false;
-  }
+  const seconds = buildTimeOf(type);
   const cost = costOf(type);
-  if (!canAfford(cost)) {
-    sound.play('error');
-    showToast(`Nicht genug ${missingText(cost)}`);
-    return false;
-  }
   addResources(cost, -1);
   const cell = { type, timer: 0, builtAt: performance.now() };
   if (w > 1 || h > 1) { cell.w = w; cell.h = h; }
+  if (seconds > 0) cell.build = { left: seconds, total: seconds };
   state.grid[y * N + x] = cell;
   setOccupied(x, y, w, h, y * N + x);
   clearTerrain(x, y, w, h);
   emit('build', { x, y, type });
   recalcStats();
-  if (def.needsRoad && !hasRoadAccess(x, y)) showToast('⚠️ Braucht eine Straße direkt daneben');
+  if (cell.build) {
+    if (def.needsRoad && !hasRoadAccess(x, y)) showToast('⚠️ Braucht eine Straße direkt daneben', 2500);
+    else showToast(`🏗️ Baustelle: ${def.name} ist in ${secondsText(seconds)} fertig`, 2000);
+  } else if (def.needsRoad && !hasRoadAccess(x, y)) showToast('⚠️ Braucht eine Straße direkt daneben');
   else if (def.jobs && staffOfCell(y * N + x) < 1) {
     const job = JOBS[jobOf(type)];
     showToast(job === JOBS.scholar && stats.jobs.assigned.scholar >= stats.jobs.scholarCap
@@ -1563,8 +1636,9 @@ function placeBuilding(x, y, type) {
 // Rückerstattung beim Abriss: Hälfte der zuletzt bezahlten Baukosten plus Hälfte der Ausbauten
 function refundOf(cell, offset = -1) {
   const refund = {};
+  const rate = cell.build ? 1 : CONFIG.refundRate;   // Baustelle abbrechen: alles zurück
   const add = cost => {
-    for (const [id, n] of Object.entries(cost)) refund[id] = (refund[id] || 0) + Math.floor(n * CONFIG.refundRate);
+    for (const [id, n] of Object.entries(cost)) refund[id] = (refund[id] || 0) + Math.floor(n * rate);
   };
   add(costOf(cell.type, offset));
   for (let lvl = 2; lvl <= levelOf(cell); lvl++) add(upgradeCost(cell.type, lvl));
@@ -1581,6 +1655,47 @@ function demolish(x, y) {
   closeInfo();
   recalcStats();
   updateUI();
+}
+
+// ---------- Baustellen ----------
+
+// Bauzeit in Sekunden (0 = sofort fertig, z. B. Straßen)
+function buildTimeOf(type) {
+  const def = BUILDINGS[type];
+  if (def.isRoad || def.isWall) return 0;
+  if (def.buildTime !== undefined) return def.buildTime;
+  let value = 0;
+  for (const [id, n] of Object.entries(def.cost)) value += n * (BUILD_VALUE[id] ?? 2);
+  return Math.max(0, Math.round(CONFIG.buildTimeBase + CONFIG.buildTimePerValue * Math.sqrt(value)));
+}
+
+// Kurze Zeitangabe für Bauzeiten: „12 s“ bzw. „1:40 Min.“
+function secondsText(sec) {
+  sec = Math.max(0, Math.ceil(sec));
+  return sec < 90 ? `${sec} s` : `${formatClock(sec)} Min.`;
+}
+
+function constructionCount() {
+  let n = 0;
+  for (const cell of state.grid) if (cell && cell.build) n++;
+  return n;
+}
+
+function updateConstruction(dt) {
+  let finished = false;
+  state.grid.forEach((cell, i) => {
+    if (!cell || !cell.build) return;
+    cell.build.left -= dt;
+    if (cell.build.left > 0) return;
+    delete cell.build;
+    cell.builtAt = performance.now();   // Plopp-Animation
+    finished = true;
+    const x = i % N, y = Math.floor(i / N);
+    sound.play('build');
+    showToast(`✅ ${BUILDINGS[cell.type].icon} ${BUILDINGS[cell.type].name} ist fertig gebaut`, 2000);
+    emit('built', { x, y, type: cell.type });
+  });
+  if (finished) recalcStats();
 }
 
 // Arbeitsleistung durch Zufriedenheit: 50 → 100 %, 80 → 130 %, 30 → 80 % (Grenzen 70–130 %)
@@ -2034,11 +2149,16 @@ function countBuildings(type) {
   return state.grid.filter(cell => cell && cell.type === type).length;
 }
 
+// Nur fertige Gebäude (ohne Baustellen) – für Aufträge und Erfolge
+function countFinished(type) {
+  return state.grid.filter(cell => cell && cell.type === type && !cell.build).length;
+}
+
 function questProgress(quest) {
   const g = quest.goal;
   let current = 0;
   switch (g.type) {
-    case 'build':      current = countBuildings(g.building); break;
+    case 'build':      current = countFinished(g.building); break;
     case 'population': current = state.population; break;
     case 'happiness':  current = stats.happiness; break;
     case 'resource':   current = state.resources[g.resource]; break;
@@ -2806,6 +2926,14 @@ function formatDuration(seconds) {
 function applyOfflineProgress(savedAt) {
   if (!savedAt) return;
   const away = (Date.now() - savedAt) / 1000;
+  // Baustellen arbeiten weiter
+  if (away > 0) {
+    state.grid.forEach(cell => {
+      if (!cell || !cell.build) return;
+      cell.build.left -= away;
+      if (cell.build.left <= 0) delete cell.build;
+    });
+  }
   if (away < 60) return;
   const secs = Math.min(away, CONFIG.offlineMaxHours * 3600);
 
@@ -2942,6 +3070,7 @@ function onSeasonChange(prev, next) {
 function update(dt) {
   state.dayTime = (state.dayTime + dt / CONFIG.dayLength) % 1;
   updateSeasons(dt);
+  updateConstruction(dt);
   updateProduction(dt);
   updatePopulation(dt);
   updateEvents(dt);
@@ -2994,7 +3123,7 @@ function slotSummary(slot) {
 // ---------- Stadt vollenden → Neustart mit Bonus ----------
 
 function canCompleteCity() {
-  return !state.completed && stats.level >= LEVELS.length - 1 && countBuildings('cathedral') > 0;
+  return !state.completed && stats.level >= LEVELS.length - 1 && countFinished('cathedral') > 0;
 }
 
 function completeCity() {
@@ -3089,7 +3218,7 @@ let saveBlocked = false;   // beim Import: verhindert, dass der alte Stand beim 
 function buildSaveData() {
   const buildings = [];
   state.grid.forEach((cell, i) => {
-    if (cell) buildings.push({ x: i % N, y: Math.floor(i / N), type: cell.type, timer: cell.timer, fire: cell.fire, level: cell.level, w: cell.w, h: cell.h });
+    if (cell) buildings.push({ x: i % N, y: Math.floor(i / N), type: cell.type, timer: cell.timer, fire: cell.fire, level: cell.level, w: cell.w, h: cell.h, build: cell.build });
   });
   const data = {
     v: CONFIG.saveVersion,
@@ -3168,13 +3297,21 @@ function load() {
       setOccupied(b.x, b.y, w, h, b.y * N + b.x);
       if (Number.isInteger(b.level) && b.level > 1 && b.level <= MAX_BUILDING_LEVEL && canUpgradeType(b.type)) cell.level = b.level;
       if (b.fire && typeof b.fire.left === 'number') cell.fire = b.fire;
+      if (b.build && Number.isFinite(b.build.left) && Number.isFinite(b.build.total) && b.build.left > 0) {
+        const total = clamp(b.build.total, 1, 3600);
+        cell.build = { left: Math.min(b.build.left, total), total };
+      }
       state.grid[b.y * N + b.x] = cell;
     }
   }
-  // Land: gespeicherte Parzellen (nur bei gleicher Kartengröße), dazu alles, worauf schon gebaut ist
-  const hadPlots = Array.isArray(data.plots) && oldSize === N;
+  // Land: gespeicherte Parzellen (von einer kleineren Karte in die Mitte verschoben), dazu alles, worauf schon gebaut ist
+  const oldP = oldSize / CONFIG.plotSize, shift = offset / CONFIG.plotSize;
+  const hadPlots = Array.isArray(data.plots) && oldSize <= N && Number.isInteger(oldP) && Number.isInteger(shift);
   if (hadPlots) {
-    for (const p of data.plots) if (p >= 0 && p < P * P) state.plots[p] = true;
+    for (const p of data.plots) {
+      if (!Number.isInteger(p) || p < 0 || p >= oldP * oldP) continue;
+      state.plots[(Math.floor(p / oldP) + shift) * P + p % oldP + shift] = true;
+    }
     if (Number.isFinite(data.plotsGranted)) state.plotsGranted = data.plotsGranted;
   }
   const ownedBefore = state.plots.filter(Boolean).length;
@@ -3184,7 +3321,7 @@ function load() {
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) state.plots[plotOf(i % N + dx, Math.floor(i / N) + dy)] = true;
   });
   state.plotsGranted += state.plots.filter(Boolean).length - ownedBefore;   // geschenkt, nicht gekauft
-  loadTerrain(data, oldSize === N);
+  loadTerrain(data, oldSize, offset);
   if (Array.isArray(data.effects)) {
     state.effects = data.effects.filter(e => EVENTS[e.event] && typeof e.left === 'number');
   }
@@ -3205,7 +3342,8 @@ function load() {
   if (typeof data.cityName === 'string') state.cityName = data.cityName.slice(0, 30);
   state.completed = data.completed === true;
   if (Array.isArray(data.camps)) {
-    state.camps = data.camps.filter(c => Number.isFinite(c.x) && Number.isFinite(c.y) && !isOwned(c.x, c.y) && !terrainBlocked(c.x, c.y)).slice(0, CONFIG.maxCamps);
+    if (offset) for (const c of data.camps) if (c) { c.x += offset; c.y += offset; }
+    state.camps = data.camps.filter(c => c && Number.isFinite(c.x) && Number.isFinite(c.y) && !isOwned(c.x, c.y) && !terrainBlocked(c.x, c.y)).slice(0, CONFIG.maxCamps);
   }
   if (Number.isFinite(data.campSpawnIn)) state.campSpawnIn = data.campSpawnIn;
   if (Array.isArray(data.achievements)) {
@@ -3317,15 +3455,16 @@ function render(dt) {
   const vis = visibleRange();
   drawMeadow(vis);
 
-  // Rasterlinien
-  ctx.strokeStyle = 'rgba(0,0,0,0.07)';
-  ctx.lineWidth = 1 / view.zoom;
-  ctx.beginPath();
-  for (let i = vis.x0; i <= vis.x1 + 1; i++) { ctx.moveTo(i * T, vis.y0 * T); ctx.lineTo(i * T, (vis.y1 + 1) * T); }
-  for (let i = vis.y0; i <= vis.y1 + 1; i++) { ctx.moveTo(vis.x0 * T, i * T); ctx.lineTo((vis.x1 + 1) * T, i * T); }
-  ctx.stroke();
-
   drawTerrain(vis);
+  // Rasterlinien nur beim Bauen und Verschieben – sonst sieht man die Landschaft ohne Kästchen
+  if ((selectedType || moveMode) && view.zoom > 0.25) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1 / view.zoom;
+    ctx.beginPath();
+    for (let i = vis.x0; i <= vis.x1 + 1; i++) { ctx.moveTo(i * T, vis.y0 * T); ctx.lineTo(i * T, (vis.y1 + 1) * T); }
+    for (let i = vis.y0; i <= vis.y1 + 1; i++) { ctx.moveTo(vis.x0 * T, i * T); ctx.lineTo((vis.x1 + 1) * T, i * T); }
+    ctx.stroke();
+  }
   drawLand(vis);
   drawServiceAreas();
 
@@ -3347,6 +3486,12 @@ function render(dt) {
     const age = (performance.now() - (cell.builtAt || 0)) / 1000;
     const scale = age < 0.35 ? easeOutBack(age / 0.35) : 1;   // Plopp beim Bauen
     const moving = moveMode && moveMode.from === y * N + x;
+    if (cell.build) {
+      drawConstruction(x, y, w, h, cell, moving ? 0.35 : 1);
+      if (moving) outlineRect(x, y, w, h, '#ffd166');
+      if (cell.fire) drawFire(x, y, cell.fire, w, h);
+      return;
+    }
     drawBuilding(x, y, BUILDINGS[cell.type], moving ? 0.35 : active || cell.fire ? 1 : 0.55, scale, w, h, cell);
     if (moving) outlineRect(x, y, w, h, '#ffd166');
     const mx = (x + w - 0.2) * T, my = (y + 0.22) * T;      // Ecke oben rechts für Hinweise
@@ -3399,6 +3544,18 @@ function render(dt) {
   drawPlotPrices(vis);
   drawCamps(dark);
 
+  if (pending && selectedType) {
+    const [w, h] = placementSize(selectedType);
+    const ok = !placeProblem(pending.x, pending.y, selectedType);
+    const fits = canPlaceAt(selectedType, pending.x, pending.y);
+    ctx.fillStyle = ok ? 'rgba(82, 183, 136, 0.35)' : 'rgba(230, 57, 70, 0.35)';
+    ctx.fillRect(pending.x * T, pending.y * T, w * T, h * T);
+    drawBuilding(pending.x, pending.y, BUILDINGS[selectedType], fits ? 0.75 : 0.4, 1, w, h);
+    ctx.lineWidth = 3 / view.zoom;
+    outlineRect(pending.x, pending.y, w, h, ok ? '#52b788' : '#e63946');
+    const tb = fits && terrainBonusOf(selectedType, pending.x, pending.y, w, h);
+    if (tb) drawTag(`+${Math.round(tb * 100)} %`, (pending.x + w / 2) * T, (pending.y - 0.25) * T);
+  }
   if (moveMode && hoverTile && state.grid[moveMode.from]) {
     const [w, h] = moveSize();
     if (canPlaceSize(hoverTile.x, hoverTile.y, w, h, moveMode.from)) drawBuilding(hoverTile.x, hoverTile.y, BUILDINGS[state.grid[moveMode.from].type], 0.55, 1, w, h);
@@ -3464,6 +3621,7 @@ const FLOWER_COLORS = { spring: ['#ffafcc', '#fff', '#ffd166'], summer: ['#ffd16
 function drawMeadow(vis) {
   const sid = season().id;
   const flowers = FLOWER_COLORS[sid];
+  if (view.zoom < 0.2) return;   // ganz weit draußen sieht man die Feinheiten nicht – spart Zeit auf der großen Karte
   for (let y = vis.y0; y <= vis.y1; y++) {
     for (let x = vis.x0; x <= vis.x1; x++) {
       const v = meadowShade[y * N + x];
@@ -3667,6 +3825,63 @@ function drawBuilding(x, y, def, alpha, scale = 1, w = 1, h = 1, cell = null) {
   const iconScale = Math.min(w, h) >= 3 ? 2.4 : Math.min(w, h) === 2 ? 1.8 : Math.max(w, h) > 1 ? 1.25 : 1;
   ctx.font = `${T * 0.6 * iconScale}px ${EMOJI_FONT}`;
   ctx.fillText(def.icon, cx, cy + T * 0.04 * Math.min(w, h));
+  ctx.restore();
+}
+
+// Baustelle: Erdfläche, das Gebäude wächst von unten nach oben, davor Gerüst und Fortschrittsbalken
+function drawConstruction(x, y, w, h, cell, alpha = 1) {
+  const X = x * T, Y = y * T, W = w * T, H = h * T;
+  const p = clamp(1 - cell.build.left / cell.build.total, 0, 1);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  sprGround(X, Y, W, H, '#c9a66b');
+  ctx.fillStyle = 'rgba(120, 85, 50, 0.35)';
+  for (let k = 0; k < w * h * 3; k++) {   // Erdklumpen
+    ctx.beginPath();
+    ctx.arc(X + T * 0.15 + tileHash(x, y, k) * (W - T * 0.3), Y + T * 0.15 + tileHash(x, y, k + 50) * (H - T * 0.3), T * 0.05, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+  // Das fertige Gebäude zeigt sich Stück für Stück von unten
+  const shown = 0.15 + 0.85 * p;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(X - T, Y + H * (1 - shown), W + 2 * T, H * shown + T);
+  ctx.clip();
+  drawBuilding(x, y, BUILDINGS[cell.type], 0.8 * alpha, 1, w, h, cell);
+  ctx.restore();
+  // Gerüst aus Holzstangen
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = '#7f5539';
+  ctx.lineWidth = T * 0.045;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  const poles = Math.max(2, w + 1);
+  for (let k = 0; k < poles; k++) {
+    const px = X + T * 0.14 + (W - T * 0.28) * k / (poles - 1);
+    ctx.moveTo(px, Y + T * 0.12);
+    ctx.lineTo(px, Y + H - T * 0.12);
+  }
+  for (let py = Y + T * 0.3; py < Y + H - T * 0.1; py += T * 0.42) {
+    ctx.moveTo(X + T * 0.1, py);
+    ctx.lineTo(X + W - T * 0.1, py);
+  }
+  ctx.stroke();
+  // Fortschrittsbalken und Restzeit
+  const bw = W - T * 0.3, bx = X + T * 0.15, by = Y + H - T * 0.22;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  roundRect(bx, by, bw, T * 0.13, T * 0.06);
+  ctx.fill();
+  ctx.fillStyle = '#ffd166';
+  roundRect(bx, by, Math.max(T * 0.13, bw * p), T * 0.13, T * 0.06);
+  ctx.fill();
+  const bob = Math.abs(Math.sin(performance.now() / 180)) * T * 0.08;
+  ctx.font = `${T * 0.32}px ${EMOJI_FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🔨', X + W - T * 0.25, Y + T * 0.25 - bob);
+  drawTag(secondsText(cell.build.left), X + W / 2, Y + H / 2);
   ctx.restore();
 }
 
@@ -4535,47 +4750,221 @@ function updateWalkers(dt) {
   walkers = walkers.filter(w => !w.dead && roadAt(w.fx, w.fy));
 }
 
-// Beschäftigte laufen als kleine Figuren im Gebäude umher (Farbe je Beruf)
+// ---------- Menschen ----------
+// Kleine Figuren in Schrägansicht: Beine, Hemd, Arme, Kopf mit Haaren. Arbeiter zeigen ihre Tätigkeit.
+
+const SKIN_COLORS = ['#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#ffdbac'];
+const HAIR_COLORS = ['#3b2a1a', '#6b4423', '#d9a441', '#1f1f1f', '#a0522d', '#cfcfcf'];
+const PANTS_COLORS = ['#4a3b2f', '#3d5a80', '#5c5c5c', '#6b4f3a'];
+// Hemdfarbe je Beruf (Arbeiter, Händler, Gelehrte) – Spaziergänger tragen bunte Kleidung
 const JOB_COLORS = { worker: '#f4a261', trader: '#4dabf7', scholar: '#b197fc' };
 
+// Tätigkeit je Gebäude: hoe = hacken, fish = angeln, saw = sägen, pick = Spitzhacke, hammer = hämmern,
+// read = lesen, carry = Kiste tragen, staff = mit Hirtenstab gehen, walk = umhergehen
+const WORK_STYLE = {
+  farm: 'hoe', fishery: 'fish', sawmill: 'saw', carpentry: 'saw', quarry: 'pick', mine: 'pick',
+  smithy: 'hammer', brickworks: 'hammer', sheepfarm: 'staff', market: 'carry', warehouse: 'carry',
+  bakery: 'carry', brewery: 'carry', weaver: 'read', scriptorium: 'read', school: 'read', library: 'read', townhall: 'read',
+};
+const WALKING_STYLES = new Set(['walk', 'carry', 'staff']);
+
+function personLook(seed) {
+  const pick = (list, k) => list[Math.floor(tileHash(seed, k, 7) * list.length)];
+  return { skin: pick(SKIN_COLORS, 1), hair: pick(HAIR_COLORS, 2), pants: pick(PANTS_COLORS, 3) };
+}
+
+// (x, y) = Fußpunkt in Weltpixeln. o: { shirt, skin, hair, pants, dir (−1/1), step (Laufschritt), tool, t (Zeit), toward {x, y} }
+function drawPerson(x, y, o) {
+  const u = T / 48;
+  if (view.zoom < 0.5) {   // weit weg: nur ein Punkt
+    ctx.fillStyle = o.shirt;
+    ctx.beginPath();
+    ctx.arc(x, y - 6 * u, 3.2 * u, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+  const dir = o.dir || 1;
+  const walking = o.step !== undefined;
+  const legSwing = walking ? Math.sin(o.step) * 2.2 * u : 0;
+  const t = o.t || 0;
+  // Schatten
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+  ctx.beginPath();
+  ctx.ellipse(x, y, 4.2 * u, 1.6 * u, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Beine
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = o.pants;
+  ctx.lineWidth = 1.9 * u;
+  ctx.beginPath();
+  ctx.moveTo(x - 1.2 * u, y - 5 * u); ctx.lineTo(x - 1.2 * u + legSwing, y - 0.4 * u);
+  ctx.moveTo(x + 1.2 * u, y - 5 * u); ctx.lineTo(x + 1.2 * u - legSwing, y - 0.4 * u);
+  ctx.stroke();
+  // Körper
+  const bend = o.tool === 'hoe' || o.tool === 'pick' ? Math.max(0, Math.sin(t * 4)) * 1.2 * u * dir : 0;
+  const bx = x + bend, by = y - 5 * u;
+  ctx.fillStyle = o.shirt;
+  roundRect(bx - 2.7 * u, by - 6.4 * u, 5.4 * u, 6.8 * u, 1.8 * u);
+  ctx.fill();
+  // Arme und Werkzeug
+  const sx = bx + 1.8 * u * dir, sy = by - 5.4 * u;   // vordere Schulter
+  let hx = sx + 1 * u * dir, hy = sy + 4.6 * u;        // Hand (hängend)
+  ctx.strokeStyle = o.skin;
+  ctx.lineWidth = 1.5 * u;
+  const tool = o.tool;
+  if (walking && !tool) hx = sx - Math.sin(o.step) * 1.6 * u;
+  if (tool === 'hoe' || tool === 'pick') {
+    const a = -1.9 + (Math.sin(t * 4) + 1) * 0.9;            // schwingt von oben nach unten
+    hx = sx + Math.cos(a) * 3.2 * u * dir; hy = sy + Math.sin(a) * 3.2 * u + 2 * u;
+  } else if (tool === 'hammer') {
+    const a = -1.6 + Math.max(0, Math.sin(t * 6)) * 1.5;
+    hx = sx + Math.cos(a) * 3.4 * u * dir; hy = sy + Math.sin(a) * 3.4 * u + 1.5 * u;
+  } else if (tool === 'saw') {
+    hx = sx + (2.6 + Math.sin(t * 7) * 1.8) * u * dir; hy = sy + 3 * u;
+  } else if (tool === 'fish' || tool === 'read' || tool === 'carry') {
+    hx = sx + 2.6 * u * dir; hy = sy + 2.4 * u;
+  }
+  ctx.beginPath();
+  ctx.moveTo(sx, sy); ctx.lineTo(hx, hy);
+  ctx.moveTo(bx - 1.8 * u * dir, sy); ctx.lineTo(bx - 1.8 * u * dir + (tool ? 1.2 * u * dir : 0), sy + 4.4 * u);
+  ctx.stroke();
+  drawTool(tool, hx, hy, dir, t, u, o);
+  // Kopf mit Haaren
+  const hy0 = by - 8.6 * u;
+  ctx.fillStyle = o.skin;
+  ctx.beginPath();
+  ctx.arc(bx, hy0, 2.7 * u, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = o.hair;
+  ctx.beginPath();
+  ctx.arc(bx - 0.5 * u * dir, hy0 - 0.6 * u, 2.6 * u, Math.PI * 0.95, Math.PI * 2.05);
+  ctx.fill();
+}
+
+function drawTool(tool, hx, hy, dir, t, u, o) {
+  if (!tool || tool === 'walk') return;
+  ctx.lineCap = 'round';
+  if (tool === 'hoe' || tool === 'pick') {
+    const a = -1.9 + (Math.sin(t * 4) + 1) * 0.9 + 0.5;
+    const ex = hx + Math.cos(a) * 6 * u * dir, ey = hy + Math.sin(a) * 6 * u;
+    ctx.strokeStyle = '#8b5a2b';
+    ctx.lineWidth = 1.1 * u;
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.strokeStyle = '#9aa0a6';
+    ctx.lineWidth = 1.4 * u;
+    ctx.beginPath();
+    if (tool === 'pick') { ctx.moveTo(ex - 2.4 * u, ey - 0.8 * u); ctx.quadraticCurveTo(ex, ey - 1.8 * u, ex + 2.4 * u, ey - 0.8 * u); }
+    else { ctx.moveTo(ex, ey); ctx.lineTo(ex + 1.8 * u * dir, ey + 1.4 * u); }
+    ctx.stroke();
+  } else if (tool === 'hammer') {
+    const a = -1.6 + Math.max(0, Math.sin(t * 6)) * 1.5 + 0.4;
+    const ex = hx + Math.cos(a) * 3.5 * u * dir, ey = hy + Math.sin(a) * 3.5 * u;
+    ctx.strokeStyle = '#8b5a2b';
+    ctx.lineWidth = 1 * u;
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.fillStyle = '#5c5f66';
+    ctx.fillRect(ex - 1.6 * u, ey - 1 * u, 3.2 * u, 2 * u);
+  } else if (tool === 'saw') {
+    ctx.fillStyle = '#7f5539';                       // Baumstamm vor dem Arbeiter
+    roundRect(hx - 1 * u * dir - 4 * u, hy + 2.5 * u, 8 * u, 2.4 * u, 1.2 * u);
+    ctx.fill();
+    ctx.strokeStyle = '#c0c4c8';
+    ctx.lineWidth = 1.3 * u;
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + 4.5 * u * dir, hy + 2.6 * u); ctx.stroke();
+  } else if (tool === 'fish') {
+    // Angelrute zum Wasser, Schnur mit wippendem Schwimmer
+    const tx = hx + (o.toward ? o.toward.x : dir) * 11 * u, ty = hy - 5 * u + (o.toward ? o.toward.y * 6 * u : 0);
+    ctx.strokeStyle = '#8b5a2b';
+    ctx.lineWidth = 0.9 * u;
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
+    const fx = tx + (o.toward ? o.toward.x : dir) * 2 * u, fy = ty + 9 * u + Math.sin(t * 3) * 0.8 * u;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = 0.5 * u;
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(fx, fy); ctx.stroke();
+    ctx.fillStyle = '#e63946';
+    ctx.beginPath(); ctx.arc(fx, fy, 1 * u, 0, Math.PI * 2); ctx.fill();
+  } else if (tool === 'read') {
+    ctx.fillStyle = '#7b2cbf';
+    ctx.fillRect(hx - 1.8 * u, hy - 1.6 * u, 3.6 * u, 2.6 * u);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(hx - 1.4 * u, hy - 1.2 * u, 2.8 * u, 0.6 * u);
+  } else if (tool === 'carry') {
+    ctx.fillStyle = '#c08552';
+    ctx.fillRect(hx - 2.2 * u, hy - 2.6 * u, 4.4 * u, 3.4 * u);
+    ctx.strokeStyle = '#8b5a2b';
+    ctx.lineWidth = 0.6 * u;
+    ctx.strokeRect(hx - 2.2 * u, hy - 2.6 * u, 4.4 * u, 3.4 * u);
+  } else if (tool === 'staff') {
+    ctx.strokeStyle = '#8b5a2b';
+    ctx.lineWidth = 1 * u;
+    ctx.beginPath(); ctx.moveTo(hx, hy + 4.4 * u); ctx.lineTo(hx, hy - 7 * u); ctx.arc(hx + 1.2 * u, hy - 7 * u, 1.2 * u, Math.PI, 0); ctx.stroke();
+  }
+}
+
+// Richtung zum nächsten Wasserfeld am Rand des Gebäudes (für Angler), sonst null
+function waterSide(x, y, w, h) {
+  for (const [px, py] of perimeterTiles(x, y, w, h)) {
+    if (px >= 0 && py >= 0 && px < N && py < N && state.terrain[py * N + px] === TERRAIN_ID.water) {
+      const dx = px + 0.5 - (x + w / 2), dy = py + 0.5 - (y + h / 2);
+      const len = Math.hypot(dx, dy) || 1;
+      return { x: dx / len, y: dy / len };
+    }
+  }
+  return null;
+}
+
+// Beschäftigte arbeiten im Gebäude: stehen an ihrem Platz und zeigen die Tätigkeit oder gehen umher
 function drawWorkers(vis) {
   if (view.zoom < 0.45) return;   // weit herausgezoomt nur störend
   const t = performance.now() / 1000;
   forEachVisible(vis, (cell, x, y) => {
     const job = jobOf(cell.type);
-    if (!job || cell.fire) return;
+    if (!job || cell.fire || cell.build) return;
     const count = Math.min(stats.cellStaff.get(y * N + x) || 0, 10);
     const [w, h] = sizeOf(cell);
+    const style = WORK_STYLE[cell.type] || 'walk';
+    const water = style === 'fish' ? waterSide(x, y, w, h) : null;
     for (let n = 0; n < count; n++) {
-      // eigene, ruhige Bahn je Figur innerhalb des Gebäudes
-      const seed = (x * 13 + y * 7 + n * 31) % 97;
-      const a = t * (0.4 + (seed % 5) * 0.08) + seed;
-      const px = x + w / 2 + Math.cos(a) * (w / 2 - 0.25) * (0.5 + (seed % 3) * 0.2);
-      const py = y + h / 2 + 0.15 + Math.sin(a * 1.3) * (h / 2 - 0.3) * (0.4 + (seed % 4) * 0.12);
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.beginPath();
-      ctx.arc(px * T, (py + 0.04) * T, T * 0.095, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = JOB_COLORS[job];
-      ctx.beginPath();
-      ctx.arc(px * T, py * T, T * 0.085, 0, Math.PI * 2);
-      ctx.fill();
+      const seed = x * 131 + y * 17 + n * 7;
+      const look = { ...personLook(seed), shirt: JOB_COLORS[job], t: t + n * 1.7, tool: style === 'walk' ? null : style };
+      let px, py;
+      if (WALKING_STYLES.has(style)) {
+        // eigene, ruhige Bahn je Figur innerhalb des Gebäudes
+        const k = (seed % 97);
+        const a = t * (0.35 + (k % 5) * 0.06) + k;
+        px = x + w / 2 + Math.cos(a) * (w / 2 - 0.25) * (0.5 + (k % 3) * 0.2);
+        py = y + h / 2 + 0.3 + Math.sin(a * 1.3) * (h / 2 - 0.3) * (0.4 + (k % 4) * 0.12);
+        look.dir = -Math.sin(a) >= 0 ? 1 : -1;
+        look.step = t * 9 + n;
+      } else if (water) {
+        // Angler stehen am Ufer und halten die Rute übers Wasser
+        px = x + w / 2 + water.x * (w / 2 - 0.15) + (n - (count - 1) / 2) * 0.35 * Math.abs(water.y);
+        py = y + h / 2 + water.y * (h / 2 - 0.15) + 0.2 + (n - (count - 1) / 2) * 0.35 * Math.abs(water.x);
+        look.dir = water.x < -0.1 ? -1 : 1;
+        look.toward = water;
+      } else {
+        // fester Arbeitsplatz: verteilt auf die Felder (bei Farm und Sägewerk nicht im Gebäude oben links)
+        const tiles = [];
+        for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) tiles.push([dx, dy]);
+        const usable = w * h > 1 && (cell.type === 'farm' || cell.type === 'sawmill') ? tiles.slice(1) : tiles;
+        const [tx, ty] = usable[n % usable.length];
+        const spread = Math.floor(n / usable.length);
+        px = x + tx + 0.3 + tileHash(seed, 1, 3) * 0.4 + spread * 0.2;
+        py = y + ty + (w * h > 1 ? 0.65 : 0.9) + tileHash(seed, 2, 3) * 0.15;
+        look.dir = tileHash(seed, 3, 3) < 0.5 ? -1 : 1;
+      }
+      drawPerson(px * T, py * T, look);
     }
   });
 }
 
 function drawWalkers() {
+  const t = performance.now() / 1000;
   for (const w of walkers) {
     const x = (w.fx + (w.tx - w.fx) * w.p + 0.5 + w.lane) * T;
-    const y = (w.fy + (w.ty - w.fy) * w.p + 0.5 + w.lane) * T;
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.beginPath();
-    ctx.arc(x, y + T * 0.03, T * 0.075, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = w.color;
-    ctx.beginPath();
-    ctx.arc(x, y, T * 0.065, 0, Math.PI * 2);
-    ctx.fill();
+    const y = (w.fy + (w.ty - w.fy) * w.p + 0.62 + w.lane) * T;
+    w.look ||= personLook(Math.floor(w.lane * 1000 + w.speed * 777));
+    drawPerson(x, y, { ...w.look, shirt: w.color, step: t * 9 * w.speed + w.lane * 40, dir: w.tx < w.fx ? -1 : 1 });
   }
 }
 
@@ -4720,6 +5109,10 @@ canvas.addEventListener('pointerdown', e => {
       paint = { last: screenToTile(p.x, p.y), started: false, select: true };
     } else if (e.button !== 1 && selectedType && BUILDINGS[selectedType].dragBuild) {
       paint = { last: screenToTile(p.x, p.y), started: false };
+    } else if (e.button !== 1 && pending && pendingContains(screenToTile(p.x, p.y).x, screenToTile(p.x, p.y).y)) {
+      // Vorschau anfassen und verschieben
+      const t = screenToTile(p.x, p.y);
+      paint = { last: t, started: false, ghost: { dx: t.x - pending.x, dy: t.y - pending.y } };
     } else {
       startPan(p);
     }
@@ -4747,6 +5140,13 @@ function tileLine(a, b) {
 
 function paintTo(tile) {
   if (tile.x === paint.last.x && tile.y === paint.last.y) return;
+  if (paint.ghost) {
+    paint.started = true;
+    tapStart = null;
+    if (pending) setPending(tile.x - paint.ghost.dx, tile.y - paint.ghost.dy);
+    paint.last = tile;
+    return;
+  }
   if (paint.select) {
     // Abriss-Modus: alles Bebaute entlang des Wegs markieren
     if (!paint.started) {
@@ -4852,8 +5252,10 @@ window.addEventListener('keydown', e => {
     if (moveMode) { moveMode.rotated = !moveMode.rotated; return; }
     if (selectedType) { toggleBuildRotation(); return; }
   }
+  if (e.key === 'Enter' && pending) { confirmPending(); return; }
   if (e.key === 'Escape') {
     if (moveMode) { cancelMove(); return; }
+    if (pending) { clearPending(); return; }
     if (demolishMode && demolishSelection.size) {
       clearDemolishSelection();
       return;
@@ -4887,6 +5289,7 @@ function handleTap(sx, sy) {
     return;
   }
   if (cell) {
+    if (!cell.build && !cell.fire) playBuildingSound(cell.type);
     showInfo(x, y);
     return;
   }
@@ -4900,8 +5303,10 @@ function handleTap(sx, sy) {
     return;
   }
   closePanels();
-  if (cell === null && selectedType) placeBuilding(x, y, selectedType);
-  else if (cell === null && terrainAt(x, y)) {
+  if (cell === null && selectedType && BUILDINGS[selectedType].dragBuild) placeBuilding(x, y, selectedType);
+  else if (cell === null && selectedType) {
+    if (!pendingContains(x, y)) setPending(x, y);   // Vorschau hinstellen bzw. umsetzen
+  } else if (cell === null && terrainAt(x, y)) {
     const t = TERRAIN[terrainAt(x, y)];
     showToast(`${t.icon} ${t.name}: ${t.text}`, 4000);
   }
@@ -5101,6 +5506,61 @@ const SOUNDS = {
   click: s => s.tone(600, 0.04, { vol: 0.08 }),
 };
 
+// Geräusch beim Antippen eines Gebäudes (selbst erzeugt, keine Tondateien)
+const BUILDING_SOUNDS = {
+  // Säge: rhythmisches Rauschen hin und her
+  saw: s => [0, 1, 2, 3].forEach(i => s.noise(0.16, { vol: 0.22, freq: i % 2 ? 2600 : 1800, to: i % 2 ? 1800 : 2600, filter: 'bandpass', delay: i * 0.18 })),
+  // Hammer auf Amboss: heller Klang mit Nachhall
+  anvil: s => [0, 0.32].forEach(d => { s.tone(1250, 0.5, { type: 'triangle', vol: 0.2, delay: d }); s.tone(3100, 0.25, { vol: 0.08, delay: d }); s.noise(0.05, { vol: 0.25, freq: 4000, filter: 'highpass', delay: d }); }),
+  // Spitzhacke auf Stein
+  pick: s => [0, 0.28, 0.56].forEach(d => { s.noise(0.07, { vol: 0.3, freq: 2200, filter: 'bandpass', delay: d }); s.tone(520, 0.08, { type: 'square', vol: 0.05, delay: d }); }),
+  // Hacke und Wind auf dem Feld, dazu ein Vogel
+  field: s => { s.noise(0.9, { vol: 0.12, freq: 600, to: 300 }); [0, 0.12, 0.5].forEach((d, i) => s.tone(i === 2 ? 2600 : 3000, 0.09, { vol: 0.07, to: i === 2 ? 2000 : 3600, delay: 0.3 + d })); },
+  // Wasser plätschert, Schwimmer taucht ein
+  water: s => { s.noise(0.5, { vol: 0.25, freq: 1400, to: 300 }); [0.2, 0.32, 0.41].forEach(d => s.tone(500 + d * 900, 0.08, { vol: 0.08, to: 900, delay: d })); },
+  // Schaf: „Mäh“ mit Zittern
+  sheep: s => [0, 0.06, 0.12, 0.18, 0.24, 0.3].forEach((d, i) => s.tone(i % 2 ? 330 : 345, 0.09, { type: 'sawtooth', vol: 0.07, delay: d })),
+  // Münzen klimpern
+  market: s => [0, 0.07, 0.15, 0.2].forEach((d, i) => s.tone([NOTE.E5 * 2, NOTE.B5 * 2, NOTE.G5 * 2, NOTE.C6 * 2][i], 0.18, { vol: 0.07, delay: d })),
+  // Kisten werden abgesetzt
+  crates: s => [0, 0.22].forEach(d => { s.tone(140, 0.12, { type: 'triangle', vol: 0.3, to: 70, delay: d }); s.noise(0.06, { vol: 0.15, freq: 700, delay: d }); }),
+  // Feuer im Ofen knistert
+  oven: s => { s.noise(0.7, { vol: 0.12, freq: 500 }); [0.05, 0.2, 0.33, 0.5].forEach(d => s.noise(0.03, { vol: 0.3, freq: 3500, filter: 'highpass', delay: d })); },
+  // Blubbern im Braukessel
+  bubbles: s => [0, 0.11, 0.25, 0.33, 0.46].forEach((d, i) => s.tone(180 + i * 40, 0.1, { vol: 0.15, to: 420 + i * 60, delay: d })),
+  // Webstuhl klappert
+  loom: s => [0, 0.2, 0.4].forEach(d => { s.tone(300, 0.05, { type: 'square', vol: 0.08, delay: d }); s.tone(220, 0.05, { type: 'square', vol: 0.06, delay: d + 0.09 }); }),
+  // Glocke (Schule klein, Kathedrale groß)
+  bell: s => [NOTE.G5, NOTE.E5].forEach((f, i) => { s.tone(f, 0.9, { vol: 0.12, delay: i * 0.35 }); s.tone(f * 2.4, 0.5, { vol: 0.04, delay: i * 0.35 }); }),
+  bigbell: s => [0, 0.9].forEach(d => { s.tone(NOTE.C4, 2, { vol: 0.2, delay: d }); s.tone(NOTE.C4 * 2.5, 1.2, { vol: 0.06, delay: d }); s.tone(NOTE.C4 * 1.5, 1.5, { vol: 0.05, delay: d }); }),
+  // Seiten umblättern
+  pages: s => [0, 0.25].forEach(d => s.noise(0.15, { vol: 0.12, freq: 4000, to: 1500, filter: 'highpass', delay: d })),
+  // Anklopfen an der Haustür
+  door: s => [0, 0.14].forEach(d => s.tone(180, 0.07, { type: 'triangle', vol: 0.35, to: 120, delay: d })),
+  // Wasser im Brunnen
+  well: s => { s.noise(1, { vol: 0.12, freq: 2500, to: 900, filter: 'bandpass' }); s.tone(700, 0.15, { vol: 0.06, to: 1100, delay: 0.4 }); },
+  // Rüstung klirrt, Horn der Wache
+  guard: s => { s.tone(NOTE.G3, 0.5, { type: 'sawtooth', vol: 0.06 }); s.tone(NOTE.D4, 0.6, { type: 'sawtooth', vol: 0.06, delay: 0.25 }); },
+  // Vögel im Park
+  birds: s => [0, 0.15, 0.3, 0.7, 0.82].forEach((d, i) => s.tone(2600 + (i % 3) * 400, 0.08, { vol: 0.06, to: 3400 + (i % 2) * 500, delay: d })),
+};
+
+const BUILDING_SOUND = {
+  sawmill: 'saw', carpentry: 'saw', smithy: 'anvil', quarry: 'pick', mine: 'pick', farm: 'field', fishery: 'water',
+  sheepfarm: 'sheep', market: 'market', warehouse: 'crates', bakery: 'oven', brickworks: 'oven', brewery: 'bubbles',
+  weaver: 'loom', school: 'bell', firestation: 'bell', cathedral: 'bigbell', townhall: 'bigbell', scriptorium: 'pages',
+  library: 'pages', house: 'door', well: 'well', plaza: 'well', guard: 'guard', tower: 'guard', park: 'birds', hospital: 'pages',
+};
+
+function playBuildingSound(type) {
+  const name = BUILDING_SOUND[type];
+  if (!name || !settings.sfx || !sound.ctx || sound.ctx.state !== 'running') return;
+  const now = performance.now();
+  if (now - (sound.lastPlayed.building || 0) < 400) return;   // schnelles Tippen nicht überlagern
+  sound.lastPlayed.building = now;
+  BUILDING_SOUNDS[name](sound);
+}
+
 on('build', ({ type }) => sound.play(BUILDINGS[type].isRoad ? 'road' : 'build'));
 on('demolish', () => sound.play('demolish'));
 on('questComplete', () => sound.play('quest'));
@@ -5134,6 +5594,23 @@ function showCategory(cat) {
   for (const type of categoryTypes(cat)) if (isUnlocked(type)) seenUnlocked.add(type);
   document.getElementById('buildbar').scrollLeft = 0;
   updateCategoryTabs();
+  fitBuildLabels();
+}
+
+// Passt ein Name in der Bauleiste nicht ganz hinein, zeigt die ganze Reihe nur Bilder
+// (Kosten und Beschreibung stehen dann in der Kurzinfo nach dem Antippen)
+function fitBuildLabels() {
+  for (const row of ['#build-tabs .build-tab', '#buildbar .build-btn']) {
+    const items = [...document.querySelectorAll(row)].filter(el => !el.classList.contains('hidden'));
+    items.forEach(el => el.classList.remove('icon-only'));
+    const tooLong = items.some(el => {
+      const name = el.querySelector('.name');
+      const cost = el.querySelector('.cost');
+      return (name && name.scrollWidth > name.clientWidth + 1) ||
+        (cost && cost.getBoundingClientRect().height > 30);   // Kosten brauchen mehr als zwei Zeilen
+    });
+    if (tooLong) items.forEach(el => el.classList.add('icon-only'));
+  }
 }
 
 function updateCategoryTabs() {
@@ -5293,6 +5770,12 @@ function buildUI() {
   document.getElementById('info-move').addEventListener('click', () => {
     if (infoTile && infoClickAllowed()) startMove(infoTile.y * N + infoTile.x);
   });
+  document.getElementById('place-bar').addEventListener('click', e => {
+    const act = e.target.closest('[data-act]')?.dataset.act;
+    if (act === 'rotate') toggleBuildRotation();
+    if (act === 'cancel') clearPending();
+    if (act === 'ok') confirmPending();
+  });
   document.getElementById('move-bar').addEventListener('click', e => {
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'rotate') { moveMode.rotated = !moveMode.rotated; sound.play('click'); }
@@ -5415,6 +5898,8 @@ function updateUI() {
       status.classList.toggle('unaffordable', !canAfford(costOf(type)));
     }
   }
+  fitBuildLabels();
+  if (pending) renderPlaceBar();
   if (infoMode) renderInfo();
   updateQuestUI();
   updateResearchUI();
@@ -5696,6 +6181,7 @@ function selectBuild(type) {
     showBuildInfo(type);
     return;
   }
+  if (type !== selectedType) clearPending();
   selectedType = type;
   canvas.classList.toggle('building', !!type);
   if (type) showBuildInfo(type);
@@ -5751,6 +6237,7 @@ let buildInfoExpanded = false;
 function toggleBuildRotation() {
   buildRotated = !buildRotated;
   if (selectedType) showBuildInfo(selectedType);
+  if (pending) renderPlaceBar();
   sound.play('click');
 }
 
@@ -6120,10 +6607,16 @@ function renderTileInfo() {
   const active = isActive(infoTile.x, infoTile.y);
   const lines = [def.description];
   if (def.isRoad) lines.push(...describeBuilding(cell.type));
+  if (cell.build) {
+    const pct = Math.floor((1 - cell.build.left / cell.build.total) * 100);
+    lines.push(`🏗️ Im Bau: ${pct} % – fertig in ${secondsText(cell.build.left)}`);
+  }
   if (cell.fire) {
     lines.push(cell.fire.brigade
       ? '🚒 Brennt – die Feuerwache löscht gerade.'
       : `🔥 Brennt! In ${Math.ceil(cell.fire.left)} s ist es abgebrannt.`);
+  } else if (cell.build) {
+    if (def.needsRoad && !hasRoadAccess(infoTile.x, infoTile.y)) lines.push('⚠️ Noch kein Straßenanschluss – nach dem Bau arbeitet es erst mit Straße.');
   } else if (!active) {
     lines.push('⚠️ Kein Straßenanschluss – arbeitet nicht.');
   }
@@ -6211,7 +6704,7 @@ function renderTileInfo() {
   btn.classList.toggle('armed', !!armed);
   btn.textContent = armed
     ? '⚠️ Wirklich? Nochmal tippen'
-    : `${def.isRoad ? '🗑️ Löschen' : '💰 Verkaufen'} +${formatAmounts(refund) || '0'}`;
+    : `${def.isRoad ? '🗑️ Löschen' : cell.build ? '✖ Bau abbrechen' : '💰 Verkaufen'} +${formatAmounts(refund) || '0'}`;
 }
 
 // Zusammenfassung sichtbar, Details aufklappbar (Zustand bleibt beim Aktualisieren erhalten)
@@ -6252,7 +6745,7 @@ function renderUpgradeButton(cell) {
   const btn = document.getElementById('info-upgrade');
   const to = levelOf(cell) + 1;
   const up = UPGRADES[to];
-  if (!canUpgradeType(cell.type) || !up) {
+  if (!canUpgradeType(cell.type) || !up || cell.build) {
     btn.classList.add('hidden');
     return;
   }
@@ -6643,6 +7136,38 @@ function setupTransfer() {
 // SPIELSCHLEIFE & START
 // =====================================================================
 
+// ---------- Zurück-Taste (Wischgeste am Handy, Browser-Zurück) ----------
+// Solange ein Fenster offen ist, liegt ein Eintrag im Verlauf: „Zurück“ schließt dann das Fenster,
+// statt das Spiel zu verlassen.
+let backEntry = false;
+let ignorePop = false;
+
+function anyWindowOpen() {
+  return !!pending || !!moveMode || ['info', 'quests', 'research', 'settings']
+    .some(id => !document.getElementById(id).classList.contains('hidden'));
+}
+
+function syncBackEntry() {
+  if (typeof history === 'undefined' || !history.pushState) return;
+  const open = anyWindowOpen();
+  if (open && !backEntry) {
+    history.pushState({ stadtaufbauWindow: true }, '');
+    backEntry = true;
+  } else if (!open && backEntry) {
+    backEntry = false;
+    ignorePop = true;
+    history.back();
+  }
+}
+
+window.addEventListener('popstate', () => {
+  if (ignorePop) { ignorePop = false; return; }
+  backEntry = false;
+  if (moveMode) cancelMove();
+  clearPending();
+  closePanels();
+});
+
 let lastTime = performance.now();
 let uiTimer = 0;
 
@@ -6679,6 +7204,7 @@ function loop(now) {
     checkAchievements();
     updateUI();
   }
+  syncBackEntry();
   updateCamera(dt);
   updateParticles(dt);
   updateWalkers(dt);
@@ -6756,7 +7282,7 @@ function start() {
   checkAchievements(true);
   buildUI();
   resize();
-  new ResizeObserver(resize).observe(canvas);
+  new ResizeObserver(() => { resize(); fitBuildLabels(); }).observe(canvas);
   updateUI();
 
   setInterval(save, CONFIG.autosaveSeconds * 1000);

@@ -3,6 +3,15 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-26 – Täglicher Lauf (Version 42)
+
+- Tests: alle 12 bestanden. Bot (3 Läufe à 90 min), Durchschnitt: Kleinstadt 2,8 min · 50 Einw. 8,9 min ·
+  Stadt 17,4 min · 150 Einw. 24,8 min · 200 Einw. 33,2 min · Kathedrale (Läufe 2/3: 34,7 / 31,3 min) ·
+  Hunger 0 min · Frost 0 min · 41/41 Aufträge. Alles im Zielbereich.
+- `docs/wuensche.md`: keine offenen Punkte.
+- Geprüfter Codebereich: keiner (Zeit für Bot-Läufe verwendet, keine Auffälligkeiten im Bericht).
+- Keine Änderung nötig (Version bleibt 42).
+
 ## 2026-10-25 – Täglicher Lauf (Version 37)
 
 - Tests: alle 7 bestanden. Bot (3 Läufe à 90 min), Durchschnitt: Kleinstadt 3,9 min · 50 Einw. 17,7 min ·

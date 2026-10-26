@@ -1,6 +1,6 @@
 // Bei Änderungen an den Dateien die Versionsnummer erhöhen (gleiche Nummer wie APP_VERSION in game.js
 // und <meta name="app-version"> in index.html).
-const CACHE = 'stadtaufbau-v50';
+const CACHE = 'stadtaufbau-v51';
 const ASSETS = [
   './',
   'index.html',
@@ -14,6 +14,14 @@ const ASSETS = [
   'bilder/1-gatherer.webp',
   'bilder/1-hunter.webp',
   'bilder/2-farm.webp',
+  'bilder/4-coalmine.webp',
+  'bilder/4-steelworks.webp',
+  'bilder/4-factory.webp',
+  'bilder/4-tenement.webp',
+  'bilder/4-station.webp',
+  'bilder/4-police.webp',
+  'bilder/4-clocktower.webp',
+  'bilder/5-powerplant.webp',
 ];
 
 self.addEventListener('install', event => {

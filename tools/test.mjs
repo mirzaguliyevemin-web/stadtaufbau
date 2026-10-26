@@ -220,6 +220,38 @@ test('Zeitalter: Steinzeit, Aufstieg, Speichern', () => {
   return 'Steinzeit → Antike';
 });
 
+test('Industrie und Moderne: Aufstieg und Produktionsketten', () => {
+  const game = fresh({ seed: 18, age: 2 });
+  const r = game.run(`${PREP}
+    for (let y = 20; y < 23; y++) for (let x = 30; x < 33; x++) state.terrain[y * N + x] = TERRAIN_ID.rock;
+    stats.storage = 100000; state.maxLevel = 2;
+    const rich = () => { for (const id in RESOURCES) state.resources[id] = 30000; };
+    rich(); state.population = 400;
+    advanceAge(); const industry = state.age;
+    rich();
+    for (let x = 24; x < 46; x++) placeBuilding(x, 25, 'road');
+    const coal = placeBuilding(31, 23, 'mine') && placeBuilding(30, 23, 'coalmine');
+    placeBuilding(31, 24, 'road'); placeBuilding(30, 24, 'road');
+    const built3 = ['steelworks', 'factory', 'tenement', 'station', 'police'].map((t, k) => placeBuilding(24 + k * 3, 26, t));
+    advanceAge(); const modern = state.age;
+    rich();
+    for (let x = 24; x < 46; x++) placeBuilding(x, 28, 'road');
+    const built4 = ['powerplant', 'concreteworks', 'electronicsworks', 'highrise', 'supermarket', 'university'].map((t, k) => placeBuilding(24 + k * 3, 29, t));
+    for (const id in RESOURCES) state.resources[id] = Math.min(state.resources[id], 50);
+    state.population = 400; recalcStats();
+    for (let i = 0; i < 400; i++) update(0.25);
+    render(0.016); showAges(); updateAgesUI();
+    JSON.stringify({ industry, modern, coal, built3, built4, steel: state.produced.steel > 0, goods: state.produced.goods > 0,
+      power: state.produced.power > 0, concrete: state.produced.concrete > 0, electronics: state.produced.electronics > 0 })
+  `);
+  noErrors(game, 'bei Industrie/Moderne');
+  const o = JSON.parse(r);
+  assert(o.industry === 3 && o.modern === 4 && o.coal, 'Aufstieg: ' + r);
+  assert(o.built3.every(Boolean) && o.built4.every(Boolean), 'Bauen: ' + r);
+  assert(o.steel && o.goods && o.power && o.concrete && o.electronics, 'Produktion: ' + r);
+  return 'Kohle → Stahl → Fabrikwaren, Strom → Beton/Elektronik';
+});
+
 test('Gelände: Wald, Berge, Seen mit Spielwirkung', () => {
   const game = fresh({ seed: 7 });
   const r = game.run(`
@@ -322,7 +354,7 @@ test('Handwerk: Bier, Stoff, Werkzeug', () => {
     for (let x = 24; x < 40; x++) placeBuilding(x, 25, 'road');
     const mineFar = placeBuilding(26, 24, 'mine');
     const mineOk = placeBuilding(31, 23, 'mine');
-    placeBuilding(31, 24, 'road');
+    placeBuilding(31, 24, 'road'); placeBuilding(30, 24, 'road');
     const ok = ['brewery', 'weaver', 'smithy', 'sheepfarm'].map((t, k) => placeBuilding(24 + k * 3, 26, t));
     for (let x = 24; x < 40; x++) placeBuilding(x, 28, 'road');
     for (let x = 24; x < 40; x++) placeBuilding(x, 29, 'house');

@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 50;
+const APP_VERSION = 51;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -94,7 +94,7 @@ const SEASONS = [
   { id: 'spring', name: 'Frühling', icon: '🌸', ground: '#74c69d', production: { farm: 1 },    happiness: 3 },
   { id: 'summer', name: 'Sommer',   icon: '☀️', ground: '#95c97a', production: { farm: 1.2, sheepfarm: 1.2, gatherer: 1.2 } },
   { id: 'autumn', name: 'Herbst',   icon: '🍂', ground: '#c2b46a', production: { farm: 1.35, gatherer: 1.3 } },
-  { id: 'winter', name: 'Winter',   icon: '❄️', ground: '#e4edf1', production: { farm: 0.5, fishery: 0.5, sheepfarm: 0.7, gatherer: 0.3, hunter: 0.8 },  heating: true },
+  { id: 'winter', name: 'Winter',   icon: '❄️', ground: '#e4edf1', production: { farm: 0.5, fishery: 0.5, sheepfarm: 0.7, gatherer: 0.3, hunter: 0.8, solarpark: 0.5 },  heating: true },
 ];
 
 // Gelände. blocks: darauf kann nicht gebaut werden  | clearYield: Ertrag, wenn das Feld beim Bauen gerodet wird
@@ -117,6 +117,7 @@ const TERRAIN_BONUS = {
   farm:    { terrain: 'water',  radius: 2, flat: 0.25, label: 'Bewässerung' },
   fishery: { terrain: 'water',  radius: 2, perTile: 0.03, max: 0.45, label: 'Großes Gewässer' },
   mine:    { terrain: 'rock',   radius: 2, perTile: 0.04, max: 0.4, label: 'Großer Berg' },
+  coalmine:    { terrain: 'rock',   radius: 2, perTile: 0.04, max: 0.4, label: 'Großer Berg' },
   woodcutter:  { terrain: 'forest', radius: 2, perTile: 0.05, max: 0.5, label: 'Waldnähe' },
   stonecutter: { terrain: 'rock',   radius: 2, perTile: 0.06, max: 0.6, label: 'Bergnähe' },
   gatherer:    { terrain: 'forest', radius: 2, perTile: 0.04, max: 0.4, label: 'Beeren im Wald' },
@@ -140,6 +141,12 @@ const RESOURCES = {
   beer:   { name: 'Bier',     icon: '🍺', start: 0, stored: true, price: 10, showFrom: 99 },
   iron:   { name: 'Eisen',    icon: '⛓️', start: 0, stored: true, price: 12, showFrom: 99 },
   tools:  { name: 'Werkzeug', icon: '🛠️', start: 0, stored: true, price: 30, showFrom: 99 },
+  coal:   { name: 'Kohle',       icon: '⚫', start: 0, stored: true, price: 10, showFrom: 99, fromAge: 3 },
+  steel:  { name: 'Stahl',       icon: '🔩', start: 0, stored: true, price: 35, showFrom: 99, fromAge: 3 },
+  goods:  { name: 'Fabrikwaren', icon: '📦', start: 0, stored: true, price: 45, showFrom: 99, fromAge: 3 },
+  power:  { name: 'Strom',       icon: '⚡', start: 0, stored: true, price: 8,  showFrom: 99, fromAge: 4 },
+  concrete: { name: 'Beton',     icon: '🧊', start: 0, stored: true, price: 20, showFrom: 99, fromAge: 4 },
+  electronics: { name: 'Elektronik', icon: '💻', start: 0, stored: true, price: 80, showFrom: 99, fromAge: 4 },
 };
 
 // Genussgüter: werden laufend verbraucht, solange etwas da ist – und machen die Einwohner zufriedener
@@ -147,6 +154,8 @@ const LUXURIES = {
   bread: { perCitizen: 0.005, happiness: 8, label: '🥖 Frisches Brot', verb: 'essen Brot' },
   beer:  { perCitizen: 0.002, happiness: 5, label: '🍺 Bier im Wirtshaus', verb: 'trinken Bier' },
   cloth: { perCitizen: 0.0015, happiness: 6, label: '🧵 Neue Kleidung', verb: 'brauchen Kleidung' },
+  goods: { perCitizen: 0.001, happiness: 6, label: '📦 Fabrikwaren im Haushalt', verb: 'kaufen Fabrikwaren' },
+  electronics: { perCitizen: 0.0004, happiness: 8, label: '💻 Elektronik', verb: 'nutzen Elektronik' },
 };
 
 // Werkzeug: Betriebe mit Arbeitern produzieren mehr, solange Werkzeug da ist – es nutzt sich dabei ab
@@ -167,8 +176,10 @@ const AGES = [
     need: { population: 25 }, cost: { wood: 100, stone: 80, food: 100 } },
   { id: 'medieval',  name: 'Mittelalter', icon: '🏰', text: 'Handwerk, Schulen, Burgtürme und Kathedralen.',
     need: { population: 40 }, cost: { money: 400, knowledge: 30, stone: 100, bricks: 15 } },
-  { id: 'industry',  name: 'Industrie',   icon: '🏭', text: 'Fabriken, Kohle, Stahl und Eisenbahn.', ready: false },
-  { id: 'modern',    name: 'Moderne',     icon: '🏙️', text: 'Strom, Hochhäuser, Universität und Flughafen.', ready: false },
+  { id: 'industry',  name: 'Industrie',   icon: '🏭', text: 'Fabriken, Kohle, Stahl und Eisenbahn. Mietshäuser bieten viel Wohnraum.',
+    need: { population: 150 }, cost: { money: 3000, knowledge: 300, iron: 60, tools: 30, bricks: 150 } },
+  { id: 'modern',    name: 'Moderne',     icon: '🏙️', text: 'Strom, Beton, Hochhäuser, Universität und Flughafen.',
+    need: { population: 350 }, cost: { money: 12000, knowledge: 1500, steel: 150, goods: 100, coal: 150 } },
 ];
 const OLD_SAVE_AGE = 2;   // Spielstände von vor den Zeitaltern stehen im Mittelalter
 
@@ -704,6 +715,204 @@ const BUILDINGS = {
     category: 'prestige',
     size: [3, 3],
   },
+  // ---------- Industrie ----------
+  coalmine: {
+    name: 'Kohlebergwerk', icon: '⚫', color: '#495057',
+    description: 'Fördert Kohle aus dem Berg. Muss direkt an einem Berg stehen.',
+    cost: { money: 250, wood: 60, stone: 80, planks: 20 },
+    interval: 8,
+    produces: { coal: 3 },
+    needsRoad: true,
+    nearTerrain: { terrain: 'rock', min: 2 },
+    jobs: { worker: 4 },
+    smoke: 0.6,
+    age: 3,
+    category: 'resources',
+  },
+  steelworks: {
+    name: 'Stahlwerk', icon: '🔥', color: '#6c757d',
+    description: 'Schmilzt Eisen mit Kohle zu Stahl.',
+    cost: { money: 400, stone: 120, bricks: 60 },
+    interval: 10,
+    consumes: { iron: 2, coal: 2 },
+    produces: { steel: 2 },
+    needsRoad: true,
+    jobs: { worker: 4 },
+    smoke: 1.6,
+    age: 3,
+    category: 'crafts',
+    size: [2, 2],
+  },
+  factory: {
+    name: 'Fabrik', icon: '🏭', color: '#bc4749',
+    description: 'Stellt aus Stahl, Stoff und Brettern Fabrikwaren her – die Leute kaufen sie gern.',
+    cost: { money: 500, bricks: 80, steel: 20 },
+    interval: 12,
+    consumes: { steel: 1, cloth: 2, planks: 2 },
+    produces: { goods: 3 },
+    needsRoad: true,
+    jobs: { worker: 6 },
+    smoke: 1.2,
+    age: 3,
+    category: 'crafts',
+    size: [2, 2],
+  },
+  tenement: {
+    name: 'Mietshaus', icon: '🏢', color: '#cb997e',
+    description: 'Mehrstöckiges Wohnhaus aus Ziegeln: viele Wohnungen auf wenig Platz.',
+    cost: { money: 150, bricks: 30, planks: 20 },
+    population: 12,
+    smoke: 0.5,
+    needsRoad: true,
+    age: 3,
+    category: 'housing',
+  },
+  station: {
+    name: 'Bahnhof', icon: '🚂', color: '#588157',
+    description: 'Züge bringen Fabrikwaren in andere Städte und Geld zurück.',
+    cost: { money: 800, bricks: 100, steel: 40 },
+    interval: 10,
+    consumes: { goods: 1 },
+    produces: { money: 70 },
+    needsRoad: true,
+    jobs: { trader: 4 },
+    smoke: 0.8,
+    age: 3,
+    category: 'resources',
+    size: [2, 1],
+  },
+  police: {
+    name: 'Polizeiwache', icon: '👮', color: '#457b9d',
+    description: 'Polizisten sorgen für Sicherheit in einem großen Umkreis und schützen vor Banditen.',
+    cost: { money: 300, bricks: 40, steel: 10 },
+    service: { need: 'safety', radius: 7 },
+    needsRoad: true,
+    jobs: { worker: 3 },
+    age: 3,
+    category: 'defense',
+    defense: { radius: 7, strength: 20 },
+  },
+  clocktower: {
+    name: 'Uhrturm', icon: '🕰️', color: '#ddb892',
+    description: 'Ein prächtiger Turm mit großer Uhr – der Stolz der Industriestadt.',
+    cost: { money: 4000, bricks: 300, steel: 150, goods: 60 },
+    landmark: 10,
+    needsRoad: true,
+    age: 3,
+    category: 'prestige',
+    size: [2, 2],
+  },
+  // ---------- Moderne ----------
+  powerplant: {
+    name: 'Kraftwerk', icon: '⚡', color: '#adb5bd',
+    description: 'Verbrennt Kohle und erzeugt viel Strom.',
+    cost: { money: 1500, steel: 80, bricks: 100 },
+    interval: 10,
+    consumes: { coal: 2 },
+    produces: { power: 8 },
+    needsRoad: true,
+    jobs: { worker: 4 },
+    smoke: 2,
+    age: 4,
+    category: 'resources',
+    size: [2, 2],
+  },
+  solarpark: {
+    name: 'Solarpark', icon: '☀️', color: '#4cc9f0',
+    description: 'Sauberer Strom aus der Sonne – im Winter weniger.',
+    cost: { money: 1200, steel: 40, electronics: 10 },
+    interval: 10,
+    produces: { power: 4 },
+    needsRoad: true,
+    jobs: { worker: 1 },
+    age: 4,
+    category: 'resources',
+    size: [2, 2],
+  },
+  concreteworks: {
+    name: 'Betonwerk', icon: '🧊', color: '#ced4da',
+    description: 'Mischt Stein mit Strom zu Beton.',
+    cost: { money: 1000, steel: 40, bricks: 60 },
+    interval: 10,
+    consumes: { stone: 4, power: 1 },
+    produces: { concrete: 3 },
+    needsRoad: true,
+    jobs: { worker: 4 },
+    smoke: 0.8,
+    age: 4,
+    category: 'crafts',
+    size: [2, 1],
+  },
+  electronicsworks: {
+    name: 'Elektronikwerk', icon: '💻', color: '#4895ef',
+    description: 'Baut aus Stahl und Strom Elektronik – sehr wertvoll.',
+    cost: { money: 2000, concrete: 60, steel: 60 },
+    interval: 12,
+    consumes: { steel: 1, power: 3 },
+    produces: { electronics: 2 },
+    needsRoad: true,
+    jobs: { scholar: 4 },
+    age: 4,
+    category: 'crafts',
+    size: [2, 2],
+  },
+  highrise: {
+    name: 'Hochhaus', icon: '🏙️', color: '#90e0ef',
+    description: 'Wohnturm aus Beton und Glas: sehr viel Wohnraum auf wenig Platz.',
+    cost: { money: 800, concrete: 60, steel: 30 },
+    population: 30,
+    needsRoad: true,
+    age: 4,
+    category: 'housing',
+    size: [2, 2],
+  },
+  supermarket: {
+    name: 'Supermarkt', icon: '🛒', color: '#ffb703',
+    description: 'Verkauft Nahrung und Fabrikwaren – bringt viel Geld.',
+    cost: { money: 1500, concrete: 40, steel: 20 },
+    interval: 10,
+    perPopulation: { money: 0.6 },
+    servesUpTo: 80,
+    needsRoad: true,
+    jobs: { trader: 5 },
+    age: 4,
+    category: 'resources',
+    size: [2, 1],
+  },
+  university: {
+    name: 'Universität', icon: '🎓', color: '#e9edc9',
+    description: 'Forschung und Bildung für die ganze Gegend.',
+    cost: { money: 3000, concrete: 120, steel: 60, electronics: 20 },
+    interval: 10,
+    produces: { knowledge: 8 },
+    service: { need: 'education', radius: 8 },
+    needsRoad: true,
+    jobs: { scholar: 8 },
+    age: 4,
+    category: 'education',
+    size: [2, 2],
+  },
+  stadium: {
+    name: 'Stadion', icon: '🏟️', color: '#80ed99',
+    description: 'Sport und Konzerte: Freizeit für einen riesigen Umkreis.',
+    cost: { money: 6000, concrete: 300, steel: 120 },
+    service: { need: 'leisure', radius: 12 },
+    needsRoad: true,
+    jobs: { worker: 4 },
+    age: 4,
+    category: 'services',
+    size: [3, 3],
+  },
+  airport: {
+    name: 'Flughafen', icon: '✈️', color: '#caf0f8',
+    description: 'Das Tor zur Welt – das größte Wahrzeichen deiner Stadt.',
+    cost: { money: 20000, concrete: 500, steel: 250, electronics: 120 },
+    landmark: 20,
+    needsRoad: true,
+    age: 4,
+    category: 'prestige',
+    size: [3, 3],
+  },
 };
 
 for (const id in BUILDINGS) BUILDINGS[id].id = id;
@@ -769,6 +978,19 @@ const QUESTS = [
   { age: 2, id: 'hospital',   title: 'Gute Besserung',       goal: { type: 'build', building: 'hospital', count: 1 },  reward: { money: 200 } },
   { age: 2, id: 'brewery',    title: 'Prost!',               goal: { type: 'build', building: 'brewery', count: 1 },   reward: { money: 120 } },
   { age: 2, id: 'weaver',     title: 'Neue Kleider',         goal: { type: 'build', building: 'weaver', count: 1 },    reward: { wool: 20, money: 80 } },
+  { age: 2, id: 'ageIndustry', title: 'Rauchende Schlote',   goal: { type: 'age', count: 3 },                    reward: { money: 500, knowledge: 50 } },
+  { age: 3, id: 'coalmine',  title: 'Schwarzes Gold',       goal: { type: 'build', building: 'coalmine', count: 1 },  reward: { money: 300 } },
+  { age: 3, id: 'tenement',  title: 'Wohnen in der Stadt',  goal: { type: 'build', building: 'tenement', count: 3 },  reward: { bricks: 40 } },
+  { age: 3, id: 'steelworks', title: 'Stahl und Feuer',     goal: { type: 'build', building: 'steelworks', count: 1 }, reward: { coal: 40, money: 300 } },
+  { age: 3, id: 'factory',   title: 'Die erste Fabrik',     goal: { type: 'build', building: 'factory', count: 1 },   reward: { money: 500 } },
+  { age: 3, id: 'station',   title: 'Alles einsteigen!',    goal: { type: 'build', building: 'station', count: 1 },   reward: { money: 600 } },
+  { age: 3, id: 'pop250',    title: 'Großstadt',            goal: { type: 'population', count: 250 },                 reward: { money: 1000 } },
+  { age: 3, id: 'ageModern', title: 'Die moderne Zeit',     goal: { type: 'age', count: 4 },                          reward: { money: 2000, knowledge: 200 } },
+  { age: 4, id: 'powerplant', title: 'Es werde Licht',      goal: { type: 'build', building: 'powerplant', count: 1 }, reward: { coal: 100 } },
+  { age: 4, id: 'highrise',  title: 'Hoch hinaus',          goal: { type: 'build', building: 'highrise', count: 2 },  reward: { concrete: 50, money: 1000 } },
+  { age: 4, id: 'university', title: 'Studieren',           goal: { type: 'build', building: 'university', count: 1 }, reward: { knowledge: 500 } },
+  { age: 4, id: 'pop500',    title: 'Metropole',            goal: { type: 'population', count: 500 },                 reward: { money: 5000 } },
+  { age: 4, id: 'airport',   title: 'Abflug!',              goal: { type: 'build', building: 'airport', count: 1 },   reward: { money: 10000 } },
   { age: 2, id: 'tools20',    title: 'Gutes Werkzeug',       goal: { type: 'produced', resource: 'tools', count: 20 }, reward: { money: 300, iron: 20 } },
 ];
 
@@ -845,6 +1067,39 @@ const TECHS = {
     cost: { knowledge: 30, stone: 20 }, seconds: 60,
     requires: ['stonetools'],
     effect: { capacity: { hut: 1 } },
+  },
+  steam: {
+    name: 'Dampfmaschine', icon: '🚂', age: 3,
+    description: 'Dampfkraft: Sägewerke, Steinbrüche und Kohlebergwerke liefern 50 % mehr.',
+    cost: { knowledge: 400, coal: 50 }, seconds: 120,
+    effect: { production: { sawmill: 0.5, quarry: 0.5, coalmine: 0.5 } },
+  },
+  assembly: {
+    name: 'Fließband', icon: '⚙️', age: 3,
+    description: 'Fabriken und Stahlwerke liefern 50 % mehr.',
+    cost: { knowledge: 600, steel: 40 }, seconds: 150,
+    requires: ['steam'],
+    effect: { production: { factory: 0.5, steelworks: 0.5 } },
+  },
+  railways: {
+    name: 'Eisenbahnnetz', icon: '🛤️', age: 3,
+    description: 'Bahnhöfe bringen 50 % mehr Geld.',
+    cost: { knowledge: 500, steel: 60 }, seconds: 120,
+    requires: ['steam'],
+    effect: { production: { station: 0.5 } },
+  },
+  electricity: {
+    name: 'Stromnetz', icon: '🔌', age: 4,
+    description: 'Kraftwerke und Solarparks liefern 50 % mehr Strom.',
+    cost: { knowledge: 1500 }, seconds: 150,
+    effect: { production: { powerplant: 0.5, solarpark: 0.5 } },
+  },
+  computers: {
+    name: 'Computer', icon: '🖥️', age: 4,
+    description: 'Elektronikwerke und Universitäten liefern 50 % mehr.',
+    cost: { knowledge: 2500, electronics: 30 }, seconds: 180,
+    requires: ['electricity'],
+    effect: { production: { electronicsworks: 0.5, university: 0.5 } },
   },
   irrigation: {
     name: 'Bewässerung', icon: '🌊',
@@ -3559,7 +3814,7 @@ function load() {
     state.questsClaimed = data.questsClaimed.filter(id => QUESTS.some(q => q.id === id));
   }
   // Zeitalter; alte Stände (ohne Zeitalter) stehen im Mittelalter, die Steinzeit-Aufträge gelten als erledigt
-  const lastAge = AGES.findIndex(a => a.ready === false) - 1;
+  const lastAge = AGES.filter(a => a.ready !== false).length - 1;   // höchstes spielbares Zeitalter
   if (Number.isInteger(data.age)) state.age = clamp(data.age, 0, lastAge);
   else {
     state.age = OLD_SAVE_AGE;
@@ -4008,7 +4263,8 @@ const EMOJI_FONT = 'system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Colo
 // ---------- Gebäudebilder (KI-Bilder aus bilder/) ----------
 // Je Gebäude die Zeitalter (1 = Steinzeit), für die es ein Bild bilder/<zeitalter>-<gebäude>.webp gibt.
 // Gezeigt wird das Bild des aktuellen Zeitalters oder das letzte davor; fehlt es, wird gezeichnet.
-const BUILDING_IMAGES = { hut: [1], gatherer: [1], hunter: [1], farm: [2] };
+const BUILDING_IMAGES = { hut: [1], gatherer: [1], hunter: [1], farm: [2], coalmine: [4], steelworks: [4], factory: [4], tenement: [4], station: [4],
+  police: [4], clocktower: [4], powerplant: [5] };
 const imageCache = {};
 
 function buildingImageSrc(type) {
@@ -4258,6 +4514,108 @@ const CROP_COLORS = {
 
 // Zeichnung je Gebäudeart: (X, Y, W, H, x, y, cell) – cell kann fehlen (Bauvorschau)
 const SPRITES = {
+  // ---------- Industrie und Moderne (bis Bilder da sind) ----------
+  tenement(X, Y, W, H) {
+    sprHouse(X, Y, W, H, { roof: ['#5e6472', '#7a8191'], wall: '#b5654a', windows: 3, floors: 3, wallRatio: 0.62, chimney: true, inset: T * 0.08 });
+  },
+  station(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#d6ccc2');
+    const r = sprHouse(X, Y, W * 0.6, H, { roof: ['#3a5a40', '#588157'], wall: '#c9a27e', windows: 2, inset: T * 0.08 });
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc((r.x0 + r.x1) / 2, r.ridge, T * 0.08, 0, Math.PI * 2); ctx.fill();
+    // Gleis mit Lok
+    const gy = Y + H * 0.72;
+    ctx.fillStyle = '#7f5539';
+    for (let gx = X + W * 0.62; gx < X + W - T * 0.05; gx += T * 0.12) ctx.fillRect(gx, gy - T * 0.12, T * 0.05, T * 0.24);
+    ctx.fillStyle = '#6c757d'; ctx.fillRect(X + W * 0.6, gy - T * 0.08, W * 0.38, T * 0.03); ctx.fillRect(X + W * 0.6, gy + T * 0.05, W * 0.38, T * 0.03);
+    ctx.fillStyle = '#2d6a4f'; roundRect(X + W * 0.66, gy - T * 0.3, T * 0.5, T * 0.26, T * 0.05); ctx.fill();
+    ctx.fillStyle = '#1b1b1b'; ctx.fillRect(X + W * 0.66 + T * 0.36, gy - T * 0.44, T * 0.08, T * 0.16);
+  },
+  police(X, Y, W, H) {
+    const r = sprHouse(X, Y, W, H, { roof: ['#1d3557', '#457b9d'], wall: '#e9ecef', windows: 2, inset: T * 0.1 });
+    ctx.fillStyle = '#4cc9f0'; ctx.beginPath(); ctx.arc((r.x0 + r.x1) / 2, r.eave + T * 0.05, T * 0.05, 0, Math.PI * 2); ctx.fill();
+  },
+  clocktower(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#d6ccc2');
+    const cx = X + W / 2;
+    ctx.fillStyle = 'rgba(20,30,20,0.25)'; ctx.fillRect(cx - T * 0.3, Y + H * 0.2, T * 0.75, H * 0.72);
+    ctx.fillStyle = '#b5654a'; ctx.fillRect(cx - T * 0.32, Y + H * 0.18, T * 0.64, H * 0.72);
+    ctx.fillStyle = '#9c4a3a'; ctx.beginPath(); ctx.moveTo(cx - T * 0.42, Y + H * 0.2); ctx.lineTo(cx, Y - T * 0.25); ctx.lineTo(cx + T * 0.42, Y + H * 0.2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx, Y + H * 0.36, T * 0.24, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#333'; ctx.lineWidth = T * 0.03;
+    ctx.beginPath(); ctx.moveTo(cx, Y + H * 0.36); ctx.lineTo(cx, Y + H * 0.36 - T * 0.17); ctx.moveTo(cx, Y + H * 0.36); ctx.lineTo(cx + T * 0.12, Y + H * 0.36); ctx.stroke();
+  },
+  powerplant(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#ced4da');
+    sprHouse(X, Y + H * 0.35, W * 0.55, H * 0.65, { roof: ['#495057', '#6c757d'], wall: '#adb5bd', windows: 2, door: false, inset: T * 0.08 });
+    for (const [cx, cy] of [[0.68, 0.38], [0.84, 0.66]]) {
+      ctx.fillStyle = '#dee2e6';
+      ctx.beginPath(); ctx.moveTo(X + W * cx - T * 0.32, Y + H * cy + T * 0.4); ctx.quadraticCurveTo(X + W * cx - T * 0.14, Y + H * cy, X + W * cx - T * 0.22, Y + H * cy - T * 0.3);
+      ctx.lineTo(X + W * cx + T * 0.22, Y + H * cy - T * 0.3); ctx.quadraticCurveTo(X + W * cx + T * 0.14, Y + H * cy, X + W * cx + T * 0.32, Y + H * cy + T * 0.4); ctx.fill();
+      ctx.fillStyle = '#868e96'; ctx.beginPath(); ctx.ellipse(X + W * cx, Y + H * cy - T * 0.3, T * 0.22, T * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+    }
+  },
+  solarpark(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#b7e4c7');
+    for (let ry = Y + T * 0.2; ry < Y + H - T * 0.3; ry += T * 0.42) {
+      ctx.fillStyle = '#1d3557'; ctx.fillRect(X + T * 0.15, ry, W - T * 0.3, T * 0.3);
+      ctx.strokeStyle = '#4cc9f0'; ctx.lineWidth = T * 0.015; ctx.beginPath();
+      for (let gx = X + T * 0.15; gx < X + W - T * 0.15; gx += T * 0.18) { ctx.moveTo(gx, ry); ctx.lineTo(gx, ry + T * 0.3); }
+      ctx.stroke();
+    }
+  },
+  concreteworks(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#ced4da');
+    sprHouse(X, Y, W * 0.55, H, { roof: ['#6c757d', '#adb5bd'], wall: '#dee2e6', windows: 1, inset: T * 0.08 });
+    ctx.fillStyle = '#adb5bd'; ctx.fillRect(X + W * 0.62, Y + H * 0.15, T * 0.3, H * 0.65);
+    ctx.fillStyle = '#868e96'; ctx.beginPath(); ctx.moveTo(X + W * 0.62, Y + H * 0.8); ctx.lineTo(X + W * 0.62 + T * 0.15, Y + H * 0.95); ctx.lineTo(X + W * 0.62 + T * 0.3, Y + H * 0.8); ctx.fill();
+  },
+  electronicsworks(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#dee2e6');
+    sprHouse(X, Y, W, H, { roof: ['#4895ef', '#90caf9'], wall: '#f8f9fa', windows: 4, floors: 2, wallRatio: 0.5, windowColor: '#4cc9f0', inset: T * 0.1 });
+  },
+  highrise(X, Y, W, H) {
+    const x0 = X + T * 0.25, x1 = X + W - T * 0.25, top = Y - T * 0.6, bot = Y + H - T * 0.12;
+    sprShadow(x0, Y + H * 0.3, x1 - x0, bot - Y - H * 0.3);
+    ctx.fillStyle = '#90e0ef'; ctx.fillRect(x0, top, x1 - x0, bot - top);
+    ctx.fillStyle = '#48cae4'; ctx.fillRect(x0 + (x1 - x0) * 0.6, top, (x1 - x0) * 0.4, bot - top);
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    for (let wy = top + T * 0.1; wy < bot - T * 0.15; wy += T * 0.16) for (let wx = x0 + T * 0.06; wx < x1 - T * 0.1; wx += T * 0.16) ctx.fillRect(wx, wy, T * 0.08, T * 0.08);
+    ctx.fillStyle = '#495057'; ctx.fillRect(x0 - T * 0.03, top - T * 0.05, x1 - x0 + T * 0.06, T * 0.06);
+  },
+  supermarket(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#dee2e6');
+    const r = sprHouse(X, Y, W, H, { roof: ['#e85d04', '#f48c06'], wall: '#fff', windows: 4, inset: T * 0.08, wallRatio: 0.45 });
+    ctx.fillStyle = '#ffb703'; ctx.fillRect(r.x0, r.eave, r.x1 - r.x0, T * 0.06);
+  },
+  university(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#d6ccc2');
+    const r = sprHouse(X, Y, W, H, { roof: ['#6d597a', '#8e7aa3'], wall: '#f1e9da', windows: 4, floors: 2, inset: T * 0.08, wallRatio: 0.5, hip: true });
+    ctx.fillStyle = '#e0d5c1';
+    for (let k = 0; k < 5; k++) ctx.fillRect(r.x0 + T * 0.12 + k * (r.x1 - r.x0 - T * 0.3) / 4, r.eave + T * 0.04, T * 0.05, r.y1 - r.eave - T * 0.1);
+  },
+  stadium(X, Y, W, H) {
+    const cx = X + W / 2, cy = Y + H / 2;
+    ctx.fillStyle = 'rgba(20,30,20,0.25)'; ctx.beginPath(); ctx.ellipse(cx + T * 0.1, cy + T * 0.12, W * 0.46, H * 0.44, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#adb5bd'; ctx.beginPath(); ctx.ellipse(cx, cy, W * 0.46, H * 0.44, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#e63946'; ctx.beginPath(); ctx.ellipse(cx, cy, W * 0.38, H * 0.36, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#52b788'; ctx.beginPath(); ctx.ellipse(cx, cy, W * 0.28, H * 0.25, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = T * 0.03; ctx.beginPath(); ctx.moveTo(cx, cy - H * 0.25); ctx.lineTo(cx, cy + H * 0.25); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, T * 0.3, 0, Math.PI * 2); ctx.stroke();
+  },
+  airport(X, Y, W, H) {
+    sprGround(X, Y, W, H, '#ced4da');
+    ctx.fillStyle = '#495057'; ctx.fillRect(X + T * 0.15, Y + H * 0.62, W - T * 0.3, T * 0.55);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = T * 0.04; ctx.setLineDash([T * 0.2, T * 0.15]);
+    ctx.beginPath(); ctx.moveTo(X + T * 0.3, Y + H * 0.62 + T * 0.27); ctx.lineTo(X + W - T * 0.3, Y + H * 0.62 + T * 0.27); ctx.stroke(); ctx.setLineDash([]);
+    sprHouse(X, Y, W * 0.7, H * 0.55, { roof: ['#0077b6', '#48cae4'], wall: '#caf0f8', windows: 5, inset: T * 0.1 });
+    // Tower und Flugzeug
+    ctx.fillStyle = '#e9ecef'; ctx.fillRect(X + W * 0.78, Y + T * 0.2, T * 0.22, H * 0.4);
+    ctx.fillStyle = '#4cc9f0'; ctx.fillRect(X + W * 0.75, Y + T * 0.1, T * 0.34, T * 0.18);
+    const px = X + W * 0.55, py = Y + H * 0.62 + T * 0.27;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.ellipse(px, py, T * 0.45, T * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(px - T * 0.05, py); ctx.lineTo(px - T * 0.2, py - T * 0.35); ctx.lineTo(px + T * 0.05, py); ctx.lineTo(px - T * 0.2, py + T * 0.35); ctx.fill();
+  },
   // ---------- Steinzeit ----------
   painter(X, Y, W, H, x, y) {
     sprGround(X, Y, W, H, '#cdb98f');
@@ -5183,7 +5541,9 @@ const JOB_COLORS = { worker: '#f4a261', trader: '#4dabf7', scholar: '#b197fc' };
 const WORK_STYLE = {
   farm: 'hoe', fishery: 'fish', sawmill: 'saw', carpentry: 'saw', quarry: 'pick', mine: 'pick',
   smithy: 'hammer', brickworks: 'hammer', sheepfarm: 'staff', market: 'carry', warehouse: 'carry',
-  bakery: 'carry', brewery: 'carry', weaver: 'read', woodcutter: 'axe', stonecutter: 'pick', gatherer: 'carry', hunter: 'staff', scriptorium: 'read', school: 'read', library: 'read', townhall: 'read',
+  bakery: 'carry', brewery: 'carry', weaver: 'read', woodcutter: 'axe', stonecutter: 'pick', gatherer: 'carry', hunter: 'staff',
+  coalmine: 'pick', steelworks: 'hammer', factory: 'hammer', station: 'carry', police: 'walk', powerplant: 'walk',
+  solarpark: 'walk', concreteworks: 'carry', electronicsworks: 'read', supermarket: 'carry', university: 'read', stadium: 'walk', scriptorium: 'read', school: 'read', library: 'read', townhall: 'read',
 };
 const WALKING_STYLES = new Set(['walk', 'carry', 'staff']);
 
@@ -5961,6 +6321,18 @@ const BUILDING_SOUNDS = {
   well: s => { s.noise(1, { vol: 0.12, freq: 2500, to: 900, filter: 'bandpass' }); s.tone(700, 0.15, { vol: 0.06, to: 1100, delay: 0.4 }); },
   // Rüstung klirrt, Horn der Wache
   guard: s => { s.tone(NOTE.G3, 0.5, { type: 'sawtooth', vol: 0.06 }); s.tone(NOTE.D4, 0.6, { type: 'sawtooth', vol: 0.06, delay: 0.25 }); },
+  // Dampfpfeife des Zuges
+  train: s => { s.tone(NOTE.A4, 0.6, { type: 'sawtooth', vol: 0.06 }); s.tone(NOTE.C5, 0.6, { type: 'sawtooth', vol: 0.05 }); [0.7, 0.9, 1.1].forEach(d => s.noise(0.12, { vol: 0.2, freq: 900, delay: d })); },
+  // Polizei-Pfeife
+  siren: s => [0, 0.25].forEach(d => s.tone(2200, 0.18, { type: 'square', vol: 0.05, to: 2500, delay: d })),
+  // Brummen des Kraftwerks
+  hum: s => { s.tone(60, 0.9, { type: 'sawtooth', vol: 0.12 }); s.tone(120, 0.9, { vol: 0.06 }); },
+  // Piepen von Geräten
+  beep: s => [0, 0.15, 0.3].forEach((d, i) => s.tone(1400 + i * 300, 0.08, { type: 'square', vol: 0.05, delay: d })),
+  // Jubel im Stadion
+  crowd: s => { s.noise(1.2, { vol: 0.25, freq: 1200, to: 700, filter: 'bandpass' }); s.tone(NOTE.C5, 0.3, { type: 'triangle', vol: 0.06, delay: 0.3 }); },
+  // Flugzeug startet
+  plane: s => s.noise(1.5, { vol: 0.3, freq: 300, to: 2500, filter: 'bandpass' }),
   // Axt im Holz
   chop: s => [0, 0.35].forEach(d => { s.tone(220, 0.1, { type: 'triangle', vol: 0.35, to: 90, delay: d }); s.noise(0.08, { vol: 0.2, freq: 1200, filter: 'bandpass', delay: d }); }),
   // Vögel im Park
@@ -5971,7 +6343,10 @@ const BUILDING_SOUND = {
   sawmill: 'saw', carpentry: 'saw', smithy: 'anvil', quarry: 'pick', mine: 'pick', farm: 'field', fishery: 'water',
   sheepfarm: 'sheep', market: 'market', warehouse: 'crates', bakery: 'oven', brickworks: 'oven', brewery: 'bubbles',
   weaver: 'loom', school: 'bell', firestation: 'bell', cathedral: 'bigbell', townhall: 'bigbell', scriptorium: 'pages',
-  library: 'pages', house: 'door', hut: 'door', painter: 'pages', watertrough: 'well', gatherer: 'birds', hunter: 'guard', woodcutter: 'chop', stonecutter: 'pick', fireplace: 'oven', well: 'well', plaza: 'well', guard: 'guard', tower: 'guard', park: 'birds', hospital: 'pages',
+  library: 'pages', house: 'door', hut: 'door', painter: 'pages', watertrough: 'well',
+  coalmine: 'pick', steelworks: 'anvil', factory: 'anvil', tenement: 'door', station: 'train', police: 'siren', clocktower: 'bigbell',
+  powerplant: 'hum', solarpark: 'birds', concreteworks: 'crates', electronicsworks: 'beep', highrise: 'door', supermarket: 'market',
+  university: 'bell', stadium: 'crowd', airport: 'plane', gatherer: 'birds', hunter: 'guard', woodcutter: 'chop', stonecutter: 'pick', fireplace: 'oven', well: 'well', plaza: 'well', guard: 'guard', tower: 'guard', park: 'birds', hospital: 'pages',
 };
 
 function playBuildingSound(type) {

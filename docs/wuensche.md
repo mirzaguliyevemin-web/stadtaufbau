@@ -35,3 +35,6 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 - 2026-10-26, Version 46–49 – obere und untere Leiste in Holz/Pergament; Steinzeit schwerer; Forschung schon in der
   Steinzeit (Höhlenmaler, 4 Forschungen); Wassertrog löscht Brände und wird in der Antike zur Feuerwache;
   Seuchen erst ab der Antike; gesperrte Gebäude mit 🔒.
+- 2026-10-26, Version 50–51 – Gebäudebilder aus Canva (Farm, Hütte, Sammlerin, Jägerlager, Kohlebergwerk, Stahlwerk,
+  Fabrik, Mietshaus, Bahnhof, Polizeiwache, Uhrturm, Kraftwerk); Zeitalter Industrie und Moderne mit 6 neuen Waren,
+  16 neuen Gebäuden, 5 Forschungen und 13 Aufträgen (Plan: `docs/zeitalter.md`).

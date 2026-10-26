@@ -3,6 +3,12 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-26 – Sitzung mit Emin (Version 51)
+
+- Industrie und Moderne eingebaut. Bot (150 min, Zufall 1): Antike 9,1 · Mittelalter 15,7 · Industrie 58,4 ·
+  Moderne 118,9 min; Uhrturm 120,8 min; kein Hunger. Engpässe spät: Baustellen, Land, Stahl, Fabrikwaren.
+- Bot baut die erste Anlage jeder neuen Kette (Kohle, Stahl, Fabrik, Strom …) zuerst.
+
 ## 2026-10-26 – Sitzung mit Emin (Version 48)
 
 - Wunsch Emin: Ressourcen in der Steinzeit zu leicht. Sammlerin 3→2 Nahrung/6 s, Jägerlager 4→3/8 s,

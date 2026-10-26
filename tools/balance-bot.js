@@ -188,12 +188,16 @@ function runBalanceBot(minutes = 90) {
     const tasks = [];
     const farmsOk = pop > 0 || countBuildings('farm') === 0;   // ohne Einwohner liefert keine Farm etwas
     if (farmsOk && (foodRate < futureNeed || (state.resources.food < 10 && foodRate <= 0.05))) tasks.push(['farm']);
-    if ((pop >= cap - 2 || stats.jobs.ratio < 1 || stats.unemployed < 3) && stats.happiness >= HAPPINESS.growAbove) tasks.push(['house']);
+    if ((pop >= cap - 2 || stats.jobs.ratio < 1 || stats.unemployed < 3) && stats.happiness >= HAPPINESS.growAbove) {
+      // Wohnraum: je Zeitalter das größte Wohnhaus, sonst ein normales Haus
+      for (const type of ['highrise', 'tenement']) if (isUnlocked(type)) tasks.push([type]);
+      tasks.push(['house']);
+    }
     if (countBuildings('sawmill') < 1 + Math.floor(houses / 6)) tasks.push(['sawmill']);
     if (houses >= 2 && countBuildings('market') < 1 + Math.floor(pop / 40)) tasks.push(['market']);
     if (houses >= 2 && countBuildings('quarry') < 1 + Math.floor(houses / 8)) tasks.push(['quarry']);
     // Lager nur, wenn Platz wirklich gebraucht wird: für die nächste Sehenswürdigkeit oder wenn Holz überläuft
-    const nextLm = ['plaza', 'townhall', 'cathedral'].find(tp => isUnlocked(tp) && countBuildings(tp) === 0);
+    const nextLm = ['plaza', 'townhall', 'cathedral', 'clocktower', 'airport'].find(tp => isUnlocked(tp) && countBuildings(tp) === 0);
     const needSpace = nextLm ? Math.max(...Object.entries(costOf(nextLm)).filter(([id]) => RESOURCES[id].stored).map(([, n]) => n)) : 0;
     const winterNeed = heatingRate() * CONFIG.seasonLength * 1.1;
     if (stats.storage < Math.max(needSpace, winterNeed) + 20 || state.resources.wood >= storageCap('wood') * 0.9) tasks.unshift(['warehouse']);
@@ -210,21 +214,43 @@ function runBalanceBot(minutes = 90) {
       if (countBuildings('mine') < Math.floor(pop / 150) + 1) tasks.push(['mine']);
       if (countBuildings('mine') && countBuildings('smithy') < countBuildings('mine')) tasks.push(['smithy']);
     }
+    // Industrie: Kohle → Stahl → Fabrikwaren → Bahnhof
+    if (state.age >= 3) {
+      if (countBuildings('coalmine') < 1 + Math.floor(pop / 150)) tasks.push(['coalmine']);
+      if (countBuildings('mine') < countBuildings('coalmine')) tasks.push(['mine']);
+      if (countBuildings('steelworks') < countBuildings('coalmine')) tasks.push(['steelworks']);
+      if (countBuildings('factory') < 1 + Math.floor(pop / 300)) tasks.push(['factory']);
+      if (countBuildings('factory') && countBuildings('weaver') < 2 * countBuildings('factory')) tasks.push(['weaver'], ['sheepfarm']);
+      if (countBuildings('factory') && countBuildings('station') < countBuildings('factory')) tasks.push(['station']);
+    }
+    // Moderne: Strom → Beton und Elektronik, Supermarkt, Universität
+    if (state.age >= 4) {
+      if (countBuildings('powerplant') < 1 + Math.floor(pop / 300)) tasks.push(['powerplant']);
+      if (countBuildings('concreteworks') < countBuildings('powerplant')) tasks.push(['concreteworks']);
+      if (pop >= 400 && countBuildings('electronicsworks') < 1) tasks.push(['electronicsworks']);
+      if (countBuildings('supermarket') < Math.floor(pop / 250)) tasks.push(['supermarket']);
+      if (countBuildings('university') < 1) tasks.push(['university']);
+    }
+    // Die erste Anlage jeder neuen Kette hat Vorrang (sonst belegen Häuser und Lager alle Baustellen)
+    const firsts = ['coalmine', 'steelworks', 'factory', 'station', 'powerplant', 'concreteworks', 'electronicsworks', 'university'];
+    for (const type of firsts) {
+      if (isUnlocked(type) && countBuildings(type) === 0 && tasks.some(([t]) => t === type)) tasks.unshift([type]);
+    }
     // Viele Arbeitslose: zusätzliche Betriebe bauen (wie ein Spieler auf die Warnung reagiert)
     if (pop >= 20 && stats.unemployed / pop > CONFIG.unemploymentTolerance) {
       const options = ['sawmill', 'quarry', 'carpentry', 'brickworks', 'bakery', 'market'].filter(isUnlocked);
       tasks.push([options[Math.floor(t / 2) % options.length]]);
     }
-    for (const type of ['park', 'firestation', 'well', 'school', 'guard', 'hospital']) {
+    for (const type of ['park', 'firestation', 'well', 'school', 'guard', 'hospital', 'police', 'stadium']) {
       if (!isUnlocked(type) || (type !== 'park' && pop < 8)) continue;
       const slot = bestServiceSlot(type);
       if (slot) tasks.push([type, slot]);
     }
-    for (const type of ['townhall', 'plaza', 'cathedral']) {
+    for (const type of ['townhall', 'plaza', 'cathedral', 'clocktower', 'airport']) {
       if (isUnlocked(type) && countBuildings(type) === 0) tasks.push([type]);
     }
     // Ab 100 Einwohnern auf die nächste Sehenswürdigkeit sparen: nur noch Farmen und Lager nebenbei
-    const pendingLandmark = ['plaza', 'townhall', 'cathedral'].find(tp => isUnlocked(tp) && countBuildings(tp) === 0);
+    const pendingLandmark = ['plaza', 'townhall', 'cathedral', 'clocktower', 'airport'].find(tp => isUnlocked(tp) && countBuildings(tp) === 0);
     if (pendingLandmark && pop >= 100 && (t / 60) % 10 < 6) {
       if (tryBuild(pendingLandmark)) return;
       const keep = tasks.filter(([type]) => type === 'farm' || type === 'warehouse');
@@ -261,7 +287,7 @@ function runBalanceBot(minutes = 90) {
       }
     }
     // Überschüsse verkaufen
-    if (hasMarket()) for (const id of ['wood', 'stone', 'food', 'planks', 'bricks', 'bread', 'beer', 'cloth', 'wool', 'iron', 'tools']) {
+    if (hasMarket()) for (const id of ['wood', 'stone', 'food', 'planks', 'bricks', 'bread', 'beer', 'cloth', 'wool', 'iron', 'tools', 'coal', 'steel', 'goods', 'concrete', 'electronics']) {
       if (state.resources[id] >= storageCap(id)) trade(id, false);
     }
   }
@@ -286,7 +312,7 @@ function runBalanceBot(minutes = 90) {
     }
     for (const m of [8, 21, 50, 101, 150, 200]) if (!milestones[m] && state.population >= m) milestones[m] = t;
     if (state.techs.length > techCount) { techTimes.push(state.techs[techCount] + '@' + (t / 60).toFixed(1)); techCount++; }
-    for (const tp of ['townhall', 'plaza', 'cathedral']) if (!landmarkTimes[tp] && countBuildings(tp)) landmarkTimes[tp] = (t / 60).toFixed(1);
+    for (const tp of ['townhall', 'plaza', 'cathedral', 'clocktower', 'airport']) if (!landmarkTimes[tp] && countBuildings(tp)) landmarkTimes[tp] = (t / 60).toFixed(1);
     if (state.questsClaimed.length > questTimes.length) questTimes.push((t / 60).toFixed(1));
     if (t >= nextSnap) {
       const r = state.resources;

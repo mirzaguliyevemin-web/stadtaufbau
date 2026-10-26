@@ -45,33 +45,41 @@ Schreibstube, Wachhaus, Mauer, Schäferei, Ziegelei, Brunnenplatz (Forum).
 Erzmine, Schreinerei, Bäckerei, Brauerei, Weberei, Schmiede, Schule, Bibliothek, Wachturm,
 Krankenhaus, Rathaus, Kathedrale.
 
-## 4 · 🏭 Industrie (kommt später)
+## 4 · 🏭 Industrie
 
-**Neue Waren (Vorschlag):** ⚫ Kohle, 🔩 Stahl, 📦 Fabrikwaren.
-
-| Gebäude | Was es macht |
-|---|---|
-| ⚫ Kohlebergwerk | Kohle, am Berg |
-| 🔥 Stahlwerk | Eisen + Kohle → Stahl |
-| 🏭 Fabrik | Stoff/Bretter + Stahl → Fabrikwaren |
-| 🏢 Mietshaus | viel Wohnraum auf wenig Fläche |
-| 🚂 Bahnhof | Handel ohne Karrenweg, mehr Geld |
-| 👮 Polizeiwache | Sicherheit, ersetzt Wachhaus |
-| 🏛️ Wahrzeichen: Großer Bahnhof oder Rathausturm | |
-
-## 5 · 🏙️ Moderne (kommt später)
-
-**Neue Waren (Vorschlag):** ⚡ Strom, 🧱 Beton, 💻 Elektronik.
+**Neu:** ⚫ Kohle, 🔩 Stahl, 📦 Fabrikwaren (machen zufriedener).
 
 | Gebäude | Was es macht |
 |---|---|
-| ⚡ Kraftwerk / ☀️ Solarpark | Strom – Gebäude arbeiten mit Strom schneller |
-| 🏗️ Betonwerk | Stein → Beton |
-| 🏙️ Hochhaus | sehr viel Wohnraum |
-| 🛒 Supermarkt | Versorgung, Händler |
-| 🎓 Universität | viel Wissen und Bildung |
-| 🏟️ Stadion | Freizeit für die ganze Stadt |
-| ✈️ Wahrzeichen: Flughafen | |
+| ⚫ Kohlebergwerk | 3 Kohle / 8 s, muss am Berg stehen |
+| 🔥 Stahlwerk | 2 Eisen + 2 Kohle → 2 Stahl |
+| 🏭 Fabrik | 1 Stahl + 2 Stoff + 2 Bretter → 3 Fabrikwaren |
+| 🏢 Mietshaus | 12 Wohnplätze auf einem Feld |
+| 🚂 Bahnhof | verkauft Fabrikwaren: 1 → 70 Geld |
+| 👮 Polizeiwache | Sicherheit und Schutz vor Banditen im großen Umkreis |
+| 🕰️ Uhrturm | Wahrzeichen |
+
+**Forschung:** Dampfmaschine, Fließband, Eisenbahnnetz.
+**Aufstieg zur Industrie:** 150 Einwohner · 3000 Geld, 300 Wissen, 60 Eisen, 30 Werkzeug, 150 Ziegel.
+
+## 5 · 🏙️ Moderne
+
+**Neu:** ⚡ Strom, 🧊 Beton, 💻 Elektronik (machen zufriedener).
+
+| Gebäude | Was es macht |
+|---|---|
+| ⚡ Kraftwerk | 2 Kohle → 8 Strom |
+| ☀️ Solarpark | 4 Strom ohne Rohstoffe, im Winter weniger |
+| 🧊 Betonwerk | 4 Stein + 1 Strom → 3 Beton |
+| 💻 Elektronikwerk | 1 Stahl + 3 Strom → 2 Elektronik |
+| 🏙️ Hochhaus | 30 Wohnplätze |
+| 🛒 Supermarkt | viel Geld von bis zu 80 Einwohnern |
+| 🎓 Universität | Wissen und Bildung im großen Umkreis |
+| 🏟️ Stadion | Freizeit für einen riesigen Umkreis |
+| ✈️ Flughafen | größtes Wahrzeichen |
+
+**Forschung:** Stromnetz, Computer.
+**Aufstieg zur Moderne:** 350 Einwohner · 12000 Geld, 1500 Wissen, 150 Stahl, 100 Fabrikwaren, 150 Kohle.
 
 ## Bilder
 

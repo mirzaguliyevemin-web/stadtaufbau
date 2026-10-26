@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#2d6a4f">
+  <meta name="theme-color" content="#5c3a1e">
   <!-- Spiel hat eigene Farben: automatischen Dunkelmodus des Browsers abschalten -->
   <meta name="color-scheme" content="only light">
-  <meta name="app-version" content="45">
+  <meta name="app-version" content="46">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Stadtaufbau</title>
@@ -18,11 +18,15 @@
 <body>
   <header id="topbar">
     <div id="topbar-row">
-      <div id="status"></div>
+      <button id="age-title" title="Zeitalter und Stadtstufe – antippen für die Zeitalter"></button>
       <button id="btn-speed" class="top-btn speed-btn" title="Spielgeschwindigkeit (Leertaste = Pause, +/−)">▶ 1×</button>
       <button id="btn-research" class="top-btn" title="Forschung">🔬</button>
       <button id="btn-settings" class="top-btn" title="Einstellungen">⚙️</button>
     </div>
+    <button id="age-progress" title="Fortschritt zum nächsten Zeitalter – antippen für Einzelheiten">
+      <span class="ap-bar"><i></i></span><span class="ap-text"></span>
+    </button>
+    <div id="status"></div>
     <div id="resources"></div>
   </header>
 

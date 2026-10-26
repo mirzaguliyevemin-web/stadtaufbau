@@ -985,3 +985,85 @@ button.res { cursor: pointer; }
 .age-need .ok { color: #2d6a4f; font-weight: 700; }
 .age-need .missing { color: #c0392b; font-weight: 700; }
 .res.ready { background: #e9c46a; color: #222; animation: pulse 1.4s ease-in-out infinite; }
+
+/* ---------- Obere Leiste: Holzbrett mit Pergament-Kärtchen ---------- */
+#topbar {
+  gap: 5px;
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .05) 0 2px, transparent 2px 23px, rgba(255, 255, 255, .04) 23px 25px, transparent 25px 41px),
+    linear-gradient(#7a4e2a, #5c3a1e);
+  border-bottom: 3px solid #3b2412;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .4);
+}
+#age-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0;
+  background: none;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+}
+#age-title .at-age { font-size: 19px; font-weight: 800; color: #ffe8a3; text-shadow: 0 1px 2px rgba(0, 0, 0, .5); }
+#age-title .at-level { font-size: 14px; font-weight: 600; color: #f6ecd2; opacity: .85; overflow: hidden; text-overflow: ellipsis; }
+#topbar .top-btn {
+  background: #f6ecd2;
+  border: 2px solid #c9a227;
+  color: #3b2a1a;
+  box-shadow: 0 2px 0 #3b2412;
+}
+#topbar .speed-btn.paused { background: #f3c9bd; border-color: #c0392b; }
+#topbar .speed-btn.fast { background: #ffe0b3; }
+
+#age-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  background: none;
+  text-align: left;
+}
+.ap-bar {
+  flex: 0 0 34%;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .35);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .4);
+  overflow: hidden;
+}
+.ap-bar i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(#f2d16b, #c9a227); transition: width .4s; }
+.ap-text { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: #f6ecd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#age-progress.ready .ap-text { color: #ffe8a3; }
+#age-progress.ready .ap-bar i { background: linear-gradient(#a7e07a, #52b788); }
+#age-progress.ready { animation: pulse 1.4s ease-in-out infinite; }
+
+#status { flex: none; gap: 5px; }
+#topbar .res {
+  background: #f6ecd2;
+  color: #3b2a1a;
+  border: 1.5px solid #c9a227;
+  box-shadow: 0 2px 0 rgba(59, 36, 18, .6);
+}
+#status .res { padding: 3px 10px; }
+#status .res.money { background: #ffe8a3; color: #5c3a1e; }
+#topbar .res.full { background: #f3c9bd; border-color: #c0392b; }
+#resources { gap: 5px; }
+#resources .res { padding: 4px 7px 7px; border-radius: 9px; font-size: 14px; font-weight: 700; justify-content: flex-start; gap: 4px; }
+#resources .res .trend { font-size: 10px; }
+#resources .res .trend.up { color: #2d6a4f; }
+#resources .res .trend.down { color: #c0392b; }
+#resources .res .bar { left: 5px; bottom: 3px; height: 4px; border-radius: 2px; background: #8a9a3b; max-width: calc(100% - 10px); }
+#resources .res::after {   /* Spur unter dem Lagerbalken */
+  content: '';
+  position: absolute;
+  left: 5px; right: 5px; bottom: 3px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(59, 42, 26, .12);
+}
+#resources .res:not(:has(.bar))::after { display: none; }
+#resources .res .bar.high { background: #e9a23b; }
+#resources .res.full .bar { background: #c0392b; }

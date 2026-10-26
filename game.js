@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 45;
+const APP_VERSION = 46;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -5926,8 +5926,6 @@ function buildUI() {
   resourceEls.money.classList.add('money');
   addChip(statusWrap, 'population', 'Einwohner / Wohnplätze', showCityInfo);
   addChip(statusWrap, 'happiness', 'Zufriedenheit', showCityInfo);
-  addChip(statusWrap, 'age', 'Zeitalter – antippen zum Aufsteigen', showAges);
-  addChip(statusWrap, 'level', 'Stadtstufe', showCityInfo);
   addChip(statusWrap, 'season', 'Jahreszeit', showCityInfo);
 
   const tabs = document.getElementById('build-tabs');
@@ -5990,6 +5988,8 @@ function buildUI() {
   });
   document.getElementById('research-close').addEventListener('click', closeResearch);
   document.getElementById('ages-close').addEventListener('click', closeAges);
+  document.getElementById('age-title').addEventListener('click', showAges);
+  document.getElementById('age-progress').addEventListener('click', showAges);
   document.getElementById('age-list').addEventListener('click', e => {
     if (e.target.closest('[data-advance]')) advanceAge();
   });
@@ -6151,9 +6151,7 @@ function updateUI() {
   }
   resourceEls.population.textContent = `👥 ${state.population}/${stats.capacity}`;
   resourceEls.happiness.textContent = `${happinessIcon(stats.happiness)} ${stats.happiness}`;
-  resourceEls.level.textContent = `${LEVELS[stats.level].icon} ${LEVELS[stats.level].name}`;
-  resourceEls.age.textContent = `${AGES[state.age].icon} ${AGES[state.age].name}${canAdvanceAge() ? ' ⬆️' : ''}`;
-  resourceEls.age.classList.toggle('ready', canAdvanceAge());
+  updateAgeBar();
   resourceEls.season.textContent = `${season().icon} ${formatClock(seasonLeft())}`;
   resourceEls.season.title = `${season().name} – noch ${formatClock(seasonLeft())}`;
   resourceEls.season.classList.toggle('full', isFreezing());
@@ -6320,6 +6318,31 @@ function advanceAge() {
   ageListKey = '';
   recalcStats();
   updateUI();
+}
+
+// Titel oben (Zeitalter · Stadtstufe) und Balken bis zum nächsten Zeitalter
+function updateAgeBar() {
+  const age = AGES[state.age], level = LEVELS[stats.level];
+  const ready = canAdvanceAge();
+  const title = document.getElementById('age-title');
+  title.innerHTML = `<span class="at-age">${age.icon} ${age.name}</span><span class="at-level">${level.icon} ${level.name}</span>`;
+  const bar = document.getElementById('age-progress');
+  const next = nextAge();
+  bar.classList.toggle('ready', ready);
+  if (!next) {
+    const later = AGES[state.age + 1];
+    bar.querySelector('.ap-text').textContent = later ? `${later.icon} ${later.name} kommt in einem späteren Update` : 'Höchstes Zeitalter erreicht';
+    bar.querySelector('.ap-bar i').style.width = '100%';
+    return;
+  }
+  // Fortschritt: Durchschnitt aus Einwohnern und allen Kosten (je höchstens 100 %)
+  const parts = [Math.min(1, state.population / next.need.population),
+    ...Object.entries(next.cost).map(([id, n]) => Math.min(1, state.resources[id] / n))];
+  const share = parts.reduce((a, b) => a + b, 0) / parts.length;
+  bar.querySelector('.ap-bar i').style.width = `${Math.round(share * 100)}%`;
+  bar.querySelector('.ap-text').textContent = ready
+    ? `⬆️ Bereit für ${next.icon} ${next.name} – antippen!`
+    : `${next.icon} ${next.name}: 👥 ${state.population}/${next.need.population} · ${Math.round(share * 100)} %`;
 }
 
 function showAges() {

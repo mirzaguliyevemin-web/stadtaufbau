@@ -135,6 +135,11 @@ function runBalanceBot(minutes = 90) {
       const slot = bestServiceSlot('fireplace');
       if (slot) tasks.push(['fireplace', slot]);
     }
+    if (huts >= 3 && countBuildings('painter') < 1) tasks.push(['painter']);
+    if (pop >= 6) {
+      const slot = bestServiceSlot('watertrough');
+      if (slot) tasks.push(['watertrough', slot]);
+    }
     let builds = 0;
     for (const [type, slot] of tasks) {
       if (builds >= 2) break;

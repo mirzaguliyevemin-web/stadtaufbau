@@ -32,3 +32,6 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 - 2026-10-26, Version 44 – 5 Zeitalter (Plan in `docs/zeitalter.md`): neue Städte starten in der Steinzeit
   (nur Holz, Stein, Nahrung; Hütte, Sammlerin, Jägerlager, Holzfäller, Steinsammler, Feuerstelle), Aufstieg
   zur Antike und zum Mittelalter über das Zeitalter-Fenster (oben antippen). Industrie und Moderne folgen.
+- 2026-10-26, Version 46–49 – obere und untere Leiste in Holz/Pergament; Steinzeit schwerer; Forschung schon in der
+  Steinzeit (Höhlenmaler, 4 Forschungen); Wassertrog löscht Brände und wird in der Antike zur Feuerwache;
+  Seuchen erst ab der Antike; gesperrte Gebäude mit 🔒.

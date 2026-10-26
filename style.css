@@ -1091,8 +1091,23 @@ html, body { background: #3b2412; }
   box-shadow: 0 2px 0 rgba(30, 18, 8, .7);
 }
 .build-btn.selected { background: #ffe8a3; border-color: #e76f51; box-shadow: 0 0 0 2px #ffd166, 0 2px 0 rgba(30, 18, 8, .7); }
-.build-btn.locked { background: #d9ccb0; border-color: #a89060; opacity: .5; }
+.build-btn.locked { background: #d9ccb0; border-color: #a89060; }
 @media (hover: hover) { .build-btn:hover { background: #fff6dc; } }
 #buildnav:has(.demolish-tab.active) #build-tabs { background: rgba(30, 18, 8, .35); }
 .build-tab.demolish-tab .name { color: #ffb4a2; }
 .build-tab.demolish-tab.active { background: #7a2e2e; box-shadow: inset 0 3px 0 #e63946; }
+
+/* Gesperrte Gebäude: blass mit Schloss (bei Sehenswürdigkeiten, die schon stehen, ohne Schloss) */
+.build-btn { position: relative; }
+.build-btn.locked { opacity: 1; filter: none; }
+.build-btn.locked > * { opacity: .45; filter: grayscale(1); }
+.build-btn.locked:not(.built)::after {
+  content: '🔒';
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-size: 15px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .4));
+}
+.build-btn.icon-only.locked:not(.built)::after { top: 50%; left: 50%; right: auto; translate: -50% -50%; font-size: 20px; }

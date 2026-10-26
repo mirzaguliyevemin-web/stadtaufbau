@@ -9,7 +9,7 @@ genug Einwohner und bezahlt Waren. Gebäude aus früheren Zeitaltern bleiben erh
 
 ## 1 · 🪨 Steinzeit (Start)
 
-**Waren:** 🪵 Holz, 🪨 Stein, 🍞 Nahrung – kein Geld, kein Wissen.
+**Waren:** 🪵 Holz, 🪨 Stein, 🍞 Nahrung, 💡 Wissen – kein Geld.
 
 | Gebäude | Was es macht |
 |---|---|
@@ -20,14 +20,18 @@ genug Einwohner und bezahlt Waren. Gebäude aus früheren Zeitaltern bleiben erh
 | 🪓 Holzfäller | Holz, besser im Wald |
 | 🪨 Steinsammler | Stein, besser am Berg |
 | 🔥 Feuerstelle | Freizeit für Hütten im Umkreis |
+| 🎨 Höhlenmaler | Wissen für die Forschung |
+| 💧 Wassertrog | löscht Brände in der Nähe, wird in der Antike zur Feuerwache |
 
-Land kostet Holz und Nahrung. Keine Steuern, keine Händler, keine Banditen.
+**Forschung:** Steinwerkzeuge, Speere, Flechtkörbe, Lehmhütten.
+
+Land kostet Holz und Nahrung. Keine Steuern, keine Händler, keine Banditen, keine Seuchen (erst ab der Antike, wenn es Brunnen gibt).
 
 **Aufstieg zur Antike:** 25 Einwohner · 100 Holz, 80 Stein, 100 Nahrung.
 
 ## 2 · 🏺 Antike
 
-**Neu:** 💰 Geld (Steuern, Markt), 💡 Wissen, 🧱 Ziegel, 🧶 Wolle.
+**Neu:** 💰 Geld (Steuern, Markt), 🧱 Ziegel, 🧶 Wolle.
 
 Haus, Farm, Fischerhütte, Sägewerk, Steinbruch, Markt, Lagerhaus, Brücke, Park, Brunnen, Feuerwache,
 Schreibstube, Wachhaus, Mauer, Schäferei, Ziegelei, Brunnenplatz (Forum).

@@ -197,12 +197,15 @@ test('Zeitalter: Steinzeit, Aufstieg, Speichern', () => {
     state.resources.wood = 0;
     for (let x = 24; x < 30; x++) placeBuilding(x, 32, 'road');
     advanceAge(); const tooEarly = state.age;
+    state.resources.wood = 20; placeBuilding(35, 31, 'watertrough');
     state.population = 30; Object.assign(state.resources, { wood: 100, stone: 80, food: 100 });
+    const stoneTech = techStatus('stonetools'), laterTech = techStatus('irrigation'), trough = isUnlocked('watertrough');
     const ready = canAdvanceAge(); advanceAge();
+    const evolved = getCell(35, 31)?.type, troughGone = !isUnlocked('watertrough') && !categoryTypes('defense').includes('watertrough');
     const after = { age: state.age, house: isUnlocked('house'), money: isResourceVisible('money'), road: JSON.stringify(costOf('road')),
       food: state.resources.food, quest: questProgress(QUESTS.find(q => q.id === 'ageAntiquity')).done };
     showAges(); updateAgesUI(); render(0.016); save();
-    JSON.stringify({ before, huts, stoneBuilt, tooEarly, ready, after })
+    JSON.stringify({ before, huts, stoneBuilt, tooEarly, ready, after, stoneTech, laterTech, trough, evolved, troughGone })
   `);
   noErrors(game, 'bei den Zeitaltern');
   const o = JSON.parse(r);
@@ -210,6 +213,8 @@ test('Zeitalter: Steinzeit, Aufstieg, Speichern', () => {
   assert(o.before.plot === 'wood,food' && o.before.quest === 'paths' && !o.before.tabs.includes('farm'), 'Steinzeit: ' + r);
   assert(o.huts.every(Boolean) && o.stoneBuilt.every(Boolean) && o.tooEarly === 0 && o.ready, 'Aufstieg: ' + r);
   assert(o.after.age === 1 && o.after.house && o.after.money && o.after.road === '{"money":5}' && o.after.food === 0 && o.after.quest, 'Antike: ' + r);
+  assert(o.stoneTech === 'available' && o.laterTech === 'later' && o.trough, 'Steinzeit-Forschung/Wassertrog: ' + r);
+  assert(o.evolved === 'firestation' && o.troughGone, 'Wassertrog → Feuerwache: ' + r);
   const b = fresh({ storage: game.storage, seed: 17 });
   assert(b.run('state.age') === 1, 'Zeitalter nach dem Laden: ' + b.run('state.age'));
   return 'Steinzeit → Antike';

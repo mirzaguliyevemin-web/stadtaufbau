@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 48;
+const APP_VERSION = 49;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -131,7 +131,7 @@ const RESOURCES = {
   wood:  { name: 'Holz',    icon: '🪵', start: 60, stored: true, price: 4 },
   stone: { name: 'Stein',   icon: '🪨', start: 20, stored: true, price: 5 },
   food:  { name: 'Nahrung', icon: '🍞', start: 20, stored: true, price: 3 },
-  knowledge: { name: 'Wissen', icon: '💡', start: 0, fromAge: 1 },
+  knowledge: { name: 'Wissen', icon: '💡', start: 0 },
   planks: { name: 'Bretter', icon: '🪜', start: 0, stored: true, price: 20, showFrom: 1 },
   bricks: { name: 'Ziegel',  icon: '🧱', start: 0, stored: true, price: 25, showFrom: 1 },
   bread:  { name: 'Brot',    icon: '🥖', start: 0, stored: true, price: 8,  showFrom: 1 },
@@ -162,8 +162,8 @@ const LEVELS = [
 // Zeitalter. Gebäude mit `age` gibt es erst ab diesem Zeitalter (Index). Plan: docs/zeitalter.md
 //   need: Voraussetzungen für den Aufstieg  | cost: Kosten des Aufstiegs  | ready: false = kommt in einem späteren Update
 const AGES = [
-  { id: 'stone',     name: 'Steinzeit',   icon: '🪨', text: 'Hütten, Sammler und Jäger. Es gibt nur Holz, Stein und Nahrung.' },
-  { id: 'antiquity', name: 'Antike',      icon: '🏺', text: 'Geld, Handel und Häuser aus Stein. Die ersten Gelehrten sammeln Wissen.',
+  { id: 'stone',     name: 'Steinzeit',   icon: '🪨', text: 'Hütten, Sammler und Jäger. Es gibt Holz, Stein, Nahrung und erstes Wissen – aber noch kein Geld.' },
+  { id: 'antiquity', name: 'Antike',      icon: '🏺', text: 'Geld, Handel und Häuser aus Stein. Schreibstuben sammeln viel mehr Wissen.',
     need: { population: 25 }, cost: { wood: 100, stone: 80, food: 100 } },
   { id: 'medieval',  name: 'Mittelalter', icon: '🏰', text: 'Handwerk, Schulen, Burgtürme und Kathedralen.',
     need: { population: 40 }, cost: { money: 400, knowledge: 30, stone: 100, bricks: 15 } },
@@ -250,6 +250,7 @@ const CATEGORIES = {
 //   landmark:      Sehenswürdigkeit – gibt es nur einmal, Zufriedenheitsbonus für die ganze Stadt
 //   age:           ab welchem Zeitalter baubar (Index in AGES, Standard 0 = Steinzeit)
 //   ageCost:       abweichende Kosten je Zeitalter, z. B. { 0: { wood: 1 } }
+//   evolvesTo:     wird automatisch zu diesem Gebäude, sobald es freigeschaltet ist (z. B. Wassertrog → Feuerwache)
 //   unlockLevel:   ab welcher Stadtstufe baubar (Index in LEVELS)
 //   requiresTech:  erst nach dieser Forschung baubar (ID in TECHS)
 //   needsRoad:     funktioniert nur mit angrenzender Straße
@@ -324,6 +325,25 @@ const BUILDINGS = {
     smoke: 0.6,
     needsRoad: true,
     category: 'services',
+  },
+  painter: {
+    name: 'Höhlenmaler', icon: '🎨', color: '#bc6c25',
+    description: 'Malt Jagd und Ernte an die Felswand – so wird Wissen weitergegeben.',
+    cost: { wood: 20, stone: 15 },
+    interval: 10,
+    produces: { knowledge: 1 },
+    needsRoad: true,
+    jobs: { scholar: 1 },
+    category: 'education',
+  },
+  watertrough: {
+    name: 'Wassertrog', icon: '💧', color: '#8ecae6',
+    description: 'Wasser und Eimer stehen bereit: Brände in der Nähe werden gelöscht. In der Antike wird daraus eine Feuerwache.',
+    cost: { wood: 10, stone: 5 },
+    fireRadius: 2,
+    needsRoad: true,
+    evolvesTo: 'firestation',
+    category: 'defense',
   },
   bridge: {
     name: 'Brücke', icon: '🌉', color: '#a47148',
@@ -702,6 +722,9 @@ const QUESTS = [
   { id: 'stonecutter', title: 'Steine klopfen',       goal: { type: 'build', building: 'stonecutter', count: 1 }, reward: { wood: 10 } },
   { id: 'hunter',      title: 'Auf die Jagd',         goal: { type: 'build', building: 'hunter', count: 1 },      reward: { food: 15 } },
   { id: 'fireplace',   title: 'Am Lagerfeuer',        goal: { type: 'build', building: 'fireplace', count: 1 },   reward: { wood: 10, stone: 5 } },
+  { id: 'watertrough', title: 'Wasser gegen Feuer',   goal: { type: 'build', building: 'watertrough', count: 1 }, reward: { wood: 10 } },
+  { id: 'painter',     title: 'Bilder an der Wand',   goal: { type: 'build', building: 'painter', count: 1 },     reward: { stone: 10 } },
+  { id: 'stoneIdea',   title: 'Die erste Idee',       goal: { type: 'research', count: 1 },                       reward: { knowledge: 5 } },
   { id: 'tribe15',     title: 'Ein wachsender Stamm', goal: { type: 'population', count: 20 },                    reward: { wood: 15, stone: 10 } },
   { id: 'ageAntiquity', title: 'Ein neues Zeitalter', goal: { type: 'age', count: 1 },                            reward: { food: 50, money: 50 } },
   // Antike und Mittelalter
@@ -796,7 +819,33 @@ const ACHIEVEMENTS = [
 //     happiness:  Punkte                 dauerhafter Zufriedenheitsbonus
 //     flags:      { name: true }         Sonderregeln (fireResistant, plagueResistant)
 //   Gebäude mit requiresTech werden durch die Technologie freigeschaltet.
+// age: ab welchem Zeitalter erforschbar (Standard 1 = Antike)
 const TECHS = {
+  stonetools: {
+    name: 'Steinwerkzeuge', icon: '🪓', age: 0,
+    description: 'Scharfe Faustkeile: Holzfäller und Steinsammler liefern 50 % mehr.',
+    cost: { knowledge: 12 }, seconds: 40,
+    effect: { production: { woodcutter: 0.5, stonecutter: 0.5 } },
+  },
+  spears: {
+    name: 'Speere', icon: '🏹', age: 0,
+    description: 'Mit Speeren jagt es sich besser: Jägerlager liefern 50 % mehr.',
+    cost: { knowledge: 12 }, seconds: 40,
+    effect: { production: { hunter: 0.5 } },
+  },
+  baskets: {
+    name: 'Flechtkörbe', icon: '🧺', age: 0,
+    description: 'In Körben passt mehr hinein: Sammlerinnen liefern 50 % mehr.',
+    cost: { knowledge: 18 }, seconds: 45,
+    effect: { production: { gatherer: 0.5 } },
+  },
+  clayhuts: {
+    name: 'Lehmhütten', icon: '🛖', age: 0,
+    description: 'Wände aus Lehm: Hütten bieten 1 Wohnplatz mehr.',
+    cost: { knowledge: 30, stone: 20 }, seconds: 60,
+    requires: ['stonetools'],
+    effect: { capacity: { hut: 1 } },
+  },
   irrigation: {
     name: 'Bewässerung', icon: '🌊',
     description: 'Farmen liefern 50 % mehr Nahrung.',
@@ -883,14 +932,14 @@ const EVENTS = {
   drought: {
     name: 'Dürre', icon: '🌵', weight: 2, minPop: 5, seasons: ['summer', 'autumn'],
     duration: 60, effect: { production: { food: 0.5 } },
-    text: 'Es regnet seit Wochen nicht. Farmen liefern 60 Sekunden lang nur die halbe Ernte.',
+    text: 'Es regnet seit Wochen nicht. 60 Sekunden lang gibt es nur halb so viel Nahrung.',
   },
   caravan: {
     name: 'Händlerkarawane', icon: '🐪', weight: 2, minPop: 5, minAge: 1,
     start: () => offerTrade(),
   },
   plague: {
-    name: 'Seuche', icon: '🦠', weight: 1, minPop: 20,
+    name: 'Seuche', icon: '🦠', weight: 1, minPop: 20, minAge: 1,   // erst wenn es Brunnen gibt
     start: () => startPlague(),
   },
   bandits: {
@@ -1520,6 +1569,7 @@ function levelFor(pop) {
 
 function isUnlocked(type) {
   const def = BUILDINGS[type];
+  if (def.evolvesTo && isUnlocked(def.evolvesTo)) return false;   // überholt, z. B. Wassertrog ab der Feuerwache
   return (def.age || 0) <= state.age && (def.unlockLevel || 0) <= state.maxLevel && (!def.requiresTech || state.techs.includes(def.requiresTech));
 }
 
@@ -2454,8 +2504,8 @@ function startFire() {
   const def = BUILDINGS[state.grid[i].type];
   const brigade = igniteCell(i);
   showEventPopup('🔥', 'Feuer!', brigade
-    ? `${def.icon} ${def.name} brennt! Die Feuerwache ist schon unterwegs.`
-    : `${def.icon} ${def.name} brennt, und keine Feuerwache ist in der Nähe! ` +
+    ? `${def.icon} ${def.name} brennt! Die Löschhelfer sind schon unterwegs.`
+    : `${def.icon} ${def.name} brennt, und kein ${state.age === 0 ? 'Wassertrog' : 'Feuerwache'} ist in der Nähe! ` +
       `Tippe das Gebäude an und lösche es für ${formatAmounts(extinguishCost())} – ` +
       `sonst brennt es in ${Math.round(state.grid[i].fire.max)} Sekunden ab.`);
   return true;
@@ -2976,8 +3026,13 @@ function offerTrade() {
 function techStatus(id) {
   if (state.techs.includes(id)) return 'done';
   if (state.research?.id === id) return 'running';
+  if (techAge(id) > state.age) return 'later';
   if ((TECHS[id].requires || []).some(r => !state.techs.includes(r))) return 'locked';
   return 'available';
+}
+
+function techAge(id) {
+  return TECHS[id].age ?? 1;
 }
 
 function startResearch(id) {
@@ -3510,6 +3565,7 @@ function load() {
     state.age = OLD_SAVE_AGE;
     for (const q of QUESTS) if (!q.age && !state.questsClaimed.includes(q.id)) state.questsClaimed.push(q.id);
   }
+  evolveBuildings();
   for (const id in RESOURCES) {
     if (typeof data.produced?.[id] === 'number') state.produced[id] = data.produced[id];
   }
@@ -4167,6 +4223,60 @@ const CROP_COLORS = {
 // Zeichnung je Gebäudeart: (X, Y, W, H, x, y, cell) – cell kann fehlen (Bauvorschau)
 const SPRITES = {
   // ---------- Steinzeit ----------
+  painter(X, Y, W, H, x, y) {
+    sprGround(X, Y, W, H, '#cdb98f');
+    // Felswand mit Malereien
+    ctx.fillStyle = 'rgba(20,30,20,0.25)';
+    ctx.beginPath(); ctx.ellipse(X + W / 2 + T * 0.05, Y + T * 0.62, T * 0.4, T * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#a39e93';
+    ctx.beginPath(); ctx.moveTo(X + T * 0.08, Y + T * 0.62); ctx.quadraticCurveTo(X + T * 0.1, Y + T * 0.1, X + T * 0.5, Y + T * 0.08);
+    ctx.quadraticCurveTo(X + T * 0.92, Y + T * 0.1, X + T * 0.92, Y + T * 0.62); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#8d8a83';
+    ctx.beginPath(); ctx.moveTo(X + T * 0.6, Y + T * 0.1); ctx.quadraticCurveTo(X + T * 0.92, Y + T * 0.12, X + T * 0.92, Y + T * 0.62); ctx.lineTo(X + T * 0.7, Y + T * 0.62); ctx.fill();
+    ctx.strokeStyle = '#9b2226'; ctx.lineWidth = T * 0.025; ctx.lineCap = 'round';
+    // Tier (Mammut) und Strichmännchen
+    ctx.beginPath(); ctx.ellipse(X + T * 0.38, Y + T * 0.32, T * 0.11, T * 0.06, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath();
+    for (const lx of [0.31, 0.36, 0.41, 0.45]) { ctx.moveTo(X + T * lx, Y + T * 0.37); ctx.lineTo(X + T * lx, Y + T * 0.44); }
+    ctx.moveTo(X + T * 0.27, Y + T * 0.3); ctx.quadraticCurveTo(X + T * 0.2, Y + T * 0.36, X + T * 0.24, Y + T * 0.42);
+    ctx.moveTo(X + T * 0.62, Y + T * 0.26); ctx.lineTo(X + T * 0.62, Y + T * 0.38);
+    ctx.moveTo(X + T * 0.56, Y + T * 0.31); ctx.lineTo(X + T * 0.68, Y + T * 0.3);
+    ctx.moveTo(X + T * 0.62, Y + T * 0.38); ctx.lineTo(X + T * 0.58, Y + T * 0.45);
+    ctx.moveTo(X + T * 0.62, Y + T * 0.38); ctx.lineTo(X + T * 0.66, Y + T * 0.45);
+    ctx.stroke();
+    ctx.fillStyle = '#9b2226';
+    ctx.beginPath(); ctx.arc(X + T * 0.62, Y + T * 0.23, T * 0.03, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#e9c46a';
+    for (const [hx, hy] of [[0.78, 0.25], [0.5, 0.5]]) { ctx.beginPath(); ctx.arc(X + T * hx, Y + T * hy, T * 0.035, 0, Math.PI * 2); ctx.fill(); }
+    // Farbtöpfe
+    for (const [cx, col] of [[0.3, '#9b2226'], [0.45, '#e9c46a'], [0.6, '#3b2a1a']]) {
+      ctx.fillStyle = '#7f5539';
+      ctx.beginPath(); ctx.ellipse(X + T * cx, Y + T * 0.8, T * 0.06, T * 0.045, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.ellipse(X + T * cx, Y + T * 0.79, T * 0.04, T * 0.025, 0, 0, Math.PI * 2); ctx.fill();
+    }
+  },
+  watertrough(X, Y, W, H) {
+    const winter = season().id === 'winter';
+    const cx = X + W / 2, cy = Y + H * 0.55;
+    ctx.fillStyle = 'rgba(20,30,20,0.25)';
+    roundRect(cx - T * 0.34, cy - T * 0.08, T * 0.74, T * 0.36, T * 0.08); ctx.fill();
+    // Trog aus ausgehöhltem Stamm
+    ctx.fillStyle = '#7f5539';
+    roundRect(cx - T * 0.38, cy - T * 0.16, T * 0.76, T * 0.34, T * 0.12); ctx.fill();
+    ctx.fillStyle = winter ? '#cfe6ef' : '#4f9bd1';
+    roundRect(cx - T * 0.3, cy - T * 0.1, T * 0.6, T * 0.2, T * 0.08); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillRect(cx - T * 0.18, cy - T * 0.05, T * 0.14, T * 0.025);
+    // Eimer daneben
+    for (const bx of [-0.28, 0.3]) {
+      ctx.fillStyle = '#a47148';
+      ctx.beginPath(); ctx.moveTo(cx + T * (bx - 0.08), cy + T * 0.22); ctx.lineTo(cx + T * (bx + 0.08), cy + T * 0.22);
+      ctx.lineTo(cx + T * (bx + 0.06), cy + T * 0.38); ctx.lineTo(cx + T * (bx - 0.06), cy + T * 0.38); ctx.fill();
+      ctx.strokeStyle = '#3b2a1a'; ctx.lineWidth = T * 0.015;
+      ctx.beginPath(); ctx.arc(cx + T * bx, cy + T * 0.22, T * 0.07, Math.PI, 0); ctx.stroke();
+    }
+  },
   hut(X, Y, W, H, x, y) {
     const cx = X + W / 2, cy = Y + H * 0.58;
     const winter = season().id === 'winter';
@@ -5825,7 +5935,7 @@ const BUILDING_SOUND = {
   sawmill: 'saw', carpentry: 'saw', smithy: 'anvil', quarry: 'pick', mine: 'pick', farm: 'field', fishery: 'water',
   sheepfarm: 'sheep', market: 'market', warehouse: 'crates', bakery: 'oven', brickworks: 'oven', brewery: 'bubbles',
   weaver: 'loom', school: 'bell', firestation: 'bell', cathedral: 'bigbell', townhall: 'bigbell', scriptorium: 'pages',
-  library: 'pages', house: 'door', hut: 'door', gatherer: 'birds', hunter: 'guard', woodcutter: 'chop', stonecutter: 'pick', fireplace: 'oven', well: 'well', plaza: 'well', guard: 'guard', tower: 'guard', park: 'birds', hospital: 'pages',
+  library: 'pages', house: 'door', hut: 'door', painter: 'pages', watertrough: 'well', gatherer: 'birds', hunter: 'guard', woodcutter: 'chop', stonecutter: 'pick', fireplace: 'oven', well: 'well', plaza: 'well', guard: 'guard', tower: 'guard', park: 'birds', hospital: 'pages',
 };
 
 function playBuildingSound(type) {
@@ -5858,7 +5968,23 @@ const seenUnlocked = new Set();   // freigeschaltete Gebäude, deren Reiter scho
 
 // Gebäude eines Reiters – aus späteren Zeitaltern nur das nächste (als Vorschau, gesperrt)
 function categoryTypes(cat) {
-  return Object.keys(BUILDINGS).filter(type => BUILDINGS[type].category === cat && (BUILDINGS[type].age || 0) <= state.age + 1);
+  return Object.keys(BUILDINGS).filter(type => BUILDINGS[type].category === cat && (BUILDINGS[type].age || 0) <= state.age + 1 &&
+    !(BUILDINGS[type].evolvesTo && isUnlocked(BUILDINGS[type].evolvesTo)));
+}
+
+// Gebäude, die sich weiterentwickeln (Wassertrog → Feuerwache), wandeln sich um, sobald das Ziel freigeschaltet ist.
+// Gibt die Zahl der umgewandelten Gebäude je Art zurück.
+function evolveBuildings() {
+  const changed = {};
+  state.grid.forEach(cell => {
+    const to = cell && BUILDINGS[cell.type].evolvesTo;
+    if (!to || !isUnlocked(to)) return;
+    changed[cell.type] = (changed[cell.type] || 0) + 1;
+    cell.type = to;
+    cell.timer = 0;
+    cell.builtAt = performance.now();
+  });
+  return changed;
 }
 
 function showCategory(cat) {
@@ -6161,6 +6287,7 @@ function updateUI() {
     const built = !!def.landmark && countBuildings(type) > 0;
     btn.classList.toggle('selected', selectedType === type);
     btn.classList.toggle('locked', !unlocked || built);
+    btn.classList.toggle('built', built);
     const cost = costOf(type);
     btn.classList.toggle('unaffordable', unlocked && !built && !canAfford(cost));
     btn.querySelector('.cost').textContent = built ? '✔ gebaut'
@@ -6305,6 +6432,8 @@ function advanceAge() {
   }
   addResources(next.cost, -1);
   state.age++;
+  const evolved = Object.entries(evolveBuildings())
+    .map(([type, n]) => `${n}× ${BUILDINGS[type].icon} ${BUILDINGS[type].name} → ${BUILDINGS[BUILDINGS[type].evolvesTo].icon} ${BUILDINGS[BUILDINGS[type].evolvesTo].name}`);
   const fresh = Object.values(BUILDINGS).filter(def => (def.age || 0) === state.age && isUnlocked(def.id));
   const later = Object.values(BUILDINGS).filter(def => (def.age || 0) === state.age && !isUnlocked(def.id));
   sound.play('levelup');
@@ -6312,6 +6441,7 @@ function advanceAge() {
     next.text,
     fresh.length ? `Neu: ${fresh.map(d => `${d.icon} ${d.name}`).join(', ')}` : '',
     later.length ? `Später (größere Stadt oder Forschung): ${later.map(d => `${d.icon} ${d.name}`).join(', ')}` : '',
+    evolved.length ? `Weiterentwickelt: ${evolved.join(', ')}` : '',
   ].filter(Boolean).join('\n\n'));
   emit('age', { age: state.age });
   showCategory(currentCategory);
@@ -6431,7 +6561,7 @@ let techListKey = '';
 
 function updateResearchUI() {
   if (researchEl.classList.contains('hidden')) return;
-  const ids = Object.keys(TECHS);
+  const ids = Object.keys(TECHS).filter(id => techAge(id) <= state.age + 1);   // spätere Zeitalter noch nicht zeigen
   const key = ids.map(techStatus).join(',');
   if (key !== techListKey) {
     techListKey = key;
@@ -6444,8 +6574,9 @@ function updateResearchUI() {
       if (status === 'done') foot = '<span>✅ Erforscht</span>';
       else if (status === 'running') foot = '<span class="tech-left"></span>';
       else if (status === 'locked') foot = `<span>🔒 Benötigt: ${needs}</span>`;
+      else if (status === 'later') foot = `<span>🔒 Ab ${AGES[techAge(id)].icon} ${AGES[techAge(id)].name}</span>`;
       return `
-        <div class="quest tech ${status}" data-tech="${id}">
+        <div class="quest tech ${status === 'later' ? 'locked' : status}" data-tech="${id}">
           <div class="quest-title">${t.icon} ${t.name}</div>
           <div class="quest-goal">${t.description}${unlocks.length ? ` Neu: ${unlocks.join(', ')}.` : ''}</div>
           ${status === 'running' ? '<div class="quest-bar"><div></div></div>' : ''}
@@ -6625,6 +6756,10 @@ function describeBuilding(type) {
   }
   if (def.needsRoad) lines.push('🛣️ Braucht eine Straße direkt daneben');
   if (canUpgradeType(type)) lines.push('⬆️ Später ausbaubar (Stufe 2 ab Kleinstadt, Stufe 3 ab Stadt)');
+  if (def.evolvesTo) {
+    const to = BUILDINGS[def.evolvesTo];
+    lines.push(`⏫ Wird ${AGES[to.age || 0].name === AGES[state.age].name ? 'bald' : `in der Zeit ${AGES[to.age || 0].icon} ${AGES[to.age || 0].name}`} automatisch zu: ${to.icon} ${to.name}`);
+  }
   return lines;
 }
 
@@ -7014,7 +7149,7 @@ function renderTileInfo() {
   }
   if (cell.fire) {
     lines.push(cell.fire.brigade
-      ? '🚒 Brennt – die Feuerwache löscht gerade.'
+      ? '🚒 Brennt – es wird gerade gelöscht.'
       : `🔥 Brennt! In ${Math.ceil(cell.fire.left)} s ist es abgebrannt.`);
   } else if (cell.build) {
     if (def.needsRoad && !hasRoadAccess(infoTile.x, infoTile.y)) lines.push('⚠️ Noch kein Straßenanschluss – nach dem Bau arbeitet es erst mit Straße.');

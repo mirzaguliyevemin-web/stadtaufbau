@@ -10,10 +10,10 @@ wenn Emin zugestimmt hat.** Neue Einträge oben, mit Datum und kurzer Begründun
 - **Gebäudebilder aus KI-Bildern** (2026-10-26, Wunsch Emin) – Emin erzeugt Bilder im festen Stil; Claude baut
   sie ein (Bild statt Zeichnung, Zeichnung bleibt als Ersatz). Je Zeitalter eigene Bilder, sobald die Zeitalter
   entschieden sind. Formate: 1×1, 2×2, 3×3 quadratisch, 2×1 im Format 2:1.
-- **Zeitalter** (2026-10-26: **Emin hat 5 Zeitalter gewählt** – erst in einer Sitzung mit Emin bauen) – Vorschlag
-  für die Reihenfolge: 1 Steinzeit → 2 Antike → 3 Mittelalter → 4 Industrie → 5 Moderne. Aufstieg kostet Wissen,
-  Geld und Waren; neues Aussehen (Bilder je Zeitalter in `bilder/`) und neue Gebäude je Zeitalter.
-  Offen: genaue Namen/Reihenfolge bestätigen, und ob bestehende Städte im Mittelalter (Zeitalter 3) einsteigen.
+- **Zeitalter** (2026-10-26, **von Emin entschieden** – in einer Sitzung mit Emin bauen):
+  1 Steinzeit → 2 Antike → 3 Mittelalter → 4 Industrie → 5 Moderne. Neue Städte beginnen in der Steinzeit
+  (Emin fängt komplett neu an). Aufstieg kostet Wissen, Geld und Waren; neues Aussehen (Bilder je Zeitalter in
+  `bilder/`) und neue Gebäude je Zeitalter. Alte Spielstände müssen trotzdem weiter laden (CLAUDE.md).
 - **Weitere Ideen zur Auswahl** (2026-10-25): schönere Straßen (Pflaster, Bordstein), mehr Leben (Kinder, Händler,
   Bewohner mit Namen/Wünschen), Handelsverträge mit Nachbarstädten, Statistik-Seite mit Diagrammen.
 

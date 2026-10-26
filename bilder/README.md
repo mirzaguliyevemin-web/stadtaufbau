@@ -5,8 +5,12 @@ Hier kommen die KI-Bilder für die Gebäude hinein. Claude baut sie ins Spiel ei
 
 ## Dateinamen
 
-`<zeitalter>-<gebäude>.png`, z. B. `1-farm.png`, `1-haus.png`, `2-farm.png`.
-Zeitalter 1 = das erste Zeitalter (Reihenfolge siehe `docs/vorschlaege.md`).
+Im Spiel: `<zeitalter>-<gebäude-id>.webp`, z. B. `1-hut.webp`, `2-farm.webp`
+(Zeitalter 1 = Steinzeit, 2 = Antike, 3 = Mittelalter, 4 = Industrie, 5 = Moderne; siehe `docs/zeitalter.md`).
+Claude schneidet den Hintergrund weg, verkleinert auf 384 px und trägt das Bild in `BUILDING_IMAGES` in `game.js` ein.
+Eigene Bilder von Emin dürfen beliebig heißen (PNG/JPG) – Claude benennt sie um.
+
+Bisher: 1-hut, 1-gatherer, 1-hunter, 2-farm (Canva, Stil wie das Farm-Probebild: isometrisch, Gras-Sockel).
 
 ## Format
 
@@ -22,8 +26,8 @@ Zeitalter 1 = das erste Zeitalter (Reihenfolge siehe `docs/vorschlaege.md`).
 
 ## Stil-Satz (immer gleich anhängen)
 
-> Style: cartoon game asset, soft pastel colors, clean outlines, subtle shading, top-down view with slight
-> angle, same camera angle, light from top left, centered on a plain white background, no shadow on the
+> Style: cartoon game asset, soft pastel colors, clean outlines, subtle shading, isometric view like a mobile
+> city building game, light from top left, centered on a plain white background, no shadow on the
 > ground, no text, no border, consistent style across all assets, 1:1 square format
 
 Für 2×1-Gebäude am Ende statt „1:1 square format“: „2:1 wide format“.

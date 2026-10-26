@@ -1111,3 +1111,6 @@ html, body { background: #3b2412; }
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .4));
 }
 .build-btn.icon-only.locked:not(.built)::after { top: 50%; left: 50%; right: auto; translate: -50% -50%; font-size: 20px; }
+
+/* Gebäudebild statt Symbol in der Bauleiste */
+.build-btn .icon img { display: block; height: 1.25em; width: auto; max-width: 100%; margin: -0.1em auto; }

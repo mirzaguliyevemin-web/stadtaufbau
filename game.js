@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 49;
+const APP_VERSION = 50;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -4005,6 +4005,36 @@ function drawArea(x, y, r, color, w = 1, h = 1) {
 
 const EMOJI_FONT = 'system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
 
+// ---------- Gebäudebilder (KI-Bilder aus bilder/) ----------
+// Je Gebäude die Zeitalter (1 = Steinzeit), für die es ein Bild bilder/<zeitalter>-<gebäude>.webp gibt.
+// Gezeigt wird das Bild des aktuellen Zeitalters oder das letzte davor; fehlt es, wird gezeichnet.
+const BUILDING_IMAGES = { hut: [1], gatherer: [1], hunter: [1], farm: [2] };
+const imageCache = {};
+
+function buildingImageSrc(type) {
+  const eras = BUILDING_IMAGES[type];
+  if (!eras) return null;
+  return `bilder/${eras.filter(e => e <= state.age + 1).pop() ?? eras[0]}-${type}.webp`;
+}
+
+function buildingImage(type) {
+  const src = buildingImageSrc(type);
+  if (!src || typeof Image === 'undefined') return null;
+  let img = imageCache[src];
+  if (!img) {
+    img = imageCache[src] = new Image();
+    img.src = src;
+  }
+  return img.complete && img.naturalWidth ? img : null;
+}
+
+// Bild in die Fläche setzen: etwas breiter als die Fläche, unten bündig (die Spitze darf nach oben ragen)
+function drawBuildingImage(img, x, y, w, h) {
+  const dw = w * T * 1.12;
+  const dh = dw * img.naturalHeight / img.naturalWidth;
+  ctx.drawImage(img, (x + w / 2) * T - dw / 2, (y + h) * T - dh + T * 0.04 * Math.min(w, h), dw, dh);
+}
+
 function drawBuilding(x, y, def, alpha, scale = 1, w = 1, h = 1, cell = null) {
   const pad = T * 0.06;
   const cx = (x + w / 2) * T, cy = (y + h / 2) * T;
@@ -4015,6 +4045,12 @@ function drawBuilding(x, y, def, alpha, scale = 1, w = 1, h = 1, cell = null) {
     ctx.translate(-cx, -cy);
   }
   ctx.globalAlpha = alpha;
+  const img = buildingImage(def.id);
+  if (img) {
+    drawBuildingImage(img, x, y, w, h);
+    ctx.restore();
+    return;
+  }
   const sprite = SPRITES[def.id];
   if (sprite) {
     sprite(x * T, y * T, w * T, h * T, x, y, cell);
@@ -5997,6 +6033,14 @@ function showCategory(cat) {
   }
   for (const type of categoryTypes(cat)) if (isUnlocked(type)) seenUnlocked.add(type);
   document.getElementById('buildbar').scrollLeft = 0;
+  for (const type of visible) {   // Bild statt Symbol, wenn es eins gibt (wechselt mit dem Zeitalter)
+    const src = buildingImageSrc(type);
+    const icon = buildButtons[type].querySelector('.icon');
+    if (src && icon.dataset.src !== src) {
+      icon.dataset.src = src;
+      icon.innerHTML = `<img src="${src}" alt="">`;
+    }
+  }
   updateCategoryTabs();
   fitBuildLabels();
 }

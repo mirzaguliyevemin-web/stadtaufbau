@@ -25,11 +25,13 @@ function assert(condition, message) {
 }
 
 // Spiel laden und prüfen, dass dabei keine Fehler auftreten.
-// Gebaut wird in den Tests sofort (ohne Bauzeit), außer mit { buildTimes: true }.
+// Gebaut wird in den Tests sofort (ohne Bauzeit), außer mit { buildTimes: true }; Zeitalter: { age }.
 function fresh(options = {}) {
   const game = loadGame(options);
   assert(game.errors.length === 0, 'Fehler beim Start: ' + game.errors.join(' | '));
   if (!options.buildTimes) game.run('CONFIG.buildTimeBase = 0; CONFIG.buildTimePerValue = 0;');
+  // Neue Spiele beginnen in der Steinzeit; die meisten Tests prüfen Gebäude aus dem Mittelalter
+  if (!options.storage) game.run(`state.age = ${options.age ?? 2}; showCategory(currentCategory);`);
   return game;
 }
 
@@ -151,6 +153,9 @@ test('Alte Spielstände (16×16, 32×32, 64×64) lassen sich laden', () => {
     camp: state.camps[0] && state.camps[0].x === 60 + O })`);
   noErrors(g, 'beim Laden (64×64)');
   assert(r === '{"house":"house","bought":1,"owned":5,"plot29":true,"terrain":true,"camp":true}', '64×64: ' + r);
+  // Stände von vor den Zeitaltern stehen im Mittelalter, ohne Steinzeit-Aufträge
+  const age = g.run(`JSON.stringify({ age: state.age, quest: activeQuests()[0]?.id, farm: isUnlocked('farm') })`);
+  assert(age === '{"age":2,"quest":"roads","farm":true}', 'Zeitalter alter Stand: ' + age);
   return 'ok';
 });
 
@@ -177,6 +182,37 @@ test('Bauzeit und höchstens 2 Baustellen', () => {
   const after = b.run(`JSON.stringify({ build: !!getCell(24, 31)?.build, n: constructionCount() })`);
   assert(after === '{"build":true,"n":2}', 'nach dem Laden: ' + after);
   return `Haus ${o.time} s`;
+});
+
+test('Zeitalter: Steinzeit, Aufstieg, Speichern', () => {
+  const game = fresh({ seed: 17, age: 0 });
+  const r = game.run(`${PREP}
+    const before = { house: isUnlocked('house'), hut: isUnlocked('hut'), road: JSON.stringify(costOf('road')),
+      money: isResourceVisible('money'), plot: Object.keys(plotPrice()).join(), quest: activeQuests()[0].id,
+      tabs: categoryTypes('housing').join() };
+    const huts = [24, 25, 26].map(x => placeBuilding(x, 31, 'hut'));
+    Object.assign(state.resources, { wood: 100, stone: 100 });
+    const stoneBuilt = ['gatherer', 'hunter', 'woodcutter', 'stonecutter', 'fireplace'].map((t, k) => placeBuilding(30 + k, 31, t));
+    state.population = 9; recalcStats(); render(0.016); showInfo(30, 31); showResourceInfo('food');
+    state.resources.wood = 0;
+    for (let x = 24; x < 30; x++) placeBuilding(x, 32, 'road');
+    advanceAge(); const tooEarly = state.age;
+    state.population = 30; Object.assign(state.resources, { wood: 100, stone: 80, food: 100 });
+    const ready = canAdvanceAge(); advanceAge();
+    const after = { age: state.age, house: isUnlocked('house'), money: isResourceVisible('money'), road: JSON.stringify(costOf('road')),
+      food: state.resources.food, quest: questProgress(QUESTS.find(q => q.id === 'ageAntiquity')).done };
+    showAges(); updateAgesUI(); render(0.016); save();
+    JSON.stringify({ before, huts, stoneBuilt, tooEarly, ready, after })
+  `);
+  noErrors(game, 'bei den Zeitaltern');
+  const o = JSON.parse(r);
+  assert(!o.before.house && o.before.hut && o.before.road === '{"wood":1}' && !o.before.money, 'Steinzeit: ' + r);
+  assert(o.before.plot === 'wood,food' && o.before.quest === 'paths' && !o.before.tabs.includes('farm'), 'Steinzeit: ' + r);
+  assert(o.huts.every(Boolean) && o.stoneBuilt.every(Boolean) && o.tooEarly === 0 && o.ready, 'Aufstieg: ' + r);
+  assert(o.after.age === 1 && o.after.house && o.after.money && o.after.road === '{"money":5}' && o.after.food === 0 && o.after.quest, 'Antike: ' + r);
+  const b = fresh({ storage: game.storage, seed: 17 });
+  assert(b.run('state.age') === 1, 'Zeitalter nach dem Laden: ' + b.run('state.age'));
+  return 'Steinzeit → Antike';
 });
 
 test('Gelände: Wald, Berge, Seen mit Spielwirkung', () => {

@@ -45,7 +45,7 @@ function runBalanceBot(minutes = 90) {
       return false;
     }
     // Keine Betriebe ohne Leute (außer Farmen und Gelehrten-Gebäude)
-    if (def.jobs && type !== 'farm' && !def.jobs.scholar && stats.unemployed < 1) {
+    if (def.jobs && !FOOD_FIRST.includes(type) && !def.jobs.scholar && stats.unemployed < 1) {
       want.people = (want.people || 0) + 1;
       return false;
     }
@@ -64,7 +64,7 @@ function runBalanceBot(minutes = 90) {
     const [rx, ry] = roadFor(slot.x, slot.y);
     const needRoad = getCell(rx, ry) === null;
     const cost = { ...costOf(type) };
-    if (needRoad) cost.money = (cost.money || 0) + BUILDINGS.road.cost.money;
+    if (needRoad) for (const [id, n] of Object.entries(costOf('road'))) cost[id] = (cost[id] || 0) + n;
     if (cost.wood && state.resources.wood - cost.wood < woodReserve()) {
       want.reserve = (want.reserve || 0) + 1;
       return false;
@@ -116,11 +116,42 @@ function runBalanceBot(minutes = 90) {
     return bestScore >= 3 ? best : null;
   }
 
+  // Steinzeit: Hütten, Sammlerinnen/Jäger, Holzfäller, Steinsammler, Feuerstellen – dann aufsteigen
+  function stoneAge() {
+    const pop = state.population, cap = stats.capacity;
+    const huts = countBuildings('hut');
+    const foodRate = rate('food') - pop * CONFIG.foodPerCitizen;
+    const futureNeed = (cap - pop + 3) * CONFIG.foodPerCitizen;
+    const next = nextAge();
+    const saving = next && pop >= next.need.population;   // genug Einwohner: auf den Aufstieg sparen
+    const tasks = [];
+    if ((pop > 0 || countBuildings('gatherer') === 0) && (foodRate < futureNeed || (state.resources.food < 10 && foodRate <= 0.05))) {
+      tasks.push([countBuildings('gatherer') <= countBuildings('hunter') ? 'gatherer' : 'hunter']);
+    }
+    if (!saving && (pop >= cap - 2 || stats.unemployed < 2) && stats.happiness >= HAPPINESS.growAbove) tasks.push(['hut']);
+    if (countBuildings('woodcutter') < 1 + Math.floor(huts / 4)) tasks.push(['woodcutter']);
+    if (huts >= 2 && countBuildings('stonecutter') < 1 + Math.floor(huts / 5)) tasks.push(['stonecutter']);
+    if (pop >= 4) {
+      const slot = bestServiceSlot('fireplace');
+      if (slot) tasks.push(['fireplace', slot]);
+    }
+    let builds = 0;
+    for (const [type, slot] of tasks) {
+      if (builds >= 2) break;
+      if (tryBuild(type, slot)) builds++;
+    }
+  }
+
   function decide(t) {
     for (const q of activeQuests()) if (questProgress(q).done) claimQuest(q.id);
     state.grid.forEach((c, i) => {
-      if (c?.fire && !c.fire.brigade && canAfford(CONFIG.extinguishCost)) extinguish(i % N, Math.floor(i / N));
+      if (c?.fire && !c.fire.brigade && canAfford(extinguishCost())) extinguish(i % N, Math.floor(i / N));
     });
+    if (canAdvanceAge()) {
+      advanceAge();
+      ageTimes[AGES[state.age].id] = +(t / 60).toFixed(1);
+    }
+    if (state.age === 0) return stoneAge();
     const pop = state.population, cap = stats.capacity;
     const houses = countBuildings('house');
     const foodRate = rate('food') - pop * CONFIG.foodPerCitizen;
@@ -232,7 +263,7 @@ function runBalanceBot(minutes = 90) {
 
   const DT = 0.25, TOTAL = minutes * 60;
   let t = 0, nextDecision = 0, nextSnap = 0, techCount = 0;
-  const milestones = {}, techTimes = [], questTimes = [], landmarkTimes = {};
+  const milestones = {}, techTimes = [], questTimes = [], landmarkTimes = {}, ageTimes = {};
   let lowHappy = 0, starving = 0, freezing = 0;
   const wall = performance.now();
   while (t < TOTAL) {
@@ -265,6 +296,7 @@ function runBalanceBot(minutes = 90) {
   return {
     minutes,
     milestones: { pop21: min(21), pop50: min(50), pop101: min(101), pop150: min(150), pop200: min(200) },
+    ages: ageTimes,
     techs: techTimes,
     landmarks: landmarkTimes,
     quests: `${state.questsClaimed.length}/${QUESTS.length}`,

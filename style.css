@@ -343,7 +343,7 @@ button {
 .ach-name { font-size: 10px; line-height: 1.2; text-align: center; }
 
 /* ---------- Gebäude-Info ---------- */
-#info, #quests, #research, #settings {
+#info, #quests, #research, #settings, #ages {
   position: absolute;
   left: 12px;
   right: 12px;
@@ -616,7 +616,7 @@ button {
 
 button.res { cursor: pointer; }
 
-#info, #quests, #research, #settings { max-height: 70%; overflow-y: auto; }
+#info, #quests, #research, #settings, #ages { max-height: 70%; overflow-y: auto; }
 
 @media (hover: hover) {
   .build-btn:hover { background: rgba(255, 255, 255, .12); }
@@ -889,7 +889,7 @@ button.res { cursor: pointer; }
 #resources .res.full { background: rgba(192, 57, 43, .45); }
 
 /* ---------- Große Fenster (Forschung, Aufträge, Einstellungen) als ganze Seite ---------- */
-#quests.fullpage, #research.fullpage, #settings.fullpage {
+#quests.fullpage, #research.fullpage, #settings.fullpage, #ages.fullpage {
   position: fixed;
   inset: 0;
   z-index: 40;
@@ -970,3 +970,15 @@ button.res { cursor: pointer; }
 .build-tab.icon-only .icon { font-size: 24px; padding: 4px 0; }
 .build-btn.icon-only { justify-content: center; padding: 8px 2px; }
 .build-btn.icon-only .icon { font-size: 32px; }
+
+/* Zeitalter */
+.age-card { display: flex; flex-direction: column; gap: 4px; }
+.age-card.done { background: #e3f4d7; }
+.age-card.current { background: #fff3c4; box-shadow: inset 0 0 0 2px #e9c46a; }
+.age-card.later { opacity: .6; }
+.age-title { font-size: 17px; font-weight: 700; }
+.age-buildings { font-size: 13px; line-height: 1.45; color: #444; }
+.age-need { font-size: 13px; }
+.age-need .ok { color: #2d6a4f; font-weight: 700; }
+.age-need .missing { color: #c0392b; font-weight: 700; }
+.res.ready { background: #e9c46a; color: #222; animation: pulse 1.4s ease-in-out infinite; }

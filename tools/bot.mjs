@@ -28,6 +28,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     if (!report) continue;
     for (const line of report.snapshots.filter((_, i) => i % 2 === 0)) console.log('  ' + line);
     console.log('  Meilensteine (Spielminuten):', JSON.stringify(report.milestones));
+    console.log('  Zeitalter (Spielminute des Aufstiegs):', JSON.stringify(report.ages));
     console.log('  Sehenswürdigkeiten:', JSON.stringify(report.landmarks));
     console.log('  Forschung:', report.techs.join(' '));
     console.log('  Probleme:', JSON.stringify(report.problems));

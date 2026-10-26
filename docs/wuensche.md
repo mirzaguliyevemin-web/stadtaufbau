@@ -28,4 +28,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
     Schmiede hämmern, Gelehrte lesen, Händler tragen Kisten.
   - Eigene Geräusche beim Antippen von Gebäuden (Säge, Amboss, Schaf, Glocke …), selbst erzeugt.
   - Raster nur noch beim Bauen/Verschieben sichtbar.
-  - Offen: neue Gebäudebilder je Zeitalter – wartet auf Bilder von Emin (Anleitung siehe Sitzung/Obsidian).
+  - Offen: neue Gebäudebilder je Zeitalter – wartet auf Bilder von Emin (Ordner `bilder/`).
+- 2026-10-26, Version 44 – 5 Zeitalter (Plan in `docs/zeitalter.md`): neue Städte starten in der Steinzeit
+  (nur Holz, Stein, Nahrung; Hütte, Sammlerin, Jägerlager, Holzfäller, Steinsammler, Feuerstelle), Aufstieg
+  zur Antike und zum Mittelalter über das Zeitalter-Fenster (oben antippen). Industrie und Moderne folgen.

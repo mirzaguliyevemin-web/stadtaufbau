@@ -3,6 +3,14 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-26 – Sitzung mit Emin (Version 48)
+
+- Wunsch Emin: Ressourcen in der Steinzeit zu leicht. Sammlerin 3→2 Nahrung/6 s, Jägerlager 4→3/8 s,
+  Holzfäller 2 Holz alle 6→8 s, Steinsammler 2 Stein alle 8→10 s, Steinzeit-Belohnungen halbiert.
+- Bot (3 Läufe à 30 min) vorher: Antike 4,2–4,9 min, Mittelalter 9,4–10,7 min, Kleinstadt 2,4–2,8 min.
+  Nachher: Antike 7,8–9,2 min, Mittelalter 18,8–19,3 min, Kleinstadt 5,2–6,7 min, Stadt 17,9–19,1 min, kein Hunger.
+- Zielwert neu: Antike (Bot) 6–12 min.
+
 ## 2026-10-26 – Täglicher Lauf (Version 42)
 
 - Tests: alle 12 bestanden. Bot (3 Läufe à 90 min), Durchschnitt: Kleinstadt 2,8 min · 50 Einw. 8,9 min ·

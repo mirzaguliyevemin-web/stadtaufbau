@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 47;
+const APP_VERSION = 48;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -281,7 +281,7 @@ const BUILDINGS = {
     description: 'Sammelt Beeren, Nüsse und Pilze. Im Wald findet sie mehr, im Winter kaum etwas.',
     cost: { wood: 10 },
     interval: 6,
-    produces: { food: 3 },
+    produces: { food: 2 },
     needsRoad: true,
     jobs: { worker: 2 },
     category: 'resources',
@@ -291,7 +291,7 @@ const BUILDINGS = {
     description: 'Jäger bringen Fleisch. Am Waldrand ist die Jagd ergiebiger.',
     cost: { wood: 15, stone: 5 },
     interval: 8,
-    produces: { food: 4 },
+    produces: { food: 3 },
     needsRoad: true,
     jobs: { worker: 2 },
     category: 'resources',
@@ -300,7 +300,7 @@ const BUILDINGS = {
     name: 'Holzfäller', icon: '🪓', color: '#7f5539',
     description: 'Fällt Bäume und liefert Holz – am besten mitten im Wald.',
     cost: { stone: 5 },
-    interval: 6,
+    interval: 8,
     produces: { wood: 2 },
     needsRoad: true,
     jobs: { worker: 2 },
@@ -310,7 +310,7 @@ const BUILDINGS = {
     name: 'Steinsammler', icon: '🪨', color: '#adb5bd',
     description: 'Sammelt und klopft Steine – am Berg gibt es mehr.',
     cost: { wood: 15 },
-    interval: 8,
+    interval: 10,
     produces: { stone: 2 },
     needsRoad: true,
     jobs: { worker: 2 },
@@ -694,15 +694,15 @@ for (const id in BUILDINGS) BUILDINGS[id].id = id;
 //   reward: Belohnung { ressource: menge }
 const QUESTS = [
   // Steinzeit
-  { id: 'paths',       title: 'Erste Pfade',          goal: { type: 'build', building: 'road', count: 3 },        reward: { wood: 15 } },
-  { id: 'huts',        title: 'Ein Dach aus Ästen',   goal: { type: 'build', building: 'hut', count: 2 },         reward: { wood: 20 } },
-  { id: 'gatherer',    title: 'Beeren sammeln',       goal: { type: 'build', building: 'gatherer', count: 1 },    reward: { food: 20 } },
-  { id: 'woodcutter',  title: 'Holz für den Stamm',   goal: { type: 'build', building: 'woodcutter', count: 1 },  reward: { stone: 10 } },
-  { id: 'tribe8',      title: 'Ein kleiner Stamm',    goal: { type: 'population', count: 8 },                     reward: { food: 30 } },
-  { id: 'stonecutter', title: 'Steine klopfen',       goal: { type: 'build', building: 'stonecutter', count: 1 }, reward: { wood: 20 } },
-  { id: 'hunter',      title: 'Auf die Jagd',         goal: { type: 'build', building: 'hunter', count: 1 },      reward: { food: 30 } },
-  { id: 'fireplace',   title: 'Am Lagerfeuer',        goal: { type: 'build', building: 'fireplace', count: 1 },   reward: { wood: 20, stone: 10 } },
-  { id: 'tribe15',     title: 'Ein wachsender Stamm', goal: { type: 'population', count: 20 },                    reward: { wood: 30, stone: 20 } },
+  { id: 'paths',       title: 'Erste Pfade',          goal: { type: 'build', building: 'road', count: 3 },        reward: { wood: 8 } },
+  { id: 'huts',        title: 'Ein Dach aus Ästen',   goal: { type: 'build', building: 'hut', count: 2 },         reward: { wood: 10 } },
+  { id: 'gatherer',    title: 'Beeren sammeln',       goal: { type: 'build', building: 'gatherer', count: 1 },    reward: { food: 10 } },
+  { id: 'woodcutter',  title: 'Holz für den Stamm',   goal: { type: 'build', building: 'woodcutter', count: 1 },  reward: { stone: 5 } },
+  { id: 'tribe8',      title: 'Ein kleiner Stamm',    goal: { type: 'population', count: 8 },                     reward: { food: 15 } },
+  { id: 'stonecutter', title: 'Steine klopfen',       goal: { type: 'build', building: 'stonecutter', count: 1 }, reward: { wood: 10 } },
+  { id: 'hunter',      title: 'Auf die Jagd',         goal: { type: 'build', building: 'hunter', count: 1 },      reward: { food: 15 } },
+  { id: 'fireplace',   title: 'Am Lagerfeuer',        goal: { type: 'build', building: 'fireplace', count: 1 },   reward: { wood: 10, stone: 5 } },
+  { id: 'tribe15',     title: 'Ein wachsender Stamm', goal: { type: 'population', count: 20 },                    reward: { wood: 15, stone: 10 } },
   { id: 'ageAntiquity', title: 'Ein neues Zeitalter', goal: { type: 'age', count: 1 },                            reward: { food: 50, money: 50 } },
   // Antike und Mittelalter
   { age: 1, id: 'roads',      title: 'Erste Wege',           goal: { type: 'build', building: 'road', count: 3 },      reward: { money: 30 } },

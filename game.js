@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 68;
+const APP_VERSION = 69;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -1549,6 +1549,33 @@ function generateTerrain(seed) {
       }
     }
   };
+  // Flüsse: schlängeln sich von einem Kartenrand zum gegenüberliegenden, im Bogen um das Startgebiet herum
+  const river = () => {
+    const s = Math.floor(rng() * 4), a = N * (0.15 + 0.7 * rng()), b = N * (0.15 + 0.7 * rng());
+    let [x, y] = [[a, 0.5], [N - 0.5, a], [a, N - 0.5], [0.5, a]][s];
+    const [tx, ty] = [[b, N - 0.5], [0.5, b], [b, 0.5], [N - 0.5, b]][s];
+    const keepOut = start * 1.5 + 6;   // so weit bleibt der Fluss von der Kartenmitte weg
+    let wobble = 0, px = -1, py = -1;
+    for (let step = 0; step < N * 6; step++) {
+      let dx = tx - x, dy = ty - y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 1) break;
+      dx /= dist; dy /= dist;
+      const ox = x - C, oy = y - C, od = Math.hypot(ox, oy) || 1;
+      if (od < keepOut) { const push = (keepOut - od) / 3; dx += ox / od * push; dy += oy / od * push; }
+      wobble = clamp(wobble + (rng() - 0.5) * 0.5, -1.1, 1.1);   // Schlangenlinien
+      const angle = Math.atan2(dy, dx) + wobble;
+      x += Math.cos(angle) * 0.5;
+      y += Math.sin(angle) * 0.5;
+      const ix = Math.floor(x), iy = Math.floor(y);
+      if (ix < 0 || iy < 0 || ix >= N || iy >= N) break;
+      t[iy * N + ix] = TERRAIN_ID.water;
+      // schräger Schritt: Eckfeld mitfüllen, damit das Wasser zusammenhängt
+      if (px >= 0 && ix !== px && iy !== py) t[py * N + ix] = TERRAIN_ID.water;
+      px = ix; py = iy;
+    }
+  };
+  for (let k = 0; k < Math.round(N / 48); k++) river();   // 2 Flüsse auf der 96er-Karte
   // Seen außerhalb des Startgebiets
   const lakes = Math.round((5 + rng() * 3) * N * N / 4096);   // 5–7 Seen je 64×64 Felder
   for (let k = 0, tries = 0; k < lakes && tries < 400; tries++) {

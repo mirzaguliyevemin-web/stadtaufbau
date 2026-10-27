@@ -3,6 +3,12 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-27 – Flüsse (Version 69)
+
+- Wunsch von Emin (Design): neue Karten bekommen 2 Flüsse, die sich von Kartenrand zu Kartenrand schlängeln und im Bogen
+  ums Startgebiet laufen (Wasserfelder: Brücke nötig, Bonus für Farm/Fischer). Alte Städte behalten ihre Karte.
+- Als Nächstes: Gelände-Bausteine aus Canva (Wiese, Bäume, Berge, Wasser) im Stil der Gebäudebilder – Canva war gerade gesperrt.
+
 ## 2026-10-27 – Fehler von Emin (Version 68)
 
 - Bauleiste ließ sich in der gedrehten Ansicht (Handy hochkant gehalten, seit Version 60) nicht scrollen: Chrome wertet die

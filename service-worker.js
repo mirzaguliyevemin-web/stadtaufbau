@@ -1,6 +1,6 @@
 // Bei Änderungen an den Dateien die Versionsnummer erhöhen (gleiche Nummer wie APP_VERSION in game.js
 // und <meta name="app-version"> in index.html).
-const CACHE = 'stadtaufbau-v55';
+const CACHE = 'stadtaufbau-v56';
 const ASSETS = [
   './',
   'index.html',
@@ -13,6 +13,12 @@ const ASSETS = [
   'bilder/1-hut.webp',
   'bilder/1-gatherer.webp',
   'bilder/1-hunter.webp',
+  'bilder/1-woodcutter.webp',
+  'bilder/1-stonecutter.webp',
+  'bilder/1-fireplace.webp',
+  'bilder/1-painter.webp',
+  'bilder/1-watertrough.webp',
+  'bilder/2-house.webp',
   'bilder/2-farm.webp',
   'bilder/4-coalmine.webp',
   'bilder/4-steelworks.webp',

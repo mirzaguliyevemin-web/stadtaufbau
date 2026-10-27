@@ -10,7 +10,7 @@ Im Spiel: `<zeitalter>-<gebäude-id>.webp`, z. B. `1-hut.webp`, `2-farm.webp`
 Claude schneidet den Hintergrund weg, verkleinert auf 384 px und trägt das Bild in `BUILDING_IMAGES` in `game.js` ein.
 Eigene Bilder von Emin dürfen beliebig heißen (PNG/JPG) – Claude benennt sie um.
 
-Bisher: 1-hut, 1-gatherer, 1-hunter, 2-farm, 4-coalmine, 4-steelworks, 4-factory, 4-tenement, 4-station, 4-police,
+Bisher: 1-hut, 1-gatherer, 1-hunter, 1-woodcutter, 1-stonecutter, 1-fireplace, 1-painter, 1-watertrough, 2-house, 2-farm, 4-coalmine, 4-steelworks, 4-factory, 4-tenement, 4-station, 4-police,
 4-clocktower, 5-powerplant (Canva, Stil wie das Farm-Probebild: isometrisch, Gras-Sockel).
 
 ## Format

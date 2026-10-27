@@ -3,6 +3,11 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-27 – Preisschilder (Version 70)
+
+- Fehler: Weit herausgezoomt überlappten sich die Preisschilder der Landstücke. Schilder sind jetzt höchstens so breit wie
+  das Landstück (kleinere Schrift); wird sie unlesbar, bleibt nur 🏷️ (Preis beim Antippen im Info-Fenster).
+
 ## 2026-10-27 – Flüsse (Version 69)
 
 - Wunsch von Emin (Design): neue Karten bekommen 2 Flüsse, die sich von Kartenrand zu Kartenrand schlängeln und im Bogen

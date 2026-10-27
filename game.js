@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 69;
+const APP_VERSION = 70;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -5715,8 +5715,19 @@ function drawPlotPrices(vis) {
   const S = CONFIG.plotSize;
   const price = plotPrice();
   const affordable = canAfford(price);
-  const size = Math.max(T * 0.7, 14 / view.zoom);   // auch weit herausgezoomt lesbar
+  // Schild höchstens so breit wie die Fläche (sonst überlappen sich die Nachbarn): weit herausgezoomt kleinere Schrift,
+  // wird sie unlesbar, bleibt nur das 🏷️ – den Preis zeigt dann das Antippen
+  const maxW = S * T * 0.9;
+  let text = `🏷️ ${formatAmounts(price)}`;
+  let size = Math.max(T * 0.7, 14 / view.zoom);
   ctx.font = `bold ${size}px system-ui, ${EMOJI_FONT}`;
+  const fullW = ctx.measureText(text).width + size;
+  if (fullW > maxW) {
+    size *= maxW / fullW;
+    if (size * view.zoom < 9) { text = '🏷️'; size = Math.min(14 / view.zoom, maxW / 2.2); }
+    ctx.font = `bold ${size}px system-ui, ${EMOJI_FONT}`;
+  }
+  const w = ctx.measureText(text).width + size;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (let py = Math.floor(vis.y0 / S); py <= Math.floor(vis.y1 / S); py++) {
@@ -5728,8 +5739,6 @@ function drawPlotPrices(vis) {
       // Steht hier ein Banditenlager, rückt das Preisschild in die andere Hälfte der Fläche
       const camp = state.camps.find(c => plotOf(c.x, c.y) === p);
       if (camp) cy += (camp.y + 0.5) * T < cy ? S * T * 0.3 : -S * T * 0.3;
-      const text = `🏷️ ${formatAmounts(price)}`;
-      const w = ctx.measureText(text).width + size;
       ctx.fillStyle = affordable ? 'rgba(45, 106, 79, 0.9)' : 'rgba(0, 0, 0, 0.55)';
       roundRect(cx - w / 2, cy - size * 0.8, w, size * 1.6, size * 0.5);
       ctx.fill();

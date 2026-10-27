@@ -11,7 +11,7 @@ Claude schneidet den Hintergrund weg, verkleinert auf 384 px und trägt das Bild
 Eigene Bilder von Emin dürfen beliebig heißen (PNG/JPG) – Claude benennt sie um.
 
 Bisher: 1-hut, 1-gatherer, 1-hunter, 1-woodcutter, 1-stonecutter, 1-fireplace, 1-painter, 1-watertrough, 2-house, 2-farm, 2-sawmill, 2-market, 4-coalmine, 4-steelworks, 4-factory, 4-tenement, 4-station, 4-police,
-4-clocktower, 5-powerplant, 2-quarry, 2-warehouse, 2-park, 2-firestation (Canva, Stil wie das Farm-Probebild: isometrisch, Gras-Sockel).
+4-clocktower, 5-powerplant, 2-quarry, 2-warehouse, 2-park, 2-firestation, 2-scriptorium, 2-brickworks (Canva, Stil wie das Farm-Probebild: isometrisch, Gras-Sockel).
 
 ## Format
 

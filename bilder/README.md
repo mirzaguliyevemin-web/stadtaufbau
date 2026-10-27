@@ -32,3 +32,29 @@ Bisher: 1-hut, 1-gatherer, 1-hunter, 1-woodcutter, 1-stonecutter, 1-fireplace, 1
 > ground, no text, no border, consistent style across all assets, 1:1 square format
 
 Für 2×1-Gebäude am Ende statt „1:1 square format“: „2:1 wide format“.
+
+## Gelände-Bausteine (Bäume, Berge, Wasser, Wiese)
+
+Jedes Bild einzeln erzeugen, quadratisch, mindestens 1024 px, Dateiname wie angegeben (PNG oder JPG), in `bilder/` ablegen.
+Bäume und Felsen: Stil-Satz von oben anhängen. Wasser und Wiese: **nahtlos kachelbar** (ohne Stil-Satz, eigener Text unten).
+
+| Datei | Prompt (Anfang, dann Stil-Satz) |
+|---|---|
+| `baum-laub.png` | A single round leafy deciduous tree, full green crown, short brown trunk |
+| `baum-tanne.png` | A single tall pine tree, dark green, cone shaped |
+| `baum-eiche.png` | A single bushy oak tree, wide crown in two shades of green |
+| `baum-birke.png` | A single small birch tree, white trunk with black marks, light green leaves |
+| `baum-herbst.png` | A single round deciduous tree with orange and red autumn leaves |
+| `baum-winter.png` | A single pine tree covered with snow |
+| `fels-gross.png` | A big grey rocky mountain peak with a small snow cap, wide base |
+| `fels-klein.png` | A small cluster of grey boulders and rocks |
+| `busch.png` | A small round green bush with a few tiny flowers |
+
+Wasser und Wiese (statt des Stil-Satzes):
+
+- `wasser.png`: *Seamless tileable texture of calm blue water seen from directly above, small gentle cartoon wave lines,
+  soft pastel colors, flat game texture, no objects, no shore, even lighting, square*
+- `wiese.png`: *Seamless tileable texture of short green grass seen from directly above, a few tiny lighter and darker
+  patches, soft pastel colors, flat cartoon game texture, no objects, no flowers, even lighting, square*
+- `sand.png`: *Seamless tileable texture of light sandy beach seen from directly above, soft pastel colors,
+  flat cartoon game texture, no objects, even lighting, square*

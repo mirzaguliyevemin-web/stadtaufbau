@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 60;
+const APP_VERSION = 61;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -4635,7 +4635,7 @@ const EMOJI_FONT = 'system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Colo
 // Je Gebäude die Zeitalter (1 = Steinzeit), für die es ein Bild bilder/<zeitalter>-<gebäude>.webp gibt.
 // Gezeigt wird das Bild des aktuellen Zeitalters oder das letzte davor; fehlt es, wird gezeichnet.
 const BUILDING_IMAGES = { hut: [1], gatherer: [1], hunter: [1], woodcutter: [1], stonecutter: [1], fireplace: [1], painter: [1], watertrough: [1], house: [2], farm: [2], sawmill: [2], market: [2], coalmine: [4], steelworks: [4], factory: [4], tenement: [4], station: [4],
-  police: [4], clocktower: [4], powerplant: [5] };
+  police: [4], clocktower: [4], powerplant: [5], quarry: [2], warehouse: [2] };
 const imageCache = {};
 
 function buildingImageSrc(type) {

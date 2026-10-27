@@ -576,6 +576,27 @@ test('Meldungen schließen sich selbst', () => {
   return 'ok';
 });
 
+test('Tägliche Belohnung erst ab dem zweiten Tag, Gelehrten-Hinweis', () => {
+  const game = fresh({ seed: 7 });
+  const r = game.run(`
+    const first = { popup: !eventEl.classList.contains('hidden'), streak: state.daily.streak, today: state.daily.last === dateString(new Date()) };
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    state.daily.last = dateString(y); checkDailyReward();
+    const next = { popup: document.getElementById('event-title').textContent, streak: state.daily.streak };
+    stats.jobs.scholarCap = 2; stats.jobs.demand.scholar = 6;
+    state.age = 1; const hintAntike = scholarHint();
+    state.age = 2; state.maxLevel = 1; const hintMedieval = scholarHint();
+    stats.jobs.demand.scholar = 2; const none = scholarHint();
+    JSON.stringify({ first, next, hintAntike: hintAntike.includes('Schulen ab Mittelalter'), hintMedieval: hintMedieval.includes('Baue') && hintMedieval.includes('4 Stellen'), none })
+  `);
+  noErrors(game, 'bei der Tagesbelohnung');
+  const o = JSON.parse(r);
+  assert(!o.first.popup && o.first.streak === 0 && o.first.today, 'Erster Start ohne Belohnung: ' + r);
+  assert(o.next.popup === 'Tägliche Belohnung – Tag 1' && o.next.streak === 1, 'Am nächsten Tag Tag 1: ' + r);
+  assert(o.hintAntike && o.hintMedieval && o.none === '', 'Gelehrten-Hinweis: ' + r);
+  return 'ok';
+});
+
 if (!quick) {
   test('Bot spielt 90 Minuten: Tempo und keine Dauerprobleme', () => {
     const { report, errors } = runBot(90, 1);

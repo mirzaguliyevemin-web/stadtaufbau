@@ -3,6 +3,17 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-27 – Analyse mit Emin (Version 67)
+
+- Bot (3 Läufe à 90 min), Durchschnitt: Kleinstadt 5,7 min · 50 Einw. 18,7 · Stadt 24,0 · 150 Einw. 31,3 · 200 Einw. 35,5 ·
+  Antike 16,2–16,9 · Mittelalter 47,1–50,6 · Industrie nur in 1 von 3 Läufen (76,9) · Hunger/Frost 0.
+- Auffällig: In 2 von 3 Läufen nur 2 Gelehrte (keine Schule) → Wissen bleibt bei ~100, Forschung im Mittelalter fast still.
+  → Neuer Hinweis oben im Forschungsfenster, wenn Gelehrten-Stellen leer bleiben (mit „Baue Schulen …“).
+- Tägliche Belohnung erscheint nicht mehr beim allerersten Start (Tag 1 gibt es am nächsten Tag). Neuer Test für beides.
+- Holz fällt im Mittelalter oft fast auf 0, taucht aber nicht unter den Engpässen auf, Frost 0 → keine Balancing-Änderung.
+- Weitere Punkte aus der Analyse (spätes Spiel ohne Ziel, Banditen ohne Gefahr, Baustellen-Engpass, Steinzeit-Wartephase,
+  gesperrte Gebäude in der Bauleiste) warten auf Entscheidung von Emin, siehe `vorschlaege.md`.
+
 ## 2026-10-27 – Rückmeldung von Emin (Version 60)
 
 - Weg zur Farm (und allen Bild-Gebäuden) führt jetzt zur Spitze des Bildes in der Mitte der Seite statt zur Mitte des Straßenfelds.

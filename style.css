@@ -191,6 +191,7 @@ button {
 }
 
 .quest.done { background: #e3f4d7; }
+.quest.research-hint { background: #fff1d6; border-left: 4px solid #e9a23b; }
 .quest-title { font-weight: 700; }
 .quest-goal { margin: 2px 0 6px; font-size: 14px; }
 

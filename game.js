@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 66;
+const APP_VERSION = 67;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -3670,6 +3670,8 @@ function dailyRewardFor(streak) {
 function checkDailyReward() {
   const today = dateString(new Date());
   if (state.daily.last === today) return;
+  // Allererster Start: erst das Spiel zeigen – die Belohnung für Tag 1 gibt es morgen
+  if (!state.daily.last) { state.daily = { last: today, streak: 0 }; save(); return; }
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const streak = state.daily.last === dateString(yesterday) ? state.daily.streak + 1 : 1;
@@ -7664,11 +7666,12 @@ function updateResearchUI() {
   const order = age => (age === state.age ? 0 : age === state.age + 1 ? 1 : 2);
   const ids = Object.keys(TECHS).filter(id => techAge(id) <= state.age + 1)   // spätere Zeitalter noch nicht zeigen
     .sort((a, b) => order(techAge(a)) - order(techAge(b)));
-  const key = state.age + '|' + ids.map(techStatus).join(',');
+  const hint = scholarHint();
+  const key = state.age + '|' + ids.map(techStatus).join(',') + '|' + hint;
   if (key !== techListKey) {
     techListKey = key;
     let lastGroup = -1;
-    techListEl.innerHTML = ids.map(id => {
+    techListEl.innerHTML = hint + ids.map(id => {
       const group = order(techAge(id));
       const age = AGES[techAge(id)];
       const head = group === lastGroup ? '' : `<div class="settings-title">${group === 2 ? '📜 Frühere Zeitalter' : `${age.icon} Forschung: ${age.name}`}</div>`;
@@ -7709,6 +7712,19 @@ function updateResearchUI() {
     }
   }
   document.getElementById('research-count').textContent = `${state.techs.length} / ${Object.keys(TECHS).length}`;
+}
+
+// Hinweis oben in der Forschung: Gelehrten-Stellen bleiben leer, weil die Bildung fehlt (sonst steht die Forschung fast still)
+function scholarHint() {
+  const cap = stats.jobs.scholarCap, open = (stats.jobs.demand.scholar || 0) - cap;
+  if (open <= 0) return '';
+  const help = isUnlocked('school')
+    ? `Baue ${BUILDINGS.school.icon} Schulen${isUnlocked('library') ? ` oder ${BUILDINGS.library.icon} Bibliotheken` : ''} nahe den Häusern – mehr Bildung, mehr Gelehrte.`
+    : `Mehr Gelehrte gibt es mit Bildung: ${BUILDINGS.school.icon} Schulen ${lockReason('school')}.`;
+  return `<div class="quest research-hint">
+      <div class="quest-title">🧑‍🎓 Nur ${cap} Gelehrte – ${open} ${open === 1 ? 'Stelle bleibt' : 'Stellen bleiben'} leer</div>
+      <div class="quest-goal">Gelehrte sammeln das Wissen für die Forschung. ${help}</div>
+    </div>`;
 }
 
 function showResearch() {

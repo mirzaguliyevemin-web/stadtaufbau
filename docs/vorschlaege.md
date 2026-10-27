@@ -27,6 +27,15 @@ wenn Emin zugestimmt hat.** Neue Einträge oben, mit Datum und kurzer Begründun
 - **Benachrichtigungen** (2026-10-25) – z. B. „Lager voll“ oder „Banditen greifen an“, wenn das Spiel
   geschlossen ist. Braucht Push-Benachrichtigungen und einen Server.
 
+- **Aus der Analyse vom 2026-10-27** (Entscheidung Emin):
+  - Spätes Spiel: ab ~60 min Zufriedenheit 100 %, 20.000+ Geld, volle Lager – Großprojekte/Weltwunder je Zeitalter,
+    Stadtfeste, höhere Ansprüche der Einwohner in späteren Zeitaltern.
+  - Banditen: alle Überfälle werden abgewehrt – Lager mit dem Zeitalter stärker oder angekündigte Großangriffe.
+  - Baustellen: „2 Baustellen“ ist der mit Abstand häufigste Engpass – dritte Baustelle als Forschung im Mittelalter?
+  - Steinzeit: Minute 10–16 bei 27 Einwohnern nur Warten – Auftrag oder kleines Ereignis dazwischen.
+  - Bauleiste: in der Steinzeit gesperrte Gebäude späterer Zeitalter ans Ende stellen oder nur das nächste Zeitalter zeigen.
+  - Technik: `game.js` (> 9.000 Zeilen) irgendwann in Daten / Logik / Zeichnen aufteilen.
+
 ## Zurückgestellt
 
 - **Cloud-Speicherung (Supabase)** – gleicher Spielstand auf Handy und Laptop. Emin: „Den lassen wir vorerst.“

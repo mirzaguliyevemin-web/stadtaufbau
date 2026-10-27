@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 54;
+const APP_VERSION = 55;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -3608,13 +3608,25 @@ function dateString(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// Belohnung für Tag `streak`. In der Steinzeit gibt es kein Geld – statt Geld gibt es dann je zur Hälfte Holz und Nahrung.
+function dailyRewardFor(streak) {
+  const reward = { ...DAILY_REWARDS[Math.min(streak, DAILY_REWARDS.length) - 1] };
+  if (state.age < RESOURCES.money.fromAge && reward.money) {
+    const half = Math.round(reward.money / 2);
+    reward.wood = (reward.wood || 0) + half;
+    reward.food = (reward.food || 0) + half;
+    delete reward.money;
+  }
+  return reward;
+}
+
 function checkDailyReward() {
   const today = dateString(new Date());
   if (state.daily.last === today) return;
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const streak = state.daily.last === dateString(yesterday) ? state.daily.streak + 1 : 1;
-  const reward = DAILY_REWARDS[Math.min(streak, DAILY_REWARDS.length) - 1];
+  const reward = dailyRewardFor(streak);
   state.daily = { last: today, streak };
   showEventPopup('🎁', `Tägliche Belohnung – Tag ${streak}`, [
     streak > 1 ? `${streak} Tage in Folge – weiter so! 🔥` : 'Schön, dass du da bist!',

@@ -222,11 +222,13 @@ test('Zeitalter: Steinzeit, Aufstieg, Speichern', () => {
     const after = { age: state.age, house: isUnlocked('house'), money: isResourceVisible('money'), road: JSON.stringify(costOf('road')),
       food: state.resources.food, quest: questProgress(QUESTS.find(q => q.id === 'ageAntiquity')).done };
     showAges(); updateAgesUI(); render(0.016); save();
+    state.age = 0; before.daily = JSON.stringify(dailyRewardFor(1)); state.age = 1;
     JSON.stringify({ before, huts, stoneBuilt, tooEarly, notYet, ready, during, after, stoneTech, laterTech, trough, evolved, troughGone })
   `);
   noErrors(game, 'bei den Zeitaltern');
   const o = JSON.parse(r);
   assert(!o.before.house && o.before.hut && o.before.road === '{"wood":1}' && !o.before.money, 'Steinzeit: ' + r);
+  assert(o.before.daily === '{"wood":25,"food":25}', 'Tägliche Belohnung in der Steinzeit: ' + r);
   assert(o.before.plot === 'wood,food' && o.before.quest === 'paths' && !o.before.tabs.includes('farm'), 'Steinzeit: ' + r);
   assert(o.huts.every(Boolean) && o.stoneBuilt.every(Boolean) && o.tooEarly === 0 && !o.notYet && o.ready && o.during === 0, 'Aufstieg: ' + r);
   assert(o.after.age === 1 && o.after.house && o.after.money && o.after.road === '{"money":5}' && o.after.food === 0 && o.after.quest, 'Antike: ' + r);

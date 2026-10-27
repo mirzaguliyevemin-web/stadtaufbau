@@ -50,3 +50,4 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
     die Mauer, entsteht automatisch ein Tor.
   - Straßen je Zeitalter: Trampelpfad, Pflaster, Asphalt mit Mittelstreifen; jedes Gebäude hat eine Tür, ein Weg führt zur Straße.
   - Langsamer: Forschung dauert doppelt so lange, Farm/Steinbruch/Steinsammler/Fischerhütte liefern weniger.
+- 2026-10-27, Version 55 – Tägliche Belohnung in der Steinzeit ohne Geld: statt Geld je zur Hälfte Holz und Nahrung.

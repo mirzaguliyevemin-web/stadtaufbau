@@ -15,6 +15,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-27, Version 68 – Bauleiste (und Fenster) ließen sich am hochkant gehaltenen, gedrehten Handy nicht scrollen – behoben.
 - 2026-10-26, Version 43 – Wunschliste aus der Sitzung:
   - Forschung, Aufträge, Einstellungen als ganze Seite mit „← Zurück“; alle Fenster haben „← Zurück“,
     auch die Zurück-Geste am Handy schließt Fenster statt das Spiel.

@@ -3,6 +3,13 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-27 – Fehler von Emin (Version 68)
+
+- Bauleiste ließ sich in der gedrehten Ansicht (Handy hochkant gehalten, seit Version 60) nicht scrollen: Chrome wertet die
+  Wischrichtung nach dem Bildschirm aus und scrollt im gedrehten Bereich nicht selbst. Betraf auch Fenster wie die Forschung.
+  → In der gedrehten Ansicht scrollt das Spiel selbst (`setupTurnedScroll`): Fingerbewegung zurückdrehen, mit Nachschwingen,
+  nach dem Wischen kein versehentlicher Klick. Mit simuliertem Handy (Chromium, Touch) gedreht und quer geprüft.
+
 ## 2026-10-27 – Analyse mit Emin (Version 67)
 
 - Bot (3 Läufe à 90 min), Durchschnitt: Kleinstadt 5,7 min · 50 Einw. 18,7 · Stadt 24,0 · 150 Einw. 31,3 · 200 Einw. 35,5 ·

@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 67;
+const APP_VERSION = 68;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -9004,6 +9004,66 @@ function setupLandscape() {
   document.addEventListener('touchmove', e => {
     if (e.touches.length > 1 && e.target !== canvas) e.preventDefault();
   }, { passive: false });
+  setupTurnedScroll();
+}
+
+// In der gedrehten Ansicht scrollt der Browser Leisten und Fenster nicht (er wertet die Wischrichtung nach dem
+// Bildschirm aus). Dort scrollen wir selbst: Bildschirm-Bewegung zurückdrehen, mit Nachschwingen nach dem Loslassen.
+function scrollableParent(el) {
+  for (; el && el !== document.body; el = el.parentElement) {
+    if (el === canvas) return null;
+    const s = getComputedStyle(el);
+    const canY = /auto|scroll/.test(s.overflowY) && el.scrollHeight > el.clientHeight + 1;
+    const canX = /auto|scroll/.test(s.overflowX) && el.scrollWidth > el.clientWidth + 1;
+    if (canX || canY) return el;
+  }
+  return null;
+}
+
+function setupTurnedScroll() {
+  let drag = null, glide = null;
+  const moveBy = (el, dx, dy) => { el.scrollLeft -= dx; el.scrollTop -= dy; };   // dx/dy = Fingerbewegung in Spielrichtung
+  document.addEventListener('touchstart', e => {
+    if (glide) { cancelAnimationFrame(glide); glide = null; }
+    if (!isTurned() || e.touches.length !== 1) { drag = null; return; }
+    const el = scrollableParent(e.target);
+    const t = e.touches[0];
+    drag = el && { el, x: t.clientX, y: t.clientY, moved: 0, vx: 0, vy: 0, time: performance.now() };
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!drag || e.touches.length !== 1) return;
+    const t = e.touches[0], now = performance.now();
+    // Spielrichtung aus Bildschirmrichtung: x = Bildschirm-y, y = −Bildschirm-x (wie pointerPos)
+    const dx = t.clientY - drag.y, dy = -(t.clientX - drag.x);
+    drag.x = t.clientX; drag.y = t.clientY;
+    drag.moved += Math.abs(dx) + Math.abs(dy);
+    const dt = Math.max(1, now - drag.time);
+    drag.vx = dx / dt; drag.vy = dy / dt; drag.time = now;
+    moveBy(drag.el, dx, dy);
+    e.preventDefault();
+  }, { passive: false });
+  document.addEventListener('touchend', () => {
+    if (!drag) return;
+    const d = drag;
+    drag = null;
+    // Nach dem Wischen kein Klick auf den Knopf unter dem Finger
+    if (d.moved > TAP_SLOP) {
+      const stop = ev => { ev.stopPropagation(); ev.preventDefault(); };
+      document.addEventListener('click', stop, { capture: true, once: true });
+      setTimeout(() => document.removeEventListener('click', stop, { capture: true }), 400);
+    }
+    if (performance.now() - d.time > 80) return;   // Finger stand zuletzt still: kein Nachschwingen
+    let { vx, vy } = d, last = performance.now();
+    const step = now => {
+      const dt = now - last;
+      last = now;
+      moveBy(d.el, vx * dt, vy * dt);
+      const f = Math.pow(0.995, dt);
+      vx *= f; vy *= f;
+      glide = Math.abs(vx) + Math.abs(vy) > 0.02 ? requestAnimationFrame(step) : null;
+    };
+    glide = requestAnimationFrame(step);
+  });
 }
 
 function start() {

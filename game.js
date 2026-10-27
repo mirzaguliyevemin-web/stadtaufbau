@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 56;
+const APP_VERSION = 57;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -4548,7 +4548,7 @@ const EMOJI_FONT = 'system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Colo
 // ---------- Gebäudebilder (KI-Bilder aus bilder/) ----------
 // Je Gebäude die Zeitalter (1 = Steinzeit), für die es ein Bild bilder/<zeitalter>-<gebäude>.webp gibt.
 // Gezeigt wird das Bild des aktuellen Zeitalters oder das letzte davor; fehlt es, wird gezeichnet.
-const BUILDING_IMAGES = { hut: [1], gatherer: [1], hunter: [1], woodcutter: [1], stonecutter: [1], fireplace: [1], painter: [1], watertrough: [1], house: [2], farm: [2], coalmine: [4], steelworks: [4], factory: [4], tenement: [4], station: [4],
+const BUILDING_IMAGES = { hut: [1], gatherer: [1], hunter: [1], woodcutter: [1], stonecutter: [1], fireplace: [1], painter: [1], watertrough: [1], house: [2], farm: [2], sawmill: [2], market: [2], coalmine: [4], steelworks: [4], factory: [4], tenement: [4], station: [4],
   police: [4], clocktower: [4], powerplant: [5] };
 const imageCache = {};
 
@@ -4570,10 +4570,23 @@ function buildingImage(type) {
 }
 
 // Bild in die Fläche setzen: etwas breiter als die Fläche, unten bündig (die Spitze darf nach oben ragen)
+// Gedrehte breite Gebäude (1×2) werden gespiegelt und etwas größer gezeichnet, damit sie nicht winzig wirken
 function drawBuildingImage(img, x, y, w, h) {
-  const dw = w * T * 1.12;
+  const wide = img.naturalWidth > img.naturalHeight * 1.4;
+  const turned = wide && h > w;
+  const dw = (turned ? Math.max(w, h * 0.72) : w) * T * 1.12;
   const dh = dw * img.naturalHeight / img.naturalWidth;
-  ctx.drawImage(img, (x + w / 2) * T - dw / 2, (y + h) * T - dh + T * 0.04 * Math.min(w, h), dw, dh);
+  const left = (x + w / 2) * T - dw / 2;
+  const top = turned ? (y + h / 2) * T - dh / 2 + T * 0.2 : (y + h) * T - dh + T * 0.04 * Math.min(w, h);
+  if (!turned) {
+    ctx.drawImage(img, left, top, dw, dh);
+    return;
+  }
+  ctx.save();
+  ctx.translate(left + dw, top);
+  ctx.scale(-1, 1);
+  ctx.drawImage(img, 0, 0, dw, dh);
+  ctx.restore();
 }
 
 function drawBuilding(x, y, def, alpha, scale = 1, w = 1, h = 1, cell = null) {

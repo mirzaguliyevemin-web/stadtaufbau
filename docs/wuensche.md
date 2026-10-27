@@ -7,6 +7,9 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Fehler
 
 <!-- Hier gefundene Fehler eintragen -->
+- Spiel ruckelt etwas seit den Gelände-Bildern (Version 71).
+  → Frage: wird am 2026-10-28 in einer Sitzung mit Emin gebaut (Gelände vorab in Bildstücke zeichnen statt jedes Bild
+  in jedem Bild neu) – der tägliche Agent bitte nicht anfassen.
 
 ## Wünsche
 

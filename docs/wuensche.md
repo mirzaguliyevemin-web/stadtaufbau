@@ -16,7 +16,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
 - 2026-10-27, Version 70 – Preisschilder der Landstücke überlappten weit herausgezoomt – jetzt passen sie in ihr Landstück.
-- 2026-10-27, Version 69 – Design: neue Karten haben Flüsse (Canva-Gelände-Bausteine folgen).
+- 2026-10-27, Version 69 – Design: neue Karten haben Flüsse.
+- 2026-10-27, Version 71 – Gelände mit Emins Bildern: Gras, Wasser, Sand, Bäume je Jahreszeit, Berge, Büsche.
 - 2026-10-27, Version 68 – Bauleiste (und Fenster) ließen sich am hochkant gehaltenen, gedrehten Handy nicht scrollen – behoben.
 - 2026-10-26, Version 43 – Wunschliste aus der Sitzung:
   - Forschung, Aufträge, Einstellungen als ganze Seite mit „← Zurück“; alle Fenster haben „← Zurück“,

@@ -35,6 +35,8 @@ Für 2×1-Gebäude am Ende statt „1:1 square format“: „2:1 wide format“.
 
 ## Gelände-Bausteine (Bäume, Berge, Wasser, Wiese)
 
+Eingebaut seit Version 71 (Bild von Emin, Quelle: `quelle-gelaende.jpeg`) als `gelaende-<name>.webp`.
+
 Jedes Bild einzeln erzeugen, quadratisch, mindestens 1024 px, Dateiname wie angegeben (PNG oder JPG), in `bilder/` ablegen.
 Bäume und Felsen: Stil-Satz von oben anhängen. Wasser und Wiese: **nahtlos kachelbar** (ohne Stil-Satz, eigener Text unten).
 

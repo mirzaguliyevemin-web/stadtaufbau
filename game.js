@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 70;
+const APP_VERSION = 71;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -4308,9 +4308,16 @@ function render(dt) {
   const s = view.dpr * view.zoom;
   ctx.setTransform(s, 0, 0, s, view.dpr * view.x, view.dpr * view.y);
 
-  // Boden
+  // Boden: Farbe der Jahreszeit, darüber die Gras-Textur (im Winter fast ganz verschneit)
   ctx.fillStyle = groundColor();
   ctx.fillRect(0, 0, N * T, N * T);
+  const grass = terrainPattern('wiese');
+  if (grass) {
+    ctx.globalAlpha = GRASS_ALPHA[season().id];
+    ctx.fillStyle = grass;
+    ctx.fillRect(0, 0, N * T, N * T);
+    ctx.globalAlpha = 1;
+  }
 
   // Nur den sichtbaren Ausschnitt zeichnen (die Karte ist groß)
   const vis = visibleRange();
@@ -4481,6 +4488,8 @@ const meadowShade = (() => {
   return a;
 })();
 
+const GRASS_ALPHA = { spring: 0.55, summer: 0.6, autumn: 0.35, winter: 0.08 };   // wie stark die Gras-Textur durchscheint
+
 const FLOWER_COLORS = { spring: ['#ffafcc', '#fff', '#ffd166'], summer: ['#ffd166', '#e63946', '#fff'], autumn: ['#e09f3e', '#9c6644'] };
 
 function drawMeadow(vis) {
@@ -4501,6 +4510,8 @@ function drawMeadow(vis) {
           ctx.arc((x + 0.2 + 0.6 * tileHash(x, y, k + 1)) * T, (y + 0.2 + 0.6 * tileHash(x, y, k + 7)) * T, T * 0.05, 0, Math.PI * 2);
           ctx.fill();
         }
+      } else if (h > 0.975 && decoSprite(x, y, h, sid)) {
+        // Busch oder Felsbrocken als Bild
       } else if (h > 0.975) {
         ctx.fillStyle = 'rgba(110,110,110,0.55)';
         ctx.beginPath();
@@ -4510,6 +4521,21 @@ function drawMeadow(vis) {
     }
   }
 }
+
+function decoSprite(x, y, h, sid) {
+  const img = h > 0.988 && sid !== 'winter' ? terrainImage('busch') : terrainImage('fels-klein');
+  if (!img) return false;
+  drawSprite(img, (x + 0.3 + 0.4 * tileHash(x, y, 3)) * T, (y + 0.8) * T, T * (0.28 + 0.12 * tileHash(x, y, 4)), tileHash(x, y, 5) < 0.5);
+  return true;
+}
+
+// Baumbilder je Jahreszeit (Reihenfolge = Häufigkeit über tileHash)
+const TREE_SPRITES = {
+  spring: ['baum-laub', 'baum-tanne', 'baum-birke'],
+  summer: ['baum-laub', 'baum-tanne', 'baum-birke'],
+  autumn: ['baum-herbst', 'baum-tanne', 'baum-herbst'],
+  winter: ['baum-winter', 'baum-winter', 'baum-tanne'],
+};
 
 const TREE_COLORS = {
   spring: ['#40916c', '#52b788', '#2d6a4f'],
@@ -4542,8 +4568,8 @@ function drawTerrain(vis) {
     }
     ctx.fill();
   };
-  waterShape(0.68, winter ? '#eef5f8' : '#e9d8a6');
-  waterShape(0.56, winter ? '#cfe6ef' : '#4f9bd1');
+  waterShape(0.68, winter ? '#eef5f8' : terrainPattern('sand') || '#e9d8a6');
+  waterShape(0.56, winter ? '#cfe6ef' : terrainPattern('wasser') || '#4f9bd1');
 
   for (let y = vis.y0; y <= vis.y1; y++) {
     for (let x = vis.x0; x <= vis.x1; x++) {
@@ -4563,10 +4589,19 @@ function drawTerrain(vis) {
         }
         ctx.stroke();
       } else if (k === R) {
-        ctx.fillStyle = winter ? '#cfd3d6' : '#a39e93';
-        ctx.fillRect(X, Y, T, T);
         let around = 0;
         for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if ((dx || dy) && is(x + dx, y + dy, R)) around++;
+        // Bild: innen Berggipfel, am Rand Felsbrocken (ragt etwas über das Feld hinaus), steht mit Schatten auf der Wiese
+        const rockImg = terrainImage(around >= 5 ? 'fels-gross' : 'fels-klein');
+        if (rockImg) {
+          ctx.fillStyle = winter ? 'rgba(90,100,110,0.18)' : 'rgba(60,55,40,0.22)';
+          ctx.beginPath(); ctx.ellipse(X + T * 0.5, Y + T * 0.75, T * 0.55, T * 0.32, 0, 0, Math.PI * 2); ctx.fill();
+          const size = T * (around >= 5 ? 1.25 + 0.25 * tileHash(x, y, 6) : 0.85 + 0.2 * tileHash(x, y, 6));
+          drawSprite(rockImg, X + T * (0.4 + 0.2 * tileHash(x, y, 5)), Y + T * 1.02, size, tileHash(x, y, 7) < 0.5);
+          continue;
+        }
+        ctx.fillStyle = winter ? '#cfd3d6' : '#a39e93';
+        ctx.fillRect(X, Y, T, T);
         const height = 0.35 + 0.05 * around;               // innen höher als am Rand
         const peakX = X + T * (0.35 + 0.3 * tileHash(x, y, 5));
         const peakY = Y + T * (0.95 - height);
@@ -4584,10 +4619,29 @@ function drawTerrain(vis) {
           ctx.fill();
         }
       } else if (k === F) {
-        ctx.fillStyle = winter ? 'rgba(40,60,50,0.18)' : 'rgba(20,70,35,0.28)';
-        ctx.fillRect(X, Y, T, T);
         const colors = TREE_COLORS[sid];
         const trees = detail ? 3 : 1;
+        const sprites = TREE_SPRITES[sid].map(terrainImage);
+        // Waldboden: mit Bildern nur ein Hauch dunkler (sonst sieht man die Kästchen)
+        const pics = sprites.every(Boolean);
+        ctx.fillStyle = winter ? `rgba(40,60,50,${pics ? 0.06 : 0.18})` : `rgba(20,70,35,${pics ? 0.1 : 0.28})`;
+        ctx.fillRect(X, Y, T, T);
+        if (pics) {
+          // von hinten nach vorn (oben nach unten), damit vordere Bäume die hinteren verdecken
+          const spots = [];
+          for (let n = 0; n < trees; n++) {
+            spots.push({
+              x: X + T * (trees === 1 ? 0.5 : 0.2 + 0.6 * tileHash(x, y, n * 2 + 1)),
+              y: Y + T * (trees === 1 ? 0.95 : 0.45 + 0.5 * tileHash(x, y, n * 2 + 2)),
+              img: sprites[Math.floor(tileHash(x, y, n + 13) * sprites.length)],
+              h: T * (trees === 1 ? 1 : 0.62 + 0.25 * tileHash(x, y, n + 9)),
+              flip: tileHash(x, y, n + 17) < 0.5,
+            });
+          }
+          spots.sort((a, b) => a.y - b.y);
+          for (const p of spots) drawSprite(p.img, p.x, p.y, p.h, p.flip);
+          continue;
+        }
         for (let n = 0; n < trees; n++) {
           const tx = X + T * (trees === 1 ? 0.5 : 0.2 + 0.6 * tileHash(x, y, n * 2 + 1));
           const ty = Y + T * (trees === 1 ? 0.55 : 0.3 + 0.5 * tileHash(x, y, n * 2 + 2));
@@ -4682,6 +4736,43 @@ function buildingImage(type) {
     img.src = src;
   }
   return img.complete && img.naturalWidth ? img : null;
+}
+
+// Gelände-Bausteine (bilder/gelaende-*.webp): Bäume, Felsen, Busch und Böden zum Kacheln
+function terrainImage(name) {
+  if (typeof Image === 'undefined') return null;
+  const src = `bilder/gelaende-${name}.webp`;
+  let img = imageCache[src];
+  if (!img) {
+    img = imageCache[src] = new Image();
+    img.src = src;
+  }
+  return img.complete && img.naturalWidth ? img : null;
+}
+
+// Kachelmuster aus einem Boden-Bild; eine Kachel deckt TEXTURE_TILES × TEXTURE_TILES Felder
+const TEXTURE_TILES = 2;
+const patternCache = {};
+function terrainPattern(name) {
+  if (patternCache[name]) return patternCache[name];
+  const img = terrainImage(name);
+  if (!img || typeof ctx.createPattern !== 'function') return null;
+  const pattern = ctx.createPattern(img, 'repeat');
+  if (!pattern) return null;
+  const k = TEXTURE_TILES * T / img.naturalWidth;
+  pattern.setTransform?.(new DOMMatrix([k, 0, 0, k, 0, 0]));
+  return (patternCache[name] = pattern);
+}
+
+// Baustein unten mittig auf (cx, by) setzen, Höhe h; flip = gespiegelt (mehr Abwechslung)
+function drawSprite(img, cx, by, h, flip = false) {
+  const w = h * img.naturalWidth / img.naturalHeight;
+  if (!flip) { ctx.drawImage(img, cx - w / 2, by - h, w, h); return; }
+  ctx.save();
+  ctx.translate(cx, by);
+  ctx.scale(-1, 1);
+  ctx.drawImage(img, -w / 2, -h, w, h);
+  ctx.restore();
 }
 
 // Bild in die Fläche setzen: etwas breiter als die Fläche, unten bündig (die Spitze darf nach oben ragen)

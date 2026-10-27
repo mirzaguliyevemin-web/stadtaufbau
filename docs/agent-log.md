@@ -3,6 +3,13 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-27 – Gelände-Bilder (Version 71)
+
+- Emin hat ein Bild mit 12 Gelände-Bausteinen geliefert (`bilder/quelle-gelaende.jpeg`). Ausgeschnitten und eingebaut:
+  Gras-Textur als Boden (Jahreszeitenfarbe darüber), Wasser- und Sand-Textur für Seen/Flüsse, Baumbilder je Jahreszeit
+  (Laub, Tanne, Birke; Herbst-Baum; verschneite Tanne), Berggipfel innen und Felsbrocken am Rand eines Gebirges,
+  Büsche und kleine Felsen als Deko. Fehlt ein Bild (oder in Node), wird wie bisher gezeichnet.
+
 ## 2026-10-27 – Preisschilder (Version 70)
 
 - Fehler: Weit herausgezoomt überlappten sich die Preisschilder der Landstücke. Schilder sind jetzt höchstens so breit wie

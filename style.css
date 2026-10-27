@@ -1114,3 +1114,143 @@ html, body { background: #3b2412; }
 
 /* Gebäudebild statt Symbol in der Bauleiste */
 .build-btn .icon img { display: block; height: 1.25em; width: auto; max-width: 100%; margin: -0.1em auto; }
+
+/* ---------- Leisten: Finger-Gesten zoomen nie die Seite ---------- */
+#topbar, #buildnav { touch-action: none; }
+#build-tabs { touch-action: pan-x; }
+#buildbar { touch-action: pan-x; }
+#resources, #status { touch-action: pan-x; }
+button { touch-action: manipulation; }
+
+/* ---------- Hochkant: Hinweis „Handy drehen“ (Spiel läuft nur quer) ---------- */
+#rotate-hint { display: none; }
+@media (orientation: portrait) and (pointer: coarse) and (max-width: 820px) {
+  #rotate-hint {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 24px;
+    background:
+      repeating-linear-gradient(90deg, rgba(0, 0, 0, .05) 0 2px, transparent 2px 23px, rgba(255, 255, 255, .04) 23px 25px, transparent 25px 41px),
+      linear-gradient(#7a4e2a, #5c3a1e);
+    color: #f6ecd2;
+    text-align: center;
+  }
+  #rotate-hint .rh-phone { font-size: 72px; animation: rh-turn 2s ease-in-out infinite; }
+  #rotate-hint strong { font-size: 22px; color: #ffe8a3; }
+  #rotate-hint p { margin: 0; font-size: 15px; line-height: 1.45; max-width: 300px; }
+  #rotate-hint button {
+    margin-top: 6px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    background: #f6ecd2;
+    color: #3b2a1a;
+    border: 2px solid #c9a227;
+    box-shadow: 0 2px 0 #3b2412;
+    font-weight: 700;
+    font-size: 16px;
+  }
+}
+@keyframes rh-turn { 0%, 20% { transform: rotate(0); } 50%, 80% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+
+/* ---------- Querformat am Handy: flache Leiste oben, Bauleiste als Spalte rechts ---------- */
+@media (orientation: landscape) and (max-height: 600px) {
+  body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "top top" "map nav";
+  }
+  #topbar {
+    grid-area: top;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px 5px;
+    padding-top: calc(4px + env(safe-area-inset-top));
+    padding-left: calc(8px + env(safe-area-inset-left));
+    padding-right: calc(8px + env(safe-area-inset-right));
+  }
+  #topbar-row { display: contents; }
+  #age-title { flex: none; order: 1; flex-direction: column; gap: 0; padding: 0; line-height: 1.1; }
+  #age-title .at-age { font-size: 15px; }
+  #age-title .at-level { font-size: 11px; }
+  #age-progress { order: 2; flex: none; width: 92px; flex-direction: column; align-items: stretch; gap: 2px; }
+  .ap-bar { flex: none; height: 7px; }
+  .ap-text { font-size: 10px; }
+  #status { order: 3; flex: none; flex-wrap: nowrap; gap: 4px; }
+  #status .res { padding: 2px 7px; font-size: 12.5px; }
+  #resources {
+    order: 4;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 56px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  #resources::-webkit-scrollbar { display: none; }
+  #resources .res { flex: 0 0 auto; padding: 2px 6px 5px; font-size: 12.5px; }
+  #resources .res .bar, #resources .res::after { bottom: 2px; height: 3px; }
+  #topbar .top-btn { order: 5; width: 32px; height: 32px; font-size: 16px; }
+  #topbar .speed-btn { width: auto; padding: 0 8px; }
+
+  #map-wrap { grid-area: map; }
+
+  #buildnav {
+    grid-area: nav;
+    width: 172px;
+    display: flex;
+    flex-direction: row;
+    min-height: 0;
+    padding-bottom: 0;
+    padding-right: env(safe-area-inset-right);
+    border-top: none;
+    border-left: 3px solid #3b2412;
+    box-shadow: -3px 0 8px rgba(0, 0, 0, .4);
+  }
+  #build-tabs {
+    flex: none;
+    width: 46px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 0 4px 4px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    touch-action: pan-y;
+  }
+  .build-tab { flex: none; padding: 5px 0; border-radius: 10px 0 0 10px; }
+  .build-tab .name { display: none; }
+  .build-tab .icon, .build-tab.icon-only .icon { font-size: 21px; padding: 0; }
+  .build-tab.active { box-shadow: inset 3px 0 0 #c9a227; }
+  .build-tab.new::after { top: 2px; right: 3px; }
+  #buildbar, #demolish-bar {
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 5px;
+    padding: 6px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    touch-action: pan-y;
+  }
+  .build-btn, .build-btn.icon-only, .build-btn.icon-only.locked { flex: none; max-width: none; width: 100%; padding: 5px 3px; }
+  .build-btn.icon-only .name, .build-btn.icon-only .cost { display: block; }
+  .build-btn .icon, .build-btn.icon-only .icon, .build-btn.icon-only.locked .icon { font-size: 24px; }
+  .build-btn .name { font-size: 11.5px; }
+  .build-btn.icon-only.locked:not(.built)::after { top: 3px; left: auto; right: 4px; translate: none; font-size: 14px; }
+
+  /* Fenster über der Karte: links als Spalte über die ganze Höhe statt unten */
+  #info { top: 8px; bottom: 8px; left: 8px; right: auto; width: 340px; max-width: calc(100% - 16px); max-height: none; margin: 0; }
+  #build-info { left: 8px; right: auto; width: min(420px, calc(100% - 16px)); margin: 0; }
+  #quest-tracker { top: 6px; left: 6px; padding: 5px 12px; }
+}

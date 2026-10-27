@@ -7,10 +7,25 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Fehler
 
 <!-- Hier gefundene Fehler eintragen -->
+- Bauleiste unten: man kann nicht weiter scrollen.
+- Zoom darf die Leisten oben und unten nicht beeinträchtigen.
+- Zeitalter wechseln: Nahrung springt auf 99/100, weil sie verbraucht wird – dann kann man nicht aufsteigen.
 
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
+- Holzfäller und Sägewerk tun dasselbe (Holz). Sägewerk soll Holz brauchen, sonst nichts produzieren
+  (Zusammenspiel zwischen Gebäuden).
+- Straße sieht nicht wie eine Straße aus.
+- Spielfläche zu klein: Spiel nur im Querformat.
+- Ressourcen kommen immer noch zu schnell.
+- Forschung geht zu schnell, soll länger dauern.
+- Zeitalter: mit der Forschung verbinden – erst alles des Zeitalters erforschen und alle Gebäude gebaut haben,
+  dann aufsteigen; der Wechsel soll Zeit brauchen.
+- Mauer mit echter Funktion: Banditen greifen zuerst die Mauer an, dann das Dorf. Tor für die Mauer;
+  Straßen gehen durch das Tor, nicht durch die Mauer.
+- Gebäude weiterentwickeln, z. B. Hütte → Haus, passend zum Zeitalter.
+- Alle Gebäude haben einen Eingang, die Straße führt dorthin.
 
 ## Erledigt
 

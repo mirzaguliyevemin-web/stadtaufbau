@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 51;
+const APP_VERSION = 52;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -6425,6 +6425,9 @@ function showCategory(cat) {
 function fitBuildLabels() {
   for (const row of ['#build-tabs .build-tab', '#buildbar .build-btn']) {
     const items = [...document.querySelectorAll(row)].filter(el => !el.classList.contains('hidden'));
+    // Beim Nachmessen wird die Reihe kurz schmal – ohne Merken spränge sie jede Sekunde an den Anfang zurück
+    const scroller = document.querySelector(row.split(' ')[0]);
+    const scroll = scroller.scrollLeft;
     items.forEach(el => el.classList.remove('icon-only'));
     const tooLong = items.some(el => {
       const name = el.querySelector('.name');
@@ -6433,6 +6436,7 @@ function fitBuildLabels() {
         (cost && cost.getBoundingClientRect().height > 30);   // Kosten brauchen mehr als zwei Zeilen
     });
     if (tooLong) items.forEach(el => el.classList.add('icon-only'));
+    scroller.scrollLeft = scroll;
   }
 }
 
@@ -8226,6 +8230,23 @@ function watchForUpdates(registration) {
   });
 }
 
+// Querformat: hochkant zeigt die Seite nur den Hinweis „Handy drehen“ (CSS). Der Knopf darin
+// schaltet Vollbild ein und sperrt die Drehung auf quer – das erlauben Browser nur nach einem Tippen.
+function setupLandscape() {
+  document.getElementById('rotate-go')?.addEventListener('click', () => {
+    const lock = () => screen.orientation?.lock?.('landscape').catch(() => null);
+    const el = document.documentElement;
+    if (el.requestFullscreen && !document.fullscreenElement) {
+      el.requestFullscreen({ navigationUI: 'hide' }).then(lock).catch(lock);
+    } else lock();
+  });
+  // Zwei-Finger-Zoom auf den Leisten würde sonst (iOS) die ganze Seite vergrößern
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('touchmove', e => {
+    if (e.touches.length > 1 && e.target !== canvas) e.preventDefault();
+  }, { passive: false });
+}
+
 function start() {
   if (versionMismatch() && reloadFresh()) return;
   loadSettings();
@@ -8253,6 +8274,7 @@ function start() {
   window.addEventListener('pointerdown', () => sound.unlock());
   window.addEventListener('keydown', () => sound.unlock());
   window.addEventListener('pagehide', save);
+  setupLandscape();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js')

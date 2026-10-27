@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 58;
+const APP_VERSION = 59;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -3742,7 +3742,7 @@ function applyOfflineProgress(savedAt) {
   }
 
   // Forschung, Ereignisse und Tageszeit laufen weiter
-  if (state.research) state.research.left = Math.max(0.1, state.research.left - secs);
+  const ageNotes = offlineAgeUp(secs);
   for (const e of state.effects) e.left -= secs;
   state.effects = state.effects.filter(e => e.left > 0);
   state.dayTime = (state.dayTime + secs / CONFIG.dayLength) % 1;
@@ -3750,16 +3750,51 @@ function applyOfflineProgress(savedAt) {
 
   const changes = Object.keys(RESOURCES)
     .map(id => [id, state.resources[id] - before[id]])
-    .filter(([, d]) => d !== 0)
-    .map(([id, d]) => `${d > 0 ? '+' : '−'}${Math.abs(d)} ${RESOURCES[id].icon} ${RESOURCES[id].name}`);
+    .filter(([, d]) => Math.round(d) !== 0)
+    .map(([id, d]) => `${d > 0 ? '+' : '−'}${Math.round(Math.abs(d))} ${RESOURCES[id].icon} ${RESOURCES[id].name}`);
   showEventPopup('🌙', 'Willkommen zurück!', [
     `Du warst ${formatDuration(away)} weg.` +
       (away > secs ? ` Gezählt werden höchstens ${CONFIG.offlineMaxHours} Stunden.` : ''),
     'Deine Stadt hat in der Zeit mit verminderter Kraft weitergearbeitet:',
     changes.length ? changes.join('\n') : 'Es wurde nichts produziert.',
+    ...ageNotes,
     state.resources.food === 0 && state.population > 0 ? '⚠️ Die Nahrung ist aufgebraucht!' : '',
   ].filter(Boolean).join('\n'));
   recalcStats();
+}
+
+// Offline: Forschung fertig → ist dann alles fürs nächste Zeitalter erfüllt, beginnt der Aufbruch
+// von selbst und läuft weiter. Fertig wird er im ersten Spieltakt (mit der Zeitalter-Meldung).
+function offlineAgeUp(secs) {
+  const notes = [];
+  let time = secs;
+  if (state.research) {
+    if (state.research.left > secs) {
+      state.research.left -= secs;
+      time = 0;
+    } else {
+      const id = state.research.id, tech = TECHS[id];
+      time = secs - state.research.left;
+      state.research = null;
+      state.techs.push(id);
+      notes.push(`🔬 Erforscht: ${tech.icon} ${tech.name}`);
+      if (canAdvanceAge()) {
+        state.ageUp = { done: 0, waiting: null };
+        notes.push(`⏳ Damit war alles bereit – der Aufbruch ins Zeitalter ${nextAge().icon} ${nextAge().name} hat begonnen.`);
+      }
+    }
+  }
+  const next = nextAge();
+  if (!state.ageUp || !next) return notes;
+  // so weit laufen, wie Zeit und Waren reichen
+  let step = Math.min(time, next.seconds - state.ageUp.done);
+  for (const [id, n] of Object.entries(next.cost)) step = Math.min(step, state.resources[id] / (n / next.seconds));
+  step = Math.max(0, step);
+  for (const [id, n] of Object.entries(next.cost)) state.resources[id] = Math.max(0, state.resources[id] - n * step / next.seconds);
+  state.ageUp.done += step;
+  if (state.ageUp.done >= next.seconds - 1e-6) notes.push(`🎉 Der Aufbruch ins Zeitalter ${next.icon} ${next.name} ist geschafft!`);
+  else if (step < time) notes.push(`⏸️ Der Aufbruch wartet auf Waren (${Math.round(state.ageUp.done / next.seconds * 100)} %).`);
+  return notes;
 }
 
 // =====================================================================

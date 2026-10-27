@@ -8,7 +8,8 @@ Aufgestiegen wird oben in der **Forschung** (seit Version 54, Wunsch von Emin). 
 genug Einwohner, **alle Forschungen** des Zeitalters und **jedes Gebäude** des Zeitalters einmal gebaut
 (ohne Straßen, Brücke, Tor, Sehenswürdigkeiten und Gebäude, die besonderes Gelände brauchen).
 Der Aufbruch dauert dann 1:30 bis 5 Minuten; die Waren werden dabei nach und nach geliefert – fehlt etwas,
-wartet er. Gebäude aus früheren Zeitaltern bleiben erhalten und arbeiten weiter; viele lassen sich im
+wartet er. Der Aufbruch läuft auch **offline** weiter (Version 59): Wird dabei die letzte nötige Forschung fertig,
+beginnt er von selbst; ist er beim Zurückkommen fertig, wechselt das Zeitalter sofort mit Meldung. Gebäude aus früheren Zeitaltern bleiben erhalten und arbeiten weiter; viele lassen sich im
 Info-Fenster **weiterentwickeln** (Hütte → Haus → Mietshaus → Hochhaus, Sammlerin → Farm, Steinsammler → Steinbruch,
 Höhlenmaler → Schreibstube → Bibliothek, Feuerstelle → Park, Brunnen → Krankenhaus, Wachhaus → Polizeiwache,
 Markt → Supermarkt, Schule → Universität).

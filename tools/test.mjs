@@ -239,6 +239,37 @@ test('Zeitalter: Steinzeit, Aufstieg, Speichern', () => {
   return 'Steinzeit → Antike';
 });
 
+test('Offline: Forschung fertig → Aufbruch läuft weiter und endet beim Zurückkommen', () => {
+  const game = fresh({ seed: 5, age: 1 });
+  const r = game.run(`${PREP}${AGE_UP}
+    const last = ageRequiredTechs().at(-1);
+    state.techs = state.techs.filter(id => id !== last);
+    for (const id of ageRequiredTechs()) if (id !== last && !state.techs.includes(id)) state.techs.push(id);
+    for (const id of Object.keys(RESOURCES)) state.resources[id] = 5000;
+    for (let xx = 16; xx < 48; xx++) placeBuilding(xx, 30, 'road');
+    let x = 16;
+    for (const t of ageRequiredBuildings()) if (!countFinished(t)) { placeBuilding(x, 31, t); x += footprintSize(t)[0]; }
+    for (const id of Object.keys(RESOURCES)) state.resources[id] = 0;
+    state.population = nextAge().need.population; recalcStats();
+    const placed = !ageChecklist().buildingsMissing.length;
+    for (const [id, n] of Object.entries(nextAge().cost)) state.resources[id] = n * 3;
+    state.research = { id: last, left: 30 };
+    const notYet = canAdvanceAge();
+    applyOfflineProgress(Date.now() - 2 * 3600 * 1000);
+    const away = { techDone: state.techs.includes(last), running: !!state.ageUp, done: state.ageUp?.done, age: state.age,
+      text: popupQueue.map(p => p[2]).join(' ') + document.getElementById('event-text').textContent };
+    for (let i = 0; i < 3 && state.ageUp; i++) { updateAgeUp(0.016); }
+    const after = state.age;
+    JSON.stringify({ placed, notYet, away, after })
+  `);
+  noErrors(game, 'beim Offline-Aufbruch');
+  const o = JSON.parse(r);
+  assert(o.placed && !o.notYet && o.away.techDone && o.away.running && o.away.age === 1, 'Offline-Forschung/Aufbruch: ' + r);
+  assert(o.away.text.includes('Aufbruch') && o.away.text.includes('geschafft'), 'Meldung: ' + r);
+  assert(o.after === 2, 'Zeitalter nach dem ersten Takt: ' + r);
+  return 'Antike → Mittelalter offline';
+});
+
 test('Industrie und Moderne: Aufstieg und Produktionsketten', () => {
   const game = fresh({ seed: 18, age: 2 });
   const r = game.run(`${PREP}${AGE_UP}

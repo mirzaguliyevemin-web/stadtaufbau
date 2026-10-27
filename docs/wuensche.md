@@ -51,3 +51,5 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
   - Straßen je Zeitalter: Trampelpfad, Pflaster, Asphalt mit Mittelstreifen; jedes Gebäude hat eine Tür, ein Weg führt zur Straße.
   - Langsamer: Forschung dauert doppelt so lange, Farm/Steinbruch/Steinsammler/Fischerhütte liefern weniger.
 - 2026-10-27, Version 55 – Tägliche Belohnung in der Steinzeit ohne Geld: statt Geld je zur Hälfte Holz und Nahrung.
+- 2026-10-27, Version 59 – Zeitalter-Aufbruch läuft offline weiter; wird offline die letzte Forschung fertig, beginnt er von selbst,
+  beim Zurückkommen wechselt das Zeitalter sofort mit Meldung.

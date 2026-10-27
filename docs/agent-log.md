@@ -3,6 +3,12 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-27 – Aufbruch offline (Version 59)
+
+- Wunsch von Emin: Der Zeitalter-Aufbruch läuft offline weiter. Wird offline die letzte nötige Forschung fertig und ist sonst
+  alles erfüllt, beginnt der Aufbruch von selbst; Waren werden dabei wie im Spiel abgezogen (reichen sie nicht, wartet er).
+  Ist er fertig, wechselt das Zeitalter beim Zurückkommen sofort mit Meldung. Neuer Test dafür.
+
 ## 2026-10-27 – Fehlersuche mit Emin (Version 58)
 
 - Ausführliche Fehlersuche in vier Bereichen (Zeitalter, Mauer/Tor, Weiterentwickeln/Bauen, Oberfläche), 23 Fehler behoben:

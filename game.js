@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 57;
+const APP_VERSION = 58;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -1045,7 +1045,7 @@ const ACHIEVEMENTS = [
   { id: 'pop50',      icon: '👥', name: 'Gemeinschaft',        text: 'Erreiche 50 Einwohner.',                   check: () => state.population >= 50 },
   { id: 'pop100',     icon: '🏙️', name: 'Erste 100 Einwohner', text: 'Erreiche 100 Einwohner.',                  check: () => state.population >= 100 },
   { id: 'busy10',     icon: '⚙️', name: 'Fleißige Stadt',      text: '10 Gebäude produzieren gleichzeitig.',     check: () => producingCount() >= 10 },
-  { id: 'roads50',    icon: '🛣️', name: 'Straßenbauer',        text: 'Baue 50 Straßenfelder.',                   check: () => countBuildings('road') >= 50 },
+  { id: 'roads50',    icon: '🛣️', name: 'Straßenbauer',        text: 'Baue 50 Straßenfelder.',                   check: () => countBuildings('road') + countBuildings('gate') >= 50 },
   { id: 'rich1000',   icon: '💰', name: 'Volle Kasse',         text: 'Habe 1000 Geld auf einmal.',               check: () => state.resources.money >= 1000 },
   { id: 'happy90',    icon: '😊', name: 'Glückliche Stadt',    text: 'Zufriedenheit 90 mit mindestens 20 Einwohnern.', check: () => stats.happiness >= 90 && state.population >= 20 },
   { id: 'nice10',     icon: '✨', name: 'Schöne Viertel',      text: '10 Häuser in schönen Wohnvierteln.',       check: () => stats.niceHouses >= 10 },
@@ -1057,7 +1057,7 @@ const ACHIEVEMENTS = [
   { id: 'streak7',    icon: '📅', name: 'Treue Seele',         text: 'Spiele 7 Tage in Folge.',                  check: () => state.daily.streak >= 7 },
   { id: 'dynasty',    icon: '👑', name: 'Dynastie',            text: 'Vollende 3 Städte.',                        check: () => legacy.stars >= 3 },
   { id: 'carts25',    icon: '🛒', name: 'Handelsroute',        text: '25 Handelskarren kommen sicher an.',        check: () => (state.counters.carts || 0) >= 25 },
-  { id: 'fortress',   icon: '🏰', name: 'Festungsstadt',       text: '40 Mauerstücke und 3 Wachtürme.',           check: () => countBuildings('wall') >= 40 && countFinished('tower') >= 3 },
+  { id: 'fortress',   icon: '🏰', name: 'Festungsstadt',       text: '40 Mauerstücke und 3 Wachtürme.',           check: () => countBuildings('wall') + countBuildings('gate') >= 40 && countFinished('tower') >= 3 },
   { id: 'lawman',     icon: '⚖️', name: 'Gesetzeshüter',       text: 'Schlage 5 Banditenüberfälle zurück.',      check: () => (state.counters.repelled || 0) >= 5 },
   { id: 'gold10',     icon: '🌟', name: 'Prachtbauten',        text: '10 Gebäude auf Stufe 3.',                  check: () => state.grid.filter(c => c && levelOf(c) >= 3).length >= 10 },
   { id: 'land20',     icon: '🗺️', name: 'Landesherr',          text: 'Kaufe 20 Flächen dazu.',                   check: () => plotsBought() >= 20 },
@@ -1651,7 +1651,7 @@ function placementSize(type) {
 
 function rotateBuilding(i) {
   const cell = state.grid[i];
-  if (!cell || cell.fire) return;
+  if (!cell || cell.fire || cell.build?.from) return;   // nicht während des Weiterentwickelns (Abbrechen braucht die alte Lage)
   const [w, h] = sizeOf(cell);
   if (w === h) return;
   const x = i % N, y = Math.floor(i / N);
@@ -1685,6 +1685,10 @@ let moveMode = null;   // { from: Gebäude-Ecke, rotated }
 function startMove(i) {
   const cell = state.grid[i];
   if (!cell || cell.fire) return;
+  if (cell.build?.from) {
+    showToast('Erst fertig weiterentwickeln, dann verschieben');
+    return;
+  }
   selectBuild(null);
   closeInfo();
   moveMode = { from: i, rotated: false };
@@ -2029,15 +2033,19 @@ function developBuilding(x, y) {
     showToast(problem, 2500);
     return false;
   }
+  x = i % N;
+  y = Math.floor(i / N);
   const from = cell.type, target = BUILDINGS[from].developsTo;
   const [w, h] = developSize(i, target);
   const cost = developCost(cell);
   addResources(cost, -1);
   const seconds = buildTimeOf(target);
-  // Merken, was es vorher war: Abbrechen stellt das alte Gebäude wieder her
-  const old = { type: from, w: cell.w, h: cell.h };
+  // Merken, was es vorher war: Abbrechen stellt das alte Gebäude wieder her.
+  // Das neue Gebäude beginnt auf Stufe 1 (die alten Ausbauten sind schon als Rabatt im Preis verrechnet)
+  const old = { type: from, w: cell.w, h: cell.h, level: cell.level };
   cell.type = target;
   cell.timer = 0;
+  delete cell.level;
   delete cell.w; delete cell.h;
   if (w > 1 || h > 1) { cell.w = w; cell.h = h; }
   setOccupied(x, y, w, h, i);
@@ -2061,6 +2069,7 @@ function cancelDevelop(i) {
   cell.type = old.type;
   delete cell.w; delete cell.h;
   if (old.w) { cell.w = old.w; cell.h = old.h; }
+  if (old.level) cell.level = old.level;
   delete cell.build;
   cell.timer = 0;
   setOccupied(i % N, Math.floor(i / N), ...sizeOf(cell), i);
@@ -2172,8 +2181,13 @@ function buildGate(x, y) {
   }
   addResources(cost, -1);
   const cell = getCell(x, y);
+  const share = cell.hp !== undefined ? cell.hp / wallMaxHp(cell) : 1;   // beschädigte Mauer: Tor ist genauso beschädigt
   cell.type = 'gate';
-  cell.hp = CONFIG.gateHp;
+  delete cell.hp;
+  if (share < 1) {
+    cell.hp = share * CONFIG.gateHp;
+    damagedWalls.add(anchorAt(x, y));
+  }
   cell.builtAt = performance.now();
   showToast('🚪 Tor in die Mauer eingebaut', 1800);
   emit('build', { x, y, type: 'gate' });
@@ -2239,6 +2253,15 @@ function demolish(x, y) {
   const a = anchorAt(x, y);
   if (a === undefined || a < 0) return;
   const cell = state.grid[a];
+  if (cell.type === 'gate') {   // Tor entfernen: die Straße bleibt liegen
+    addResources(refundOf(cell), 1);
+    cell.type = 'road';
+    delete cell.hp;
+    closeInfo();
+    recalcStats();
+    updateUI();
+    return;
+  }
   if (cell.build?.from) {   // Weiterentwickeln abbrechen
     cancelDevelop(a);
     closeInfo();
@@ -2421,20 +2444,22 @@ function updateProduction(dt) {
     cell.timer += dt;
     while (cell.timer >= def.interval) {
       const lf = levelFactor(cell) * (1 + terrainBonusOf(cell.type, i % N, Math.floor(i / N), ...sizeOf(cell)));
-      const raw = buildingOutput(cell.type, staffOfCell(i));
+      const staff = staffOfCell(i);
+      const raw = buildingOutput(cell.type, staff);
       for (const id in raw) raw[id] *= lf;
-      // Verarbeitung: ohne Rohstoff oder bei vollem Lager pausieren (Zeit läuft nicht weiter)
+      // Verarbeitung: ohne Rohstoff, ohne Personal oder bei vollem Lager pausieren (Zeit läuft nicht weiter).
+      // Verbraucht wird nur so viel, wie die Belegschaft verarbeitet (halbe Besetzung = halber Verbrauch).
       if (def.consumes) {
         const need = {};
-        for (const [id, n] of Object.entries(def.consumes)) need[id] = Math.round(n * lf);
+        for (const [id, n] of Object.entries(def.consumes)) need[id] = n * lf * (def.jobs ? staff : 1);
         const full = Object.keys(raw).every(id => state.resources[id] >= storageCap(id));
-        if (full || !canAfford(need)) {
-          cell.waiting = full ? 'full' : 'input';
+        if (full || (def.jobs && staff <= 0) || !canAfford(need)) {
+          cell.waiting = full ? 'full' : def.jobs && staff <= 0 ? 'staff' : 'input';
           cell.timer = def.interval;
           break;
         }
         cell.waiting = null;
-        addResources(need, -1);
+        for (const [id, n] of Object.entries(need)) state.resources[id] = Math.max(0, state.resources[id] - n);
       }
       cell.timer -= def.interval;
       // Bruchteile je Gebäude aufsammeln, ausgezahlt werden ganze Einheiten
@@ -2615,7 +2640,12 @@ function recalcStats() {
   computeEntrances();
 
   // Versorgung: Ein Haus ist versorgt, wenn ein Anbieter es im (quadratischen) Umkreis erreicht
+  // Während ein Wohnhaus weiterentwickelt wird, wohnen die Leute weiter im alten Teil
   stats.capacity = 0;
+  for (const cell of state.grid) {
+    const from = cell?.build?.from;
+    if (from && capacityOf(from.type)) stats.capacity += capacityOf(from.type) + 2 * ((from.level || 1) - 1);
+  }
   stats.houseNeeds = new Map();
   const covered = {};
   for (const need in NEEDS) covered[need] = 0;
@@ -2763,7 +2793,7 @@ function questProgress(quest) {
   const g = quest.goal;
   let current = 0;
   switch (g.type) {
-    case 'build':      current = countFinished(g.building); break;
+    case 'build':      current = countFinished(g.building) + (g.building === 'road' ? countFinished('gate') : 0); break;
     case 'population': current = state.population; break;
     case 'happiness':  current = stats.happiness; break;
     case 'resource':   current = state.resources[g.resource]; break;
@@ -3176,7 +3206,7 @@ function startRaid(camp) {
   const tx = target % N + w / 2, ty = Math.floor(target / N) + h / 2;
   const strength = Math.round(camp.strength * randomBetween(0.85, 1.15));
   const raid = {
-    camp, target, tx, ty, strength, startStrength: strength, siege: -1,
+    camp, target, cell, tx, ty, strength, startStrength: strength, siege: -1,
     x: camp.x + 0.5, y: camp.y + 0.5, speed: 1.4,
     units: Array.from({ length: Math.min(8, 3 + Math.floor(strength / 8)) }, () => [randomBetween(-0.6, 0.6), randomBetween(-0.6, 0.6)]),
     defenders: [],
@@ -3199,12 +3229,12 @@ function startRaid(camp) {
 
 function updateRaids(dt) {
   for (const raid of [...raids]) {
-    // Ziel inzwischen weg (abgerissen, abgebrannt)? Dann ein neues suchen
-    if (!state.grid[raid.target]) {
+    // Ziel inzwischen weg (abgerissen, abgebrannt, durch etwas anderes ersetzt)? Dann ein neues suchen
+    if (state.grid[raid.target] !== raid.cell) {
       const next = chooseRaidTarget(raid.camp);
       if (next < 0) { raids.splice(raids.indexOf(raid), 1); continue; }
       const [w, h] = sizeOf(state.grid[next]);
-      Object.assign(raid, { target: next, tx: next % N + w / 2, ty: Math.floor(next / N) + h / 2 });
+      Object.assign(raid, { target: next, cell: state.grid[next], tx: next % N + w / 2, ty: Math.floor(next / N) + h / 2, siege: -1 });
     }
     const dx = raid.tx - raid.x, dy = raid.ty - raid.y;
     const dist = Math.hypot(dx, dy);
@@ -3221,17 +3251,23 @@ function updateRaids(dt) {
       if (result) continue;
     }
     if (dist > 0.6) {
-      const nx = raid.x + dx / dist * Math.min(dist, step), ny = raid.y + dy / dist * Math.min(dist, step);
-      // Steht eine Mauer im Weg, wird sie zuerst angegriffen
-      const wall = wallBetween(Math.floor(raid.x), Math.floor(raid.y), Math.floor(nx), Math.floor(ny));
-      if (wall >= 0 && wall !== raid.target) {
-        raid.siege = wall;
-        showToast(`🏰 Banditen greifen die ${BUILDINGS[state.grid[wall].type].name} an!`, 3000);
-        sound.play('event');
-        continue;
+      // In Teilschritten von höchstens einem halben Feld – sonst könnte ein großer Zeitschritt über die Mauer springen
+      let left = Math.min(dist, step);
+      while (left > 1e-9) {
+        const part = Math.min(left, 0.5);
+        const nx = raid.x + dx / dist * part, ny = raid.y + dy / dist * part;
+        // Steht eine Mauer im Weg, wird sie zuerst angegriffen
+        const wall = wallBetween(Math.floor(raid.x), Math.floor(raid.y), Math.floor(nx), Math.floor(ny));
+        if (wall >= 0 && wall !== raid.target) {
+          raid.siege = wall;
+          showToast(`🏰 Banditen greifen die ${BUILDINGS[state.grid[wall].type].name} an!`, 3000);
+          sound.play('event');
+          break;
+        }
+        raid.x = nx;
+        raid.y = ny;
+        left -= part;
       }
-      raid.x = nx;
-      raid.y = ny;
       continue;
     }
     resolveRaid(raid);
@@ -3283,7 +3319,10 @@ function updateSiege(raid, dt) {
   }
   if (wall.hp > 0) return true;
   const name = BUILDINGS[wall.type].name;
-  removeBuildingAt(i);
+  if (wall.type === 'gate') {   // aufgebrochenes Tor: die Straße bleibt
+    wall.type = 'road';
+    delete wall.hp;
+  } else removeBuildingAt(i);
   raid.siege = -1;
   puff(x, y, '120, 110, 100', 10, T * 0.12);
   sound.play('burned');
@@ -3572,7 +3611,8 @@ function updateResearch(dt) {
   const tech = TECHS[id];
   state.research = null;
   state.techs.push(id);
-  const unlocked = Object.values(BUILDINGS).filter(b => b.requiresTech === id).map(b => `${b.icon} ${b.name}`);
+  const unlocked = Object.values(BUILDINGS).filter(b => b.requiresTech === id)
+    .map(b => `${b.icon} ${b.name}${isUnlocked(b.id) ? '' : ` (${lockReason(b.id)})`}`);
   showToast(`🔬 Erforscht: ${tech.icon} ${tech.name}` + (unlocked.length ? ` – neu: ${unlocked.join(', ')}` : ''), 3500);
   emit('researched', { id });
   recalcStats();
@@ -4035,6 +4075,7 @@ function load() {
         const from = b.build.from;
         if (from && BUILDINGS[from.type] && typeof b.build.paid === 'object') {
           cell.build.from = { type: from.type, w: from.w, h: from.h };
+          if (Number.isInteger(from.level) && from.level > 1 && from.level <= MAX_BUILDING_LEVEL) cell.build.from.level = from.level;
           cell.build.paid = {};
           for (const [id, n] of Object.entries(b.build.paid)) if (RESOURCES[id] && Number.isFinite(n)) cell.build.paid[id] = n;
         }
@@ -6172,9 +6213,9 @@ function drawWallDamage(x, y) {
   if (share < 0.5) { ctx.moveTo(px + T * 0.5, py + T * 0.5); ctx.lineTo(px + T * 0.66, py + T * 0.58); }
   ctx.stroke();
   ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-  ctx.fillRect(px + T * 0.1, py - T * 0.12, T * 0.8, T * 0.1);
+  ctx.fillRect(px + T * 0.1, py + T * 0.04, T * 0.8, T * 0.1);
   ctx.fillStyle = share > 0.5 ? '#95d5b2' : share > 0.25 ? '#ffd166' : '#e63946';
-  ctx.fillRect(px + T * 0.12, py - T * 0.1, T * 0.76 * share, T * 0.06);
+  ctx.fillRect(px + T * 0.12, py + T * 0.06, T * 0.76 * share, T * 0.06);
 }
 
 // Mauerstück: dicker Steinstrang mit Zinnen, verbunden mit Nachbarmauern
@@ -6353,9 +6394,15 @@ function paintTo(tile) {
     tapStart = null;
     placeBuilding(paint.last.x, paint.last.y, selectedType);
   }
+  let prev = paint.last;
   for (const t of tileLine(paint.last, tile)) {
+    const from = prev;
+    prev = t;
     if (getCell(t.x, t.y) !== null) {
-      if (makesGate(t.x, t.y, selectedType)) placeBuilding(t.x, t.y, selectedType);
+      // Tor nur, wo der Zug die Mauer bzw. Straße kreuzt – nicht, wenn man an ihr entlangzieht
+      const ahead = getCell(2 * t.x - from.x, 2 * t.y - from.y);
+      const along = ahead && ahead.type === getCell(t.x, t.y).type;
+      if (!along && makesGate(t.x, t.y, selectedType) && !placeBuilding(t.x, t.y, selectedType)) break;
       continue;
     }
     if (!placeBuilding(t.x, t.y, selectedType)) break;
@@ -6817,12 +6864,19 @@ function showCategory(cat) {
   if (cat === 'demolish') enterDemolishMode();
   else if (demolishMode) exitDemolishMode();
   currentCategory = cat;
+  document.getElementById('buildbar').scrollLeft = 0;
+  document.getElementById('buildbar').scrollTop = 0;
+  refreshBuildButtons();
+}
+
+// Knöpfe des offenen Reiters auffrischen (z. B. nach dem Aufstieg) – ohne Moduswechsel und ohne an den Anfang zu springen
+function refreshBuildButtons() {
+  const cat = currentCategory;
   const visible = new Set(categoryTypes(cat));
   for (const [type, btn] of Object.entries(buildButtons)) {
     btn.classList.toggle('hidden', !visible.has(type));
   }
-  for (const type of categoryTypes(cat)) if (isUnlocked(type)) seenUnlocked.add(type);
-  document.getElementById('buildbar').scrollLeft = 0;
+  for (const type of visible) if (isUnlocked(type)) seenUnlocked.add(type);
   for (const type of visible) {   // Bild statt Symbol, wenn es eins gibt (wechselt mit dem Zeitalter)
     const src = buildingImageSrc(type);
     const icon = buildButtons[type].querySelector('.icon');
@@ -6842,7 +6896,7 @@ function fitBuildLabels() {
     const items = [...document.querySelectorAll(row)].filter(el => !el.classList.contains('hidden'));
     // Beim Nachmessen wird die Reihe kurz schmal – ohne Merken spränge sie jede Sekunde an den Anfang zurück
     const scroller = document.querySelector(row.split(' ')[0]);
-    const scroll = scroller.scrollLeft;
+    const scroll = scroller.scrollLeft, scrollTop = scroller.scrollTop;
     items.forEach(el => el.classList.remove('icon-only'));
     const tooLong = items.some(el => {
       const name = el.querySelector('.name');
@@ -6852,6 +6906,7 @@ function fitBuildLabels() {
     });
     if (tooLong) items.forEach(el => el.classList.add('icon-only'));
     scroller.scrollLeft = scroll;
+    scroller.scrollTop = scrollTop;
   }
 }
 
@@ -6935,7 +6990,7 @@ function buildUI() {
   showCategory(currentCategory);
   // Mausrad scrollt die Bauleiste seitlich
   bar.addEventListener('wheel', e => {
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && bar.scrollWidth > bar.clientWidth) {
       bar.scrollLeft += e.deltaY;
       e.preventDefault();
     }
@@ -7344,9 +7399,10 @@ function finishAgeUp() {
     evolved.length ? `Weiterentwickelt: ${evolved.join(', ')}` : '',
   ].filter(Boolean).join('\n\n'));
   emit('age', { age: state.age });
-  showCategory(currentCategory);
+  refreshBuildButtons();
   ageListKey = '';
   techListKey = '';
+  ageUpEl.dataset.key = '';
   recalcStats();
   updateUI();
 }
@@ -7396,7 +7452,7 @@ function ageUpHtml() {
 
 function ageUpKey() {
   const c = ageChecklist();
-  if (!c) return '';
+  if (!c) return `max|${state.age}`;   // höchstes Zeitalter: eigener Schlüssel, sonst wird nie neu gezeichnet
   return state.ageUp ? `run|${Math.floor(state.ageUp.done)}|${state.ageUp.waiting}`
     : `${state.age}|${c.popOk}|${state.population}|${c.techsMissing}|${c.buildingsMissing}`;
 }
@@ -7410,10 +7466,12 @@ function updateAgeBar() {
   const bar = document.getElementById('age-progress');
   const next = nextAge();
   bar.classList.toggle('ready', ready);
+  bar.classList.toggle('running', !!state.ageUp);
   if (!next) {
     const later = AGES[state.age + 1];
     bar.querySelector('.ap-text').textContent = later ? `${later.icon} ${later.name} kommt in einem späteren Update` : 'Höchstes Zeitalter erreicht';
     bar.querySelector('.ap-bar i').style.width = '100%';
+    bar.title = bar.querySelector('.ap-text').textContent;
     return;
   }
   const share = ageShare();
@@ -7423,6 +7481,7 @@ function updateAgeBar() {
     ? `⏳ Aufbruch: ${next.icon} ${next.name} · ${Math.round(share * 100)} %${state.ageUp.waiting ? ' ⏸️' : ''}`
     : ready ? `⬆️ Bereit für ${next.icon} ${next.name} – antippen!`
     : `${next.icon} ${next.name}: ${Math.round(share * 100)} %`;
+  bar.title = bar.querySelector('.ap-text').textContent;   // im Querformat ist der Text oft abgeschnitten
 }
 
 function showAges() {
@@ -7521,12 +7580,13 @@ function updateResearchUI() {
     techListEl.innerHTML = ids.map(id => {
       const group = order(techAge(id));
       const age = AGES[techAge(id)];
-      const head = group === lastGroup ? '' : `<div class="settings-title">${group === 2 ? '✅ Frühere Zeitalter' : `${age.icon} Forschung: ${age.name}`}</div>`;
+      const head = group === lastGroup ? '' : `<div class="settings-title">${group === 2 ? '📜 Frühere Zeitalter' : `${age.icon} Forschung: ${age.name}`}</div>`;
       lastGroup = group;
       const t = TECHS[id];
       const status = techStatus(id);
       const needs = (t.requires || []).map(r => `${TECHS[r].icon} ${TECHS[r].name}`).join(', ');
-      const unlocks = Object.values(BUILDINGS).filter(b => b.requiresTech === id).map(b => `${b.icon} ${b.name}`);
+      const unlocks = Object.values(BUILDINGS).filter(b => b.requiresTech === id)
+        .map(b => `${b.icon} ${b.name}${(b.age || 0) > state.age ? ` (ab ${AGES[b.age].name})` : ''}`);
       let foot = '';
       if (status === 'done') foot = '<span>✅ Erforscht</span>';
       else if (status === 'running') foot = '<span class="tech-left"></span>';
@@ -7649,6 +7709,10 @@ function sellSelection() {
   for (const i of [...demolishSelection]) {
     const cell = state.grid[i];
     if (!cell) continue;
+    if (cell.build?.from) {   // Weiterentwicklung: abbrechen, das alte Gebäude bleibt
+      cancelDevelop(i);
+      continue;
+    }
     addResources(refundOf(cell), 1);
     removeBuildingAt(i);
     emit('demolish', { x: i % N, y: Math.floor(i / N), type: cell.type, w: cell.w || 1, h: cell.h || 1 });
@@ -8205,7 +8269,7 @@ function renderTileInfo() {
   btn.classList.toggle('armed', !!armed);
   btn.textContent = armed
     ? '⚠️ Wirklich? Nochmal tippen'
-    : `${def.isRoad ? '🗑️ Löschen' : cell.build ? '✖ Bau abbrechen' : '💰 Verkaufen'} +${formatAmounts(refund) || '0'}`;
+    : `${def.isGate ? '🚪 Tor entfernen' : def.isRoad ? '🗑️ Löschen' : cell.build ? '✖ Bau abbrechen' : '💰 Verkaufen'} +${formatAmounts(refund) || '0'}`;
 }
 
 // Zusammenfassung sichtbar, Details aufklappbar (Zustand bleibt beim Aktualisieren erhalten)
@@ -8712,8 +8776,8 @@ function loop(now) {
   // Nie negativ (der erste Zeitstempel kann vor dem Skriptstart liegen), große Sprünge begrenzen
   const dt = clamp((now - lastTime) / 1000, 0, 1);
   lastTime = now;
-  // Zeitraffer in Teilschritten, damit bei 3× nichts übersprungen wird
-  for (let n = 0; n < gameSpeed; n++) update(dt);
+  // Zeitraffer in Teilschritten, damit bei 3× nichts übersprungen wird; hinter „Handy drehen“ ruht das Spiel
+  if (!rotateHintShown()) for (let n = 0; n < gameSpeed; n++) update(dt);
   uiTimer += dt;
   if (uiTimer >= 0.25) {
     uiTimer = 0;
@@ -8791,13 +8855,34 @@ function watchForUpdates(registration) {
 
 // Querformat: hochkant zeigt die Seite nur den Hinweis „Handy drehen“ (CSS). Der Knopf darin
 // schaltet Vollbild ein und sperrt die Drehung auf quer – das erlauben Browser nur nach einem Tippen.
+const PORTRAIT_KEY = 'stadtaufbau-hochkant';   // „trotzdem hochkant spielen“ gemerkt (je Gerät)
+const rotateHintQuery = typeof matchMedia === 'function'
+  ? matchMedia('(orientation: portrait) and (pointer: coarse) and (max-width: 600px)') : null;
+
+// Wird gerade der Hinweis „Handy drehen“ gezeigt? Dann ruht das Spiel.
+function rotateHintShown() {
+  return !!rotateHintQuery?.matches && !document.documentElement.classList.contains('allow-portrait');
+}
+
 function setupLandscape() {
+  try {
+    if (localStorage.getItem(PORTRAIT_KEY) === '1') document.documentElement.classList.add('allow-portrait');
+  } catch (e) { /* ohne Speicher eben nicht merken */ }
   document.getElementById('rotate-go')?.addEventListener('click', () => {
-    const lock = () => screen.orientation?.lock?.('landscape').catch(() => null);
+    const failed = () => showToast('Drehen geht hier nicht automatisch – Drehsperre am Handy ausschalten und quer halten', 4000);
+    const lock = () => {
+      if (!screen.orientation?.lock) return failed();
+      screen.orientation.lock('landscape').catch(failed);
+    };
     const el = document.documentElement;
     if (el.requestFullscreen && !document.fullscreenElement) {
       el.requestFullscreen({ navigationUI: 'hide' }).then(lock).catch(lock);
     } else lock();
+  });
+  document.getElementById('rotate-skip')?.addEventListener('click', () => {
+    document.documentElement.classList.add('allow-portrait');
+    try { localStorage.setItem(PORTRAIT_KEY, '1'); } catch (e) { /* egal */ }
+    resize();
   });
   // Zwei-Finger-Zoom auf den Leisten würde sonst (iOS) die ganze Seite vergrößern
   document.addEventListener('gesturestart', e => e.preventDefault());

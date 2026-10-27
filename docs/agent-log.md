@@ -3,6 +3,20 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-27 – Fehlersuche mit Emin (Version 58)
+
+- Ausführliche Fehlersuche in vier Bereichen (Zeitalter, Mauer/Tor, Weiterentwickeln/Bauen, Oberfläche), 23 Fehler behoben:
+  - Weiterentwickeln: Ausbaustufe ging gratis aufs neue Gebäude über (Rohstoffe vermehrbar) → neues Gebäude startet auf Stufe 1;
+    Drehen/Verschieben während des Weiterentwickelns gesperrt; Bewohner bleiben während des Umbaus; Abriss-Modus bricht nur ab.
+  - Verarbeiter (z. B. Sägewerk) verbrauchten ohne Arbeiter weiter Rohstoffe → Verbrauch nach Besetzung.
+  - Banditen sprangen bei Rucklern über die Mauer, plünderten eine Straße, die an Stelle ihres Ziels gebaut wurde;
+    Straße an der Mauer entlang machte jedes Stück zum Tor; Tor abreißen/durchbrechen lässt jetzt die Straße liegen.
+  - Zeitalter-Übersicht und Aufbruch-Karte im höchsten Zeitalter leer bzw. veraltet; Ende des Aufbruchs warf aus dem Abriss-Modus.
+  - Querformat: Rohstoffe oben nicht scrollbar, Abriss-Knopf abgeschnitten, Ereignis-Fenster zu hoch, Reiterwechsel ohne Sprung
+    nach oben, Notch/Home-Leiste; Hochkant-Hinweis nur noch auf Handys (≤ 600 px) mit „Trotzdem hochkant spielen“, Spiel ruht dahinter.
+- Neue Tests für Weiterentwickeln (Stufe, Bewohner, Abriss-Modus), Sägewerk ohne Arbeiter, Tore beim Ziehen, große Zeitschritte.
+- Offen (Entscheidung Emin): Aufbruch läuft offline nicht weiter (Forschung schon); Wassertrog → Feuerwache bleibt 1×1.
+
 ## 2026-10-27 – Sitzung mit Emin (Version 52–54)
 
 - Zweite Wunschliste von Emin (12 Punkte, mit Bildschirmfotos) umgesetzt, siehe `wuensche.md` → Erledigt.

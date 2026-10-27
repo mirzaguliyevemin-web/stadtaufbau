@@ -260,12 +260,14 @@ test('Industrie und Moderne: Aufstieg und Produktionsketten', () => {
     state.population = 400; recalcStats();
     for (let i = 0; i < 400; i++) update(0.25);
     render(0.016); showAges(); updateAgesUI();
-    JSON.stringify({ industry, modern, coal, built3, built4, steel: state.produced.steel > 0, goods: state.produced.goods > 0,
+    const ageList = document.getElementById('age-list').innerHTML.length;
+    JSON.stringify({ ageList, industry, modern, coal, built3, built4, steel: state.produced.steel > 0, goods: state.produced.goods > 0,
       power: state.produced.power > 0, concrete: state.produced.concrete > 0, electronics: state.produced.electronics > 0 })
   `);
   noErrors(game, 'bei Industrie/Moderne');
   const o = JSON.parse(r);
   assert(o.industry === 3 && o.modern === 4 && o.coal, 'Aufstieg: ' + r);
+  assert(o.ageList > 0, 'Zeitalter-Übersicht im höchsten Zeitalter ist leer: ' + r);
   assert(o.built3.every(Boolean) && o.built4.every(Boolean), 'Bauen: ' + r);
   assert(o.steel && o.goods && o.power && o.concrete && o.electronics, 'Produktion: ' + r);
   return 'Kohle → Stahl → Fabrikwaren, Strom → Beton/Elektronik';
@@ -305,8 +307,23 @@ test('Sägewerk braucht Holz, Gebäude weiterentwickeln', () => {
     const farm = developBuilding(28, 31);
     for (let i = 0; i < 40; i++) update(0.25);
     const big = sizeOf(getCell(29, 32) || {}).join('×');
+    // Ausbaustufe geht nicht gratis aufs neue Gebäude über; Drehen gesperrt; Abriss-Modus bricht nur ab
+    state.age = 3; state.maxLevel = 2; Object.assign(state.resources, { money: 9999, wood: 999, stone: 999, planks: 999, bricks: 999 });
+    placeBuilding(30, 31, 'house'); getCell(30, 31).level = 3;
+    state.population = 14; recalcStats();
+    const capBefore = stats.capacity;
+    developBuilding(30, 31);
+    recalcStats();
+    const keepsPeople = stats.capacity === capBefore;
+    const levelReset = !getCell(30, 31).level;
+    demolishSelection.add(31 * N + 30); sellSelection();
+    const restored = { type: getCell(30, 31)?.type, level: getCell(30, 31)?.level };
+    // Sägewerk ohne Arbeiter verbraucht nichts
+    state.population = 0; recalcStats(); state.resources.wood = 50;
+    for (let i = 0; i < 80; i++) update(0.25);
+    const idleNoStaff = state.resources.wood >= 50 - 1e-9 || state.season === 'winter';
     showInfo(26, 31); save();
-    JSON.stringify({ idle, working, lockedInStone, started, during, paid, cancelled, done, farm, big })
+    JSON.stringify({ idle, working, lockedInStone, started, during, paid, cancelled, done, farm, big, keepsPeople, levelReset, restored, idleNoStaff })
   `);
   noErrors(game, 'beim Sägewerk/Weiterentwickeln');
   const o = JSON.parse(r);
@@ -315,6 +332,9 @@ test('Sägewerk braucht Holz, Gebäude weiterentwickeln', () => {
   assert(o.lockedInStone.includes('🔒') && o.started && o.during === 'house' && o.paid > 0, 'Weiterentwickeln: ' + r);
   assert(o.cancelled.type === 'hut' && o.cancelled.wood, 'Abbrechen: ' + r);
   assert(o.done.type === 'house' && !o.done.build && o.farm && o.big === '2×2', 'Fertig: ' + r);
+  assert(o.levelReset && o.restored.type === 'house' && o.restored.level === 3, 'Ausbaustufe beim Weiterentwickeln: ' + r);
+  assert(o.keepsPeople, 'Bewohner bleiben während des Weiterentwickelns: ' + r);
+  assert(o.idleNoStaff, 'Sägewerk ohne Arbeiter verbraucht Holz: ' + r);
   return 'Holz → Bretter, Hütte → Haus, Sammlerin → Farm';
 });
 
@@ -349,14 +369,30 @@ test('Mauer hält Banditen auf, Tor lässt Straßen durch', () => {
     startRaid(state.camps[0]);
     for (let i = 0; i < 600 && raids.length; i++) updateRaids(0.25);
     const wallIntact = [...Array(32)].every((_, k) => getCell(16 + k, 26) !== null);
+    // Straße an der Mauer entlang ziehen baut keine Tore, quer darüber genau eins
+    selectedType = 'road';
+    const gates = () => state.grid.filter(c => c && c.type === 'gate').length;
+    const g0 = gates();
+    paint = { last: { x: 17, y: 26 }, started: true }; paintTo({ x: 26, y: 26 });
+    const along = gates() - g0;
+    paint = { last: { x: 42, y: 23 }, started: true }; paintTo({ x: 42, y: 29 });
+    const across = gates() - g0;
+    paint = null; selectedType = null;
+    // Großer Zeitschritt: Banditen springen nicht über die Mauer
+    state.camps[0].strength = 40;
+    startRaid(state.camps[0]);
+    let jumped = false;
+    for (let i = 0; i < 40 && raids.length; i++) { updateRaids(1.5); if (raids[0] && raids[0].y > 26.5 && raids[0].siege < 0 && !raids[0].broke) jumped = jumped || [...Array(32)].every((_, k) => getCell(16 + k, 26) !== null); }
     render(0.016); save();
-    JSON.stringify({ gateMade, gateIsRoad, sieged, minHp: Math.round(minHp), broken, repelled: (state.counters.repelled || 0) - repelledBefore, wallIntact })
+    JSON.stringify({ gateMade, gateIsRoad, sieged, minHp: Math.round(minHp), broken, repelled: (state.counters.repelled || 0) - repelledBefore, wallIntact, along, across, jumped })
   `);
   noErrors(game, 'bei der Mauer');
   const o = JSON.parse(r);
   assert(o.gateMade && o.gateIsRoad, 'Tor: ' + r);
   assert(o.sieged && o.broken, 'Mauer wird zuerst angegriffen und bricht: ' + r);
   assert(o.repelled === 1 && o.wallIntact, 'Wachen wehren an der Mauer ab: ' + r);
+  assert(o.along === 0 && o.across === 1, 'Tore beim Ziehen: ' + r);
+  assert(!o.jumped, 'Banditen springen bei großem Zeitschritt über die Mauer: ' + r);
   return 'Mauer bricht ohne Wachen, mit Wachhaus abgewehrt';
 });
 

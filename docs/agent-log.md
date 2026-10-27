@@ -3,6 +3,15 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-27 – Sitzung mit Emin (Version 52–54)
+
+- Zweite Wunschliste von Emin (12 Punkte, mit Bildschirmfotos) umgesetzt, siehe `wuensche.md` → Erledigt.
+- Bot (3 Läufe à 90 min), Durchschnitt: Kleinstadt 5,7 min · 50 Einw. 18,4 min · Stadt 23,6 min · 150 Einw. 30,0 min ·
+  200 Einw. 34,9 min · Antike 16,2–16,9 min · Mittelalter 47,7–50,3 min · Industrie nicht in 90 min · Hunger/Frost 0.
+  Vorher (Version 51): Antike ca. 8 min, Mittelalter ca. 16 min. Langsamer ist gewollt (Emin: zu schnell);
+  neuer Zielwert Antike 12–20 min.
+- Bot baut jetzt Holzfäller statt Sägewerk für Holz, forscht schon in der Steinzeit und baut fehlende Pflichtgebäude für den Aufbruch.
+
 ## 2026-10-27 – Täglicher Lauf (Version 51)
 
 - Tests: alle 15 bestanden. Bot (3 Läufe à 90 min), Durchschnitt: Kleinstadt 5,9 min · 50 Einw. 14,0 min ·

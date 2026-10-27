@@ -4,8 +4,17 @@ Entschieden von Emin am 2026-10-26: **Steinzeit → Antike → Mittelalter → I
 Neue Städte beginnen in der Steinzeit. Mit jedem Zeitalter kommen mehr Waren und Gebäude dazu.
 Alte Spielstände (vor Version 44) laden weiter und stehen im Mittelalter.
 
-Aufgestiegen wird im Fenster „Zeitalter“ (oben auf das Zeitalter tippen). Dafür braucht man
-genug Einwohner und bezahlt Waren. Gebäude aus früheren Zeitaltern bleiben erhalten und arbeiten weiter.
+Aufgestiegen wird oben in der **Forschung** (seit Version 54, Wunsch von Emin). Für den Aufbruch braucht man:
+genug Einwohner, **alle Forschungen** des Zeitalters und **jedes Gebäude** des Zeitalters einmal gebaut
+(ohne Straßen, Brücke, Tor, Sehenswürdigkeiten und Gebäude, die besonderes Gelände brauchen).
+Der Aufbruch dauert dann 1:30 bis 5 Minuten; die Waren werden dabei nach und nach geliefert – fehlt etwas,
+wartet er. Gebäude aus früheren Zeitaltern bleiben erhalten und arbeiten weiter; viele lassen sich im
+Info-Fenster **weiterentwickeln** (Hütte → Haus → Mietshaus → Hochhaus, Sammlerin → Farm, Steinsammler → Steinbruch,
+Höhlenmaler → Schreibstube → Bibliothek, Feuerstelle → Park, Brunnen → Krankenhaus, Wachhaus → Polizeiwache,
+Markt → Supermarkt, Schule → Universität).
+
+Forschung je Zeitalter: Antike – Bewässerung, Bessere Werkzeuge, Bibliothek, Buchhaltung;
+Mittelalter – Handwerkskunst, Kachelöfen, Steinmauern, Fruchtwechsel, Kanalisation, Bürgerwehr, Verwaltung.
 
 ## 1 · 🪨 Steinzeit (Start)
 
@@ -33,8 +42,8 @@ Land kostet Holz und Nahrung. Keine Steuern, keine Händler, keine Banditen, kei
 
 **Neu:** 💰 Geld (Steuern, Markt), 🧱 Ziegel, 🧶 Wolle.
 
-Haus, Farm, Fischerhütte, Sägewerk, Steinbruch, Markt, Lagerhaus, Brücke, Park, Brunnen, Feuerwache,
-Schreibstube, Wachhaus, Mauer, Schäferei, Ziegelei, Brunnenplatz (Forum).
+Haus, Farm, Fischerhütte, Sägewerk (Holz → Bretter), Steinbruch, Markt, Lagerhaus, Brücke, Park, Brunnen, Feuerwache,
+Schreibstube, Wachhaus, Mauer und Tor, Schäferei, Ziegelei, Brunnenplatz (Forum).
 
 **Aufstieg zum Mittelalter:** 40 Einwohner · 400 Geld, 30 Wissen, 100 Stein, 15 Ziegel.
 
@@ -42,7 +51,7 @@ Schreibstube, Wachhaus, Mauer, Schäferei, Ziegelei, Brunnenplatz (Forum).
 
 **Neu:** 🪜 Bretter, 🥖 Brot, 🍺 Bier, 🧵 Stoff, ⛓️ Eisen, 🛠️ Werkzeug.
 
-Erzmine, Schreinerei, Bäckerei, Brauerei, Weberei, Schmiede, Schule, Bibliothek, Wachturm,
+Erzmine, Bäckerei, Brauerei, Weberei, Schmiede, Schule, Bibliothek, Wachturm,
 Krankenhaus, Rathaus, Kathedrale.
 
 ## 4 · 🏭 Industrie

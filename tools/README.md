@@ -37,5 +37,6 @@ Der Bot spielt schneller als ein Mensch; reale Spieler brauchen etwa 1,5- bis 2-
 | Kleinstadt (21 Einw.) | 3–8 min |
 | 50 Einwohner | 6–25 min |
 | Stadt (101 Einw.) | 15–45 min |
-| Antike erreicht (Bot) | 6–12 min |
+| Antike erreicht (Bot) | 12–20 min |
+| Mittelalter erreicht (Bot) | 35–60 min |
 | Hunger / Frost | höchstens 5 / 3 min |

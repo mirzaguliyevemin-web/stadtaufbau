@@ -316,6 +316,48 @@ test('Sägewerk braucht Holz, Gebäude weiterentwickeln', () => {
   return 'Holz → Bretter, Hütte → Haus, Sammlerin → Farm';
 });
 
+test('Mauer hält Banditen auf, Tor lässt Straßen durch', () => {
+  const game = fresh({ seed: 22, age: 1 });
+  const r = game.run(`${PREP}
+    state.maxLevel = 1;
+    Object.assign(state.resources, { money: 9999, wood: 999, stone: 999, food: 999 });
+    stats.storage = 99999;
+    for (let y = 27; y < 40; y++) placeBuilding(30, y, 'road');
+    placeBuilding(31, 32, 'house');
+    for (let x = 16; x < 48; x++) placeBuilding(x, 26, 'wall');
+    const gateMade = placeBuilding(30, 26, 'road') && getCell(30, 26).type === 'gate';
+    placeBuilding(30, 25, 'road');
+    const gateIsRoad = hasRoadAccess(31, 32) && BUILDINGS.gate.isRoad;
+    // Banditen von Norden: ohne Wachen bricht die Mauer
+    state.camps.push({ x: 35, y: 8, strength: 30, raidIn: 9999 });
+    startRaid(state.camps[0]);
+    let sieged = false, minHp = 99;
+    for (let i = 0; i < 600 && raids.length; i++) {
+      updateRaids(0.25);
+      if (raids[0]?.siege >= 0) { sieged = true; minHp = Math.min(minHp, getCell(raids[0].siege % N, Math.floor(raids[0].siege / N))?.hp ?? 99); }
+    }
+    const broken = [...Array(32)].some((_, k) => getCell(16 + k, 26) === null);
+    // Mit Wachhaus an der Mauer werden sie dort abgewehrt
+    for (let x = 16; x < 48; x++) if (getCell(x, 26) === null) placeBuilding(x, 26, 'wall');
+    state.grid.forEach(c => { if (c) delete c.hp; });
+    placeBuilding(34, 27, 'guard'); placeBuilding(35, 27, 'road'); placeBuilding(33, 27, 'house'); placeBuilding(33, 28, 'house');
+    state.population = 20; recalcStats();
+    const repelledBefore = state.counters.repelled || 0;
+    state.camps[0].strength = 12;
+    startRaid(state.camps[0]);
+    for (let i = 0; i < 600 && raids.length; i++) updateRaids(0.25);
+    const wallIntact = [...Array(32)].every((_, k) => getCell(16 + k, 26) !== null);
+    render(0.016); save();
+    JSON.stringify({ gateMade, gateIsRoad, sieged, minHp: Math.round(minHp), broken, repelled: (state.counters.repelled || 0) - repelledBefore, wallIntact })
+  `);
+  noErrors(game, 'bei der Mauer');
+  const o = JSON.parse(r);
+  assert(o.gateMade && o.gateIsRoad, 'Tor: ' + r);
+  assert(o.sieged && o.broken, 'Mauer wird zuerst angegriffen und bricht: ' + r);
+  assert(o.repelled === 1 && o.wallIntact, 'Wachen wehren an der Mauer ab: ' + r);
+  return 'Mauer bricht ohne Wachen, mit Wachhaus abgewehrt';
+});
+
 test('Gelände: Wald, Berge, Seen mit Spielwirkung', () => {
   const game = fresh({ seed: 7 });
   const r = game.run(`

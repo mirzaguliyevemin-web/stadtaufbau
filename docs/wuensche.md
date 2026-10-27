@@ -7,25 +7,10 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Fehler
 
 <!-- Hier gefundene Fehler eintragen -->
-- Bauleiste unten: man kann nicht weiter scrollen.
-- Zoom darf die Leisten oben und unten nicht beeinträchtigen.
-- Zeitalter wechseln: Nahrung springt auf 99/100, weil sie verbraucht wird – dann kann man nicht aufsteigen.
 
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Holzfäller und Sägewerk tun dasselbe (Holz). Sägewerk soll Holz brauchen, sonst nichts produzieren
-  (Zusammenspiel zwischen Gebäuden).
-- Straße sieht nicht wie eine Straße aus.
-- Spielfläche zu klein: Spiel nur im Querformat.
-- Ressourcen kommen immer noch zu schnell.
-- Forschung geht zu schnell, soll länger dauern.
-- Zeitalter: mit der Forschung verbinden – erst alles des Zeitalters erforschen und alle Gebäude gebaut haben,
-  dann aufsteigen; der Wechsel soll Zeit brauchen.
-- Mauer mit echter Funktion: Banditen greifen zuerst die Mauer an, dann das Dorf. Tor für die Mauer;
-  Straßen gehen durch das Tor, nicht durch die Mauer.
-- Gebäude weiterentwickeln, z. B. Hütte → Haus, passend zum Zeitalter.
-- Alle Gebäude haben einen Eingang, die Straße führt dorthin.
 
 ## Erledigt
 
@@ -53,3 +38,15 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 - 2026-10-26, Version 50–51 – Gebäudebilder aus Canva (Farm, Hütte, Sammlerin, Jägerlager, Kohlebergwerk, Stahlwerk,
   Fabrik, Mietshaus, Bahnhof, Polizeiwache, Uhrturm, Kraftwerk); Zeitalter Industrie und Moderne mit 6 neuen Waren,
   16 neuen Gebäuden, 5 Forschungen und 13 Aufträgen (Plan: `docs/zeitalter.md`).
+- 2026-10-27, Version 52–54 – zweite Wunschliste (mit Bildern):
+  - Bauleiste unten sprang beim Scrollen jede Sekunde zurück – behoben.
+  - Querformat: flache Leiste oben, Bauleiste als Spalte rechts; hochkant erscheint „Handy drehen“ (Knopf für Vollbild quer).
+  - Zwei-Finger-Zoom auf den Leisten vergrößert nicht mehr die Seite.
+  - Sägewerk macht aus Holz Bretter (braucht Holz vom Holzfäller, sonst steht es still); die Schreinerei war doppelt und wird zum Sägewerk.
+  - Zeitalter-Aufbruch oben in der Forschung: alle Forschungen des Zeitalters, jedes Gebäude einmal gebaut, genug Einwohner;
+    der Aufbruch dauert 1:30–5 Min., Waren werden nach und nach geliefert (kein „99/100“-Problem mehr).
+  - Gebäude weiterentwickeln im Info-Fenster (Hütte → Haus → Mietshaus → Hochhaus, Sammlerin → Farm, Steinsammler → Steinbruch …).
+  - Mauer mit Funktion: Banditen müssen sie erst aufbrechen, Wachen wehren sie dort ab; neues Tor – zieht man eine Straße über
+    die Mauer, entsteht automatisch ein Tor.
+  - Straßen je Zeitalter: Trampelpfad, Pflaster, Asphalt mit Mittelstreifen; jedes Gebäude hat eine Tür, ein Weg führt zur Straße.
+  - Langsamer: Forschung dauert doppelt so lange, Farm/Steinbruch/Steinsammler/Fischerhütte liefern weniger.

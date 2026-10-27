@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 53;
+const APP_VERSION = 54;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -70,8 +70,13 @@ const CONFIG = {
   coldPenalty: 20,        // Zufriedenheitsabzug, wenn im Winter das Holz fehlt
   banditBase: 10,         // Höchststärke eines Banditenlagers: Grundwert …
   banditPerCitizen: 0.15, // … plus so viel je Einwohner
-  wallDefense: 0.5,       // Abwehr je Mauerstück (gilt überall) …
+  wallDefense: 0.5,       // Rückhalt je Mauerstück beim Ausheben von Lagern …
   wallDefenseMax: 40,     // … höchstens so viel durch Mauern
+  wallHp: 40,             // so viel hält ein Mauerstück aus …
+  gateHp: 80,             // … und ein Tor
+  wallRepair: 0.5,        // beschädigte Mauern reparieren sich um so viel je Sekunde
+  siegeDamage: 0.15,      // Schaden an der Mauer je Banditenstärke und Sekunde
+  siegeLosses: 0.08,      // Verluste der Banditen je Abwehrpunkt (Wachen in der Nähe) und Sekunde
   campMinPop: 30,         // ab so vielen Einwohnern tauchen Banditenlager auf
   maxCamps: 3,            // höchstens so viele Lager gleichzeitig
   campSpawnSeconds: [180, 360],  // Abstand zwischen neuen Lagern
@@ -327,7 +332,7 @@ const BUILDINGS = {
     developsTo: 'quarry',
     description: 'Sammelt und klopft Steine – am Berg gibt es mehr.',
     cost: { wood: 15 },
-    interval: 10,
+    interval: 12,
     produces: { stone: 2 },
     needsRoad: true,
     jobs: { worker: 2 },
@@ -389,7 +394,7 @@ const BUILDINGS = {
     name: 'Farm', icon: '🌾', color: '#b5e48c',
     description: 'Produziert Nahrung für die Einwohner.',
     cost: { wood: 15 },
-    interval: 6,
+    interval: 7,
     produces: { food: 4 },
     needsRoad: true,
     jobs: { worker: 2 },
@@ -415,7 +420,7 @@ const BUILDINGS = {
     name: 'Fischerhütte', icon: '🎣', color: '#8ecae6',
     description: 'Fängt Fisch als Nahrung. Muss direkt am Wasser stehen; im Winter wird weniger gefangen.',
     cost: { money: 40, wood: 15 },
-    interval: 8,
+    interval: 10,
     produces: { food: 3 },
     needsRoad: true,
     nearTerrain: { terrain: 'water', min: 2 },   // so viele Wasserfelder direkt daneben (auch schräg)
@@ -453,7 +458,7 @@ const BUILDINGS = {
     name: 'Steinbruch', icon: '⛏️', color: '#adb5bd',
     description: 'Produziert Stein.',
     cost: { money: 40, wood: 10 },
-    interval: 8,
+    interval: 10,
     produces: { stone: 2 },
     needsRoad: true,
     jobs: { worker: 3 },
@@ -675,10 +680,23 @@ const BUILDINGS = {
   },
   wall: {
     name: 'Mauer', icon: '🏰', color: '#7d7468',
-    description: 'Mauerstücke am Stück ziehen. Jedes Stück stärkt die Abwehr der ganzen Stadt ein wenig.',
+    description: 'Mauerstücke am Stück ziehen. Banditen müssen die Mauer erst aufbrechen, bevor sie ins Dorf kommen – Wachen in der Nähe wehren sie dabei ab. Straßen führen durch ein Tor.',
     cost: { stone: 3 },
     fixedCost: true,
     isWall: true,
+    dragBuild: true,
+    unlockLevel: 1,
+    age: 1,
+    category: 'defense',
+  },
+  gate: {
+    name: 'Tor', icon: '🚪', color: '#8d6e4f',
+    description: 'Durchgang in der Mauer: Straßen, Bewohner und Handelskarren kommen durch, Banditen müssen es erst aufbrechen. Ziehst du eine Straße über die Mauer (oder eine Mauer über die Straße), entsteht dort von selbst ein Tor.',
+    cost: { stone: 15, wood: 10 },
+    fixedCost: true,
+    isRoad: true,
+    isWall: true,
+    isGate: true,
     dragBuild: true,
     unlockLevel: 1,
     age: 1,
@@ -1062,131 +1080,131 @@ const TECHS = {
   stonetools: {
     name: 'Steinwerkzeuge', icon: '🪓', age: 0,
     description: 'Scharfe Faustkeile: Holzfäller und Steinsammler liefern 50 % mehr.',
-    cost: { knowledge: 12 }, seconds: 40,
+    cost: { knowledge: 12 }, seconds: 80,
     effect: { production: { woodcutter: 0.5, stonecutter: 0.5 } },
   },
   spears: {
     name: 'Speere', icon: '🏹', age: 0,
     description: 'Mit Speeren jagt es sich besser: Jägerlager liefern 50 % mehr.',
-    cost: { knowledge: 12 }, seconds: 40,
+    cost: { knowledge: 12 }, seconds: 80,
     effect: { production: { hunter: 0.5 } },
   },
   baskets: {
     name: 'Flechtkörbe', icon: '🧺', age: 0,
     description: 'In Körben passt mehr hinein: Sammlerinnen liefern 50 % mehr.',
-    cost: { knowledge: 18 }, seconds: 45,
+    cost: { knowledge: 18 }, seconds: 90,
     effect: { production: { gatherer: 0.5 } },
   },
   clayhuts: {
     name: 'Lehmhütten', icon: '🛖', age: 0,
     description: 'Wände aus Lehm: Hütten bieten 1 Wohnplatz mehr.',
-    cost: { knowledge: 30, stone: 20 }, seconds: 60,
+    cost: { knowledge: 30, stone: 20 }, seconds: 120,
     requires: ['stonetools'],
     effect: { capacity: { hut: 1 } },
   },
   steam: {
     name: 'Dampfmaschine', icon: '🚂', age: 3,
     description: 'Dampfkraft: Sägewerke, Steinbrüche und Kohlebergwerke liefern 50 % mehr.',
-    cost: { knowledge: 400, coal: 50 }, seconds: 120,
+    cost: { knowledge: 400, coal: 50 }, seconds: 240,
     effect: { production: { sawmill: 0.5, quarry: 0.5, coalmine: 0.5 } },
   },
   assembly: {
     name: 'Fließband', icon: '⚙️', age: 3,
     description: 'Fabriken und Stahlwerke liefern 50 % mehr.',
-    cost: { knowledge: 600, steel: 40 }, seconds: 150,
+    cost: { knowledge: 600, steel: 40 }, seconds: 300,
     requires: ['steam'],
     effect: { production: { factory: 0.5, steelworks: 0.5 } },
   },
   railways: {
     name: 'Eisenbahnnetz', icon: '🛤️', age: 3,
     description: 'Bahnhöfe bringen 50 % mehr Geld.',
-    cost: { knowledge: 500, steel: 60 }, seconds: 120,
+    cost: { knowledge: 500, steel: 60 }, seconds: 240,
     requires: ['steam'],
     effect: { production: { station: 0.5 } },
   },
   electricity: {
     name: 'Stromnetz', icon: '🔌', age: 4,
     description: 'Kraftwerke und Solarparks liefern 50 % mehr Strom.',
-    cost: { knowledge: 1500 }, seconds: 150,
+    cost: { knowledge: 1500 }, seconds: 300,
     effect: { production: { powerplant: 0.5, solarpark: 0.5 } },
   },
   computers: {
     name: 'Computer', icon: '🖥️', age: 4,
     description: 'Elektronikwerke und Universitäten liefern 50 % mehr.',
-    cost: { knowledge: 2500, electronics: 30 }, seconds: 180,
+    cost: { knowledge: 2500, electronics: 30 }, seconds: 360,
     requires: ['electricity'],
     effect: { production: { electronicsworks: 0.5, university: 0.5 } },
   },
   irrigation: {
     name: 'Bewässerung', icon: '🌊', age: 1,
     description: 'Farmen liefern 50 % mehr Nahrung.',
-    cost: { knowledge: 60 }, seconds: 60,
+    cost: { knowledge: 60 }, seconds: 120,
     effect: { production: { farm: 0.5 } },
   },
   tools: {
     name: 'Bessere Werkzeuge', icon: '🪓', age: 1,
     description: 'Holzfäller und Steinbrüche liefern 50 % mehr.',
-    cost: { knowledge: 75 }, seconds: 60,
+    cost: { knowledge: 75 }, seconds: 120,
     effect: { production: { woodcutter: 0.5, quarry: 0.5 } },
   },
   stoves: {
     name: 'Kachelöfen', icon: '♨️', age: 2,
     description: 'Gemauerte Öfen halten länger warm: Heizen braucht nur halb so viel Holz.',
-    cost: { knowledge: 160, bricks: 30 }, seconds: 90,
+    cost: { knowledge: 160, bricks: 30 }, seconds: 180,
     requires: ['craftsmanship'],
     effect: { flags: { heatingSaver: true } },
   },
   craftsmanship: {
     name: 'Handwerkskunst', icon: '🔨', age: 2,
     description: 'Sägewerke, Ziegeleien und Bäckereien liefern 50 % mehr.',
-    cost: { knowledge: 150 }, seconds: 90,
+    cost: { knowledge: 150 }, seconds: 180,
     requires: ['tools'],
     effect: { production: { sawmill: 0.5, brickworks: 0.5, bakery: 0.5 } },
   },
   library: {
     name: 'Bibliothek', icon: '📚', age: 1,
     description: 'Schaltet die Bibliothek frei: viel Wissen und Bildung.',
-    cost: { knowledge: 120 }, seconds: 75,
+    cost: { knowledge: 120 }, seconds: 150,
   },
   stonewalls: {
     name: 'Steinmauern', icon: '⛰️', age: 2,
     description: 'Häuser bieten 2 Wohnplätze mehr. Brände greifen nicht über und brennen doppelt so lange.',
-    cost: { knowledge: 180, stone: 120 }, seconds: 90,
+    cost: { knowledge: 180, stone: 120 }, seconds: 180,
     requires: ['tools'],
     effect: { capacity: { house: 2 }, flags: { fireResistant: true } },
   },
   accounting: {
     name: 'Buchhaltung', icon: '⚖️', age: 1,
     description: 'Märkte bringen 50 % mehr Geld.',
-    cost: { knowledge: 180 }, seconds: 90,
+    cost: { knowledge: 180 }, seconds: 180,
     requires: ['library'],
     effect: { production: { market: 0.5 } },
   },
   croprotation: {
     name: 'Fruchtwechsel', icon: '🌱', age: 2,
     description: 'Farmen liefern weitere 50 % mehr Nahrung.',
-    cost: { knowledge: 270 }, seconds: 120,
+    cost: { knowledge: 270 }, seconds: 240,
     requires: ['irrigation', 'library'],
     effect: { production: { farm: 0.5 } },
   },
   sewers: {
     name: 'Kanalisation', icon: '🚰', age: 2,
     description: 'Zufriedenheit +5. Seuchen richten nur halb so viel Schaden an.',
-    cost: { knowledge: 330, stone: 100, bricks: 40 }, seconds: 120,
+    cost: { knowledge: 330, stone: 100, bricks: 40 }, seconds: 240,
     requires: ['stonewalls'],
     effect: { happiness: 5, flags: { plagueResistant: true } },
   },
   militia: {
     name: 'Bürgerwehr', icon: '⚔️', age: 2,
     description: 'Ausgebildete Bürger helfen den Wachen: Abwehr gegen Banditen +50 %.',
-    cost: { knowledge: 140, money: 150 }, seconds: 75,
+    cost: { knowledge: 140, money: 150 }, seconds: 150,
     requires: ['stonewalls'],
     effect: { flags: { militia: true } },
   },
   administration: {
     name: 'Verwaltung', icon: '🏛️', age: 2,
     description: 'Eine gut geführte Stadt: Zufriedenheit +5.',
-    cost: { knowledge: 420, money: 400 }, seconds: 150,
+    cost: { knowledge: 420, money: 400 }, seconds: 300,
     requires: ['accounting'],
     effect: { happiness: 5 },
   },
@@ -2136,8 +2154,37 @@ function placeProblem(x, y, type) {
   return null;
 }
 
+// Wird hier ein Tor daraus? Straße über Mauer, Mauer über Straße oder Tor auf eins von beiden
+function makesGate(x, y, type) {
+  const cell = getCell(x, y);
+  if (!cell || cell.build || !isUnlocked('gate')) return false;
+  if (type === 'road') return cell.type === 'wall';
+  if (type === 'wall') return cell.type === 'road';
+  return type === 'gate' && (cell.type === 'road' || cell.type === 'wall');
+}
+
+function buildGate(x, y) {
+  const cost = costOf('gate');
+  if (!canAfford(cost)) {
+    sound.play('error');
+    showToast(`🚪 Für ein Tor fehlt ${missingText(cost)}`);
+    return false;
+  }
+  addResources(cost, -1);
+  const cell = getCell(x, y);
+  cell.type = 'gate';
+  cell.hp = CONFIG.gateHp;
+  cell.builtAt = performance.now();
+  showToast('🚪 Tor in die Mauer eingebaut', 1800);
+  emit('build', { x, y, type: 'gate' });
+  recalcStats();
+  updateUI();
+  return true;
+}
+
 // Gibt zurück, ob gebaut wurde
 function placeBuilding(x, y, type) {
+  if (makesGate(x, y, type)) return buildGate(x, y);
   // Straße übers Wasser wird zur Brücke
   if (type === 'road' && x >= 0 && y >= 0 && x < N && y < N && terrainAt(x, y) === TERRAIN_ID.water && isUnlocked('bridge')) type = 'bridge';
   const def = BUILDINGS[type];
@@ -2965,7 +3012,7 @@ function startPlague() {
 
 // Mauern stärken die Abwehr überall ein wenig (gedeckelt)
 function wallBonus() {
-  return Math.min(countBuildings('wall') * CONFIG.wallDefense, CONFIG.wallDefenseMax);
+  return Math.min((countBuildings('wall') + countBuildings('gate')) * CONFIG.wallDefense, CONFIG.wallDefenseMax);
 }
 
 // Stärke eines Wachpostens (Wachhaus, Wachturm): Grundwert × Stufe × Besetzung
@@ -2978,9 +3025,10 @@ function postRadius(cell) {
   return BUILDINGS[cell.type].defense.radius + levelOf(cell) - 1;
 }
 
-// Schutz vor Ort: alle Wachposten, deren Umkreis das Rechteck erreicht, plus Mauern; Bürgerwehr +50 %
+// Schutz vor Ort: alle Wachposten, deren Umkreis das Rechteck erreicht; Bürgerwehr +50 %
+// (Mauern schützen nicht mehr pauschal, sondern halten die Banditen auf – siehe updateRaids)
 function defenseAt(x, y, w = 1, h = 1) {
-  let d = wallBonus();
+  let d = 0;
   state.grid.forEach((cell, i) => {
     if (!cell || !BUILDINGS[cell.type].defense || !isActive(i % N, Math.floor(i / N))) return;
     if (rectGap(i % N, Math.floor(i / N), cell.w || 1, cell.h || 1, x, y, w, h) <= postRadius(cell)) d += postStrength(cell, i);
@@ -3128,7 +3176,7 @@ function startRaid(camp) {
   const tx = target % N + w / 2, ty = Math.floor(target / N) + h / 2;
   const strength = Math.round(camp.strength * randomBetween(0.85, 1.15));
   const raid = {
-    camp, target, tx, ty, strength,
+    camp, target, tx, ty, strength, startStrength: strength, siege: -1,
     x: camp.x + 0.5, y: camp.y + 0.5, speed: 1.4,
     units: Array.from({ length: Math.min(8, 3 + Math.floor(strength / 8)) }, () => [randomBetween(-0.6, 0.6), randomBetween(-0.6, 0.6)]),
     defenders: [],
@@ -3161,18 +3209,114 @@ function updateRaids(dt) {
     const dx = raid.tx - raid.x, dy = raid.ty - raid.y;
     const dist = Math.hypot(dx, dy);
     const step = raid.speed * dt;
+    // Wachen laufen zur Mauer, an der gekämpft wird, sonst zum Ziel
+    const gx = raid.siege >= 0 ? raid.siege % N + 0.5 : raid.tx, gy = raid.siege >= 0 ? Math.floor(raid.siege / N) + 0.5 : raid.ty;
     for (const d of raid.defenders) {
-      const ddx = raid.tx - d.x, ddy = raid.ty - d.y, dd = Math.hypot(ddx, ddy);
+      const ddx = gx - d.x, ddy = gy - d.y, dd = Math.hypot(ddx, ddy);
       if (dd > 0.4) { d.x += ddx / dd * Math.min(dd, 2.2 * dt); d.y += ddy / dd * Math.min(dd, 2.2 * dt); }
     }
+    if (raid.siege >= 0) {
+      const result = updateSiege(raid, dt);
+      if (result === 'repelled') raids.splice(raids.indexOf(raid), 1);
+      if (result) continue;
+    }
     if (dist > 0.6) {
-      raid.x += dx / dist * Math.min(dist, step);
-      raid.y += dy / dist * Math.min(dist, step);
+      const nx = raid.x + dx / dist * Math.min(dist, step), ny = raid.y + dy / dist * Math.min(dist, step);
+      // Steht eine Mauer im Weg, wird sie zuerst angegriffen
+      const wall = wallBetween(Math.floor(raid.x), Math.floor(raid.y), Math.floor(nx), Math.floor(ny));
+      if (wall >= 0 && wall !== raid.target) {
+        raid.siege = wall;
+        showToast(`🏰 Banditen greifen die ${BUILDINGS[state.grid[wall].type].name} an!`, 3000);
+        sound.play('event');
+        continue;
+      }
+      raid.x = nx;
+      raid.y = ny;
       continue;
     }
     resolveRaid(raid);
     raids.splice(raids.indexOf(raid), 1);
   }
+}
+
+// Mauerstück oder Tor, das den Schritt von Feld a nach Feld b versperrt – auch schräg zwischen zwei Mauerstücken hindurch
+function wallBetween(ax, ay, bx, by) {
+  const wallAt = (x, y) => {
+    const i = anchorAt(x, y);
+    return i >= 0 && BUILDINGS[state.grid[i].type].isWall && !state.grid[i].build ? i : -1;
+  };
+  if (ax === bx && ay === by) return -1;
+  const direct = wallAt(bx, by);
+  if (direct >= 0) return direct;
+  if (ax !== bx && ay !== by) {
+    const p = wallAt(bx, ay), q = wallAt(ax, by);
+    if (p >= 0 && q >= 0) return p;
+  }
+  return -1;
+}
+
+function wallMaxHp(cell) {
+  return BUILDINGS[cell.type].isGate ? CONFIG.gateHp : CONFIG.wallHp;
+}
+
+function wallHp(cell) {
+  return cell.hp ?? wallMaxHp(cell);
+}
+
+// Banditen schlagen auf die Mauer ein, Wachen in der Nähe wehren sie ab.
+// Gibt 'repelled' (abgewehrt), true (Kampf geht weiter) oder false (Mauer weg, weiterlaufen) zurück.
+function updateSiege(raid, dt) {
+  const i = raid.siege;
+  const wall = state.grid[i];
+  if (!wall || !BUILDINGS[wall.type].isWall) {
+    raid.siege = -1;
+    return false;
+  }
+  const x = i % N, y = Math.floor(i / N);
+  wall.hp = wallHp(wall) - raid.strength * CONFIG.siegeDamage * dt;
+  damagedWalls.add(i);
+  raid.strength -= defenseAt(x, y) * CONFIG.siegeLosses * dt;
+  if (Math.random() < dt * 4) puff(x, y, '150, 140, 125', 2, T * 0.07);
+  if (raid.strength <= 0.5) {
+    repelRaid(raid, BUILDINGS[wall.type].name);
+    return 'repelled';
+  }
+  if (wall.hp > 0) return true;
+  const name = BUILDINGS[wall.type].name;
+  removeBuildingAt(i);
+  raid.siege = -1;
+  puff(x, y, '120, 110, 100', 10, T * 0.12);
+  sound.play('burned');
+  showToast(`💥 Banditen haben die ${name} durchbrochen!`, 3500);
+  emit('demolish', { x, y, type: 'wall', w: 1, h: 1 });
+  recalcStats();
+  return false;
+}
+
+// Beschädigte Mauern werden nach und nach ausgebessert (nicht während eines Angriffs)
+const damagedWalls = new Set();   // Feldindizes – damit nicht jeder Schritt die ganze Karte durchsucht
+
+function repairWalls(dt) {
+  if (!damagedWalls.size) return;
+  const sieged = new Set(raids.map(r => r.siege));
+  for (const i of damagedWalls) {
+    const cell = state.grid[i];
+    if (!cell || cell.hp === undefined) { damagedWalls.delete(i); continue; }
+    if (sieged.has(i)) continue;
+    cell.hp += CONFIG.wallRepair * dt;
+    if (cell.hp >= wallMaxHp(cell)) { delete cell.hp; damagedWalls.delete(i); }
+  }
+}
+
+// Bande vertrieben: Kopfgeld, das Lager ist geschwächt
+function repelRaid(raid, where) {
+  const bounty = Math.round(20 + raid.startStrength * 1.5);
+  addResources({ money: bounty });
+  state.counters.repelled = (state.counters.repelled || 0) + 1;
+  if (state.camps.includes(raid.camp)) raid.camp.strength = Math.max(1, raid.camp.strength * 0.6);
+  puff(Math.floor(raid.x), Math.floor(raid.y), '200, 200, 200', 8, T * 0.1);
+  sound.play('coins');
+  showToast(`🛡️ Banditen an der ${where} vertrieben – Kopfgeld ${formatAmounts({ money: bounty })}`, 4000);
 }
 
 function resolveRaid(raid) {
@@ -3183,13 +3327,7 @@ function resolveRaid(raid) {
   const defense = defenseAt(i % N, Math.floor(i / N), w, h);
   const camp = raid.camp;
   if (defense >= raid.strength) {
-    const bounty = Math.round(20 + raid.strength * 1.5);
-    addResources({ money: bounty });
-    state.counters.repelled = (state.counters.repelled || 0) + 1;
-    if (state.camps.includes(camp)) camp.strength = Math.max(1, camp.strength * 0.6);   // die Bande ist geschwächt
-    puff(i % N, Math.floor(i / N), '200, 200, 200', 8, T * 0.1);
-    sound.play('coins');
-    showToast(`🛡️ Wachen haben die Banditen am ${name} vertrieben (${defense} gegen ${raid.strength}) – Kopfgeld ${formatAmounts({ money: bounty })}`, 4000);
+    repelRaid(raid, `${name} (${defense} gegen ${Math.round(raid.strength)})`);
     return;
   }
   // Plünderung: je stärker die Abwehr, desto kleiner der Schaden – und das Gebäude fängt Feuer
@@ -3206,7 +3344,7 @@ function resolveRaid(raid) {
   addEffect('bandits', 60, { production: { money: 0.5 }, tradeBlocked: true });
   if (state.camps.includes(camp)) camp.strength = Math.min(campMaxStrength(), camp.strength + 2);   // Erfolg macht die Bande stärker
   sound.play('burned');
-  showToast(`🏴‍☠️ Banditen plündern ${name} (${raid.strength} gegen deine ${defense})! ` +
+  showToast(`🏴‍☠️ Banditen plündern ${name} (${Math.round(raid.strength)} gegen deine ${defense})! ` +
     (Object.keys(stolen).length ? `Geraubt: ${formatAmounts(stolen)}. ` : '') + 'Handel 60 s gesperrt.', 5000);
 }
 
@@ -3252,6 +3390,10 @@ function raidPillHtml() {
   const r = raids.reduce((a, b) => (Math.hypot(b.tx - b.x, b.ty - b.y) < Math.hypot(a.tx - a.x, a.ty - a.y) ? b : a));
   const eta = Math.ceil(Math.hypot(r.tx - r.x, r.ty - r.y) / r.speed);
   const cell = state.grid[r.target];
+  const wall = r.siege >= 0 && state.grid[r.siege];
+  if (wall) {
+    return `<div class="effect clickable" data-action="raid">🏰 Banditen an der ${BUILDINGS[wall.type].name} · 🧱 ${Math.round(100 * wallHp(wall) / wallMaxHp(wall))} % ›</div>`;
+  }
   return `<div class="effect clickable" data-action="raid">🏴‍☠️ Banditen → ${cell ? BUILDINGS[cell.type].name : '…'} · ${eta} s ›</div>`;
 }
 
@@ -3649,6 +3791,7 @@ function update(dt) {
   updatePrices(dt);
   updateCamps(dt);
   updateRaids(dt);
+  repairWalls(dt);
   updateCarts(dt);
 }
 
@@ -3788,7 +3931,7 @@ let saveBlocked = false;   // beim Import: verhindert, dass der alte Stand beim 
 function buildSaveData() {
   const buildings = [];
   state.grid.forEach((cell, i) => {
-    if (cell) buildings.push({ x: i % N, y: Math.floor(i / N), type: cell.type, timer: cell.timer, fire: cell.fire, level: cell.level, w: cell.w, h: cell.h, build: cell.build });
+    if (cell) buildings.push({ x: i % N, y: Math.floor(i / N), type: cell.type, timer: cell.timer, fire: cell.fire, level: cell.level, w: cell.w, h: cell.h, build: cell.build, hp: cell.hp });
   });
   const data = {
     v: CONFIG.saveVersion,
@@ -3869,6 +4012,10 @@ function load() {
       setOccupied(b.x, b.y, w, h, b.y * N + b.x);
       if (Number.isInteger(b.level) && b.level > 1 && b.level <= MAX_BUILDING_LEVEL && canUpgradeType(b.type)) cell.level = b.level;
       if (b.fire && typeof b.fire.left === 'number') cell.fire = b.fire;
+      if (Number.isFinite(b.hp) && BUILDINGS[b.type].isWall) {
+        cell.hp = clamp(b.hp, 1, wallMaxHp(cell));
+        damagedWalls.add(b.y * N + b.x);
+      }
       if (b.build && Number.isFinite(b.build.left) && Number.isFinite(b.build.total) && b.build.left > 0) {
         const total = clamp(b.build.total, 1, 3600);
         cell.build = { left: Math.min(b.build.left, total), total };
@@ -4059,8 +4206,9 @@ function render(dt) {
   // Straßen zuerst, damit sie unter allem liegen
   forEachVisible(vis, (cell, x, y) => {
     if (BUILDINGS[cell.type].onTerrain) drawBridge(x, y, 1);
+    else if (BUILDINGS[cell.type].isGate) drawGate(x, y, 1);
     else if (BUILDINGS[cell.type].isRoad) drawRoad(x, y, BUILDINGS[cell.type], 1);
-    else if (BUILDINGS[cell.type].isWall) drawWall(x, y, 1);
+    else if (BUILDINGS[cell.type].isWall) { drawWall(x, y, 1); drawWallDamage(x, y); }
   });
   drawWalkers();
 
@@ -4099,6 +4247,7 @@ function render(dt) {
       ctx.fillText('⚠️', mx, my);
     }
   });
+  drawEntrances(vis);
 
   drawWorkers(vis);
 
@@ -4156,6 +4305,7 @@ function render(dt) {
       outlineRect(hoverTile.x, hoverTile.y, w, h, '#c0392b');
     } else {
       if (def.onTerrain) drawBridge(hoverTile.x, hoverTile.y, 0.5);
+      else if (def.isGate) drawGate(hoverTile.x, hoverTile.y, 0.5);
       else if (def.isRoad) drawRoad(hoverTile.x, hoverTile.y, def, 0.5);
       else if (def.isWall) drawWall(hoverTile.x, hoverTile.y, 0.5);
       else drawBuilding(hoverTile.x, hoverTile.y, def, 0.5, 1, w, h);
@@ -5871,32 +6021,140 @@ function drawWalkers() {
   }
 }
 
-// Straße: Mittelstück plus Arme zu benachbarten Straßen und Gebäuden
+// Aussehen der Straßen je Zeitalter: Trampelpfad, Pflaster, Asphalt mit Mittelstreifen
+const ROAD_STYLES = {
+  dirt:    { base: '#c4a272', edge: '#9a7a4c', mark: '#a88a5c' },
+  cobble:  { base: '#b9b1a3', edge: '#6f675c', mark: '#9a9285' },
+  asphalt: { base: '#5d5f63', edge: '#c9c4b8', mark: '#f1e9c9' },
+};
+
+function roadStyle() {
+  return ROAD_STYLES[state.age >= 3 ? 'asphalt' : state.age >= 1 ? 'cobble' : 'dirt'];
+}
+
+// Straße: breiter Weg mit Rand, verbunden mit Nachbarstraßen; zu Gebäuden führt ein schmaler Weg bis zur Tür
 function drawRoad(x, y, def, alpha) {
-  const w = T * 0.5;
-  const c = (T - w) / 2;
+  const st = roadStyle();
+  const w = T * 0.66, c = (T - w) / 2;
   const px = x * T, py = y * T;
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = def.color;
-  ctx.fillRect(px + c, py + c, w, w);
-  const arms = [
-    [0, -1, 1, px + c, py, w, c],
-    [1, 0, 2, px + c + w, py + c, c, w],
-    [0, 1, 4, px + c, py + c + w, w, c],
-    [-1, 0, 8, px, py + c, c, w],
-  ];
-  // Verbunden wird mit Nachbarstraßen und mit Gebäuden, deren Eingang hier liegt
   const entrance = stats.entrances.get(y * N + x) || 0;
-  for (const [dx, dy, bit, rx, ry, rw, rh] of arms) {
+  const linked = [[0, -1], [1, 0], [0, 1], [-1, 0]].map(([dx, dy]) => {
     const n = getCell(x + dx, y + dy);
-    if (n && (BUILDINGS[n.type].isRoad || entrance & bit)) ctx.fillRect(rx, ry, rw, rh);
+    return !!n && !!BUILDINGS[n.type].isRoad;
+  });
+  const [up, right, down, left] = linked;
+  ctx.globalAlpha = alpha;
+  // Fläche: Mitte plus Arme zu verbundenen Straßen
+  ctx.fillStyle = st.base;
+  ctx.fillRect(px + c, py + c, w, w);
+  if (up) ctx.fillRect(px + c, py, w, c);
+  if (down) ctx.fillRect(px + c, py + c + w, w, c);
+  if (left) ctx.fillRect(px, py + c, c, w);
+  if (right) ctx.fillRect(px + c + w, py + c, c, w);
+  // Rand (Bordstein) an allen offenen Seiten
+  ctx.fillStyle = st.edge;
+  const e = T * 0.05;
+  if (!up) ctx.fillRect(px + c, py + c, w, e);
+  if (!down) ctx.fillRect(px + c, py + c + w - e, w, e);
+  if (!left) ctx.fillRect(px + c, py + c, e, w);
+  if (!right) ctx.fillRect(px + c + w - e, py + c, e, w);
+  if (up) { ctx.fillRect(px + c, py, e, c); ctx.fillRect(px + c + w - e, py, e, c); }
+  if (down) { ctx.fillRect(px + c, py + c + w, e, c); ctx.fillRect(px + c + w - e, py + c + w, e, c); }
+  if (left) { ctx.fillRect(px, py + c, c, e); ctx.fillRect(px, py + c + w - e, c, e); }
+  if (right) { ctx.fillRect(px + c + w, py + c, c, e); ctx.fillRect(px + c + w, py + c + w - e, c, e); }
+  // Muster
+  ctx.fillStyle = st.mark;
+  if (st === ROAD_STYLES.asphalt) {
+    // gestrichelte Mittellinie entlang gerader Stücke
+    const d = T * 0.05;
+    if (up || down) for (let k = 0; k < 2; k++) if (k ? down : up) ctx.fillRect(px + T / 2 - d / 2, py + (k ? T * 0.6 : T * 0.12), d, T * 0.28);
+    if (left || right) for (let k = 0; k < 2; k++) if (k ? right : left) ctx.fillRect(px + (k ? T * 0.6 : T * 0.12), py + T / 2 - d / 2, T * 0.28, d);
+  } else {
+    // Pflastersteine bzw. Kiesel: kleine Flecken, je Feld fest verteilt
+    const r = st === ROAD_STYLES.cobble ? T * 0.07 : T * 0.035;
+    for (let k = 0; k < 6; k++) {
+      const sx = px + c + e + tileHash(x, y, k) * (w - 2 * e - r), sy = py + c + e + tileHash(x, y, k + 9) * (w - 2 * e - r);
+      ctx.fillRect(sx, sy, r, r * 0.8);
+    }
   }
+  // Wege zu Gebäudeeingängen
+  ctx.fillStyle = st === ROAD_STYLES.asphalt ? '#b5b0a6' : st.base;
+  const p = T * 0.3, q = (T - p) / 2;
+  if (entrance & 1) ctx.fillRect(px + q, py, p, c + e);
+  if (entrance & 4) ctx.fillRect(px + q, py + c + w - e, p, c + e);
+  if (entrance & 8) ctx.fillRect(px, py + q, c + e, p);
+  if (entrance & 2) ctx.fillRect(px + c + w - e, py + q, c + e, p);
   ctx.globalAlpha = 1;
+}
+
+// Türen: an der Seite des Gebäudes, an der seine Straße liegt (nach den Gebäuden gezeichnet)
+function drawEntrances(vis) {
+  const dw = T * 0.26, dh = T * 0.15;
+  for (const [k, bits] of stats.entrances) {
+    const x = k % N, y = Math.floor(k / N);
+    if (x < vis.x0 - 1 || x > vis.x1 + 1 || y < vis.y0 - 1 || y > vis.y1 + 1) continue;
+    for (const [bit, dx, dy] of [[1, 0, -1], [2, 1, 0], [4, 0, 1], [8, -1, 0]]) {
+      if (!(bits & bit)) continue;
+      const cell = getCell(x + dx, y + dy);
+      if (!cell || cell.build) continue;
+      // Mitte der Kante zwischen Straßenfeld und Gebäude, Tür ragt ins Gebäude hinein
+      const ex = (x + 0.5 + dx * 0.5) * T, ey = (y + 0.5 + dy * 0.5) * T;
+      const horizontal = dy !== 0;
+      const rw = horizontal ? dw : dh, rh = horizontal ? dh : dw;
+      const rx = ex - rw / 2 + (horizontal ? 0 : dx * rw / 2), ry = ey - rh / 2 + (horizontal ? dy * rh / 2 : 0);
+      ctx.fillStyle = '#f2e3c2';
+      ctx.fillRect(rx - T * 0.03, ry - T * 0.03, rw + T * 0.06, rh + T * 0.06);
+      ctx.fillStyle = '#6b3f1d';
+      ctx.fillRect(rx, ry, rw, rh);
+      ctx.fillStyle = '#e9c46a';   // Türknauf
+      ctx.fillRect(rx + rw * (horizontal ? 0.7 : 0.35), ry + rh * (horizontal ? 0.35 : 0.7), T * 0.03, T * 0.03);
+    }
+  }
+}
+
+// Tor: Durchfahrt mit zwei Türmchen und offenen Torflügeln, quer zur Mauer
+function drawGate(x, y, alpha) {
+  drawRoad(x, y, BUILDINGS.road, alpha);
+  const wallAt = (dx, dy) => { const n = getCell(x + dx, y + dy); return n && BUILDINGS[n.type].isWall && !BUILDINGS[n.type].isGate; };
+  const alongX = wallAt(-1, 0) || wallAt(1, 0) || !(wallAt(0, -1) || wallAt(0, 1));   // Mauer verläuft waagrecht
+  const px = x * T, py = y * T, s = T * 0.24, m = T * 0.22;
+  ctx.globalAlpha = alpha;
+  const rect = (ax, ay, aw, ah) => (alongX ? ctx.fillRect(px + ax, py + ay, aw, ah) : ctx.fillRect(px + ay, py + ax, ah, aw));
+  ctx.fillStyle = '#7d7468';
+  rect(0, m, s, T - 2 * m);            // Türmchen links/oben
+  rect(T - s, m, s, T - 2 * m);        // Türmchen rechts/unten
+  ctx.fillStyle = '#5c544a';
+  rect(0, m, T, T * 0.08);             // Torbogen
+  rect(0, m, s * 0.45, s * 0.45);      // Zinnen
+  rect(T - s * 0.45, m, s * 0.45, s * 0.45);
+  ctx.fillStyle = '#8d5a2b';           // offene Torflügel
+  rect(s, m + T * 0.08, T * 0.07, T * 0.3);
+  rect(T - s - T * 0.07, m + T * 0.08, T * 0.07, T * 0.3);
+  ctx.globalAlpha = 1;
+  drawWallDamage(x, y);
+}
+
+// Risse und Lebensbalken an beschädigten Mauern
+function drawWallDamage(x, y) {
+  const cell = getCell(x, y);
+  if (!cell || cell.hp === undefined) return;
+  const share = clamp(cell.hp / wallMaxHp(cell), 0, 1);
+  const px = x * T, py = y * T;
+  ctx.strokeStyle = 'rgba(30, 20, 10, 0.75)';
+  ctx.lineWidth = T * 0.03;
+  ctx.beginPath();
+  ctx.moveTo(px + T * 0.35, py + T * 0.3); ctx.lineTo(px + T * 0.5, py + T * 0.5); ctx.lineTo(px + T * 0.42, py + T * 0.7);
+  if (share < 0.5) { ctx.moveTo(px + T * 0.5, py + T * 0.5); ctx.lineTo(px + T * 0.66, py + T * 0.58); }
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  ctx.fillRect(px + T * 0.1, py - T * 0.12, T * 0.8, T * 0.1);
+  ctx.fillStyle = share > 0.5 ? '#95d5b2' : share > 0.25 ? '#ffd166' : '#e63946';
+  ctx.fillRect(px + T * 0.12, py - T * 0.1, T * 0.76 * share, T * 0.06);
 }
 
 // Mauerstück: dicker Steinstrang mit Zinnen, verbunden mit Nachbarmauern
 function drawWall(x, y, alpha) {
-  const w = T * 0.36, c = (T - w) / 2, px = x * T, py = y * T;
+  const w = T * 0.46, c = (T - w) / 2, px = x * T, py = y * T;
   const isWallAt = (dx, dy) => { const n = getCell(x + dx, y + dy); return n && BUILDINGS[n.type].isWall; };
   ctx.globalAlpha = alpha;
   ctx.fillStyle = '#7d7468';
@@ -5905,8 +6163,10 @@ function drawWall(x, y, alpha) {
   if (isWallAt(1, 0)) ctx.fillRect(px + c + w, py + c, c, w);
   if (isWallAt(0, 1)) ctx.fillRect(px + c, py + c + w, w, c);
   if (isWallAt(-1, 0)) ctx.fillRect(px, py + c, c, w);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';   // helle Mauerkrone
+  ctx.fillRect(px + c + T * 0.06, py + c + T * 0.06, w - T * 0.12, w - T * 0.12);
   ctx.fillStyle = '#5c544a';   // Zinnen
-  const z = T * 0.12;
+  const z = T * 0.13;
   ctx.fillRect(px + c, py + c, z, z);
   ctx.fillRect(px + c + w - z, py + c, z, z);
   ctx.fillRect(px + c, py + c + w - z, z, z);
@@ -6069,7 +6329,10 @@ function paintTo(tile) {
     placeBuilding(paint.last.x, paint.last.y, selectedType);
   }
   for (const t of tileLine(paint.last, tile)) {
-    if (getCell(t.x, t.y) !== null) continue;
+    if (getCell(t.x, t.y) !== null) {
+      if (makesGate(t.x, t.y, selectedType)) placeBuilding(t.x, t.y, selectedType);
+      continue;
+    }
     if (!placeBuilding(t.x, t.y, selectedType)) break;
   }
   paint.last = tile;
@@ -6189,6 +6452,10 @@ function handleTap(sx, sy) {
   if (demolishMode) {
     if (cell) markForDemolish(x, y);
     updateDemolishBar();
+    return;
+  }
+  if (cell && selectedType && makesGate(x, y, selectedType)) {
+    placeBuilding(x, y, selectedType);
     return;
   }
   if (cell) {
@@ -7412,7 +7679,7 @@ function describeBuilding(type) {
   if (def.service) lines.push(`${NEEDS[def.service.need].icon} ${NEEDS[def.service.need].name} für Häuser im Umkreis von ${def.service.radius} Feldern`);
   if (def.fireRadius) lines.push(`🚒 Löscht Brände im Umkreis von ${def.fireRadius} Feldern`);
   if (def.defense) lines.push(`🏴‍☠️ Schützt Gebäude im Umkreis von ${def.defense.radius} Feldern vor Banditen (Abwehr ${def.defense.strength})`);
-  if (def.isWall) lines.push(`🏴‍☠️ Jedes Stück: Abwehr +${CONFIG.wallDefense} für die ganze Stadt (höchstens +${CONFIG.wallDefenseMax})`);
+  if (def.isWall) lines.push(`🧱 Hält ${def.isGate ? CONFIG.gateHp : CONFIG.wallHp} aus – Banditen müssen erst durch. Wachen in der Nähe wehren sie an der Mauer ab.`);
   if (def.storage) lines.push(`📦 +${def.storage} Lagerplatz für Holz, Stein, Nahrung und Waren`);
   if (def.beautifies) lines.push(`✨ Häuser direkt daneben bekommen +${CONFIG.niceHouseBonus} Wohnplätze`);
   if (def.landmark) lines.push(`🏛️ Zufriedenheit +${def.landmark} für die ganze Stadt – gibt es nur einmal`);
@@ -7817,6 +8084,8 @@ function renderTileInfo() {
     const pct = Math.floor((1 - cell.build.left / cell.build.total) * 100);
     lines.push(`🏗️ Im Bau: ${pct} % – fertig in ${secondsText(cell.build.left)}`);
   }
+  if (def.isWall) lines.push(`🧱 Zustand: ${Math.ceil(wallHp(cell))} von ${wallMaxHp(cell)}` +
+    (cell.hp !== undefined ? ' – wird ausgebessert' : ''));
   if (cell.fire) {
     lines.push(cell.fire.brigade
       ? '🚒 Brennt – es wird gerade gelöscht.'

@@ -3,6 +3,16 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-27 – Rückmeldung von Emin (Version 60)
+
+- Weg zur Farm (und allen Bild-Gebäuden) führt jetzt zur Spitze des Bildes in der Mitte der Seite statt zur Mitte des Straßenfelds.
+- Immer quer: hochkant gehaltene Handys zeigen das Spiel um 90° gedreht (statt Hinweis „Handy drehen“); Einstellung
+  „📱 Hochkant spielen“ schaltet das ab. Querformat-CSS hängt jetzt an der Klasse `html.quer` statt an einer Media-Query.
+- Fehler: Nach dem Antippen eines fertigen Gebäudes blieb die Bauauswahl aktiv, der nächste Tipp aufs freie Feld setzte
+  das zuletzt gewählte Gebäude → Antippen eines Gebäudes beendet die Bauauswahl.
+- Wassertrog wird nicht mehr automatisch zur 1×1-Feuerwache, sondern lässt sich ab der Antike weiterentwickeln (2×1).
+- Neuer Knopf oben rechts auf der Karte: Leisten aus- und einblenden.
+
 ## 2026-10-27 – Aufbruch offline (Version 59)
 
 - Wunsch von Emin: Der Zeitalter-Aufbruch läuft offline weiter. Wird offline die letzte nötige Forschung fertig und ist sonst

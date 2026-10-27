@@ -31,7 +31,7 @@ Mittelalter – Handwerkskunst, Kachelöfen, Steinmauern, Fruchtwechsel, Kanalis
 | 🪨 Steinsammler | Stein, besser am Berg |
 | 🔥 Feuerstelle | Freizeit für Hütten im Umkreis |
 | 🎨 Höhlenmaler | Wissen für die Forschung |
-| 💧 Wassertrog | löscht Brände in der Nähe, wird in der Antike zur Feuerwache |
+| 💧 Wassertrog | löscht Brände in der Nähe; ab der Antike nicht mehr baubar, lässt sich im Info-Fenster zur Feuerwache (2×1) weiterentwickeln |
 
 **Forschung:** Steinwerkzeuge, Speere, Flechtkörbe, Lehmhütten.
 

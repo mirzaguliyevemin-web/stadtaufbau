@@ -218,12 +218,17 @@ test('Zeitalter: Steinzeit, Aufstieg, Speichern', () => {
     const ready = canAdvanceAge(); advanceAge();
     const during = state.age;
     for (let i = 0; i < 400 && state.ageUp; i++) updateAgeUp(0.5);
-    const evolved = getCell(35, 31)?.type, troughGone = !isUnlocked('watertrough') && !categoryTypes('defense').includes('watertrough');
+    const kept = getCell(35, 31)?.type;
+    for (const id of Object.keys(RESOURCES)) state.resources[id] += 500;
+    const developed = developBuilding(35, 31), dev = getCell(35, 31);
+    const evolved = dev?.type + ':' + sizeOf(dev).join('x');
+    state.resources.food = 0; state.population = 30; recalcStats();
+    const troughGone = !isUnlocked('watertrough') && !categoryTypes('defense').includes('watertrough');
     const after = { age: state.age, house: isUnlocked('house'), money: isResourceVisible('money'), road: JSON.stringify(costOf('road')),
       food: state.resources.food, quest: questProgress(QUESTS.find(q => q.id === 'ageAntiquity')).done };
     showAges(); updateAgesUI(); render(0.016); save();
     state.age = 0; before.daily = JSON.stringify(dailyRewardFor(1)); state.age = 1;
-    JSON.stringify({ before, huts, stoneBuilt, tooEarly, notYet, ready, during, after, stoneTech, laterTech, trough, evolved, troughGone })
+    JSON.stringify({ before, huts, stoneBuilt, tooEarly, notYet, ready, during, after, stoneTech, laterTech, trough, kept, developed, evolved, troughGone })
   `);
   noErrors(game, 'bei den Zeitaltern');
   const o = JSON.parse(r);
@@ -233,7 +238,7 @@ test('Zeitalter: Steinzeit, Aufstieg, Speichern', () => {
   assert(o.huts.every(Boolean) && o.stoneBuilt.every(Boolean) && o.tooEarly === 0 && !o.notYet && o.ready && o.during === 0, 'Aufstieg: ' + r);
   assert(o.after.age === 1 && o.after.house && o.after.money && o.after.road === '{"money":5}' && o.after.food === 0 && o.after.quest, 'Antike: ' + r);
   assert(o.stoneTech === 'available' && o.laterTech === 'later' && o.trough, 'Steinzeit-Forschung/Wassertrog: ' + r);
-  assert(o.evolved === 'firestation' && o.troughGone, 'Wassertrog → Feuerwache: ' + r);
+  assert(o.kept === 'watertrough' && o.developed && /^firestation:(2x1|1x2)$/.test(o.evolved) && o.troughGone, 'Wassertrog → Feuerwache: ' + r);
   const b = fresh({ storage: game.storage, seed: 17 });
   assert(b.run('state.age') === 1, 'Zeitalter nach dem Laden: ' + b.run('state.age'));
   return 'Steinzeit → Antike';

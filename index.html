@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#5c3a1e">
   <!-- Spiel hat eigene Farben: automatischen Dunkelmodus des Browsers abschalten -->
   <meta name="color-scheme" content="only light">
-  <meta name="app-version" content="59">
+  <meta name="app-version" content="60">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Stadtaufbau</title>
@@ -32,6 +32,7 @@
 
   <main id="map-wrap">
     <canvas id="map"></canvas>
+    <button id="bars-toggle" title="Leisten ausblenden">⛶</button>
     <button id="quest-tracker" title="Aufträge"></button>
     <div id="toast" class="hidden"></div>
     <section id="quests" class="hidden fullpage">
@@ -72,6 +73,7 @@
       <button class="setting" data-setting="sfx"></button>
       <button class="setting" data-setting="music"></button>
       <button class="setting" data-setting="daynight"></button>
+      <button class="setting" data-setting="portrait"></button>
       <div class="settings-title">Meine Städte</div>
       <div id="slots"></div>
       <div class="settings-title">Spielstand übertragen</div>
@@ -138,14 +140,6 @@
       </div>
     </div>
   </nav>
-
-  <div id="rotate-hint">
-    <div class="rh-phone">📱</div>
-    <strong>Bitte das Handy quer halten</strong>
-    <p>Stadtaufbau wird im Querformat gespielt – so hat die Stadt mehr Platz.</p>
-    <button id="rotate-go">↻ Quer spielen (Vollbild)</button>
-    <button id="rotate-skip" class="rh-skip">Trotzdem hochkant spielen</button>
-  </div>
 
   <script src="game.js"></script>
 </body>

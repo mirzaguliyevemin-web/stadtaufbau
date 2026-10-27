@@ -104,6 +104,7 @@ export function loadGame({ storage = {}, seed } = {}) {
 
   const document = {
     body: fakeElement('body'),
+    documentElement: fakeElement('html'),
     visibilityState: 'visible',
     getElementById(id) {
       if (!elements.has(id)) {

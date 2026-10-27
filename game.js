@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 59;
+const APP_VERSION = 60;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -267,7 +267,8 @@ const CATEGORIES = {
 //   landmark:      Sehenswürdigkeit – gibt es nur einmal, Zufriedenheitsbonus für die ganze Stadt
 //   age:           ab welchem Zeitalter baubar (Index in AGES, Standard 0 = Steinzeit)
 //   ageCost:       abweichende Kosten je Zeitalter, z. B. { 0: { wood: 1 } }
-//   evolvesTo:     wird automatisch zu diesem Gebäude, sobald es freigeschaltet ist (z. B. Wassertrog → Feuerwache)
+//   evolvesTo:     wird automatisch zu diesem Gebäude, sobald es freigeschaltet ist (z. B. Schreinerei → Sägewerk)
+//   replacedBy:    nicht mehr baubar, sobald dieses Gebäude freigeschaltet ist; bestehende bleiben (z. B. Wassertrog → Feuerwache)
 //   developsTo:    kann im Info-Fenster zu diesem Gebäude weiterentwickelt werden (z. B. Hütte → Haus), sobald es freigeschaltet ist
 //   unlockLevel:   ab welcher Stadtstufe baubar (Index in LEVELS)
 //   requiresTech:  erst nach dieser Forschung baubar (ID in TECHS)
@@ -361,11 +362,12 @@ const BUILDINGS = {
   },
   watertrough: {
     name: 'Wassertrog', icon: '💧', color: '#8ecae6',
-    description: 'Wasser und Eimer stehen bereit: Brände in der Nähe werden gelöscht. In der Antike wird daraus eine Feuerwache.',
+    description: 'Wasser und Eimer stehen bereit: Brände in der Nähe werden gelöscht. In der Antike lässt er sich zur Feuerwache weiterentwickeln.',
     cost: { wood: 10, stone: 5 },
     fireRadius: 2,
     needsRoad: true,
-    evolvesTo: 'firestation',
+    replacedBy: 'firestation',
+    developsTo: 'firestation',
     category: 'defense',
   },
   bridge: {
@@ -1861,9 +1863,14 @@ function levelFor(pop) {
   return level;
 }
 
+// Nachfolger, der ein Gebäude überholt (automatisch umgewandelt oder nur nicht mehr baubar)
+function supersededBy(def) {
+  return def.evolvesTo || def.replacedBy;
+}
+
 function isUnlocked(type) {
   const def = BUILDINGS[type];
-  if (def.evolvesTo && isUnlocked(def.evolvesTo)) return false;   // überholt, z. B. Wassertrog ab der Feuerwache
+  if (supersededBy(def) && isUnlocked(supersededBy(def))) return false;   // überholt, z. B. Wassertrog ab der Feuerwache
   return (def.age || 0) <= state.age && (def.unlockLevel || 0) <= state.maxLevel && (!def.requiresTech || state.techs.includes(def.requiresTech));
 }
 
@@ -4200,13 +4207,15 @@ let hoverTile = null;      // Maus-Vorschau
 let floaters = [];
 
 function resize() {
+  // clientWidth/-Height statt getBoundingClientRect: bleiben auch in der gedrehten Ansicht richtig herum
   const rect = canvas.getBoundingClientRect();
+  const width = canvas.clientWidth || rect.width, height = canvas.clientHeight || rect.height;
   const first = view.w === 0;
   view.dpr = window.devicePixelRatio || 1;
-  view.w = rect.width;
-  view.h = rect.height;
-  canvas.width = Math.round(rect.width * view.dpr);
-  canvas.height = Math.round(rect.height * view.dpr);
+  view.w = width;
+  view.h = height;
+  canvas.width = Math.round(width * view.dpr);
+  canvas.height = Math.round(height * view.dpr);
   if (first) fitMap();
   clampView();
 }
@@ -4298,6 +4307,7 @@ function render(dt) {
     else if (BUILDINGS[cell.type].isRoad) drawRoad(x, y, BUILDINGS[cell.type], 1);
     else if (BUILDINGS[cell.type].isWall) { drawWall(x, y, 1); drawWallDamage(x, y); }
   });
+  drawImagePaths(vis);
   drawWalkers();
 
   // Gebäude
@@ -6178,14 +6188,51 @@ function drawRoad(x, y, def, alpha) {
       ctx.fillRect(sx, sy, r, r * 0.8);
     }
   }
-  // Wege zu Gebäudeeingängen
+  // Wege zu Gebäudeeingängen (Gebäude mit Bild: eigener Durchgang in drawImagePaths)
   ctx.fillStyle = st === ROAD_STYLES.asphalt ? '#b5b0a6' : st.base;
   const p = T * 0.3, q = (T - p) / 2;
-  if (entrance & 1) ctx.fillRect(px + q, py, p, c + e);
-  if (entrance & 4) ctx.fillRect(px + q, py + c + w - e, p, c + e);
-  if (entrance & 8) ctx.fillRect(px, py + q, c + e, p);
-  if (entrance & 2) ctx.fillRect(px + c + w - e, py + q, c + e, p);
+  const plain = (dx, dy) => { const n = getCell(x + dx, y + dy); return !n || !buildingImage(n.type); };
+  if (entrance & 1 && plain(0, -1)) ctx.fillRect(px + q, py, p, c + e);
+  if (entrance & 4 && plain(0, 1)) ctx.fillRect(px + q, py + c + w - e, p, c + e);
+  if (entrance & 8 && plain(-1, 0)) ctx.fillRect(px, py + q, c + e, p);
+  if (entrance & 2 && plain(1, 0)) ctx.fillRect(px + c + w - e, py + q, c + e, p);
   ctx.globalAlpha = 1;
+}
+
+// Gebäudebilder stehen als Raute auf ihrer Fläche: der Weg führt zur Mitte der Seite (dort ist die Spitze
+// mit dem Eingang), nicht zur Mitte des Straßenfelds – sonst endet er bei breiten Gebäuden (Farm) daneben
+function drawImagePaths(vis) {
+  const st = roadStyle();
+  const p = T * 0.26, c = T * 0.17;
+  for (const [k, bits] of stats.entrances) {
+    const x = k % N, y = Math.floor(k / N);
+    if (x < vis.x0 - 3 || x > vis.x1 + 3 || y < vis.y0 - 3 || y > vis.y1 + 3) continue;
+    for (const [bit, dx, dy] of [[1, 0, -1], [2, 1, 0], [4, 0, 1], [8, -1, 0]]) {
+      if (!(bits & bit)) continue;
+      const cell = getCell(x + dx, y + dy);
+      if (!cell || cell.build || !buildingImage(cell.type)) continue;
+      const a = anchorAt(x + dx, y + dy), ax = a % N, ay = Math.floor(a / N);
+      const [w, h] = sizeOf(cell);
+      // Mitte der Gebäudeseite, aber nur so weit verschoben, wie unter dem Weg noch Straße liegt
+      const vertical = dy !== 0;
+      const mid = vertical ? ax + w / 2 : ay + h / 2;
+      const own = vertical ? x : y;
+      const roadAt = t => { const n = vertical ? getCell(t, y) : getCell(x, t); return !!n && !!BUILDINGS[n.type].isRoad; };
+      let at = own + 0.5;
+      if (mid >= own && mid <= own + 1) at = mid;
+      if (at - own < 0.2 && !roadAt(own - 1)) at = own + 0.2;
+      if (at - own > 0.8 && !roadAt(own + 1)) at = own + 0.8;
+      // vom Straßenrand bis ein Stück unter das Bild
+      const edge = (vertical ? (dy > 0 ? y + 1 : y) : (dx > 0 ? x + 1 : x)) * T;
+      const from = edge - (dy || dx) * c, to = edge + (dy || dx) * T * 0.12;
+      ctx.fillStyle = st.edge;
+      if (vertical) ctx.fillRect(at * T - p / 2 - T * 0.03, Math.min(from, to), p + T * 0.06, Math.abs(to - from));
+      else ctx.fillRect(Math.min(from, to), at * T - p / 2 - T * 0.03, Math.abs(to - from), p + T * 0.06);
+      ctx.fillStyle = st === ROAD_STYLES.asphalt ? '#b5b0a6' : st.base;
+      if (vertical) ctx.fillRect(at * T - p / 2, Math.min(from, to), p, Math.abs(to - from));
+      else ctx.fillRect(Math.min(from, to), at * T - p / 2, Math.abs(to - from), p);
+    }
+  }
 }
 
 // Türen: an der Seite des Gebäudes, an der seine Straße liegt (nach den Gebäuden gezeichnet)
@@ -6336,6 +6383,8 @@ const TAP_SLOP = 8;    // Pixel Bewegung, ab der es ein Verschieben ist
 
 function pointerPos(e) {
   const rect = canvas.getBoundingClientRect();
+  // gedrehte Ansicht (hochkant gehaltenes Handy): Bildschirm-Koordinaten zurückdrehen
+  if (isTurned()) return { x: e.clientY - rect.top, y: rect.right - e.clientX };
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
@@ -6566,6 +6615,7 @@ function handleTap(sx, sy) {
     return;
   }
   if (cell) {
+    if (selectedType) selectBuild(null);   // sonst setzt der nächste Tipp aufs freie Feld noch das alte Gebäude
     if (!cell.build && !cell.fire) playBuildingSound(cell.type);
     showInfo(x, y);
     return;
@@ -6594,8 +6644,8 @@ function handleTap(sx, sy) {
 // =====================================================================
 
 const SETTINGS_KEY = 'stadtaufbau-settings';
-const settings = { sfx: true, music: true, daynight: true };
-const SETTING_LABELS = { sfx: '🔊 Soundeffekte', music: '🎵 Musik', daynight: '🌗 Tag und Nacht' };
+const settings = { sfx: true, music: true, daynight: true, portrait: false, hideBars: false };
+const SETTING_LABELS = { sfx: '🔊 Soundeffekte', music: '🎵 Musik', daynight: '🌗 Tag und Nacht', portrait: '📱 Hochkant spielen' };
 
 function loadSettings() {
   try {
@@ -6877,10 +6927,10 @@ const seenUnlocked = new Set();   // freigeschaltete Gebäude, deren Reiter scho
 // Gebäude eines Reiters – aus späteren Zeitaltern nur das nächste (als Vorschau, gesperrt)
 function categoryTypes(cat) {
   return Object.keys(BUILDINGS).filter(type => BUILDINGS[type].category === cat && (BUILDINGS[type].age || 0) <= state.age + 1 &&
-    !(BUILDINGS[type].evolvesTo && isUnlocked(BUILDINGS[type].evolvesTo)));
+    !(supersededBy(BUILDINGS[type]) && isUnlocked(supersededBy(BUILDINGS[type]))));
 }
 
-// Gebäude, die sich weiterentwickeln (Wassertrog → Feuerwache), wandeln sich um, sobald das Ziel freigeschaltet ist.
+// Gebäude, die sich weiterentwickeln (Schreinerei → Sägewerk), wandeln sich um, sobald das Ziel freigeschaltet ist.
 // Gibt die Zahl der umgewandelten Gebäude je Art zurück.
 function evolveBuildings() {
   const changed = {};
@@ -6937,7 +6987,7 @@ function fitBuildLabels() {
       const name = el.querySelector('.name');
       const cost = el.querySelector('.cost');
       return (name && name.scrollWidth > name.clientWidth + 1) ||
-        (cost && cost.getBoundingClientRect().height > 30);   // Kosten brauchen mehr als zwei Zeilen
+        (cost && cost.offsetHeight > 30);   // Kosten brauchen mehr als zwei Zeilen
     });
     if (tooLong) items.forEach(el => el.classList.add('icon-only'));
     scroller.scrollLeft = scroll;
@@ -7351,7 +7401,7 @@ function nextAge() {
 // Pflichtgebäude eines Zeitalters: jedes muss einmal fertig stehen, bevor es weitergeht.
 // Ausgenommen: Straßen/Brücken, Sehenswürdigkeiten, überholte Gebäude und solche, die besonderes Gelände brauchen.
 function ageRequiredBuildings(age = state.age) {
-  return Object.values(BUILDINGS).filter(d => (d.age || 0) === age && !d.isRoad && !d.landmark && !d.evolvesTo &&
+  return Object.values(BUILDINGS).filter(d => (d.age || 0) === age && !d.isRoad && !d.landmark && !supersededBy(d) &&
     !d.nearTerrain && !d.onTerrain && !d.isGate).map(d => d.id);
 }
 
@@ -7425,13 +7475,18 @@ function finishAgeUp() {
   const evolved = Object.entries(evolveBuildings())
     .map(([type, n]) => `${n}× ${BUILDINGS[type].icon} ${BUILDINGS[type].name} → ${BUILDINGS[BUILDINGS[type].evolvesTo].icon} ${BUILDINGS[BUILDINGS[type].evolvesTo].name}`);
   const fresh = Object.values(BUILDINGS).filter(def => (def.age || 0) === state.age && isUnlocked(def.id));
-  const later = Object.values(BUILDINGS).filter(def => (def.age || 0) === state.age && !isUnlocked(def.id) && !def.evolvesTo);
+  const later = Object.values(BUILDINGS).filter(def => (def.age || 0) === state.age && !isUnlocked(def.id) && !supersededBy(def));
+  // eigene Gebäude, die sich ab jetzt weiterentwickeln lassen (z. B. Wassertrog → Feuerwache)
+  const developable = [...new Set(state.grid.filter(c => c && !c.build).map(c => c.type))]
+    .filter(t => BUILDINGS[t].developsTo && (BUILDINGS[BUILDINGS[t].developsTo].age || 0) === state.age && isUnlocked(BUILDINGS[t].developsTo))
+    .map(t => `${BUILDINGS[t].icon} ${BUILDINGS[t].name} → ${BUILDINGS[BUILDINGS[t].developsTo].icon} ${BUILDINGS[BUILDINGS[t].developsTo].name}`);
   sound.play('levelup');
   showEventPopup(next.icon, `Willkommen in der Zeit: ${next.name}!`, [
     next.text,
     fresh.length ? `Neu: ${fresh.map(d => `${d.icon} ${d.name}`).join(', ')}` : '',
     later.length ? `Später (größere Stadt oder Forschung): ${later.map(d => `${d.icon} ${d.name}`).join(', ')}` : '',
     evolved.length ? `Weiterentwickelt: ${evolved.join(', ')}` : '',
+    developable.length ? `Im Info-Fenster weiterentwickeln: ${developable.join(', ')}` : '',
   ].filter(Boolean).join('\n\n'));
   emit('age', { age: state.age });
   refreshBuildButtons();
@@ -7537,7 +7592,7 @@ function updateAgesUI() {
   ageListKey = key;
   document.getElementById('age-list').innerHTML = AGES.map((age, i) => {
     const status = i < state.age ? 'done' : i === state.age ? 'current' : i === state.age + 1 && age.ready !== false ? 'next' : 'later';
-    const buildings = Object.values(BUILDINGS).filter(d => (d.age || 0) === i && !d.evolvesTo).map(d => `${d.icon} ${d.name}`);
+    const buildings = Object.values(BUILDINGS).filter(d => (d.age || 0) === i && !supersededBy(d)).map(d => `${d.icon} ${d.name}`);
     const goods = Object.values(RESOURCES).filter(r => (r.fromAge || 0) === i && i > 0).map(r => `${r.icon} ${r.name}`);
     let foot = '';
     if (status === 'done') foot = '<div class="quest-foot"><span>✅ Geschafft</span></div>';
@@ -7586,6 +7641,7 @@ function toggleSetting(key) {
     if (settings.music) sound.startMusic();
     else sound.stopMusic();
   }
+  if (key === 'portrait') applyOrientation();
   updateSettingsUI();
   sound.play('click');
 }
@@ -7816,6 +7872,10 @@ function describeBuilding(type) {
   if (def.evolvesTo) {
     const to = BUILDINGS[def.evolvesTo];
     lines.push(`⏫ Wird ${AGES[to.age || 0].name === AGES[state.age].name ? 'bald' : `in der Zeit ${AGES[to.age || 0].icon} ${AGES[to.age || 0].name}`} automatisch zu: ${to.icon} ${to.name}`);
+  } else if (def.developsTo) {
+    const to = BUILDINGS[def.developsTo];
+    lines.push(`✨ Lässt sich im Info-Fenster weiterentwickeln zu: ${to.icon} ${to.name}` +
+      (isUnlocked(to.id) ? '' : ` (ab ${AGES[to.age || 0].icon} ${AGES[to.age || 0].name})`));
   }
   return lines;
 }
@@ -8811,8 +8871,8 @@ function loop(now) {
   // Nie negativ (der erste Zeitstempel kann vor dem Skriptstart liegen), große Sprünge begrenzen
   const dt = clamp((now - lastTime) / 1000, 0, 1);
   lastTime = now;
-  // Zeitraffer in Teilschritten, damit bei 3× nichts übersprungen wird; hinter „Handy drehen“ ruht das Spiel
-  if (!rotateHintShown()) for (let n = 0; n < gameSpeed; n++) update(dt);
+  // Zeitraffer in Teilschritten, damit bei 3× nichts übersprungen wird
+  for (let n = 0; n < gameSpeed; n++) update(dt);
   uiTimer += dt;
   if (uiTimer >= 0.25) {
     uiTimer = 0;
@@ -8888,37 +8948,41 @@ function watchForUpdates(registration) {
   });
 }
 
-// Querformat: hochkant zeigt die Seite nur den Hinweis „Handy drehen“ (CSS). Der Knopf darin
-// schaltet Vollbild ein und sperrt die Drehung auf quer – das erlauben Browser nur nach einem Tippen.
-const PORTRAIT_KEY = 'stadtaufbau-hochkant';   // „trotzdem hochkant spielen“ gemerkt (je Gerät)
-const rotateHintQuery = typeof matchMedia === 'function'
-  ? matchMedia('(orientation: portrait) and (pointer: coarse) and (max-width: 600px)') : null;
+// Querformat: Handys, die hochkant gehalten werden (oder deren Drehung gesperrt ist), zeigen das Spiel
+// um 90° gedreht – es startet also immer quer. Mit der Einstellung „Hochkant spielen“ bleibt es aufrecht.
+const media = q => (typeof matchMedia === 'function' ? matchMedia(q) : null);
+const portraitPhoneQuery = media('(orientation: portrait) and (pointer: coarse) and (max-width: 600px)');
+const landscapeQuery = media('(orientation: landscape) and (max-height: 600px)');
 
-// Wird gerade der Hinweis „Handy drehen“ gezeigt? Dann ruht das Spiel.
-function rotateHintShown() {
-  return !!rotateHintQuery?.matches && !document.documentElement.classList.contains('allow-portrait');
+function isTurned() {
+  return document.documentElement.classList.contains('gedreht');
+}
+
+function applyOrientation() {
+  const root = document.documentElement;
+  const turned = !!portraitPhoneQuery?.matches && !settings.portrait;
+  root.classList.toggle('gedreht', turned);
+  root.classList.toggle('quer', turned || !!landscapeQuery?.matches);   // Querformat-Aufteilung der Leisten
+  root.classList.toggle('leisten-aus', !!settings.hideBars);
+}
+
+// Leisten oben und unten aus- und einblenden (Knopf oben rechts auf der Karte)
+function toggleBars() {
+  settings.hideBars = !settings.hideBars;
+  saveSettings();
+  applyOrientation();
+  document.getElementById('bars-toggle').textContent = settings.hideBars ? '⬚' : '⛶';
+  document.getElementById('bars-toggle').title = settings.hideBars ? 'Leisten zeigen' : 'Leisten ausblenden';
+  sound.play('click');
 }
 
 function setupLandscape() {
-  try {
-    if (localStorage.getItem(PORTRAIT_KEY) === '1') document.documentElement.classList.add('allow-portrait');
-  } catch (e) { /* ohne Speicher eben nicht merken */ }
-  document.getElementById('rotate-go')?.addEventListener('click', () => {
-    const failed = () => showToast('Drehen geht hier nicht automatisch – Drehsperre am Handy ausschalten und quer halten', 4000);
-    const lock = () => {
-      if (!screen.orientation?.lock) return failed();
-      screen.orientation.lock('landscape').catch(failed);
-    };
-    const el = document.documentElement;
-    if (el.requestFullscreen && !document.fullscreenElement) {
-      el.requestFullscreen({ navigationUI: 'hide' }).then(lock).catch(lock);
-    } else lock();
-  });
-  document.getElementById('rotate-skip')?.addEventListener('click', () => {
-    document.documentElement.classList.add('allow-portrait');
-    try { localStorage.setItem(PORTRAIT_KEY, '1'); } catch (e) { /* egal */ }
-    resize();
-  });
+  portraitPhoneQuery?.addEventListener?.('change', applyOrientation);
+  landscapeQuery?.addEventListener?.('change', applyOrientation);
+  const barsBtn = document.getElementById('bars-toggle');
+  barsBtn.addEventListener('click', toggleBars);
+  barsBtn.textContent = settings.hideBars ? '⬚' : '⛶';
+  barsBtn.title = settings.hideBars ? 'Leisten zeigen' : 'Leisten ausblenden';
   // Zwei-Finger-Zoom auf den Leisten würde sonst (iOS) die ganze Seite vergrößern
   document.addEventListener('gesturestart', e => e.preventDefault());
   document.addEventListener('touchmove', e => {
@@ -8929,6 +8993,7 @@ function setupLandscape() {
 function start() {
   if (versionMismatch() && reloadFresh()) return;
   loadSettings();
+  applyOrientation();
   load();
   recalcStats();
   applyOfflineProgress(lastSavedAt);

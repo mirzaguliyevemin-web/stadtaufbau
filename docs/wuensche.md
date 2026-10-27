@@ -53,3 +53,6 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 - 2026-10-27, Version 55 – Tägliche Belohnung in der Steinzeit ohne Geld: statt Geld je zur Hälfte Holz und Nahrung.
 - 2026-10-27, Version 59 – Zeitalter-Aufbruch läuft offline weiter; wird offline die letzte Forschung fertig, beginnt er von selbst,
   beim Zurückkommen wechselt das Zeitalter sofort mit Meldung.
+- 2026-10-27, Version 60 – Rückmeldung: Weg zur Farm sitzt an der Bildspitze; Spiel startet immer quer (hochkant gehaltenes
+  Handy zeigt es gedreht, abschaltbar in den Einstellungen); Antippen eines Gebäudes beendet die Bauauswahl (setzte sonst das
+  alte Gebäude); Wassertrog wird per Weiterentwickeln zur Feuerwache 2×1; Knopf oben rechts blendet die Leisten aus und ein.

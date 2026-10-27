@@ -2,7 +2,7 @@
 
 // Version von Seite und Skript – muss zu <meta name="app-version"> in index.html passen.
 // Bei jeder Änderung erhöhen (ebenso CACHE in service-worker.js).
-const APP_VERSION = 52;
+const APP_VERSION = 53;
 
 // Fehler sichtbar machen (auch am Handy ohne Konsole): roter Kasten mit Meldung und Zeile
 function showCrash(message, where) {
@@ -112,7 +112,6 @@ const TERRAIN_ID = Object.fromEntries(TERRAIN.map((t, i) => [t.id, i]));
 // Geländebonus auf den Ertrag: Felder des Geländes im Umkreis `radius` um das Gebäude.
 //   perTile: Bonus je Feld bis höchstens max  | flat: fester Bonus, sobald mindestens ein Feld da ist
 const TERRAIN_BONUS = {
-  sawmill: { terrain: 'forest', radius: 2, perTile: 0.05, max: 0.5, label: 'Waldnähe' },
   quarry:  { terrain: 'rock',   radius: 2, perTile: 0.06, max: 0.6, label: 'Bergnähe' },
   farm:    { terrain: 'water',  radius: 2, flat: 0.25, label: 'Bewässerung' },
   fishery: { terrain: 'water',  radius: 2, perTile: 0.03, max: 0.45, label: 'Großes Gewässer' },
@@ -169,17 +168,19 @@ const LEVELS = [
 ];
 
 // Zeitalter. Gebäude mit `age` gibt es erst ab diesem Zeitalter (Index). Plan: docs/zeitalter.md
-//   need: Voraussetzungen für den Aufstieg  | cost: Kosten des Aufstiegs  | ready: false = kommt in einem späteren Update
+//   need: Voraussetzungen für den Aufstieg  | cost: Waren, die während des Aufbruchs nach und nach geliefert werden
+//   seconds: so lange dauert der Aufbruch  | ready: false = kommt in einem späteren Update
+//   Außerdem muss alles aus dem Zeitalter davor erforscht und jedes seiner Gebäude einmal gebaut sein (ageRequiredBuildings)
 const AGES = [
   { id: 'stone',     name: 'Steinzeit',   icon: '🪨', text: 'Hütten, Sammler und Jäger. Es gibt Holz, Stein, Nahrung und erstes Wissen – aber noch kein Geld.' },
   { id: 'antiquity', name: 'Antike',      icon: '🏺', text: 'Geld, Handel und Häuser aus Stein. Schreibstuben sammeln viel mehr Wissen.',
-    need: { population: 25 }, cost: { wood: 100, stone: 80, food: 100 } },
+    need: { population: 25 }, cost: { wood: 100, stone: 80, food: 100 }, seconds: 90 },
   { id: 'medieval',  name: 'Mittelalter', icon: '🏰', text: 'Handwerk, Schulen, Burgtürme und Kathedralen.',
-    need: { population: 40 }, cost: { money: 400, knowledge: 30, stone: 100, bricks: 15 } },
+    need: { population: 40 }, cost: { money: 400, knowledge: 30, stone: 100, bricks: 15 }, seconds: 150 },
   { id: 'industry',  name: 'Industrie',   icon: '🏭', text: 'Fabriken, Kohle, Stahl und Eisenbahn. Mietshäuser bieten viel Wohnraum.',
-    need: { population: 150 }, cost: { money: 3000, knowledge: 300, iron: 60, tools: 30, bricks: 150 } },
+    need: { population: 150 }, cost: { money: 3000, knowledge: 300, iron: 60, tools: 30, bricks: 150 }, seconds: 240 },
   { id: 'modern',    name: 'Moderne',     icon: '🏙️', text: 'Strom, Beton, Hochhäuser, Universität und Flughafen.',
-    need: { population: 350 }, cost: { money: 12000, knowledge: 1500, steel: 150, goods: 100, coal: 150 } },
+    need: { population: 350 }, cost: { money: 12000, knowledge: 1500, steel: 150, goods: 100, coal: 150 }, seconds: 300 },
 ];
 const OLD_SAVE_AGE = 2;   // Spielstände von vor den Zeitaltern stehen im Mittelalter
 
@@ -262,6 +263,7 @@ const CATEGORIES = {
 //   age:           ab welchem Zeitalter baubar (Index in AGES, Standard 0 = Steinzeit)
 //   ageCost:       abweichende Kosten je Zeitalter, z. B. { 0: { wood: 1 } }
 //   evolvesTo:     wird automatisch zu diesem Gebäude, sobald es freigeschaltet ist (z. B. Wassertrog → Feuerwache)
+//   developsTo:    kann im Info-Fenster zu diesem Gebäude weiterentwickelt werden (z. B. Hütte → Haus), sobald es freigeschaltet ist
 //   unlockLevel:   ab welcher Stadtstufe baubar (Index in LEVELS)
 //   requiresTech:  erst nach dieser Forschung baubar (ID in TECHS)
 //   needsRoad:     funktioniert nur mit angrenzender Straße
@@ -281,6 +283,7 @@ const BUILDINGS = {
   },
   hut: {
     name: 'Hütte', icon: '🛖', color: '#c9a66b',
+    developsTo: 'house',
     description: 'Einfache Hütte aus Ästen und Fellen. Wohnraum für Einwohner.',
     cost: { wood: 15 },
     population: 3,
@@ -290,6 +293,7 @@ const BUILDINGS = {
   },
   gatherer: {
     name: 'Sammlerin', icon: '🫐', color: '#b5838d',
+    developsTo: 'farm',
     description: 'Sammelt Beeren, Nüsse und Pilze. Im Wald findet sie mehr, im Winter kaum etwas.',
     cost: { wood: 10 },
     interval: 6,
@@ -320,6 +324,7 @@ const BUILDINGS = {
   },
   stonecutter: {
     name: 'Steinsammler', icon: '🪨', color: '#adb5bd',
+    developsTo: 'quarry',
     description: 'Sammelt und klopft Steine – am Berg gibt es mehr.',
     cost: { wood: 15 },
     interval: 10,
@@ -330,6 +335,7 @@ const BUILDINGS = {
   },
   fireplace: {
     name: 'Feuerstelle', icon: '🔥', color: '#e76f51',
+    developsTo: 'park',
     description: 'Am Feuer wird erzählt, gesungen und getanzt.',
     cost: { wood: 10, stone: 10 },
     service: { need: 'leisure', radius: 3 },
@@ -339,6 +345,7 @@ const BUILDINGS = {
   },
   painter: {
     name: 'Höhlenmaler', icon: '🎨', color: '#bc6c25',
+    developsTo: 'scriptorium',
     description: 'Malt Jagd und Ernte an die Felswand – so wird Wissen weitergegeben.',
     cost: { wood: 20, stone: 15 },
     interval: 10,
@@ -369,6 +376,7 @@ const BUILDINGS = {
   },
   house: {
     name: 'Haus', icon: '🏠', color: '#e9c46a',
+    developsTo: 'tenement',
     description: 'Wohnraum für Einwohner. Sie ziehen ein, wenn sie zufrieden sind.',
     cost: { wood: 20 },
     population: 4,
@@ -391,10 +399,11 @@ const BUILDINGS = {
   },
   sawmill: {
     name: 'Sägewerk', icon: '🪚', color: '#b08968',
-    description: 'Produziert Holz.',
-    cost: { money: 50 },
-    interval: 6,
-    produces: { wood: 2 },
+    description: 'Sägt das Holz der Holzfäller zu Brettern. Ohne Holz steht die Säge still.',
+    cost: { money: 50, wood: 20 },
+    interval: 8,
+    consumes: { wood: 3 },
+    produces: { planks: 1 },
     smoke: 0.8,
     needsRoad: true,
     jobs: { worker: 2 },
@@ -454,6 +463,7 @@ const BUILDINGS = {
   },
   market: {
     name: 'Markt', icon: '🏪', color: '#e76f51',
+    developsTo: 'supermarket',
     description: 'Bringt Geld für bis zu 15 Einwohner.',
     cost: { wood: 25, stone: 10 },
     interval: 10,
@@ -500,6 +510,7 @@ const BUILDINGS = {
   },
   scriptorium: {
     name: 'Schreibstube', icon: '🕯️', color: '#d4a373',
+    developsTo: 'library',
     description: 'Gelehrte sammeln Wissen für die Forschung.',
     cost: { money: 40, wood: 20 },
     interval: 8,
@@ -510,9 +521,10 @@ const BUILDINGS = {
     age: 1,
     category: 'education',
   },
-  carpentry: {
+  carpentry: {   // alt: macht dasselbe wie das Sägewerk und wird darum zum Sägewerk
     name: 'Schreinerei', icon: '🔨', color: '#c9a27e',
     description: 'Sägt Holz zu Brettern.',
+    evolvesTo: 'sawmill',
     cost: { money: 60, wood: 30, stone: 10 },
     interval: 8,
     consumes: { wood: 3 },
@@ -598,6 +610,7 @@ const BUILDINGS = {
   },
   well: {
     name: 'Brunnen', icon: '🪣', color: '#90e0ef',
+    developsTo: 'hospital',
     description: 'Sauberes Wasser hält die Einwohner gesund.',
     cost: { money: 30, stone: 15 },
     service: { need: 'health', radius: 2 },
@@ -609,6 +622,7 @@ const BUILDINGS = {
   },
   school: {
     name: 'Schule', icon: '🏫', color: '#ffafcc',
+    developsTo: 'university',
     description: 'Bildung für die Kinder der Stadt – und etwas Wissen.',
     cost: { money: 60, wood: 40, stone: 30 },
     service: { need: 'education', radius: 4 },
@@ -637,6 +651,7 @@ const BUILDINGS = {
   },
   guard: {
     name: 'Wachhaus', icon: '💂', color: '#ced4da',
+    developsTo: 'police',
     description: 'Wachen sorgen für Sicherheit.',
     cost: { money: 40, wood: 30, stone: 20 },
     service: { need: 'safety', radius: 4 },
@@ -759,6 +774,7 @@ const BUILDINGS = {
   },
   tenement: {
     name: 'Mietshaus', icon: '🏢', color: '#cb997e',
+    developsTo: 'highrise',
     description: 'Mehrstöckiges Wohnhaus aus Ziegeln: viele Wohnungen auf wenig Platz.',
     cost: { money: 150, bricks: 30, planks: 20 },
     population: 12,
@@ -940,7 +956,7 @@ const QUESTS = [
   { age: 1, id: 'roads',      title: 'Erste Wege',           goal: { type: 'build', building: 'road', count: 3 },      reward: { money: 30 } },
   { age: 1, id: 'houses',     title: 'Ein Dach über dem Kopf', goal: { type: 'build', building: 'house', count: 2 },   reward: { wood: 20 } },
   { age: 1, id: 'farm',       title: 'Satt werden',          goal: { type: 'build', building: 'farm', count: 1 },      reward: { money: 30 } },
-  { age: 1, id: 'sawmill',    title: 'Holz aus eigener Hand', goal: { type: 'build', building: 'sawmill', count: 1 },  reward: { wood: 20 } },
+  { age: 1, id: 'sawmill',    title: 'Bretter sägen',        goal: { type: 'build', building: 'sawmill', count: 1 },  reward: { wood: 20 } },
   { age: 1, id: 'pop8',       title: 'Die ersten Bewohner',  goal: { type: 'population', count: 8 },                   reward: { money: 50 } },
   { age: 1, id: 'quarry',     title: 'Steinbruch',           goal: { type: 'build', building: 'quarry', count: 1 },    reward: { wood: 20 } },
   { age: 1, id: 'market',     title: 'Markttag',             goal: { type: 'build', building: 'market', count: 1 },    reward: { stone: 20 } },
@@ -960,7 +976,7 @@ const QUESTS = [
   { age: 1, id: 'upgrade1',   title: 'Ausbau',               goal: { type: 'upgrades', count: 1 },                     reward: { money: 80 } },
   { age: 2, id: 'scholars5',  title: 'Kluge Köpfe',          goal: { type: 'jobs', job: 'scholar', count: 5 },         reward: { knowledge: 30 } },
   { age: 1, id: 'guard',      title: 'Ruhige Nächte',        goal: { type: 'build', building: 'guard', count: 1 },     reward: { stone: 50 } },
-  { age: 2, id: 'carpentry',  title: 'Handwerk',             goal: { type: 'build', building: 'carpentry', count: 1 }, reward: { money: 60 } },
+  { age: 2, id: 'carpentry',  title: 'Handwerk',             goal: { type: 'build', building: 'sawmill', count: 2 },   reward: { money: 60 } },
   { age: 2, id: 'bakery',     title: 'Frisches Brot',        goal: { type: 'build', building: 'bakery', count: 1 },    reward: { food: 40 } },
   { age: 1, id: 'brickworks', title: 'Ziegelbrenner',        goal: { type: 'build', building: 'brickworks', count: 1 }, reward: { stone: 40 } },
   { age: 2, id: 'planks30',   title: 'Feine Ware',           goal: { type: 'produced', resource: 'planks', count: 30 }, reward: { money: 120 } },
@@ -1102,73 +1118,73 @@ const TECHS = {
     effect: { production: { electronicsworks: 0.5, university: 0.5 } },
   },
   irrigation: {
-    name: 'Bewässerung', icon: '🌊',
+    name: 'Bewässerung', icon: '🌊', age: 1,
     description: 'Farmen liefern 50 % mehr Nahrung.',
     cost: { knowledge: 60 }, seconds: 60,
     effect: { production: { farm: 0.5 } },
   },
   tools: {
-    name: 'Bessere Werkzeuge', icon: '🪓',
-    description: 'Sägewerke und Steinbrüche liefern 50 % mehr.',
+    name: 'Bessere Werkzeuge', icon: '🪓', age: 1,
+    description: 'Holzfäller und Steinbrüche liefern 50 % mehr.',
     cost: { knowledge: 75 }, seconds: 60,
-    effect: { production: { sawmill: 0.5, quarry: 0.5 } },
+    effect: { production: { woodcutter: 0.5, quarry: 0.5 } },
   },
   stoves: {
-    name: 'Kachelöfen', icon: '♨️',
+    name: 'Kachelöfen', icon: '♨️', age: 2,
     description: 'Gemauerte Öfen halten länger warm: Heizen braucht nur halb so viel Holz.',
     cost: { knowledge: 160, bricks: 30 }, seconds: 90,
     requires: ['craftsmanship'],
     effect: { flags: { heatingSaver: true } },
   },
   craftsmanship: {
-    name: 'Handwerkskunst', icon: '🔨',
-    description: 'Schreinereien, Ziegeleien und Bäckereien liefern 50 % mehr.',
+    name: 'Handwerkskunst', icon: '🔨', age: 2,
+    description: 'Sägewerke, Ziegeleien und Bäckereien liefern 50 % mehr.',
     cost: { knowledge: 150 }, seconds: 90,
     requires: ['tools'],
-    effect: { production: { carpentry: 0.5, brickworks: 0.5, bakery: 0.5 } },
+    effect: { production: { sawmill: 0.5, brickworks: 0.5, bakery: 0.5 } },
   },
   library: {
-    name: 'Bibliothek', icon: '📚',
+    name: 'Bibliothek', icon: '📚', age: 1,
     description: 'Schaltet die Bibliothek frei: viel Wissen und Bildung.',
     cost: { knowledge: 120 }, seconds: 75,
   },
   stonewalls: {
-    name: 'Steinmauern', icon: '⛰️',
+    name: 'Steinmauern', icon: '⛰️', age: 2,
     description: 'Häuser bieten 2 Wohnplätze mehr. Brände greifen nicht über und brennen doppelt so lange.',
     cost: { knowledge: 180, stone: 120 }, seconds: 90,
     requires: ['tools'],
     effect: { capacity: { house: 2 }, flags: { fireResistant: true } },
   },
   accounting: {
-    name: 'Buchhaltung', icon: '⚖️',
+    name: 'Buchhaltung', icon: '⚖️', age: 1,
     description: 'Märkte bringen 50 % mehr Geld.',
     cost: { knowledge: 180 }, seconds: 90,
     requires: ['library'],
     effect: { production: { market: 0.5 } },
   },
   croprotation: {
-    name: 'Fruchtwechsel', icon: '🌱',
+    name: 'Fruchtwechsel', icon: '🌱', age: 2,
     description: 'Farmen liefern weitere 50 % mehr Nahrung.',
     cost: { knowledge: 270 }, seconds: 120,
     requires: ['irrigation', 'library'],
     effect: { production: { farm: 0.5 } },
   },
   sewers: {
-    name: 'Kanalisation', icon: '🚰',
+    name: 'Kanalisation', icon: '🚰', age: 2,
     description: 'Zufriedenheit +5. Seuchen richten nur halb so viel Schaden an.',
     cost: { knowledge: 330, stone: 100, bricks: 40 }, seconds: 120,
     requires: ['stonewalls'],
     effect: { happiness: 5, flags: { plagueResistant: true } },
   },
   militia: {
-    name: 'Bürgerwehr', icon: '⚔️',
+    name: 'Bürgerwehr', icon: '⚔️', age: 2,
     description: 'Ausgebildete Bürger helfen den Wachen: Abwehr gegen Banditen +50 %.',
     cost: { knowledge: 140, money: 150 }, seconds: 75,
     requires: ['stonewalls'],
     effect: { flags: { militia: true } },
   },
   administration: {
-    name: 'Verwaltung', icon: '🏛️',
+    name: 'Verwaltung', icon: '🏛️', age: 2,
     description: 'Eine gut geführte Stadt: Zufriedenheit +5.',
     cost: { knowledge: 420, money: 400 }, seconds: 150,
     requires: ['accounting'],
@@ -1307,6 +1323,7 @@ function newGame() {
   state.nextEventIn = CONFIG.firstEventSeconds;
   state.techs = [];
   state.research = null;
+  state.ageUp = null;
   state.dayTime = 0.15;
   state.yearTime = 0;
   state.coldThisWinter = 0;
@@ -1943,6 +1960,94 @@ function upgradeBuilding(x, y) {
   updateUI();
 }
 
+// ---------- Weiterentwickeln (Hütte → Haus …) ----------
+
+// Größe nach dem Weiterentwickeln: das neue Gebäude wächst von der linken oberen Ecke aus (wenn nötig gedreht)
+function developSize(i, target) {
+  const x = i % N, y = Math.floor(i / N);
+  const [w, h] = footprintSize(target);
+  for (const [tw, th] of w === h ? [[w, h]] : [[w, h], [h, w]]) {
+    if (canPlaceSize(x, y, tw, th, i) && nearTerrainOk(BUILDINGS[target], x, y, tw, th)) return [tw, th];
+  }
+  return null;
+}
+
+// Kosten: wie ein Neubau, abzüglich des Verkaufswerts des alten Gebäudes
+function developCost(cell) {
+  const target = BUILDINGS[cell.type].developsTo;
+  const cost = costOf(target);
+  const value = refundOf(cell);
+  for (const id in cost) {
+    cost[id] = Math.max(0, cost[id] - (value[id] || 0));
+    if (!cost[id]) delete cost[id];
+  }
+  return cost;
+}
+
+// Warum geht das Weiterentwickeln (noch) nicht? null = möglich
+function developProblem(i) {
+  const cell = state.grid[i];
+  const target = cell && BUILDINGS[cell.type].developsTo;
+  if (!target || cell.build || cell.fire) return 'nicht möglich';
+  const def = BUILDINGS[target];
+  if (!isUnlocked(target)) return `🔒 ${def.icon} ${def.name} ${lockReason(target)}`;
+  if (!developSize(i, target)) {
+    const [w, h] = footprintSize(target);
+    return `${def.icon} ${def.name} braucht ${w}×${h} Felder – daneben ist kein Platz`;
+  }
+  if (constructionCount() >= CONFIG.maxConstructions) return `🏗️ Höchstens ${CONFIG.maxConstructions} Baustellen gleichzeitig`;
+  const cost = developCost(cell);
+  if (!canAfford(cost)) return `Nicht genug ${missingText(cost)}`;
+  return null;
+}
+
+function developBuilding(x, y) {
+  const i = anchorAt(x, y);
+  if (i === undefined || i < 0) return false;
+  const cell = state.grid[i];
+  const problem = developProblem(i);
+  if (problem) {
+    sound.play('error');
+    showToast(problem, 2500);
+    return false;
+  }
+  const from = cell.type, target = BUILDINGS[from].developsTo;
+  const [w, h] = developSize(i, target);
+  const cost = developCost(cell);
+  addResources(cost, -1);
+  const seconds = buildTimeOf(target);
+  // Merken, was es vorher war: Abbrechen stellt das alte Gebäude wieder her
+  const old = { type: from, w: cell.w, h: cell.h };
+  cell.type = target;
+  cell.timer = 0;
+  delete cell.w; delete cell.h;
+  if (w > 1 || h > 1) { cell.w = w; cell.h = h; }
+  setOccupied(x, y, w, h, i);
+  clearTerrain(x, y, w, h);
+  cell.build = { left: Math.max(1, seconds), total: Math.max(1, seconds), paid: cost, from: old };
+  cell.builtAt = performance.now();
+  sound.play('build');
+  showToast(`🏗️ ${BUILDINGS[from].icon} ${BUILDINGS[from].name} wird zu ${BUILDINGS[target].icon} ${BUILDINGS[target].name} – fertig in ${secondsText(cell.build.left)}`, 2500);
+  emit('develop', { x, y, from, type: target });
+  recalcStats();
+  updateUI();
+  return true;
+}
+
+// Weiterentwickeln abbrechen: altes Gebäude zurück, bezahlte Kosten zurück
+function cancelDevelop(i) {
+  const cell = state.grid[i];
+  const old = cell.build.from;
+  addResources(cell.build.paid, 1);
+  setOccupied(i % N, Math.floor(i / N), ...sizeOf(cell), -1);
+  cell.type = old.type;
+  delete cell.w; delete cell.h;
+  if (old.w) { cell.w = old.w; cell.h = old.h; }
+  delete cell.build;
+  cell.timer = 0;
+  setOccupied(i % N, Math.floor(i / N), ...sizeOf(cell), i);
+}
+
 // Neue Waren erst zeigen, wenn die Stufe erreicht ist oder schon etwas davon da ist
 function isResourceVisible(id) {
   if ((RESOURCES[id].fromAge || 0) > state.age) return false;
@@ -2072,6 +2177,7 @@ function placeBuilding(x, y, type) {
 
 // Rückerstattung beim Abriss: Hälfte der zuletzt bezahlten Baukosten plus Hälfte der Ausbauten
 function refundOf(cell, offset = -1) {
+  if (cell.build?.paid) return { ...cell.build.paid };   // Weiterentwickeln abbrechen
   const refund = {};
   const rate = cell.build ? 1 : CONFIG.refundRate;   // Baustelle abbrechen: alles zurück
   const add = cost => {
@@ -2086,6 +2192,13 @@ function demolish(x, y) {
   const a = anchorAt(x, y);
   if (a === undefined || a < 0) return;
   const cell = state.grid[a];
+  if (cell.build?.from) {   // Weiterentwickeln abbrechen
+    cancelDevelop(a);
+    closeInfo();
+    recalcStats();
+    updateUI();
+    return;
+  }
   addResources(refundOf(cell), 1);
   removeBuildingAt(a);
   emit('demolish', { x: a % N, y: Math.floor(a / N), type: cell.type, w: cell.w || 1, h: cell.h || 1 });
@@ -2990,7 +3103,7 @@ function tradeBlocked() {
 // Am Ziel entscheidet der Schutz vor Ort. Überfälle werden nicht gespeichert.
 
 let raids = [];
-const RAID_VALUE = { market: 3, warehouse: 3, carpentry: 2, brickworks: 2, bakery: 2, townhall: 3, cathedral: 3 };
+const RAID_VALUE = { market: 3, warehouse: 3, sawmill: 2, brickworks: 2, bakery: 2, townhall: 3, cathedral: 3 };
 
 // Wertvoll und schlecht geschützt zuerst, nahe Ziele bevorzugt
 function chooseRaidTarget(camp) {
@@ -3531,6 +3644,7 @@ function update(dt) {
   updatePopulation(dt);
   updateEvents(dt);
   updateResearch(dt);
+  updateAgeUp(dt);
   updateTaxes(dt);
   updatePrices(dt);
   updateCamps(dt);
@@ -3690,6 +3804,7 @@ function buildSaveData() {
     nextEventIn: state.nextEventIn,
     techs: state.techs,
     research: state.research,
+    ageUp: state.ageUp,
     dayTime: state.dayTime,
     yearTime: state.yearTime,
     coldThisWinter: state.coldThisWinter,
@@ -3757,6 +3872,13 @@ function load() {
       if (b.build && Number.isFinite(b.build.left) && Number.isFinite(b.build.total) && b.build.left > 0) {
         const total = clamp(b.build.total, 1, 3600);
         cell.build = { left: Math.min(b.build.left, total), total };
+        // Weiterentwicklung im Bau: altes Gebäude und bezahlte Kosten merken (für Abbrechen)
+        const from = b.build.from;
+        if (from && BUILDINGS[from.type] && typeof b.build.paid === 'object') {
+          cell.build.from = { type: from.type, w: from.w, h: from.h };
+          cell.build.paid = {};
+          for (const [id, n] of Object.entries(b.build.paid)) if (RESOURCES[id] && Number.isFinite(n)) cell.build.paid[id] = n;
+        }
       }
       state.grid[b.y * N + b.x] = cell;
     }
@@ -3821,6 +3943,7 @@ function load() {
     for (const q of QUESTS) if (!q.age && !state.questsClaimed.includes(q.id)) state.questsClaimed.push(q.id);
   }
   evolveBuildings();
+  if (typeof data.ageUp?.done === 'number' && nextAge()) state.ageUp = { done: Math.max(0, data.ageUp.done), waiting: null };
   for (const id in RESOURCES) {
     if (typeof data.produced?.[id] === 'number') state.produced[id] = data.produced[id];
   }
@@ -6537,8 +6660,13 @@ function buildUI() {
   });
   document.getElementById('research-close').addEventListener('click', closeResearch);
   document.getElementById('ages-close').addEventListener('click', closeAges);
-  document.getElementById('age-title').addEventListener('click', showAges);
-  document.getElementById('age-progress').addEventListener('click', showAges);
+  // Der Aufbruch ins nächste Zeitalter steht oben in der Forschung
+  document.getElementById('age-title').addEventListener('click', showResearch);
+  document.getElementById('age-progress').addEventListener('click', showResearch);
+  ageUpEl.addEventListener('click', e => {
+    if (e.target.closest('[data-advance]')) advanceAge();
+    if (e.target.closest('[data-ages]')) showAges();
+  });
   document.getElementById('age-list').addEventListener('click', e => {
     if (e.target.closest('[data-advance]')) advanceAge();
   });
@@ -6615,6 +6743,9 @@ function buildUI() {
   });
   document.getElementById('info-upgrade').addEventListener('click', () => {
     if (infoTile && infoClickAllowed()) upgradeBuilding(infoTile.x, infoTile.y);
+  });
+  document.getElementById('info-develop').addEventListener('click', () => {
+    if (infoTile && infoClickAllowed()) developBuilding(infoTile.x, infoTile.y);
   });
   document.getElementById('info-action').addEventListener('click', () => {
     if (!infoClickAllowed()) return;
@@ -6835,30 +6966,84 @@ function nextAge() {
   return next && next.ready !== false ? next : null;
 }
 
-function canAdvanceAge() {
-  const next = nextAge();
-  return !!next && state.population >= (next.need?.population || 0) && canAfford(next.cost || {});
+// Pflichtgebäude eines Zeitalters: jedes muss einmal fertig stehen, bevor es weitergeht.
+// Ausgenommen: Straßen/Brücken, Sehenswürdigkeiten, überholte Gebäude und solche, die besonderes Gelände brauchen.
+function ageRequiredBuildings(age = state.age) {
+  return Object.values(BUILDINGS).filter(d => (d.age || 0) === age && !d.isRoad && !d.landmark && !d.evolvesTo &&
+    !d.nearTerrain && !d.onTerrain && !d.isGate).map(d => d.id);
 }
 
-function advanceAge() {
+// Forschungen eines Zeitalters – alle müssen fertig sein, bevor es weitergeht
+function ageRequiredTechs(age = state.age) {
+  return Object.keys(TECHS).filter(id => techAge(id) === age);
+}
+
+// Was fehlt noch für den Aufbruch ins nächste Zeitalter?
+function ageChecklist() {
   const next = nextAge();
-  if (!next) return;
-  if (state.population < (next.need?.population || 0)) {
+  if (!next) return null;
+  const techs = ageRequiredTechs(), buildings = ageRequiredBuildings();
+  return {
+    next,
+    techs, buildings,
+    techsMissing: techs.filter(id => !state.techs.includes(id)),
+    buildingsMissing: buildings.filter(type => countFinished(type) === 0),
+    popOk: state.population >= (next.need?.population || 0),
+  };
+}
+
+function canAdvanceAge() {
+  const c = ageChecklist();
+  return !!c && !state.ageUp && c.popOk && !c.techsMissing.length && !c.buildingsMissing.length;
+}
+
+// Aufbruch beginnen: dauert next.seconds, die Waren werden dabei nach und nach geliefert
+// (so stört es nicht, wenn die Nahrung kurz unter die Kosten fällt)
+function advanceAge() {
+  const c = ageChecklist();
+  if (!c || state.ageUp) return;
+  const list = items => items.slice(0, 4).join(', ') + (items.length > 4 ? ' …' : '');
+  let problem = '';
+  if (!c.popOk) problem = `Erst ab ${c.next.need.population} Einwohnern`;
+  else if (c.techsMissing.length) problem = `Erst erforschen: ${list(c.techsMissing.map(id => `${TECHS[id].icon} ${TECHS[id].name}`))}`;
+  else if (c.buildingsMissing.length) problem = `Erst bauen: ${list(c.buildingsMissing.map(t => `${BUILDINGS[t].icon} ${BUILDINGS[t].name}`))}`;
+  if (problem) {
     sound.play('error');
-    showToast(`Erst ab ${next.need.population} Einwohnern`);
+    showToast(problem, 3000);
     return;
   }
-  if (!canAfford(next.cost)) {
-    sound.play('error');
-    showToast(`Nicht genug ${missingText(next.cost)}`);
+  state.ageUp = { done: 0, waiting: null };
+  sound.play('click');
+  showToast(`⏳ Aufbruch ins Zeitalter ${c.next.icon} ${c.next.name} hat begonnen`, 3000);
+  updateUI();
+}
+
+function updateAgeUp(dt) {
+  if (!state.ageUp) return;
+  const next = nextAge();
+  if (!next) { state.ageUp = null; return; }
+  const step = Math.min(dt, next.seconds - state.ageUp.done);
+  const share = {};
+  for (const [id, n] of Object.entries(next.cost)) share[id] = n * step / next.seconds;
+  const missing = Object.keys(share).filter(id => state.resources[id] < share[id] - 1e-6);   // Rundungsfehler zulassen
+  if (missing.length) {   // fehlt etwas, wartet der Aufbruch
+    state.ageUp.waiting = missing;
     return;
   }
-  addResources(next.cost, -1);
+  for (const [id, n] of Object.entries(share)) state.resources[id] = Math.max(0, state.resources[id] - n);
+  state.ageUp.done += step;
+  state.ageUp.waiting = null;
+  if (state.ageUp.done >= next.seconds - 1e-6) finishAgeUp();
+}
+
+function finishAgeUp() {
+  const next = nextAge();
+  state.ageUp = null;
   state.age++;
   const evolved = Object.entries(evolveBuildings())
     .map(([type, n]) => `${n}× ${BUILDINGS[type].icon} ${BUILDINGS[type].name} → ${BUILDINGS[BUILDINGS[type].evolvesTo].icon} ${BUILDINGS[BUILDINGS[type].evolvesTo].name}`);
   const fresh = Object.values(BUILDINGS).filter(def => (def.age || 0) === state.age && isUnlocked(def.id));
-  const later = Object.values(BUILDINGS).filter(def => (def.age || 0) === state.age && !isUnlocked(def.id));
+  const later = Object.values(BUILDINGS).filter(def => (def.age || 0) === state.age && !isUnlocked(def.id) && !def.evolvesTo);
   sound.play('levelup');
   showEventPopup(next.icon, `Willkommen in der Zeit: ${next.name}!`, [
     next.text,
@@ -6869,8 +7054,59 @@ function advanceAge() {
   emit('age', { age: state.age });
   showCategory(currentCategory);
   ageListKey = '';
+  techListKey = '';
   recalcStats();
   updateUI();
+}
+
+// Anteil 0–1 bis zum nächsten Zeitalter (Einwohner, Forschung, Gebäude; während des Aufbruchs dessen Fortschritt)
+function ageShare() {
+  const c = ageChecklist();
+  if (!c) return 1;
+  if (state.ageUp) return state.ageUp.done / c.next.seconds;
+  const part = (done, total) => (total ? done / total : 1);
+  return (Math.min(1, state.population / c.next.need.population) +
+    part(c.techs.length - c.techsMissing.length, c.techs.length) +
+    part(c.buildings.length - c.buildingsMissing.length, c.buildings.length)) / 3;
+}
+
+// Aufbruch-Karte (Forschung und Zeitalter-Übersicht): was fehlt, Dauer, Knopf bzw. Fortschritt
+function ageUpHtml() {
+  const c = ageChecklist();
+  if (!c) return '';
+  const { next } = c;
+  if (state.ageUp) {
+    const share = state.ageUp.done / next.seconds;
+    const wait = state.ageUp.waiting
+      ? `⏸️ Wartet auf ${state.ageUp.waiting.map(id => `${RESOURCES[id].icon} ${RESOURCES[id].name}`).join(', ')}`
+      : `⏳ noch ${secondsText(next.seconds - state.ageUp.done)}`;
+    return `<div class="quest age-up running">
+        <div class="age-title">⏳ Aufbruch: ${next.icon} ${next.name}</div>
+        <div class="quest-goal">Die Stadt wächst ins neue Zeitalter. Dafür werden nach und nach geliefert: ${formatAmounts(next.cost)}</div>
+        <div class="quest-bar"><div style="width:${Math.round(share * 100)}%"></div></div>
+        <div class="quest-foot"><span>${wait}</span><span>${Math.round(share * 100)} %</span></div>
+      </div>`;
+  }
+  const check = ok => (ok ? '✅' : '⬜');
+  const item = (ok, text) => `<span class="${ok ? 'ok' : 'missing'}">${text}</span>`;
+  const techs = c.techs.map(id => item(state.techs.includes(id), `${TECHS[id].icon} ${TECHS[id].name}`));
+  const builds = c.buildings.map(t => item(countFinished(t) > 0, `${BUILDINGS[t].icon} ${BUILDINGS[t].name}`));
+  return `<div class="quest age-up">
+      <div class="age-title">⬆️ Nächstes Zeitalter: ${next.icon} ${next.name}</div>
+      <div class="quest-goal">${next.text}</div>
+      <div class="age-need">${check(c.popOk)} 👥 ${item(c.popOk, `${state.population}/${next.need.population} Einwohner`)}</div>
+      ${techs.length ? `<div class="age-need">${check(!c.techsMissing.length)} 🔬 Alles erforschen (${c.techs.length - c.techsMissing.length}/${c.techs.length}): ${techs.join(', ')}</div>` : ''}
+      <div class="age-need">${check(!c.buildingsMissing.length)} 🏗️ Jedes Gebäude einmal bauen (${c.buildings.length - c.buildingsMissing.length}/${c.buildings.length}): ${builds.join(', ')}</div>
+      <div class="age-need">⏳ Dauer des Aufbruchs: ${secondsText(next.seconds)} · dabei werden nach und nach geliefert: ${formatAmounts(next.cost)}</div>
+      <button class="tech-start${canAdvanceAge() ? '' : ' unaffordable'}" data-advance>⬆️ Aufbruch beginnen: ${next.icon} ${next.name}</button>
+    </div>`;
+}
+
+function ageUpKey() {
+  const c = ageChecklist();
+  if (!c) return '';
+  return state.ageUp ? `run|${Math.floor(state.ageUp.done)}|${state.ageUp.waiting}`
+    : `${state.age}|${c.popOk}|${state.population}|${c.techsMissing}|${c.buildingsMissing}`;
 }
 
 // Titel oben (Zeitalter · Stadtstufe) und Balken bis zum nächsten Zeitalter
@@ -6888,14 +7124,13 @@ function updateAgeBar() {
     bar.querySelector('.ap-bar i').style.width = '100%';
     return;
   }
-  // Fortschritt: Durchschnitt aus Einwohnern und allen Kosten (je höchstens 100 %)
-  const parts = [Math.min(1, state.population / next.need.population),
-    ...Object.entries(next.cost).map(([id, n]) => Math.min(1, state.resources[id] / n))];
-  const share = parts.reduce((a, b) => a + b, 0) / parts.length;
+  const share = ageShare();
   bar.querySelector('.ap-bar i').style.width = `${Math.round(share * 100)}%`;
-  bar.querySelector('.ap-text').textContent = ready
-    ? `⬆️ Bereit für ${next.icon} ${next.name} – antippen!`
-    : `${next.icon} ${next.name}: 👥 ${state.population}/${next.need.population} · ${Math.round(share * 100)} %`;
+  bar.classList.toggle('running', !!state.ageUp);
+  bar.querySelector('.ap-text').textContent = state.ageUp
+    ? `⏳ Aufbruch: ${next.icon} ${next.name} · ${Math.round(share * 100)} %${state.ageUp.waiting ? ' ⏸️' : ''}`
+    : ready ? `⬆️ Bereit für ${next.icon} ${next.name} – antippen!`
+    : `${next.icon} ${next.name}: ${Math.round(share * 100)} %`;
 }
 
 function showAges() {
@@ -6911,25 +7146,18 @@ function closeAges() {
 
 function updateAgesUI() {
   if (agesEl.classList.contains('hidden')) return;
-  const next = nextAge();
-  const key = `${state.age}|${state.population}|${next && canAfford(next.cost) ? 1 : 0}`;
+  const key = ageUpKey();
   if (key === ageListKey) return;
   ageListKey = key;
   document.getElementById('age-list').innerHTML = AGES.map((age, i) => {
     const status = i < state.age ? 'done' : i === state.age ? 'current' : i === state.age + 1 && age.ready !== false ? 'next' : 'later';
-    const buildings = Object.values(BUILDINGS).filter(d => (d.age || 0) === i).map(d => `${d.icon} ${d.name}`);
+    const buildings = Object.values(BUILDINGS).filter(d => (d.age || 0) === i && !d.evolvesTo).map(d => `${d.icon} ${d.name}`);
     const goods = Object.values(RESOURCES).filter(r => (r.fromAge || 0) === i && i > 0).map(r => `${r.icon} ${r.name}`);
     let foot = '';
     if (status === 'done') foot = '<div class="quest-foot"><span>✅ Geschafft</span></div>';
     else if (status === 'current') foot = '<div class="quest-foot"><span>📍 Hier bist du</span></div>';
     else if (status === 'later') foot = `<div class="quest-foot"><span>${age.ready === false ? '🔜 Kommt in einem späteren Update' : '🔒 Erst das Zeitalter davor'}</span></div>`;
-    else {
-      const popOk = state.population >= (age.need?.population || 0);
-      const costParts = Object.entries(age.cost).map(([id, n]) =>
-        `<span class="${state.resources[id] >= n ? 'ok' : 'missing'}">${RESOURCES[id].icon} ${formatNumber(Math.floor(state.resources[id]))}/${n}</span>`);
-      foot = `<div class="age-need">Braucht: <span class="${popOk ? 'ok' : 'missing'}">👥 ${state.population}/${age.need.population} Einwohner</span> · ${costParts.join(' · ')}</div>
-        <button class="tech-start${canAdvanceAge() ? '' : ' unaffordable'}" data-advance>⬆️ Aufsteigen: ${age.icon} ${age.name}</button>`;
-    }
+    else foot = ageUpHtml().replace(/^<div class="quest age-up[^"]*">/, '<div>');
     return `<div class="quest age-card ${status}">
         <div class="age-title">${age.icon} ${i + 1}. ${age.name}</div>
         <div class="quest-goal">${age.text}</div>
@@ -6980,15 +7208,29 @@ function toggleSetting(key) {
 
 const researchEl = document.getElementById('research');
 const techListEl = document.getElementById('tech-list');
+const ageUpEl = document.getElementById('age-up');
 let techListKey = '';
 
 function updateResearchUI() {
   if (researchEl.classList.contains('hidden')) return;
-  const ids = Object.keys(TECHS).filter(id => techAge(id) <= state.age + 1);   // spätere Zeitalter noch nicht zeigen
-  const key = ids.map(techStatus).join(',');
+  // Oben der Aufbruch ins nächste Zeitalter, darunter die Forschung: aktuelles Zeitalter, nächstes, frühere
+  const upKey = ageUpKey();
+  if (upKey !== ageUpEl.dataset.key) {
+    ageUpEl.dataset.key = upKey;
+    ageUpEl.innerHTML = ageUpHtml() + '<button class="age-overview" data-ages>⏳ Alle Zeitalter ansehen</button>';
+  }
+  const order = age => (age === state.age ? 0 : age === state.age + 1 ? 1 : 2);
+  const ids = Object.keys(TECHS).filter(id => techAge(id) <= state.age + 1)   // spätere Zeitalter noch nicht zeigen
+    .sort((a, b) => order(techAge(a)) - order(techAge(b)));
+  const key = state.age + '|' + ids.map(techStatus).join(',');
   if (key !== techListKey) {
     techListKey = key;
+    let lastGroup = -1;
     techListEl.innerHTML = ids.map(id => {
+      const group = order(techAge(id));
+      const age = AGES[techAge(id)];
+      const head = group === lastGroup ? '' : `<div class="settings-title">${group === 2 ? '✅ Frühere Zeitalter' : `${age.icon} Forschung: ${age.name}`}</div>`;
+      lastGroup = group;
       const t = TECHS[id];
       const status = techStatus(id);
       const needs = (t.requires || []).map(r => `${TECHS[r].icon} ${TECHS[r].name}`).join(', ');
@@ -6998,7 +7240,7 @@ function updateResearchUI() {
       else if (status === 'running') foot = '<span class="tech-left"></span>';
       else if (status === 'locked') foot = `<span>🔒 Benötigt: ${needs}</span>`;
       else if (status === 'later') foot = `<span>🔒 Ab ${AGES[techAge(id)].icon} ${AGES[techAge(id)].name}</span>`;
-      return `
+      return `${head}
         <div class="quest tech ${status === 'later' ? 'locked' : status}" data-tech="${id}">
           <div class="quest-title">${t.icon} ${t.name}</div>
           <div class="quest-goal">${t.description}${unlocks.length ? ` Neu: ${unlocks.join(', ')}.` : ''}</div>
@@ -7033,6 +7275,7 @@ function showResearch() {
   closeSettings();
   researchEl.classList.remove('hidden');
   techListKey = '';
+  ageUpEl.dataset.key = '';
   updateResearchUI();
 }
 
@@ -7438,6 +7681,7 @@ function renderResourceInfo() {
   setInfoLines(lines, details);
   document.getElementById('info-demolish').classList.add('hidden');
   document.getElementById('info-upgrade').classList.add('hidden');
+  document.getElementById('info-develop').classList.add('hidden');
   document.getElementById('info-move-row').classList.add('hidden');
   document.getElementById('info-action').classList.add('hidden');
 }
@@ -7469,6 +7713,7 @@ function renderJobsInfo() {
   setInfoLines(lines);
   document.getElementById('info-demolish').classList.add('hidden');
   document.getElementById('info-upgrade').classList.add('hidden');
+  document.getElementById('info-develop').classList.add('hidden');
   document.getElementById('info-move-row').classList.add('hidden');
   document.getElementById('info-action').classList.add('hidden');
 }
@@ -7505,6 +7750,7 @@ function renderCampInfo() {
     'Kaufst du das Land, auf dem es steht, ziehen die Banditen ab.']);
   document.getElementById('info-demolish').classList.add('hidden');
   document.getElementById('info-upgrade').classList.add('hidden');
+  document.getElementById('info-develop').classList.add('hidden');
   document.getElementById('info-move-row').classList.add('hidden');
   const btn = document.getElementById('info-action');
   btn.classList.remove('hidden');
@@ -7552,6 +7798,7 @@ function renderPlotInfo() {
   setInfoLines(lines);
   document.getElementById('info-demolish').classList.add('hidden');
   document.getElementById('info-upgrade').classList.add('hidden');
+  document.getElementById('info-develop').classList.add('hidden');
   document.getElementById('info-move-row').classList.add('hidden');
   const btn = document.getElementById('info-action');
   btn.classList.toggle('hidden', !buyable);
@@ -7647,6 +7894,7 @@ function renderTileInfo() {
   actionBtn.textContent = `💧 Löschen (${formatAmounts(extinguishCost())})`;
   const refund = refundOf(cell);
   renderUpgradeButton(cell);
+  renderDevelopButton(cell);
   const movable = !def.isRoad && !def.isWall && !cell.fire;
   const [cw, ch] = sizeOf(cell);
   document.getElementById('info-move-row').classList.toggle('hidden', !movable);
@@ -7719,6 +7967,22 @@ function renderUpgradeButton(cell) {
   btn.classList.toggle('unaffordable', !canAfford(cost));
 }
 
+// Knopf „Weiterentwickeln“: Ziel, Kosten oder warum es (noch) nicht geht
+function renderDevelopButton(cell) {
+  const btn = document.getElementById('info-develop');
+  const target = BUILDINGS[cell.type].developsTo;
+  if (!target || cell.build || !infoTile) {
+    btn.classList.add('hidden');
+    return;
+  }
+  const def = BUILDINGS[target];
+  const problem = developProblem(infoTile.y * N + infoTile.x);
+  btn.classList.remove('hidden');
+  btn.classList.toggle('unaffordable', !!problem);
+  btn.textContent = !isUnlocked(target) ? `🔒 Weiterentwickeln zu ${def.icon} ${def.name}: ${lockReason(target)}`
+    : `✨ Weiterentwickeln zu ${def.icon} ${def.name} · ${formatAmounts(developCost(cell)) || 'gratis'}`;
+}
+
 function renderCityInfo() {
   const level = LEVELS[stats.level];
   const next = LEVELS[stats.level + 1];
@@ -7764,6 +8028,7 @@ function renderCityInfo() {
   action.classList.remove('unaffordable');
   action.textContent = '🏆 Stadt vollenden & neu gründen (mit Bonus)';
   document.getElementById('info-upgrade').classList.add('hidden');
+  document.getElementById('info-develop').classList.add('hidden');
   document.getElementById('info-move-row').classList.add('hidden');
   renderTaxUI();
 }

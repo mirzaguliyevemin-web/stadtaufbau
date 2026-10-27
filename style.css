@@ -1254,3 +1254,36 @@ button { touch-action: manipulation; }
   #build-info { left: 8px; right: auto; width: min(420px, calc(100% - 16px)); margin: 0; }
   #quest-tracker { top: 6px; left: 6px; padding: 5px 12px; }
 }
+
+/* ---------- Aufbruch ins nächste Zeitalter (oben in der Forschung) ---------- */
+.age-up { background: #fff3c4; box-shadow: inset 0 0 0 2px #e9c46a; display: flex; flex-direction: column; gap: 5px; }
+.age-up.running { background: #e6f0ff; box-shadow: inset 0 0 0 2px #74a9e8; }
+.age-up.running .quest-bar div { background: #1c7ed6; }
+.age-need { line-height: 1.45; }
+.age-need span.ok, .age-need span.missing { white-space: nowrap; }
+.age-need span.ok { color: #2d6a4f; font-weight: 600; }
+.age-need span.missing { color: #9a3a2a; font-weight: 600; }
+.age-overview {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #ece6d4;
+  color: #3b2a1a;
+  font-weight: 600;
+}
+#age-progress.running .ap-bar i { background: linear-gradient(#8fc3ff, #1c7ed6); }
+
+/* Weiterentwickeln (Hütte → Haus …) */
+#info-develop {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #52b788;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.3;
+}
+#info-develop.unaffordable { opacity: .6; }

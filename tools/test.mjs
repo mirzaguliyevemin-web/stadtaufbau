@@ -40,6 +40,18 @@ const PREP = `
   for (let y = 16; y < 48; y++) for (let x = 16; x < 48; x++) { state.plots[plotOf(x, y)] = true; state.terrain[y * N + x] = TERRAIN_ID.grass; }
 `;
 
+// Aufbruch ins nächste Zeitalter erzwingen: alles erforschen, fehlende Pflichtgebäude in Reihe `row` bauen, Aufbruch abwarten
+const AGE_UP = `
+  const ageUpNow = (row) => {
+    for (const id of ageRequiredTechs()) if (!state.techs.includes(id)) state.techs.push(id);
+    for (let xx = 16; xx < 48; xx++) placeBuilding(xx, row, 'road');
+    let x = 16;
+    for (const t of ageRequiredBuildings()) if (!countFinished(t)) { placeBuilding(x, row + 1, t); x += footprintSize(t)[0]; }
+    advanceAge();
+    for (let i = 0; i < 2000 && state.ageUp; i++) updateAgeUp(0.5);
+  };
+`;
+
 function noErrors(game, where) {
   assert(game.errors.length === 0, `Fehler ${where}: ` + game.errors.join(' | ').slice(0, 600));
 }
@@ -200,18 +212,23 @@ test('Zeitalter: Steinzeit, Aufstieg, Speichern', () => {
     state.resources.wood = 20; placeBuilding(35, 31, 'watertrough');
     state.population = 30; Object.assign(state.resources, { wood: 100, stone: 80, food: 100 });
     const stoneTech = techStatus('stonetools'), laterTech = techStatus('irrigation'), trough = isUnlocked('watertrough');
+    const notYet = canAdvanceAge();   // Höhlenmaler und Forschung fehlen noch
+    state.techs.push(...ageRequiredTechs()); state.resources.wood = 100; placeBuilding(36, 31, 'painter');
+    Object.assign(state.resources, { wood: 100, stone: 80, food: 100 });
     const ready = canAdvanceAge(); advanceAge();
+    const during = state.age;
+    for (let i = 0; i < 400 && state.ageUp; i++) updateAgeUp(0.5);
     const evolved = getCell(35, 31)?.type, troughGone = !isUnlocked('watertrough') && !categoryTypes('defense').includes('watertrough');
     const after = { age: state.age, house: isUnlocked('house'), money: isResourceVisible('money'), road: JSON.stringify(costOf('road')),
       food: state.resources.food, quest: questProgress(QUESTS.find(q => q.id === 'ageAntiquity')).done };
     showAges(); updateAgesUI(); render(0.016); save();
-    JSON.stringify({ before, huts, stoneBuilt, tooEarly, ready, after, stoneTech, laterTech, trough, evolved, troughGone })
+    JSON.stringify({ before, huts, stoneBuilt, tooEarly, notYet, ready, during, after, stoneTech, laterTech, trough, evolved, troughGone })
   `);
   noErrors(game, 'bei den Zeitaltern');
   const o = JSON.parse(r);
   assert(!o.before.house && o.before.hut && o.before.road === '{"wood":1}' && !o.before.money, 'Steinzeit: ' + r);
   assert(o.before.plot === 'wood,food' && o.before.quest === 'paths' && !o.before.tabs.includes('farm'), 'Steinzeit: ' + r);
-  assert(o.huts.every(Boolean) && o.stoneBuilt.every(Boolean) && o.tooEarly === 0 && o.ready, 'Aufstieg: ' + r);
+  assert(o.huts.every(Boolean) && o.stoneBuilt.every(Boolean) && o.tooEarly === 0 && !o.notYet && o.ready && o.during === 0, 'Aufstieg: ' + r);
   assert(o.after.age === 1 && o.after.house && o.after.money && o.after.road === '{"money":5}' && o.after.food === 0 && o.after.quest, 'Antike: ' + r);
   assert(o.stoneTech === 'available' && o.laterTech === 'later' && o.trough, 'Steinzeit-Forschung/Wassertrog: ' + r);
   assert(o.evolved === 'firestation' && o.troughGone, 'Wassertrog → Feuerwache: ' + r);
@@ -222,18 +239,18 @@ test('Zeitalter: Steinzeit, Aufstieg, Speichern', () => {
 
 test('Industrie und Moderne: Aufstieg und Produktionsketten', () => {
   const game = fresh({ seed: 18, age: 2 });
-  const r = game.run(`${PREP}
+  const r = game.run(`${PREP}${AGE_UP}
     for (let y = 20; y < 23; y++) for (let x = 30; x < 33; x++) state.terrain[y * N + x] = TERRAIN_ID.rock;
     stats.storage = 100000; state.maxLevel = 2;
     const rich = () => { for (const id in RESOURCES) state.resources[id] = 30000; };
     rich(); state.population = 400;
-    advanceAge(); const industry = state.age;
+    ageUpNow(40); const industry = state.age;
     rich();
     for (let x = 24; x < 46; x++) placeBuilding(x, 25, 'road');
     const coal = placeBuilding(31, 23, 'mine') && placeBuilding(30, 23, 'coalmine');
     placeBuilding(31, 24, 'road'); placeBuilding(30, 24, 'road');
     const built3 = ['steelworks', 'factory', 'tenement', 'station', 'police'].map((t, k) => placeBuilding(24 + k * 3, 26, t));
-    advanceAge(); const modern = state.age;
+    rich(); ageUpNow(43); const modern = state.age;
     rich();
     for (let x = 24; x < 46; x++) placeBuilding(x, 28, 'road');
     const built4 = ['powerplant', 'concreteworks', 'electronicsworks', 'highrise', 'supermarket', 'university'].map((t, k) => placeBuilding(24 + k * 3, 29, t));
@@ -250,6 +267,53 @@ test('Industrie und Moderne: Aufstieg und Produktionsketten', () => {
   assert(o.built3.every(Boolean) && o.built4.every(Boolean), 'Bauen: ' + r);
   assert(o.steel && o.goods && o.power && o.concrete && o.electronics, 'Produktion: ' + r);
   return 'Kohle → Stahl → Fabrikwaren, Strom → Beton/Elektronik';
+});
+
+test('Sägewerk braucht Holz, Gebäude weiterentwickeln', () => {
+  const game = fresh({ seed: 21, age: 1 });
+  const r = game.run(`${PREP}
+    Object.assign(state.resources, { money: 999, wood: 0, stone: 99, food: 99 });
+    for (let x = 20; x < 40; x++) placeBuilding(x, 30, 'road');
+    state.resources.wood = 99;
+    placeBuilding(20, 31, 'house'); placeBuilding(21, 31, 'house'); placeBuilding(22, 31, 'house');
+    placeBuilding(24, 31, 'sawmill');
+    state.population = 12; recalcStats();
+    state.resources.wood = 0;
+    for (let i = 0; i < 80; i++) update(0.25);
+    const idle = { planks: state.resources.planks, waiting: getCell(24, 31).waiting };
+    state.resources.wood = 60;
+    for (let i = 0; i < 80; i++) update(0.25);
+    const working = { planks: state.resources.planks, wood: state.resources.wood };
+    // Hütte → Haus: erst ab der Antike; Abbrechen stellt die Hütte wieder her
+    state.age = 0; state.resources.wood = 99;
+    placeBuilding(26, 31, 'hut');
+    const lockedInStone = developProblem(31 * N + 26);
+    state.age = 1;
+    const woodBefore = state.resources.wood;
+    const started = developBuilding(26, 31);
+    const during = getCell(26, 31).type, paid = woodBefore - state.resources.wood;
+    demolish(26, 31);
+    const cancelled = { type: getCell(26, 31)?.type, wood: state.resources.wood === woodBefore };
+    developBuilding(26, 31);
+    for (let i = 0; i < 20; i++) update(0.25);
+    const done = { type: getCell(26, 31).type, build: !!getCell(26, 31).build };
+    // Sammlerin → Farm wächst auf 2×2
+    placeBuilding(28, 31, 'gatherer');
+    Object.assign(state.resources, { money: 999, wood: 99 });
+    const farm = developBuilding(28, 31);
+    for (let i = 0; i < 40; i++) update(0.25);
+    const big = sizeOf(getCell(29, 32) || {}).join('×');
+    showInfo(26, 31); save();
+    JSON.stringify({ idle, working, lockedInStone, started, during, paid, cancelled, done, farm, big })
+  `);
+  noErrors(game, 'beim Sägewerk/Weiterentwickeln');
+  const o = JSON.parse(r);
+  assert(o.idle.planks === 0 && o.idle.waiting === 'input', 'Sägewerk ohne Holz: ' + r);
+  assert(o.working.planks > 0 && o.working.wood < 60, 'Sägewerk mit Holz: ' + r);
+  assert(o.lockedInStone.includes('🔒') && o.started && o.during === 'house' && o.paid > 0, 'Weiterentwickeln: ' + r);
+  assert(o.cancelled.type === 'hut' && o.cancelled.wood, 'Abbrechen: ' + r);
+  assert(o.done.type === 'house' && !o.done.build && o.farm && o.big === '2×2', 'Fertig: ' + r);
+  return 'Holz → Bretter, Hütte → Haus, Sammlerin → Farm';
 });
 
 test('Gelände: Wald, Berge, Seen mit Spielwirkung', () => {
@@ -270,10 +334,10 @@ test('Gelände: Wald, Berge, Seen mit Spielwirkung', () => {
     const woodBefore = state.resources.wood;
     const onForest = placeBuilding(forest % N, Math.floor(forest / N), 'road');
     const cleared = state.terrain[forest] === TERRAIN_ID.grass;
-    // Bonus: Sägewerk mitten im Wald
+    // Bonus: Holzfäller mitten im Wald
     state.terrain.fill(TERRAIN_ID.grass);
     state.terrain.fill(TERRAIN_ID.forest, 0, 5 * N);
-    const bonus = terrainBonusOf('sawmill', 2, 2, 2, 1);
+    const bonus = terrainBonusOf('woodcutter', 2, 2, 1, 1);
     const farmBonus = terrainBonusOf('farm', 2, 2, 2, 2);
     JSON.stringify({ forest: amounts.forest > 300, rock: amounts.rock > 80, water: amounts.water > 40, amounts,
       centerBlocked, onRock, onForest, cleared, woodGain: state.resources.wood - woodBefore, bonus, farmBonus })
@@ -329,7 +393,7 @@ test('Ressourcen-Info: Produktion und Verbrauch', () => {
     state.terrain.fill(TERRAIN_ID.grass);
     Object.assign(state.resources, { money: 9999, wood: 900, stone: 900 });
     for (let x = 24; x < 40; x++) placeBuilding(x, 32, 'road');
-    placeBuilding(24, 30, 'farm'); placeBuilding(26, 31, 'sawmill'); placeBuilding(28, 31, 'house'); placeBuilding(29, 31, 'house');
+    placeBuilding(24, 30, 'farm'); placeBuilding(26, 31, 'woodcutter'); placeBuilding(28, 31, 'house'); placeBuilding(29, 31, 'house');
     state.population = 8; recalcStats();
     const texts = {};
     for (const id in RESOURCES) { showResourceInfo(id); texts[id] = document.getElementById('info-text').textContent; }
@@ -339,7 +403,7 @@ test('Ressourcen-Info: Produktion und Verbrauch', () => {
   noErrors(game, 'bei der Ressourcen-Info');
   const o = JSON.parse(r);
   assert(o.eat === 1 && o.farm === 1, 'Nahrung: ' + r);
-  assert(o.food.includes('Farm') && o.food.includes('Einwohner essen') && o.wood.includes('Sägewerk'), 'Text: ' + r);
+  assert(o.food.includes('Farm') && o.food.includes('Einwohner essen') && o.wood.includes('Holzfäller'), 'Text: ' + r);
   return o.food.split('\n').slice(0, 2).join(' · ');
 });
 
@@ -362,9 +426,9 @@ test('Handwerk: Bier, Stoff, Werkzeug', () => {
     Object.assign(state.resources, { wool: 50, iron: 50 });
     for (let i = 0; i < 400; i++) update(0.25);
     state.resources.tools = 0;
-    const before = buildingOutput('sawmill', 1).wood;
+    const before = buildingOutput('quarry', 1).stone;
     state.resources.tools = 10;
-    const withTools = buildingOutput('sawmill', 1).wood;
+    const withTools = buildingOutput('quarry', 1).stone;
     JSON.stringify({ mineFar, mineOk, ok, beer: state.produced.beer > 0, cloth: state.produced.cloth > 0, tools: state.produced.tools > 0,
       toolBonus: Math.round(withTools / before * 100) / 100, lux: stats.factors.filter(f => /Bier|Kleidung/.test(f[0])).length })
   `);

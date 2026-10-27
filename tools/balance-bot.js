@@ -116,6 +116,12 @@ function runBalanceBot(minutes = 90) {
     return bestScore >= 3 ? best : null;
   }
 
+  // Gebäude, die für den Aufbruch ins nächste Zeitalter noch fehlen (wenn `now`)
+  function missingForAge(now) {
+    const c = ageChecklist();
+    return now && c ? c.buildingsMissing.filter(type => isUnlocked(type) && countBuildings(type) === 0) : [];
+  }
+
   // Steinzeit: Hütten, Sammlerinnen/Jäger, Holzfäller, Steinsammler, Feuerstellen – dann aufsteigen
   function stoneAge() {
     const pop = state.population, cap = stats.capacity;
@@ -140,6 +146,7 @@ function runBalanceBot(minutes = 90) {
       const slot = bestServiceSlot('watertrough');
       if (slot) tasks.push(['watertrough', slot]);
     }
+    missingForAge(pop >= 10).forEach(type => tasks.push([type]));
     let builds = 0;
     for (const [type, slot] of tasks) {
       if (builds >= 2) break;
@@ -152,9 +159,15 @@ function runBalanceBot(minutes = 90) {
     state.grid.forEach((c, i) => {
       if (c?.fire && !c.fire.brigade && canAfford(extinguishCost())) extinguish(i % N, Math.floor(i / N));
     });
-    if (canAdvanceAge()) {
-      advanceAge();
+    if (canAdvanceAge()) advanceAge();
+    if (state.age !== lastAge) {
+      lastAge = state.age;
       ageTimes[AGES[state.age].id] = +(t / 60).toFixed(1);
+    }
+    if (!state.research) {
+      const avail = Object.keys(TECHS).filter(id => techStatus(id) === 'available' && canAfford(TECHS[id].cost))
+        .sort((a, b) => (TECHS[a].cost.knowledge || 0) - (TECHS[b].cost.knowledge || 0));
+      if (avail[0]) startResearch(avail[0]);
     }
     if (state.age === 0) return stoneAge();
     const pop = state.population, cap = stats.capacity;
@@ -165,11 +178,6 @@ function runBalanceBot(minutes = 90) {
     if (stats.happiness >= 72 && state.taxLevel < 2) setTaxLevel(state.taxLevel + 1);
     else if (stats.happiness < 55 && state.taxLevel > 0) setTaxLevel(state.taxLevel - 1);
 
-    if (!state.research) {
-      const avail = Object.keys(TECHS).filter(id => techStatus(id) === 'available' && canAfford(TECHS[id].cost))
-        .sort((a, b) => (TECHS[a].cost.knowledge || 0) - (TECHS[b].cost.knowledge || 0));
-      if (avail[0]) startResearch(avail[0]);
-    }
 
     // Land dazukaufen, wenn der Platz knapp wird (nächstgelegene kaufbare Fläche)
     if (freeSlots('farm').length < 6) {
@@ -193,7 +201,8 @@ function runBalanceBot(minutes = 90) {
       for (const type of ['highrise', 'tenement']) if (isUnlocked(type)) tasks.push([type]);
       tasks.push(['house']);
     }
-    if (countBuildings('sawmill') < 1 + Math.floor(houses / 6)) tasks.push(['sawmill']);
+    if (countBuildings('woodcutter') < 2 + Math.floor(houses / 4)) tasks.push(['woodcutter']);
+    if (houses >= 4 && countBuildings('sawmill') < 1 + Math.floor(pop / 80)) tasks.push(['sawmill']);
     if (houses >= 2 && countBuildings('market') < 1 + Math.floor(pop / 40)) tasks.push(['market']);
     if (houses >= 2 && countBuildings('quarry') < 1 + Math.floor(houses / 8)) tasks.push(['quarry']);
     // Lager nur, wenn Platz wirklich gebraucht wird: für die nächste Sehenswürdigkeit oder wenn Holz überläuft
@@ -204,7 +213,6 @@ function runBalanceBot(minutes = 90) {
     if (houses >= 3 && countBuildings('scriptorium') < 1 + Math.floor(pop / 50)) tasks.push(['scriptorium']);
     if (isUnlocked('library') && countBuildings('library') < 1) tasks.push(['library']);
     if (isUnlocked('bakery') && countBuildings('bakery') < 1 + Math.floor(pop / 60)) tasks.push(['bakery']);
-    if (isUnlocked('carpentry') && countBuildings('carpentry') < 1 + Math.floor(pop / 80)) tasks.push(['carpentry']);
     if (isUnlocked('brickworks') && countBuildings('brickworks') < 1 + Math.floor(pop / 80)) tasks.push(['brickworks']);
     // Weitere Handwerksketten ab 50 Einwohnern: Bier, Wolle → Stoff, Eisen → Werkzeug
     if (pop >= 50) {
@@ -231,6 +239,8 @@ function runBalanceBot(minutes = 90) {
       if (countBuildings('supermarket') < Math.floor(pop / 250)) tasks.push(['supermarket']);
       if (countBuildings('university') < 1) tasks.push(['university']);
     }
+    // Für den Aufbruch fehlende Gebäude (je eins), sobald die Stadt groß genug ist
+    missingForAge(pop >= (nextAge()?.need.population || 0) * 0.6).forEach(type => tasks.unshift([type]));
     // Die erste Anlage jeder neuen Kette hat Vorrang (sonst belegen Häuser und Lager alle Baustellen)
     const firsts = ['coalmine', 'steelworks', 'factory', 'station', 'powerplant', 'concreteworks', 'electronicsworks', 'university'];
     for (const type of firsts) {
@@ -238,7 +248,7 @@ function runBalanceBot(minutes = 90) {
     }
     // Viele Arbeitslose: zusätzliche Betriebe bauen (wie ein Spieler auf die Warnung reagiert)
     if (pop >= 20 && stats.unemployed / pop > CONFIG.unemploymentTolerance) {
-      const options = ['sawmill', 'quarry', 'carpentry', 'brickworks', 'bakery', 'market'].filter(isUnlocked);
+      const options = ['woodcutter', 'quarry', 'sawmill', 'brickworks', 'bakery', 'market'].filter(isUnlocked);
       tasks.push([options[Math.floor(t / 2) % options.length]]);
     }
     for (const type of ['park', 'firestation', 'well', 'school', 'guard', 'hospital', 'police', 'stadium']) {
@@ -270,7 +280,7 @@ function runBalanceBot(minutes = 90) {
     // Ausbauen: Häuser bei Wohnungsnot, sonst Betriebe – vor allem wenn das Land knapp wird
     if (state.maxLevel >= 1 && freeSlots('farm').length < 12) {
       const wantHouses = pop >= cap - 2;
-      const types = wantHouses ? ['house'] : ['farm', 'sawmill', 'quarry', 'market', 'carpentry', 'brickworks', 'bakery', 'scriptorium', 'house'];
+      const types = wantHouses ? ['house'] : ['farm', 'woodcutter', 'quarry', 'market', 'sawmill', 'brickworks', 'bakery', 'scriptorium', 'house'];
       let best = null;
       state.grid.forEach((c, i) => {
         if (!c || !types.includes(c.type) || levelOf(c) >= MAX_BUILDING_LEVEL) return;
@@ -293,7 +303,7 @@ function runBalanceBot(minutes = 90) {
   }
 
   const DT = 0.25, TOTAL = minutes * 60;
-  let t = 0, nextDecision = 0, nextSnap = 0, techCount = 0;
+  let t = 0, nextDecision = 0, nextSnap = 0, techCount = 0, lastAge = state.age;
   const milestones = {}, techTimes = [], questTimes = [], landmarkTimes = {}, ageTimes = {};
   let lowHappy = 0, starving = 0, freezing = 0;
   const wall = performance.now();

@@ -11,8 +11,15 @@ function setLoading(progress) {
   if (bar) bar.style.width = Math.round(progress * 100) + '%';
 }
 
+// Logo-Bild statt Text-Logo (sobald Emins Schriftzug geladen ist)
+function showLogo() {
+  if (!images.logo) return;
+  for (const id of ['loading-logo', 'start-logo']) $(id).innerHTML = `<img src="${IMAGE_DIR}logo.webp" alt="Epochia">`;
+}
+
 async function preloadImages() {
-  const names = imageNames();
+  if (await loadImage('logo')) showLogo();   // Logo zuerst, damit es schon im Ladefenster steht
+  const names = imageNames().filter(n => n !== 'logo');
   let done = 0;
   await Promise.all(names.map(n => loadImage(n).then(() => setLoading(++done / names.length))));
 }

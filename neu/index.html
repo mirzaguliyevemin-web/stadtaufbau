@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="app-version" content="3">
+  <meta name="app-version" content="4">
   <meta name="theme-color" content="#3d7a2a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -17,7 +17,7 @@
 <body>
   <!-- Ladefenster -->
   <div id="loading" class="screen">
-    <div class="logo">Epochia</div>
+    <div class="logo" id="loading-logo">Epochia</div>
     <div class="load-track"><div id="loading-bar"></div></div>
     <p id="loading-text">…</p>
   </div>
@@ -25,7 +25,7 @@
   <!-- Startseite -->
   <div id="start" class="screen hidden">
     <div class="start-sky"></div>
-    <div class="logo">Epochia</div>
+    <div class="logo" id="start-logo">Epochia</div>
     <p class="tagline">Vom ersten Feuer bis zur großen Stadt</p>
     <div class="start-buttons">
       <button class="btn primary big" id="start-continue" onclick="enterGame()">▶ Start</button>

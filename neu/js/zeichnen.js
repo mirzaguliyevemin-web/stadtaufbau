@@ -50,7 +50,7 @@ function measureCorner(img) {
 }
 
 function imageNames() {
-  const names = new Set(['start', 'ladebild', 'aeltester-1', 'baum-laub', 'baum-tanne', 'fels-gross', 'fels-klein']);
+  const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'fels-gross', 'fels-klein']);
   for (const b of Object.values(BUILDINGS)) if (b.bild) names.add(b.bild);
   return [...names];
 }

@@ -95,6 +95,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   -webkit-text-stroke: 2px #7a4e2a;
   text-shadow: 0 4px 0 #7a4e2a, 0 8px 18px rgba(0, 0, 0, 0.35);
 }
+.logo img { display: block; width: min(560px, 62vw); max-height: 34vh; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35)); }
 .tagline { margin: 4px 0 18px; color: #fff; font-weight: bold; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45); }
 .load-track { width: min(420px, 70vw); height: 16px; border-radius: 10px; background: rgba(0, 0, 0, 0.3); overflow: hidden; margin-top: 18px; border: 2px solid rgba(255, 255, 255, 0.6); }
 #loading-bar { height: 100%; width: 0; background: linear-gradient(#ffe47a, #f2a832); transition: width 0.2s; }
@@ -254,8 +255,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   max-width: min(440px, 70vw);
   pointer-events: auto;
 }
-#tutorial .elder { flex: none; width: 76px; height: 76px; border-radius: 50%; background: #fff3cf; border: 3px solid var(--wood); display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: var(--shadow); }
-#tutorial .elder img { width: 100%; height: 100%; object-fit: cover; }
+#tutorial .elder { flex: none; width: 96px; height: 96px; border-radius: 50%; background: #fff3cf; border: 3px solid var(--wood); display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: var(--shadow); }
+#tutorial .elder img { width: 135%; height: 135%; object-fit: cover; object-position: 50% 15%; }
 #tutorial .elder .emoji { font-size: 50px; }
 #tutorial .speech { background: var(--paper); border-radius: 16px; padding: 8px 12px; box-shadow: var(--shadow); border: 2px solid var(--paper-dark); font-size: 14px; }
 #tutorial .speech p { margin: 3px 0; }
@@ -390,7 +391,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .ic.big { width: 38px; height: 38px; line-height: 38px; font-size: 27px; }
   .bar-item { width: 82px; }
   #tutorial { bottom: 98px; }
-  #tutorial .elder { width: 60px; height: 60px; }
+  #tutorial .elder { width: 80px; height: 80px; }
   #tutorial .elder .emoji { font-size: 40px; }
   #tutorial .speech { font-size: 13px; }
   .node { height: 64px; }

@@ -269,7 +269,7 @@ Gewünscht:
   + „Aufbruch in die Bronzezeit – kommt bald“), **Einstieg mit dem Stammesältesten** (9 Schritte), Aufträge,
   tägliche Belohnung (7-Tage-Reihe), Offline-Fortschritt (bis 8 h), Export/Import.
 - Alle Gebäude, Waren, Bedürfnisse und Forschungen der Steinzeit sind schon drin (Zahlen aus `epoche-1-steinzeit.md`,
-  kleine Abweichungen dort vermerkt). Bilder: Lagerfeuer, Wohnhöhle, Sammlerin, Fellzelt, Jägerlager, Mammutjägerlager, Holzsammler, Startseite, Ladebild, App-Icon – der Rest sind Platzhalter.
+  kleine Abweichungen dort vermerkt). Bilder: Lagerfeuer, Wohnhöhle, Sammlerin, Fellzelt, Jägerlager, Mammutjägerlager, Holzsammler, Steinsammler, Höhlenmaler, Feuerplatz, Fischerplatz, Fellmacherin, Steinschläger, Grubenhaus, Ahnenplatz, Acker, Stammesältester, Logo, Startseite, Ladebild, App-Icon – der Rest sind Platzhalter.
 - **Tests**: `node neu/tools/test.mjs` (24 Tests + Bot), läuft auch in `node tools/test.mjs` mit.
 - **Bot** (`node neu/tools/bot.mjs 90 3`): Mittelsteinzeit ≈ 21 min, Jungsteinzeit ≈ 38 min, Kupferfund ≈ 73 min.
   Ziel war 45–60 min für echte Spieler → noch zu lang. Die reinen Forschungszeiten ergeben schon ≈ 47 min;

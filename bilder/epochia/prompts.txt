@@ -16,7 +16,7 @@ A calm cheerful loading screen illustration: a single campfire at dusk on a gree
 ✅ ERLEDIGT – 6̶.̶ ̶A̶p̶p̶-̶I̶c̶o̶n̶ ̶(̶1̶0̶2̶4̶×̶1̶0̶2̶4̶)̶  →  Datei: icon.png
 App icon for a cozy city building game about the ages of humanity: a cheerful round emblem with a small campfire and a stone age hut in front, behind them a castle tower and a modern skyscraper rising like steps toward a bright sun, green hill, blue sky, bright cheerful cartoon style, soft warm colors, clean outlines, all important parts inside the central 70 percent, the sky background color fills the whole square to all edges, no text, no letters, no border, square 1:1, 1024x1024
 
-7. Stammesältester (Steinzeit, für den Einstieg)  →  Datei: aeltester-1.png
+✅ ERLEDIGT – 7̶.̶ ̶S̶t̶a̶m̶m̶e̶s̶ä̶l̶t̶e̶s̶t̶e̶r̶ ̶(̶S̶t̶e̶i̶n̶z̶e̶i̶t̶,̶ ̶f̶ü̶r̶ ̶d̶e̶n̶ ̶E̶i̶n̶s̶t̶i̶e̶g̶)̶  →  Datei: aeltester-1.png
 Character portrait for a cozy mobile game: a friendly old stone age tribal elder, long grey beard, warm smile, kind eyes, fur cloak, necklace of bone and wooden beads, holding a wooden staff with feathers, waving one hand, upper body, facing the viewer slightly turned, bright cheerful cartoon style, soft warm colors, clean dark brown outlines, plain pure white background, no text, square 1:1
 
 ✅ ERLEDIGT – 8̶.̶ ̶F̶e̶l̶l̶z̶e̶l̶t̶ ̶(̶2̶×̶2̶)̶  →  Datei: 1-fellzelt.png
@@ -46,16 +46,16 @@ Stone age, prehistoric, everything made of wood, stone, bones, leather and furs,
 ✅ ERLEDIGT – 1̶6̶.̶ ̶F̶e̶l̶l̶m̶a̶c̶h̶e̶r̶i̶n̶ ̶(̶2̶×̶2̶)̶  →  Datei: 1-fellmacherin.png
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A fur workshop: furs stretched on wooden frames, a small hut with a fur roof, bone needles and fur clothes hanging on a line, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 
-17. Steinschläger (2×2)  →  Datei: 1-steinschlaeger.png
+✅ ERLEDIGT – 1̶7̶.̶ ̶S̶t̶e̶i̶n̶s̶c̶h̶l̶ä̶g̶e̶r̶ ̶(̶2̶×̶2̶)̶  →  Datei: 1-steinschlaeger.png
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A flint knapper's workplace: a big flat stone as workbench, stone axes, knives and arrowheads laid out, a basket of flint, a small roof of branches, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 
-18. Grubenhaus (2×2)  →  Datei: 1-grubenhaus.png
+✅ ERLEDIGT – 1̶8̶.̶ ̶G̶r̶u̶b̶e̶n̶h̶a̶u̶s̶ ̶(̶2̶×̶2̶)̶  →  Datei: 1-grubenhaus.png
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A small pit house half sunk into the ground with a steep thatched roof of reeds reaching the ground, a small wooden door, firewood beside it, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 
-19. Ahnenplatz (3×3)  →  Datei: 1-ahnenplatz.png
+✅ ERLEDIGT – 1̶9̶.̶ ̶A̶h̶n̶e̶n̶p̶l̶a̶t̶z̶ ̶(̶3̶×̶3̶)̶  →  Datei: 1-ahnenplatz.png
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A peaceful ancestors' place in nature: carved wooden totem poles with friendly faces, a circle of small standing stones, flowers and offerings of fruit, a small fire bowl, medium plot (3x3). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 
-20. Acker (3×3)  →  Datei: 1-acker.png
+✅ ERLEDIGT – 2̶0̶.̶ ̶A̶c̶k̶e̶r̶ ̶(̶3̶×̶3̶)̶  →  Datei: 1-acker.png
 Neolithic, early farmers, wood, clay, thatch and stone, no metal. A small early field with rows of golden wheat and some green plants, a low wattle fence, a wooden digging stick and a basket, medium plot (3x3). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 
 21. Ziegengehege (3×3)  →  Datei: 1-ziegengehege.png
@@ -229,7 +229,7 @@ A night sky with stars over a standing stone. Style: round game icon, bright che
 77. Kupferfund  →  Datei: f-kupfer.png
 A shiny orange copper nugget on a stone. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-78. Logo-Schriftzug (breit 3:1)  →  Datei: logo.png
+✅ ERLEDIGT – 7̶8̶.̶ ̶L̶o̶g̶o̶-̶S̶c̶h̶r̶i̶f̶t̶z̶u̶g̶ ̶(̶b̶r̶e̶i̶t̶ ̶3̶:̶1̶)̶  →  Datei: logo.png
 Game logo for a cozy city building game, the single word "Epochia" written in big bold rounded cartoon letters, exactly these 7 letters E-p-o-c-h-i-a, correct spelling, letters look carved from warm golden sandstone with a thick dark brown outline and a soft 3D bevel, the letter "o" is a small glowing campfire inside a stone ring, a tiny green leaf sprouting from the dot of the "i", subtle hint of time passing from rough stone on the left to polished smooth on the right, cheerful bright mobile game title style, soft warm sunny colors, centered, wide horizontal format 3:1, plain pure white background, no other text, no extra letters, no border, no scenery
 
 79. Leeres Schriftband (breit 4:1)  →  Datei: band.png

@@ -154,12 +154,22 @@ erwähnen (Funk, Raumfahrt, Computer), ohne Krieg im Spiel.
 
 ## 6 · Größere Gebäude
 
-Gewünscht: Gebäude sind zu klein. ❓ Emin schickt ein Beispielbild aus einem anderen Spiel (Ordner `Fehler`).
+Gewünscht: Gebäude sind zu klein. Emin hat am 2026-10-28 drei Beispielbilder aus einem anderen Handy-Aufbauspiel
+geschickt (als Vorbild für Größe und Stimmung, nicht zum Nachbauen).
 
-💡 Möglichkeiten (sobald das Beispiel da ist, entscheiden):
-- Gebäude **belegen mehr Felder** (z. B. Hütte 2×2, Farm 3×3, Tempel 4×4) – sieht großzügiger aus.
-- Die Bilder ragen in der Schrägansicht **höher** über ihr Feld hinaus.
-- Größerer Start-Zoom, weniger Felder auf einmal sichtbar.
+Was man auf den Beispielen sieht:
+- Schrägansicht, Raute doppelt so breit wie hoch; nah herangezoomt – quer passen nur etwa **8–12 Gebäude** auf
+  den Bildschirm, jedes Gebäude ist groß und detailreich (Fenster, Zäune, Säcke, Tiere, Menschen davor).
+- Gebäude stehen auf einem **eigenen Grundstück** (Rasen, Zaun, Hof) – das Grundstück gehört zum Gebäude.
+- Breite Straßen, viel sattes Grün, Blumen, Bäume als Lückenfüller; kräftige, helle Farben.
+- Über arbeitenden Gebäuden **Sprechblasen** mit dem, was sie herstellen (Milch, Käse, Pullover).
+- Beim Verschieben/Kaufen: Gebäude schwebt mit **grünen Eckmarken** am Boden, unten ein Feld
+  „Kaufen für 160“ mit **✖ · ↻ · ✔**.
+
+💡 Vorschlag daraus:
+- Gebäude **belegen mehr Felder** (kleine 2×2, mittlere 3×3, große 4×4) und das Bild enthält das Grundstück.
+- **Start-Zoom näher** (etwa 10 Felder quer), Herauszoomen bleibt möglich.
+- Sprechblasen über Gebäuden für das, was gerade hergestellt wird (ersetzt die schwebenden Zahlen).
 
 ---
 
@@ -217,8 +227,9 @@ Gewünscht:
   öffnet sich das große Fenster (Arbeiter, Weiterentwickeln, Abreißen).
 - Hochheben: nach ca. 0,4 s halten wackelt das Gebäude kurz und schwebt mit Schatten; daneben erscheinen
   **↻ Drehen**, **✔ Abstellen**, **✖ Zurück**.
-- Drehen: 💡 **2 Richtungen** (Bild gespiegelt) – kostet keine zusätzlichen Bilder. 4 Richtungen bräuchten
-  je Gebäude 2 weitere Bilder (Rückseiten). ❓ Reichen 2 Richtungen?
+- Drehen: 💡 **2 Richtungen** (Bild gespiegelt) – kostet keine zusätzlichen Bilder; so macht es auch das
+  Beispielspiel (↻-Knopf). 4 Richtungen bräuchten je Gebäude 2 weitere Bilder (Rückseiten). ❓ Reichen 2 Richtungen?
+- Unten beim Bauen/Verschieben ein Feld wie im Beispiel: Preis + **✖ · ↻ · ✔** (große, runde Knöpfe).
 - Karte verschieben: mit dem Finger auf freiem Gelände ziehen; Zoomen mit zwei Fingern (wie jetzt).
 
 ---

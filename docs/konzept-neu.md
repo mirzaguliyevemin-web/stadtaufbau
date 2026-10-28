@@ -1,4 +1,4 @@
-# Neues Konzept (Neustart) – Plan
+# Epochia – neues Konzept (Plan)
 
 Begonnen am 2026-10-28 mit Emin. **Noch nichts davon ist gebaut.** Wir reden jeden Punkt durch, tragen
 die Entscheidungen hier ein und bauen dann **Epoche für Epoche**: erst das Fundament + die erste Epoche,
@@ -33,7 +33,10 @@ Das neue Spiel bekommt eigene Speicherplätze (`stadtaufbau2-…`), die alten St
 Während wir bauen, liegt das neue Spiel unter einer eigenen Adresse (z. B. `…/stadtaufbau/neu/`), damit
 du es am Handy testen kannst, ohne dass das alte Spiel kaputtgeht. Wenn die erste Epoche gut ist, wird
 das neue Spiel die Hauptadresse.
-❓ Einverstanden? Sollen alte Städte ins neue Spiel übernommen werden – oder fängt jeder neu an (einfacher)?
+✅ 2026-10-28: **Komplett neu anfangen** – alte Städte waren zum Testen und werden nicht übernommen.
+Das neue Spiel bekommt trotzdem eigene Speicherplätze und wird bis zur fertigen ersten Epoche unter `…/neu/` gebaut,
+damit das Spiel unter der Hauptadresse nie halb fertig ist. `CLAUDE.md` (Regeln zu alten Spielständen und für den
+täglichen Agenten) wird beim Bauen an das neue Spiel angepasst.
 
 ---
 
@@ -68,14 +71,16 @@ Gewünscht: Ab einer bestimmten Epoche wählt man eine Religion; danach ändern 
 - 💡 Nur die religiösen Gebäude (und vielleicht ein paar Schmuckstücke) ändern sich, nicht jedes Haus –
   sonst bräuchte jede Religion einen kompletten eigenen Bildersatz (Bildanzahl × Religionen).
 
-❓ Welche Religionen? Möglichkeiten:
+✅ 2026-10-28: **A – echte Weltreligionen.** Die Möglichkeiten waren:
 - **A – echte Weltreligionen** (z. B. Christentum, Islam, Judentum, Buddhismus, Hinduismus). Dann gestalten wir
   alles respektvoll und gleichwertig, kein Glaube ist „besser“; die Vorteile sind nur kleine Spielunterschiede.
 - **B – Götterwelten der Antike** (ägyptisch, griechisch-römisch, nordisch, mesopotamisch) in der Antike,
   und ab dem Mittelalter echte Weltreligionen.
 - **C – ausgedachte Religionen** (z. B. Sonnenorden, Mondbund, Erdkreis) – frei gestaltbar, keine heiklen Stellen.
 
-❓ Kann man die Religion später wechseln (z. B. mit Reformation in der Frühen Neuzeit)?
+💡 Auswahl: Christentum, Islam, Judentum, Buddhismus, Hinduismus – je mit eigenem Gotteshaus (Kirche, Moschee,
+Synagoge, Pagode/Stupa, Mandir) und eigenen Bildern; alle gleich stark, nur unterschiedliche kleine Vorteile.
+❓ Passt die Auswahl? Kann man die Religion später wechseln?
 
 ---
 
@@ -95,8 +100,7 @@ Gewünscht: Man sieht alle Forschungen, muss aber erst die vorherigen erforschen
   Äste nebeneinander (z. B. Nahrung · Bauen · Handwerk · Wissen/Glaube · Verteidigung).
 - Im Code gibt es schon `requires` (Voraussetzungen) – das wird zum Baum ausgebaut.
 
-❓ Soll Forschung weiter **Wissen** kosten (das Gelehrte erzeugen) und Zeit dauern – oder nur Zeit?
-❓ Gleichzeitig nur **eine** Forschung, oder mehrere?
+✅ 2026-10-28: Forschung kostet **Wissen und Zeit**; es läuft immer nur **eine** Forschung gleichzeitig.
 
 ---
 
@@ -148,7 +152,7 @@ Früh-/Hoch-/Spätmittelalter) sind **Stufen im Forschungsbaum** mit ein paar ne
 
 💡 Weltkriege/Kalter Krieg: Für ein **fröhliches, ruhiges** Spiel (Punkt 8) eher nur als Forschung/Technik
 erwähnen (Funk, Raumfahrt, Computer), ohne Krieg im Spiel.
-❓ Sollen die Unterteilungen eigene Epochen sein (dann 12 Epochen und deutlich mehr Bilder) – oder Stufen wie vorgeschlagen?
+✅ 2026-10-28: **8 Epochen**, die Unterteilungen sind Stufen im Forschungsbaum (wie vorgeschlagen).
 
 ---
 
@@ -194,8 +198,7 @@ Gebraucht werden außerdem:
 - **Gelände** je Epoche/Jahreszeit (Gras-Raute, Wasser, Sand, Bäume, Felsen), **Forschungs-Bildchen** (klein, rund).
 - **Sounds**: Hintergrundmusik je Epoche (ruhige Schleife, 1–3 Min.), Natur-Geräusche (Vögel, Wasser, Wind,
   Grillen nachts), Klicks/Knöpfe, „Bau fertig“, „Forschung fertig“, „Neue Epoche“ und ein Geräusch je Gebäude
-  beim Antippen. ❓ Womit erzeugst du Sounds (z. B. ElevenLabs für Geräusche, Suno für Musik)? Dann passe ich die
-  Prompts an das Werkzeug an. Format für uns: MP3 oder OGG.
+  beim Antippen. ❓ Womit Emin Sounds erzeugt, entscheidet er später – dann passe ich die Prompts an das Werkzeug an. Format für uns: MP3 oder OGG.
 
 ---
 
@@ -207,8 +210,7 @@ Gebraucht werden außerdem:
 - Kleine lebendige Dinge: Vögel, Schmetterlinge, Rauch aus Schornsteinen, winkende Menschen, Tiere auf Weiden.
 - Kein Zeitdruck, kein Verlieren.
 
-❓ Jetzt gibt es **Banditen, Brände und Seuchen**. Behalten, abschwächen (z. B. nur kleine Ereignisse, die man
-mit einem Tipp löst) oder ganz weglassen?
+✅ 2026-10-28: **Banditen, Brände und Seuchen fallen weg.** (Damit entfallen auch Wachen, Feuerwache, Mauerkampf.)
 
 ---
 
@@ -221,14 +223,14 @@ Gewünscht:
 - **Drücken und halten:** Gebäude hebt sich, schwebt; frei verschieben und drehen.
 
 💡 Vorschlag zu den Einzelheiten:
-- Beim Ziehen zeigt die Raute **grün** (passt) oder **rot** (passt nicht). Loslassen auf Grün →
-  Baustelle beginnt sofort. ❓ Oder nach dem Loslassen noch ein ✔ zum Bestätigen (schützt vor Versehen)?
+- Beim Ziehen zeigt die Raute **grün** (passt) oder **rot** (passt nicht). Nach dem Loslassen
+  kommt ✔ zum Bestätigen (✅ 2026-10-28).
 - Kleine Info: verschwindet nach ein paar Sekunden oder beim nächsten Tippen; tippt man **auf die Info**,
   öffnet sich das große Fenster (Arbeiter, Weiterentwickeln, Abreißen).
 - Hochheben: nach ca. 0,4 s halten wackelt das Gebäude kurz und schwebt mit Schatten; daneben erscheinen
   **↻ Drehen**, **✔ Abstellen**, **✖ Zurück**.
 - Drehen: 💡 **2 Richtungen** (Bild gespiegelt) – kostet keine zusätzlichen Bilder; so macht es auch das
-  Beispielspiel (↻-Knopf). 4 Richtungen bräuchten je Gebäude 2 weitere Bilder (Rückseiten). ❓ Reichen 2 Richtungen?
+  Beispielspiel (↻-Knopf). 4 Richtungen bräuchten je Gebäude 2 weitere Bilder (Rückseiten). ✅ 2026-10-28: 2 Richtungen.
 - Unten beim Bauen/Verschieben ein Feld wie im Beispiel: Preis + **✖ · ↻ · ✔** (große, runde Knöpfe).
 - Karte verschieben: mit dem Finger auf freiem Gelände ziehen; Zoomen mit zwei Fingern (wie jetzt).
 
@@ -236,7 +238,7 @@ Gewünscht:
 
 ## 10 · Spielname
 
-❓ Gefällt dir eine Richtung? (Danach prüfen wir, ob der Name schon von einem bekannten Spiel benutzt wird.)
+✅ 2026-10-28: Das Spiel heißt **Epochia**. Ladefenster, Startseite und App-Icon werden dazu passend gestaltet.
 
 | Name | Idee |
 |---|---|
@@ -265,3 +267,6 @@ Gewünscht:
 
 <!-- Hier wird jede Entscheidung mit Datum eingetragen -->
 - 2026-10-28: Neustart beschlossen; vorhandene Spiellogik wird weiterverwendet; gebaut wird Epoche für Epoche.
+- 2026-10-28: Name **Epochia** · komplett neu, alte Städte nicht übernehmen · 8 Epochen, Unterteilungen als
+  Forschungsstufen · echte Weltreligionen · keine Banditen/Brände/Seuchen · Bauen mit ✔ · 2 Drehrichtungen ·
+  Forschung kostet Wissen + Zeit, eine gleichzeitig · Sound-Werkzeug entscheidet Emin später.

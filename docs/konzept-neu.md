@@ -253,6 +253,10 @@ Gewünscht:
 
 ---
 
+## Epochen im Detail
+
+- Epoche 1 Steinzeit: [`docs/epoche-1-steinzeit.md`](epoche-1-steinzeit.md) (Entwurf)
+
 ## Reihenfolge zum Bauen
 
 1. **Alle Punkte oben mit Emin entscheiden** (diese Datei).

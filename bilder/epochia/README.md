@@ -8,7 +8,7 @@ Jeder Kasten ist ein **kompletter Prompt** – einfach ganz kopieren. Erledigtes
 Grundstück stimmen, nehmen wir das beste Bild als **Stil-Vorlage** (bei den meisten Bild-KIs kann man ein
 Referenzbild mitgeben) und erzeugen alle weiteren damit.
 
-**Stand 2026-10-28:** Gruppe A, Startseite, Ladebild, App-Icon, Fellzelt, Jägerlager, Mammutjägerlager und Holzsammler sind fertig und eingebaut – Stil, Blickwinkel und Grasplatte mit
+**Stand 2026-10-28:** Gruppe A, Startseite, Ladebild, App-Icon, Fellzelt, Jägerlager, Mammutjägerlager, Holzsammler, Steinsammler, Höhlenmaler, Feuerplatz, Fischerplatz und Fellmacherin sind fertig und eingebaut – Stil, Blickwinkel und Grasplatte mit
 Erdsockel passen. Lagerfeuer, Wohnhöhle und Sammlerin sind die **Stil-Vorlage** für alle weiteren Gebäude. Dateinamen sind egal
 (Claude benennt um); die Originale liegen danach in `quelle/`, das Spiel nutzt die verkleinerten `.webp`
 (`python3 neu/tools/bild-einbauen.py …`). Fehlt ein Bild, zeigt das Spiel einen einfachen Platzhalter.
@@ -90,19 +90,19 @@ Stone age, prehistoric, everything made of wood, stone, bones, leather and furs,
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A woodgatherer's spot: a stack of branches and logs, a stone axe stuck in a tree stump, a small shelter of branches, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Steinsammler (2×2)** → `1-steinsammler.png`
+- [x] **Steinsammler (2×2)** → `1-steinsammler.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A stone gatherer's spot: piles of grey stones and flint, a wooden sled with stones, a stone hammer, a few boulders, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Höhlenmaler (2×2)** → `1-hoehlenmaler.png`
+- [x] **Höhlenmaler (2×2)** → `1-hoehlenmaler.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A rock wall with colorful cave paintings of animals and hand prints, pots of red and ochre paint, a small fire for light, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Feuerplatz (2×2)** → `1-feuerplatz.png`
+- [x] **Feuerplatz (2×2)** → `1-feuerplatz.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A small fire place: a little campfire in a stone ring, two log benches, a pot hanging over the fire, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
@@ -110,13 +110,13 @@ Stone age, prehistoric, everything made of wood, stone, bones, leather and furs,
 
 ## Gruppe D – Gebäude Mittelsteinzeit
 
-- [ ] **Fischerplatz mit Einbaum (2×2, am Wasser)** → `1-fischerplatz.png`
+- [x] **Fischerplatz mit Einbaum (2×2, am Wasser)** → `1-fischerplatz.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A fishing spot at a river bank: a dugout canoe made from a tree trunk, fishing spears and woven fish traps, fish drying on a rack; the back half of the plot is blue water, the front half grass, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Fellmacherin (2×2)** → `1-fellmacherin.png`
+- [x] **Fellmacherin (2×2)** → `1-fellmacherin.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A fur workshop: furs stretched on wooden frames, a small hut with a fur roof, bone needles and fur clothes hanging on a line, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
@@ -499,3 +499,29 @@ A night sky with stars over a standing stone. Style: round game icon, bright che
 ```
 A shiny orange copper nugget on a stone. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
+
+## Gruppe J – Schrift (Logo und Schriftband)
+
+Bild-KIs verschreiben sich bei Text gern – bitte genau prüfen, dass **„Epochia“** richtig dasteht (7 Buchstaben).
+Wenn ein Buchstabe falsch ist: einfach neu erzeugen. Weißer Hintergrund wird freigestellt.
+
+- [ ] **Logo-Schriftzug (breit 3:1)** – für Startseite und Ladefenster → `logo.png`
+
+```
+Game logo for a cozy city building game, the single word "Epochia" written in big bold rounded cartoon letters, exactly these 7 letters E-p-o-c-h-i-a, correct spelling, letters look carved from warm golden sandstone with a thick dark brown outline and a soft 3D bevel, the letter "o" is a small glowing campfire inside a stone ring, a tiny green leaf sprouting from the dot of the "i", subtle hint of time passing from rough stone on the left to polished smooth on the right, cheerful bright mobile game title style, soft warm sunny colors, centered, wide horizontal format 3:1, plain pure white background, no other text, no extra letters, no border, no scenery
+```
+
+- [ ] **Leeres Schriftband (breit 4:1)** – das Spiel schreibt darauf z. B. „Neue Epoche!“, „Erforscht!“, „Bau fertig!“ → `band.png`
+
+```
+Decorative empty banner for a cozy mobile game: a wide ribbon made of tan leather stretched between two wooden sticks tied with rope, small bone and feather decorations at both ends, the middle of the ribbon is completely empty and flat for text to be added later, bright cheerful cartoon style, soft warm colors, clean dark brown outlines, gentle shading, centered, wide horizontal format 4:1, plain pure white background, no text, no letters, no symbols on the ribbon, no border
+```
+
+- [ ] **Logo rund (1:1)** – kleine Variante, z. B. für das Ladefenster am hochkant gehaltenen Handy → `logo-rund.png`
+
+```
+Small game logo badge for a loading screen: the word "Epochia" in big bold rounded golden sandstone cartoon letters with thick dark brown outline, exactly these 7 letters E-p-o-c-h-i-a, correct spelling, placed on a round stone tablet with a small campfire below the letters, cheerful bright mobile game style, soft warm colors, centered, square 1:1 format, plain pure white background, no other text, no border
+```
+
+Die Schrift für alle Texte im Spiel (Knöpfe, Fenster) ist eine echte Schriftart, kein Bild – Vorschlag: **Fredoka**
+(rund, fröhlich, gut lesbar, frei nutzbar). Claude baut sie ein, sobald Emin zustimmt.

@@ -229,3 +229,11 @@ A night sky with stars over a standing stone. Style: round game icon, bright che
 77. Kupferfund  →  Datei: f-kupfer.png
 A shiny orange copper nugget on a stone. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
+78. Logo-Schriftzug (breit 3:1)  →  Datei: logo.png
+Game logo for a cozy city building game, the single word "Epochia" written in big bold rounded cartoon letters, exactly these 7 letters E-p-o-c-h-i-a, correct spelling, letters look carved from warm golden sandstone with a thick dark brown outline and a soft 3D bevel, the letter "o" is a small glowing campfire inside a stone ring, a tiny green leaf sprouting from the dot of the "i", subtle hint of time passing from rough stone on the left to polished smooth on the right, cheerful bright mobile game title style, soft warm sunny colors, centered, wide horizontal format 3:1, plain pure white background, no other text, no extra letters, no border, no scenery
+
+79. Leeres Schriftband (breit 4:1)  →  Datei: band.png
+Decorative empty banner for a cozy mobile game: a wide ribbon made of tan leather stretched between two wooden sticks tied with rope, small bone and feather decorations at both ends, the middle of the ribbon is completely empty and flat for text to be added later, bright cheerful cartoon style, soft warm colors, clean dark brown outlines, gentle shading, centered, wide horizontal format 4:1, plain pure white background, no text, no letters, no symbols on the ribbon, no border
+
+80. Logo rund (1:1)  →  Datei: logo-rund.png
+Small game logo badge for a loading screen: the word "Epochia" in big bold rounded golden sandstone cartoon letters with thick dark brown outline, exactly these 7 letters E-p-o-c-h-i-a, correct spelling, placed on a round stone tablet with a small campfire below the letters, cheerful bright mobile game style, soft warm colors, centered, square 1:1 format, plain pure white background, no other text, no border

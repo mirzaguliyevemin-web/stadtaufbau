@@ -80,7 +80,7 @@ Gewünscht: Ab einer bestimmten Epoche wählt man eine Religion; danach ändern 
 
 💡 Auswahl: Christentum, Islam, Judentum, Buddhismus, Hinduismus – je mit eigenem Gotteshaus (Kirche, Moschee,
 Synagoge, Pagode/Stupa, Mandir) und eigenen Bildern; alle gleich stark, nur unterschiedliche kleine Vorteile.
-❓ Passt die Auswahl? Kann man die Religion später wechseln?
+✅ 2026-10-28: Auswahl passt. Wechseln geht nach einer bestimmten Zeit – ❓ wann, überlegt Emin noch.
 
 ---
 

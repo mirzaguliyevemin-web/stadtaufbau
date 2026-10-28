@@ -148,43 +148,43 @@ Stone age, prehistoric, everything made of wood, stone, bones, leather and furs,
 Neolithic, early farmers, wood, clay, thatch and stone, no metal. A small early field with rows of golden wheat and some green plants, a low wattle fence, a wooden digging stick and a basket, medium plot (3x3). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Ziegengehege (3×3)** → `1-ziegengehege.png`
+- [x] ~~**Ziegengehege (3×3)**~~ → `1-ziegengehege.png`
 
 ```
 Neolithic, early farmers, wood, clay, thatch and stone, no metal. A goat pen with a woven wattle fence, three cute goats, a small shelter with a thatched roof, a water trough made of a hollow log, medium plot (3x3). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Tongrube (2×2, am Wasser)** → `1-tongrube.png`
+- [x] ~~**Tongrube (2×2, am Wasser)**~~ → `1-tongrube.png`
 
 ```
 Neolithic, early farmers, wood, clay, thatch and stone, no metal. A clay pit at a river bank: a muddy brown pit with lumps of clay, wooden buckets and baskets; the back of the plot is blue water, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Töpferei (2×2)** → `1-toepferei.png`
+- [x] ~~**Töpferei (2×2)**~~ → `1-toepferei.png`
 
 ```
 Neolithic, early farmers, wood, clay, thatch and stone, no metal. A small pottery workshop: a hut with a thatched roof, clay pots and bowls with simple patterns drying on shelves, a small clay kiln with smoke, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Langhaus (3×3)** → `1-langhaus.png`
+- [x] ~~**Langhaus (3×3)**~~ → `1-langhaus.png`
 
 ```
 Neolithic, early farmers, wood, clay, thatch and stone, no metal. A big neolithic longhouse with wattle and daub walls, a long thatched roof, a wooden door, smoke from the roof, a small garden and firewood stack, medium plot (3x3). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Pfahlbau (3×3, im Wasser)** → `1-pfahlbau.png`
+- [x] ~~**Pfahlbau (3×3, im Wasser)**~~ → `1-pfahlbau.png`
 
 ```
 Neolithic, early farmers, wood, clay, thatch and stone, no metal. Two lake dwellings: huts with thatched roofs standing on wooden stilts above blue lake water, a wooden walkway to the shore, a canoe tied to a pole; most of the plot is water, the front edge is grass shore, medium plot (3x3). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Vorratsspeicher (3×3)** → `1-vorratsspeicher.png`
+- [x] ~~**Vorratsspeicher (3×3)**~~ → `1-vorratsspeicher.png`
 
 ```
 Neolithic, early farmers, wood, clay, thatch and stone, no metal. A storehouse on short wooden stilts with a thatched roof, a ladder, big clay pots and baskets of grain around it, medium plot (3x3). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Steinkreis (4×4, Wahrzeichen)** → `1-steinkreis.png`
+- [x] ~~**Steinkreis (4×4, Wahrzeichen)**~~ → `1-steinkreis.png`
 
 ```
 Neolithic, early farmers, wood, clay, thatch and stone, no metal. A majestic but friendly stone circle monument of tall grey standing stones with lintels on top, soft grass and flowers inside, a small fire bowl in the center, large plot (4x4). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
@@ -192,7 +192,7 @@ Neolithic, early farmers, wood, clay, thatch and stone, no metal. A majestic but
 
 ## Gruppe F – Baustellen (je Größe eine)
 
-- [ ] **Baustelle 2×2** → `1-baustelle-2.png`
+- [x] ~~**Baustelle 2×2**~~ → `1-baustelle-2.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A construction site: a half-built wooden frame of poles tied with rope, piles of logs and stones, a basket with tools, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format

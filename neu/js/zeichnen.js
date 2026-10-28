@@ -52,6 +52,7 @@ function measureCorner(img) {
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'fels-gross', 'fels-klein']);
   for (const b of Object.values(BUILDINGS)) if (b.bild) names.add(b.bild);
+  for (const s of [2, 3, 4]) names.add('1-baustelle-' + s);
   return [...names];
 }
 
@@ -337,6 +338,18 @@ function drawPlaceholder(def, x, y, s, lift) {
   ctx.fillText(def.icon, top.x, top.y - height - 2 * cam.zoom);
 }
 
+// Bild: Grasplatte füllt die volle Breite; ihre seitlichen Ecken liegen auf den Ecken der Raute
+function drawImageOnTiles(img, x, y, s, rot, lift = 0) {
+  const left = tileToScreen(x, y + s), right = tileToScreen(x + s, y);
+  const w = right.x - left.x, h = w * img.height / img.width;
+  ctx.save();
+  ctx.translate((left.x + right.x) / 2, left.y - lift);
+  if (rot) ctx.scale(-1, 1);
+  ctx.drawImage(img, -w / 2, -h * img.ecke, w, h);
+  ctx.restore();
+  return h * img.ecke;   // so hoch ragt das Bild über die Ecken der Raute
+}
+
 function drawBuildingSprite(type, x, y, rot, lift = 0, alpha = 1) {
   const def = BUILDINGS[type];
   const s = def.size;
@@ -347,16 +360,8 @@ function drawBuildingSprite(type, x, y, rot, lift = 0, alpha = 1) {
     return;
   }
   const img = def.bild && images[def.bild];
-  if (img) {
-    // Bild: Grasplatte füllt die volle Breite; ihre seitlichen Ecken liegen auf den Ecken der Raute
-    const left = tileToScreen(x, y + s), right = tileToScreen(x + s, y);
-    const w = right.x - left.x, h = w * img.height / img.width;
-    ctx.save();
-    ctx.translate((left.x + right.x) / 2, left.y - lift);
-    if (rot) ctx.scale(-1, 1);
-    ctx.drawImage(img, -w / 2, -h * img.ecke, w, h);
-    ctx.restore();
-  } else {
+  if (img) drawImageOnTiles(img, x, y, s, rot, lift);
+  else {
     drawPlot(x, y, s, lift ? 'rgba(160,220,110,0.9)' : '#93d466', '#6fae48');
     drawPlaceholder(def, x, y, s, lift);
   }
@@ -366,9 +371,16 @@ function drawBuildingSprite(type, x, y, rot, lift = 0, alpha = 1) {
 function drawConstruction(b) {
   const def = BUILDINGS[b.type];
   const s = def.size;
+  // Baustellen-Bild in passender Größe (fehlt es, das 2×2-Bild vergrößert, sonst ein gezeichnetes Gerüst)
+  const img = images['1-baustelle-' + s] || images['1-baustelle-2'];
+  let height = (0.55 + s * 0.22) * TH * cam.zoom;
+  if (img) {
+    height = drawImageOnTiles(img, b.x, b.y, s, b.rot) - s * TH / 2 * cam.zoom;
+    drawProgress(b, s, height);
+    return;
+  }
   drawPlot(b.x, b.y, s, '#c8b07a', '#9c8452');
   // Gerüst
-  const height = (0.55 + s * 0.22) * TH * cam.zoom;
   const m = 0.25 * s;
   ctx.strokeStyle = '#7a5230';
   ctx.lineWidth = Math.max(1.5, 3 * cam.zoom);
@@ -379,7 +391,12 @@ function drawConstruction(b) {
   ctx.moveTo(corners[2].x, corners[2].y - height * 0.6); ctx.lineTo(corners[1].x, corners[1].y - height * 0.6);
   ctx.moveTo(corners[3].x, corners[3].y - height); ctx.lineTo(corners[2].x, corners[2].y - height); ctx.lineTo(corners[1].x, corners[1].y - height);
   ctx.stroke();
-  // Fortschrittsbalken und Restzeit
+  drawProgress(b, s, height);
+}
+
+// Fortschrittsbalken und Restzeit über einer Baustelle
+function drawProgress(b, s, height) {
+  const def = BUILDINGS[b.type];
   const total = def.time || 1;
   const done = 1 - b.build / total;
   const top = tileToScreen(b.x + s / 2, b.y + s / 2);

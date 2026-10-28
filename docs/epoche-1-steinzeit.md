@@ -202,7 +202,8 @@ Nachts leuchten die Feuer warm. Leise Musik: Trommeln, Flöte, Naturgeräusche.
 
 ## Einstieg (✅ sehr wichtig)
 
-Eine freundliche Figur (💡 eine Stammesälteste mit Sprechblase) führt Schritt für Schritt. Immer nur **ein**
+Der **Stammesälteste** (✅ Emin) führt mit Sprechblase Schritt für Schritt. Er entwickelt sich mit den Epochen weiter:
+Stammesältester → Häuptling → Ratsherr → Vogt → Bürgermeister (gleicher Mann, je Epoche anders gekleidet). Immer nur **ein**
 Schritt, ein leuchtender Pfeil zeigt, wohin man tippen oder ziehen soll; der Rest ist so lange ruhig.
 
 1. Willkommen – „Unser Stamm sucht eine neue Heimat …“; Karte verschieben und zoomen zeigen.
@@ -225,10 +226,8 @@ Einstieg ist überspringbar und in den Einstellungen neu startbar.
 
 ## Offene Fragen an Emin
 
-- ❓ Die Figur für den Einstieg: Stammesälteste, ein Kind, ein Tier (z. B. ein Wolf, der später zum Hund wird)?
 - ❓ Wann darf man die Religion wechseln? (Emin überlegt noch.)
 
 ## Nächster Schritt danach
 
-Prompts für alle Steinzeit-Bilder (Gebäude in jeder Weiterentwicklung, Gelände, Figuren-Bildchen der Forschung),
-für Startseite, Ladefenster und App-Icon – kommen in `bilder/README.md`.
+✅ Prompts für alle Steinzeit-Bilder, Startseite, Ladefenster, App-Icon und Stammesältesten: `bilder/epochia/README.md`.

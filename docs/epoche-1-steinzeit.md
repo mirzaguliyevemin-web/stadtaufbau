@@ -228,6 +228,16 @@ Einstieg ist überspringbar und in den Einstellungen neu startbar.
 
 - ❓ Wann darf man die Religion wechseln? (Emin überlegt noch.)
 
+## Abweichungen im gebauten Fundament (2026-10-28)
+
+Damit der Einstieg und die Wirtschaft aufgehen, weicht Version 1 an diesen Stellen vom Plan oben ab:
+- Start-Vorrat **50 Holz, 40 Stein** (statt 40/20 – sonst reicht es nicht für die Gebäude im Einstieg); Startland 32 × 32 Felder.
+- **Jägerlager liefert schon in der Altsteinzeit etwas Felle** (1/min) – sonst könnte man das Fellzelt (braucht 2 Felle) nicht bauen.
+- **Höhlenmaler**: 4 Wissen/min, kostet 15 Holz + 15 Stein, Bauzeit 45 s (Wissen war der Engpass).
+- **Fellmacherin**: 4 Felle → 2 Kleidung je Minute; Einwohner brauchen 0,02 Kleidung bzw. Töpferwaren je Minute.
+- Wer Holz *und* Stein aufgebraucht hat, kommt durch Bäume fällen / Felsen abtragen (+3) wieder heraus.
+- Mammutherden und der Mammut-Zug fehlen noch; Trampelpfade sind noch keine Pflicht.
+
 ## Nächster Schritt danach
 
 ✅ Prompts für alle Steinzeit-Bilder, Startseite, Ladefenster, App-Icon und Stammesältesten: `bilder/epochia/README.md`.

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="app-version" content="1">
+  <meta name="theme-color" content="#3d7a2a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Epochia</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ladefenster -->
+  <div id="loading" class="screen">
+    <div class="logo">Epochia</div>
+    <div class="load-track"><div id="loading-bar"></div></div>
+    <p id="loading-text">…</p>
+  </div>
+
+  <!-- Startseite -->
+  <div id="start" class="screen hidden">
+    <div class="start-sky"></div>
+    <div class="logo">Epochia</div>
+    <p class="tagline">Vom ersten Feuer bis zur großen Stadt</p>
+    <div class="start-buttons">
+      <button class="btn primary big" id="start-continue" onclick="enterGame()">▶ Start</button>
+      <button class="btn" onclick="openSlots(false)">🗂 Spielstände</button>
+    </div>
+    <p class="start-note">Neues Spiel im Aufbau – dein altes Spiel bleibt unter der Hauptadresse.</p>
+  </div>
+
+  <!-- Spiel -->
+  <div id="game" class="hidden">
+    <canvas id="map"></canvas>
+    <header id="topbar"></header>
+    <div id="side">
+      <button class="side-btn" id="btn-research" onclick="openResearch()">📜<span>Forschung</span><i id="research-badge" class="dot hidden"></i></button>
+      <button class="side-btn" id="btn-quests" onclick="openQuests()">📋<span>Aufträge</span><i id="quest-badge" class="badge hidden"></i></button>
+      <button class="side-btn hidden" id="btn-daily" onclick="showDailyReward()">🎁<span>Belohnung</span></button>
+      <button class="side-btn" id="btn-menu" onclick="openMenu()">⚙️<span>Menü</span></button>
+    </div>
+    <div id="research-pill" class="hidden" onclick="openResearch()"></div>
+    <div id="info-pop" class="hidden"></div>
+    <div id="tutorial" class="hidden"></div>
+    <div id="action-bar" class="hidden"></div>
+    <nav id="buildbar"></nav>
+  </div>
+
+  <!-- ganze Seite (Forschung, Aufträge, Menü, Spielstände) -->
+  <div id="page" class="hidden">
+    <div class="page-head"><button class="btn back" onclick="closePage()">← Zurück</button><h2 id="page-title"></h2></div>
+    <div id="page-body"></div>
+  </div>
+
+  <!-- Fenster -->
+  <div id="dialog" class="hidden" onclick="if (event.target === this) closeDialog()">
+    <div id="dialog-box"></div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="js/daten.js"></script>
+  <script src="js/welt.js"></script>
+  <script src="js/logik.js"></script>
+  <script src="js/speicher.js"></script>
+  <script src="js/zeichnen.js"></script>
+  <script src="js/bedienung.js"></script>
+  <script src="js/oberflaeche.js"></script>
+  <script src="js/einstieg.js"></script>
+  <script src="js/start.js"></script>
+</body>
+</html>

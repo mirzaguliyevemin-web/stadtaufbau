@@ -10,6 +10,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 - Spiel ruckelt etwas seit den Gelände-Bildern (Version 71).
   → Frage: wird am 2026-10-28 in einer Sitzung mit Emin gebaut (Gelände vorab in Bildstücke zeichnen statt jedes Bild
   in jedem Bild neu) – der tägliche Agent bitte nicht anfassen.
+  → 2026-10-28: Im neuen Spiel Epochia (`neu/`) wird der Boden schon vorab in Stücke gezeichnet. Das alte Spiel
+  bleibt vorerst, wie es ist – Emin sagt, ob es dort noch behoben werden soll.
 
 ## Wünsche
 

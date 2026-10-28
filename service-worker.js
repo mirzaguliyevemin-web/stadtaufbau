@@ -1,6 +1,6 @@
 // Bei Änderungen an den Dateien die Versionsnummer erhöhen (gleiche Nummer wie APP_VERSION in game.js
 // und <meta name="app-version"> in index.html).
-const CACHE = 'stadtaufbau-v71';
+const CACHE = 'stadtaufbau-v72';
 const ASSETS = [
   './',
   'index.html',
@@ -62,7 +62,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k.startsWith('stadtaufbau-') && k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

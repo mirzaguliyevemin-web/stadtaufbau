@@ -8,6 +8,14 @@ durch Dorf, Kleinstadt und Stadt wachsen.
 
 Auf dem Handy über „Zum Startbildschirm hinzufügen“ installierbar; danach auch offline spielbar.
 
+## Epochia (Neustart, im Aufbau)
+
+Das neue Spiel **Epochia** entsteht im Ordner `neu/` und läuft unter
+https://mirzaguliyevemin-web.github.io/stadtaufbau/neu/ – mit eigenen Speicherplätzen, das alte Spiel bleibt unberührt.
+Pläne: [`docs/konzept-neu.md`](docs/konzept-neu.md), [`docs/epoche-1-steinzeit.md`](docs/epoche-1-steinzeit.md);
+Bilder: [`bilder/epochia/README.md`](bilder/epochia/README.md). Tests: `node neu/tools/test.mjs`, Bot: `node neu/tools/bot.mjs 90 3`.
+Zum Ausprobieren ohne Startseite: `…/neu/?direkt`.
+
 ## Technik
 
 Reines HTML, CSS und JavaScript mit Canvas – kein Framework, kein Build-Schritt.

@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { loadGame } from './headless.mjs';
 import { runBot } from './bot.mjs';
 
@@ -611,6 +612,14 @@ if (!quick) {
     return `Kleinstadt ${m.pop21} · 50 Einw. ${m.pop50} · Stadt ${m.pop101} min · Kathedrale ${report.landmarks.cathedral || '–'} · ${report.seconds} s`;
   });
 }
+
+// Epochia (neues Spiel in neu/) – eigene Tests, laufen hier mit
+test('Epochia-Tests (neu/)', () => {
+  const r = spawnSync(process.execPath, ['neu/tools/test.mjs', ...(quick ? ['--quick'] : [])], { cwd: ROOT, encoding: 'utf8' });
+  const lines = (r.stdout || '').trim().split('\n');
+  assert(r.status === 0, lines.filter(l => l.startsWith('✖') || l.startsWith('   ')).join(' | ').slice(0, 600) || r.stderr);
+  return lines[lines.length - 1];
+});
 
 // ---------------------------------------------------------------------------------------------
 

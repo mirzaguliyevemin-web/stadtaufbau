@@ -1,6 +1,6 @@
 # Epochia – neues Konzept (Plan)
 
-Begonnen am 2026-10-28 mit Emin. **Noch nichts davon ist gebaut.** Wir reden jeden Punkt durch, tragen
+Begonnen am 2026-10-28 mit Emin. **Das Fundament ist gebaut** (Epochia Version 1 unter `…/stadtaufbau/neu/`, siehe unten). Wir reden jeden Punkt durch, tragen
 die Entscheidungen hier ein und bauen dann **Epoche für Epoche**: erst das Fundament + die erste Epoche,
 dann am Handy testen, Fehler beheben, verbessern – danach die nächste Epoche.
 
@@ -253,21 +253,36 @@ Gewünscht:
 
 ---
 
-## Stand der Planung (2026-10-28, vor Neustart des Rechners)
+## Stand (2026-10-28, Fundament gebaut)
 
-**Erledigt in der Sitzung vom 2026-10-28:**
-- Plan geschrieben (diese Datei) und Emins Entscheidungen eingetragen (Name **Epochia**, 8 Epochen, Weltreligionen,
-  keine Katastrophen, Bauen mit ✔, 2 Drehrichtungen, Forschung mit Wissen + Zeit, komplett neu anfangen).
-- Emins Beispielbilder ausgewertet (große Gebäude mit Grundstück, nah gezoomt, Sprechblasen, ✖ ↻ ✔).
-- Epoche 1 Steinzeit ausgearbeitet: `docs/epoche-1-steinzeit.md` (Gebäude-Linien durch alle Epochen, Wohnhöhle,
-  Pfahlbau, Mammutjagd, 22 Forschungen, Einstieg mit dem Stammesältesten, Aufträge, tägliche Belohnung).
-- 77 Bild-Prompts: `bilder/epochia/README.md` (mit Gruppen) und `bilder/epochia/prompts.txt` (nur Text).
+**Fundament fertig – Epochia Version 1** unter https://mirzaguliyevemin-web.github.io/stadtaufbau/neu/
+(eigener Ordner `neu/`, eigene Speicherplätze `epochia-save-1/2/3`, das alte Spiel bleibt unberührt):
+- **Aufteilung** in `neu/js/`: `daten.js` (alle Zahlen), `welt.js` (Gelände, Land, Bauplatz), `logik.js` (Wirtschaft,
+  Forschung, Aufträge), `speicher.js`, `zeichnen.js` (Schrägansicht), `bedienung.js` (Finger), `oberflaeche.js`,
+  `einstieg.js`, `start.js`.
+- **Schrägansicht**: Rauten 2:1, hintere Dinge zuerst; Boden vorab in Stücke gezeichnet (kein Ruckeln).
+  Bäume/Felsen als Hindernisse – antippen zum Fällen/Abtragen (+3 Holz/Stein).
+- **Bedienung**: aus der Leiste nach oben ziehen (oder antippen), Raute grün/rot, Eckmarken, Feld mit Preis und ✖ ↻ ✔;
+  antippen = kleine Info, Info antippen = Fenster (Weiterentwickeln, Verschieben, Abreißen); gedrückt halten = hochheben;
+  Trampelpfade malen; Land kaufen (🛒 auf dem dunklen Land).
+- **Ladefenster, Startseite** (Emins Bild), **Forschungsbaum** als eigene Seite (alle 24 Forschungen der Steinzeit
+  + „Aufbruch in die Bronzezeit – kommt bald“), **Einstieg mit dem Stammesältesten** (9 Schritte), Aufträge,
+  tägliche Belohnung (7-Tage-Reihe), Offline-Fortschritt (bis 8 h), Export/Import.
+- Alle Gebäude, Waren, Bedürfnisse und Forschungen der Steinzeit sind schon drin (Zahlen aus `epoche-1-steinzeit.md`,
+  kleine Abweichungen dort vermerkt). Bilder: Lagerfeuer, Wohnhöhle, Sammlerin, Fellzelt, Jägerlager, Mammutjägerlager, Startseite, Ladebild, App-Icon – der Rest sind Platzhalter.
+- **Tests**: `node neu/tools/test.mjs` (24 Tests + Bot), läuft auch in `node tools/test.mjs` mit.
+- **Bot** (`node neu/tools/bot.mjs 90 3`): Mittelsteinzeit ≈ 21 min, Jungsteinzeit ≈ 38 min, Kupferfund ≈ 73 min.
+  Ziel war 45–60 min für echte Spieler → noch zu lang. Die reinen Forschungszeiten ergeben schon ≈ 47 min;
+  nach Emins Handy-Test kürzen wir die Zeiten.
+
+**Noch nicht drin (kommt mit Epoche 1 / später):** Mammutherden (Forschung „Mammutjagd“ schaltet bisher nur das
+Mammutjägerlager frei), Menschen-Figuren und Tiere, Sounds/Musik, Nacht, Jahreszeiten-Bilder, Anschluss-Pflicht
+für Wege (❓ Emin: sollen Gebäude einen Trampelpfad brauchen?), Aufbruch in die Bronzezeit.
 
 **Als Nächstes:**
-1. Emin erzeugt **Gruppe A** (Lagerfeuer, Wohnhöhle, Sammlerin) → in `bilder/epochia/` ablegen → Claude prüft
-   Blickwinkel/Grundstück, passt den Stil-Satz an → bestes Bild wird Stil-Vorlage für den Rest.
-2. Emin sagt, ob Claude mit dem **Fundament** anfangen soll (Schrägansicht, Bedienung, Startseite, Forschungsbaum,
-   Einstieg – mit Platzhaltern unter `…/neu/`).
+1. Emin testet `…/neu/` am Handy und trägt Fehler/Wünsche in `docs/wuensche.md` ein.
+2. Emin erzeugt die restlichen Bilder (Stammesältester, restliche Gebäude, Gelände, Waren, Forschung) mit den drei fertigen Bildern als Stil-Vorlage.
+3. Balancing (Steinzeit kürzer), Mammutherden, Figuren.
 
 **Noch offen (Emin entscheidet später):** Werkzeug für Sounds · ab wann man die Religion wechseln darf.
 
@@ -288,6 +303,7 @@ Gewünscht:
 ## Entscheidungen
 
 <!-- Hier wird jede Entscheidung mit Datum eingetragen -->
+- 2026-10-28: Gruppe-A-Bilder und Startseite passen (Stil-Vorlage). Fundament gebaut (Epochia Version 1 unter `neu/`).
 - 2026-10-28: Neustart beschlossen; vorhandene Spiellogik wird weiterverwendet; gebaut wird Epoche für Epoche.
 - 2026-10-28: Name **Epochia** · komplett neu, alte Städte nicht übernehmen · 8 Epochen, Unterteilungen als
   Forschungsstufen · echte Weltreligionen · keine Banditen/Brände/Seuchen · Bauen mit ✔ · 2 Drehrichtungen ·

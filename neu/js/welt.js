@@ -45,6 +45,8 @@ function startNewGame(seed) {
   addBuilding('lagerfeuer', c, c, false, true);
   addBuilding('wohnhoehle', c - 3, c + 1, false, true);
   addBuilding('wohnhoehle', c, c + 4, false, true);
+  addBuilding('pfad', c - 1, c + 1, false, true);   // Trampelpfade von den Wohnhöhlen zum Feuer
+  addBuilding('pfad', c, c + 3, false, true);
   rebuildOccupancy();
 }
 
@@ -156,9 +158,9 @@ function isOwned(x, y) { return inMap(x, y) && state.plots[plotOf(x, y)] === 1; 
 function plotsBought() { return state.plots.filter(p => p === 1).length - CONFIG.startPlots ** 2; }
 
 function plotPrice() {
+  // gleichmäßig teurer, damit der Preis nicht über den Lagerplatz (150) springt
   const n = plotsBought();
-  const f = Math.pow(1.5, n);
-  return { holz: Math.round(40 * f), nahrung: Math.round(40 * f) };
+  return { holz: 30 + 20 * n, nahrung: 30 + 20 * n };
 }
 
 // Nur Landstücke neben eigenem Land kann man kaufen
@@ -191,12 +193,98 @@ function addBuilding(type, x, y, rot = false, finished = false) {
   return b;
 }
 
+// ---------------------------------------------------------------------
+// Trampelpfade: Jedes Gebäude braucht einen Weg zum Lagerfeuer (oder steht direkt daran)
+// ---------------------------------------------------------------------
+
+let reached = null;      // Felder mit Pfad, die mit dem Lagerfeuer verbunden sind
+let connected = [];      // je Gebäude: verbunden?
+let networkDirty = true;
+
+function isPathAt(x, y) {
+  const i = buildingAt(x, y);
+  return i >= 0 && BUILDINGS[state.buildings[i].type].isPath;
+}
+
+function isFireAt(x, y) {
+  const i = buildingAt(x, y);
+  return i >= 0 && state.buildings[i].type === 'lagerfeuer';
+}
+
+// Felder rund um ein Rechteck (ohne Ecken)
+function perimeter(x, y, s) {
+  const out = [];
+  for (let k = 0; k < s; k++) out.push([x + k, y - 1], [x + k, y + s], [x - 1, y + k], [x + s, y + k]);
+  return out.filter(([px, py]) => inMap(px, py));
+}
+
+// Liegt ein Bauplatz am Wegenetz (Pfad mit Verbindung oder direkt am Lagerfeuer)?
+function touchesNetwork(x, y, s) {
+  updateNetwork();
+  return perimeter(x, y, s).some(([px, py]) => reached[py * N + px] || isFireAt(px, py));
+}
+
+function updateNetwork() {
+  if (!networkDirty && reached) return;
+  networkDirty = false;
+  reached = new Uint8Array(N * N);
+  const queue = [];
+  const fire = state.buildings.find(b => b.type === 'lagerfeuer');
+  if (fire) for (const [x, y] of perimeter(fire.x, fire.y, BUILDINGS.lagerfeuer.size))
+    if (isPathAt(x, y) && !reached[y * N + x]) { reached[y * N + x] = 1; queue.push([x, y]); }
+  while (queue.length) {
+    const [x, y] = queue.pop();
+    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]])
+      if (inMap(nx, ny) && !reached[ny * N + nx] && isPathAt(nx, ny)) { reached[ny * N + nx] = 1; queue.push([nx, ny]); }
+  }
+  connected = state.buildings.map(b => {
+    const def = BUILDINGS[b.type];
+    return def.isPath || b.type === 'lagerfeuer' || touchesNetworkRaw(b.x, b.y, def.size);
+  });
+}
+
+function touchesNetworkRaw(x, y, s) {
+  return perimeter(x, y, s).some(([px, py]) => reached[py * N + px] || isFireAt(px, py));
+}
+
+function isConnected(i) {
+  updateNetwork();
+  return connected[i] !== false;
+}
+
+// Kürzester Weg (neue Pfadfelder) von einem Gebäude zum Wegenetz; null = kein Weg möglich
+function pathRoute(i) {
+  const b = state.buildings[i];
+  if (!b || isConnected(i)) return [];
+  const s = BUILDINGS[b.type].size;
+  const prev = new Int32Array(N * N).fill(-2);
+  const queue = [];
+  const passable = (x, y) => isPathAt(x, y) || !placeProblem('pfad', x, y);
+  for (const [x, y] of perimeter(b.x, b.y, s))
+    if (passable(x, y)) { prev[y * N + x] = -1; queue.push(y * N + x); }
+  for (let q = 0; q < queue.length; q++) {
+    const k = queue[q], x = k % N, y = Math.floor(k / N);
+    if (reached[k] || perimeter(x, y, 1).some(([px, py]) => reached[py * N + px] || isFireAt(px, py))) {
+      const route = [];
+      for (let c = k; c >= 0; c = prev[c]) if (!isPathAt(c % N, Math.floor(c / N))) route.push([c % N, Math.floor(c / N)]);
+      return route;
+    }
+    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+      const nk = ny * N + nx;
+      if (inMap(nx, ny) && prev[nk] === -2 && passable(nx, ny)) { prev[nk] = k; queue.push(nk); }
+    }
+  }
+  return null;
+}
+
 function rebuildOccupancy() {
   occ = new Int32Array(N * N);
+  networkDirty = true;
   state.buildings.forEach((b, i) => setOccupied(b, i + 1));
 }
 
 function setOccupied(b, value) {
+  networkDirty = true;
   const s = BUILDINGS[b.type].size;
   for (let y = b.y; y < b.y + s; y++)
     for (let x = b.x; x < b.x + s; x++)

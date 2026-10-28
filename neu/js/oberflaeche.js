@@ -138,8 +138,10 @@ function renderActionBar() {
   if (ghost) {
     const def = BUILDINGS[ghost.type];
     const problem = ghostProblem();
+    const s = def.size;
+    const road = ghost.from >= 0 ? touchesNetwork(ghost.x, ghost.y, s) || state.buildings[ghost.from].type === 'lagerfeuer' : touchesNetwork(ghost.x, ghost.y, s);
     const title = ghost.from < 0 ? `${def.icon} ${esc(def.name)} · ${costHtml(def.cost)} · ⏱ ${formatTime(def.time)}` : `${def.icon} ${esc(def.name)} verschieben`;
-    html = `<div class="action-text">${title}<small class="${problem ? 'bad' : 'good'}">${esc(problem || (ghost.from < 0 ? 'Passt! Mit ✔ bauen' : 'Passt! Mit ✔ abstellen'))}</small></div>
+    html = `<div class="action-text">${title}<small class="${problem ? 'bad' : road ? 'good' : 'warn'}">${esc(problem || (road ? (ghost.from < 0 ? 'Passt! Mit ✔ bauen' : 'Passt! Mit ✔ abstellen') : 'Passt – danach einen Trampelpfad zum Lagerfeuer legen'))}</small></div>
       <button class="round no" onclick="cancelGhost()">✖</button>
       <button class="round turn" onclick="rotateGhost()">↻</button>
       <button class="round yes" ${problem ? 'disabled' : ''} onclick="confirmGhost()">✔</button>`;
@@ -163,6 +165,7 @@ function infoText(i) {
   const b = state.buildings[i];
   const def = BUILDINGS[b.type];
   if (b.build > 0) return `🔨 ${def.name} · noch ${formatTime(b.build)}`;
+  if (!isConnected(i)) return `${def.icon} ${def.name} · 🛤️ Kein Weg zum Lagerfeuer!`;
   const parts = [`${def.icon} ${def.name}`];
   if (def.housing) parts.push(`🏠 ${housingOf(b.type)} Plätze`);
   if (def.produces) {
@@ -262,6 +265,17 @@ function showBuildingWindow(i) {
   const def = BUILDINGS[b.type];
   const lines = [];
   if (b.build > 0) lines.push(`🔨 Baustelle – noch ${formatTime(b.build)}`);
+  let road = '';
+  if (!isConnected(i)) {
+    const route = pathRoute(i);
+    const cost = route ? { holz: route.length * BUILDINGS.pfad.cost.holz } : null;
+    road = `<div class="upgrade">
+      <h3>🛤️ Kein Weg zum Lagerfeuer</h3>
+      <p>Ohne Trampelpfad zum Lagerfeuer arbeitet hier niemand. Lege Pfade mit dem Finger – oder lass den kürzesten Weg bauen.</p>
+      ${route ? `<button class="btn primary" ${canAfford(cost) ? '' : 'disabled'} onclick="doBuildRoute(${i})">🛤️ Weg bauen (${costHtml(cost)})</button>`
+        : '<small class="bad">Kein Weg möglich – erst Bäume oder Felsen räumen.</small>'}
+    </div>`;
+  }
   if (def.housing) {
     lines.push(`🏠 Platz für ${housingOf(b.type)} Menschen`);
     const warm = state.buildings.some(s => !s.build && BUILDINGS[s.type].warmth && distance(s, b) <= warmthRadius(BUILDINGS[s.type]) + def.size / 2);
@@ -300,6 +314,7 @@ function showBuildingWindow(i) {
   const canRemove = def.buildable !== false;
   openDialog(`
     <div class="dlg-head">${iconHtml(def.bild, def.icon, 'huge')}<div><h2>${esc(def.name)}</h2><p>${esc(def.info)}</p></div></div>
+    ${road}
     <ul class="lines">${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
     ${upgrade}
     <div class="buttons">
@@ -307,6 +322,14 @@ function showBuildingWindow(i) {
       ${canRemove ? `<button class="btn danger" onclick="askDemolish(${i})">🗑 Abreißen</button>` : ''}
       <button class="btn" onclick="closeDialog()">Schließen</button>
     </div>`);
+}
+
+function doBuildRoute(i) {
+  const problem = buildRoute(i);
+  if (problem) { toast(problem); return; }
+  closeDialog();
+  toast('🛤️ Weg gebaut');
+  renderAll();
 }
 
 function doUpgrade(i) {

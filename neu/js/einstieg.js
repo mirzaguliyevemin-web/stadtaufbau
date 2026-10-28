@@ -11,11 +11,16 @@ function tutorialAlreadyDone(step) {
   const has = type => state.buildings.some(b => b.type === type);
   switch (step.id) {
     case 'sammlerin': return has('sammlerin');
+    case 'pfad': return sammlerinConnected();
     case 'holzsammler': return has('holzsammler');
     case 'wohnhoehle': return state.buildings.filter(b => b.type === 'wohnhoehle').length > 2;
     case 'forschung': return !!state.research || Object.keys(state.techs).length > 0;
     default: return false;
   }
+}
+
+function sammlerinConnected() {
+  return state.buildings.some((b, i) => b.type === 'sammlerin' && isConnected(i));
 }
 
 function advanceTutorial() {
@@ -73,6 +78,7 @@ function onTutorialEvent(name, data) {
   const type = data && data.type;
   const done =
     (step.id === 'sammlerin' && name === 'placed' && type === 'sammlerin') ||
+    (step.id === 'pfad' && (name === 'placed' || name === 'moved') && sammlerinConnected()) ||
     (step.id === 'antippen' && name === 'tapped' && !data.build && type !== 'lagerfeuer' && type !== 'wohnhoehle') ||
     (step.id === 'holzsammler' && name === 'placed' && type === 'holzsammler') ||
     (step.id === 'hochheben' && name === 'lifted') ||
@@ -83,4 +89,4 @@ function onTutorialEvent(name, data) {
   else if (step.id === 'forschung' && name === 'placed') highlightTutorialTarget();
 }
 
-for (const name of ['placed', 'tapped', 'lifted', 'researchStarted', 'questsOpened']) on(name, data => onTutorialEvent(name, data));
+for (const name of ['placed', 'moved', 'tapped', 'lifted', 'researchStarted', 'questsOpened']) on(name, data => onTutorialEvent(name, data));

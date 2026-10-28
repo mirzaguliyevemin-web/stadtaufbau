@@ -10,6 +10,12 @@ var botReport = { mittelsteinzeit: null, jungsteinzeit: null, kupferfund: null, 
 function botCount(type) { return state.buildings.filter(b => b.type === type).length; }
 function botLine(line) { return state.buildings.filter(b => BUILDINGS[b.type].line === line).length; }
 
+// Wegeraster wie ein Spieler, der Wege mit einplant: jede 5. Reihe und Spalte bleibt für Trampelpfade frei
+function botOnRoadGrid(x, y, s) {
+  for (let k = 0; k < s; k++) if ((x + k) % 5 === 0 || (y + k) % 5 === 0) return true;
+  return false;
+}
+
 // Freien Platz suchen: nur im eigenen Land, nah am Lagerfeuer zuerst. Ergebnis merken, bis sich etwas ändert.
 var botSpotCache = {};
 function botSpot(type) {
@@ -21,7 +27,7 @@ function botSpot(type) {
     for (let x = 0; x < N; x++) {
       if (!isOwned(x, y)) continue;
       const d = Math.abs(x - c) + Math.abs(y - c);
-      if (d >= bestD || placeProblem(type, x, y)) continue;
+      if (d >= bestD || (!BUILDINGS[type].needsWater && botOnRoadGrid(x, y, BUILDINGS[type].size)) || placeProblem(type, x, y)) continue;
       best = { x, y }; bestD = d;
     }
   return (botSpotCache[key] = best);
@@ -43,6 +49,7 @@ function botTryBuild(type) {
   }
   if (placeBuilding(type, spot.x, spot.y)) return false;
   botReport.built++;
+  botRoads();
   return true;
 }
 
@@ -76,7 +83,7 @@ function botWants() {
   if (botCount('jaegerlager') + botCount('mammutjaegerlager') < 1 + Math.floor(pop / 25)) w.push('jaegerlager');
   if (isUnlocked('steinschlaeger') && botCount('steinschlaeger') < 1 + Math.floor(pop / 30)) w.push('steinschlaeger');
   if (isUnlocked('fellmacherin') && (botCount('fellmacherin') < 1 || state.res.kleidung < 5 && botCount('fellmacherin') < 1 + Math.floor(pop / 40))) w.push('fellmacherin');
-  if (isUnlocked('tongrube') && botCount('tongrube') < 1) w.push('tongrube');
+  if (isUnlocked('tongrube') && botCount('tongrube') < Math.max(1, botCount('toepferei'))) w.push('tongrube');
   if (isUnlocked('toepferei') && botCount('toepferei') < 1 + Math.floor(pop / 40)) w.push('toepferei');
   if (isUnlocked('ziegengehege') && botCount('ziegengehege') < 1) w.push('ziegengehege');
   if (isUnlocked('vorratsspeicher') && Object.values(state.res).some(n => n >= storageCap() - 1) && botCount('vorratsspeicher') < 3) w.push('vorratsspeicher');
@@ -93,8 +100,27 @@ function botClear(kind) {
         if (terrainAt(x, y) === TERRAIN[kind] && clearTile(x, y)) { botReport.cleared = (botReport.cleared || 0) + 1; return; }
 }
 
+// Wege zum Lagerfeuer legen, wo sie fehlen
+function botRoads() {
+  for (let i = 0; i < state.buildings.length; i++) {
+    if (isConnected(i)) continue;
+    if (pathRoute(i) === null) botClearLanes(state.buildings[i]);
+    if (!buildRoute(i)) botReport.roads = (botReport.roads || 0) + 1;
+  }
+}
+
+// Bäume und Felsen auf den Wegelinien rund um ein Gebäude räumen (wie ein Spieler)
+function botClearLanes(b) {
+  const s = BUILDINGS[b.type].size, c = Math.floor(N / 2);
+  const x0 = Math.min(b.x, c) - 2, x1 = Math.max(b.x + s, c) + 2, y0 = Math.min(b.y, c) - 2, y1 = Math.max(b.y + s, c) + 2;
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++)
+      if ((x % 5 === 0 || y % 5 === 0) && terrainAt(x, y) && terrainAt(x, y).clear) clearTile(x, y);
+}
+
 function botStep() {
   botResearch();
+  botRoads();
   if (state.res.holz < 15 && botCount('holzsammler') === 0) botClear('wald');
   if (state.res.stein < 5 && botCount('steinsammler') === 0) botClear('fels');
   if (state.res.holz < 15 && state.res.stein < 5) { botClear('wald'); botClear('fels'); }

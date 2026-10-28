@@ -26,7 +26,8 @@ function noErrors(g) { ok(!g.errors.length, g.errors.join('\n')); }
 
 test('Start: Lagerfeuer, zwei Wohnhöhlen, 6 Einwohner, Land in der Mitte', () => {
   const g = fresh();
-  ok(g.run(`state.buildings.map(b => b.type).join()`) === 'lagerfeuer,wohnhoehle,wohnhoehle', 'Startgebäude falsch');
+  ok(g.run(`state.buildings.map(b => b.type).join()`) === 'lagerfeuer,wohnhoehle,wohnhoehle,pfad,pfad', 'Startgebäude falsch');
+  ok(g.run('state.buildings.every((b, i) => isConnected(i))'), 'Start-Wohnhöhlen ohne Weg');
   ok(g.run('state.pop') === 6, 'Einwohner');
   ok(g.run('stats.housing') === 6, 'Wohnplätze');
   ok(g.run('isOwned(32, 32) && isOwned(16, 16) && isOwned(47, 47) && !isOwned(15, 32)'), 'Start-Land falsch');
@@ -71,8 +72,10 @@ test('Bauen: Baustelle, höchstens 2 gleichzeitig, wird fertig und produziert', 
   ok(g.run('constructionCount()') === 0, 'Baustellen nicht fertig');
   ok(g.run('state.built.sammlerin') === 1, 'Fertig-Zähler');
   const food = g.run('state.res.nahrung');
+  const si = g.run(`state.buildings.findIndex(b => b.type === 'sammlerin')`);
+  ok(g.run(`buildRoute(${si})`) === null && g.run(`isConnected(${si})`), 'Weg zur Sammlerin ging nicht');
   g.run('for (let i = 0; i < 60; i++) update(1)');
-  ok(g.run('stats.staff[3] === 2'), 'Sammlerin hat keine Arbeiter');
+  ok(g.run(`stats.staff[${si}] === 2`), 'Sammlerin hat keine Arbeiter');
   ok(g.run('(stats.rates.nahrung || 0)') > 0, 'Nahrung wächst nicht (Rate ' + g.run('stats.rates.nahrung') + ')');
   ok(g.run('state.res.nahrung') > food, 'Nahrung nicht mehr geworden');
   noErrors(g);
@@ -200,7 +203,8 @@ test('Bedienung: aus der Leiste bauen mit ✔, Abbrechen mit ✖', () => {
 test('Wärme: Wohnung fern vom Feuer senkt die Zufriedenheit', () => {
   const g = fresh();
   ok(g.run('stats.needs.waerme') === 1, 'Startwohnungen kalt');
-  g.run(`addBuilding('wohnhoehle', 17, 17, false, true); rebuildOccupancy(); recalcStats();`);
+  g.run(`addBuilding('wohnhoehle', 17, 17, false, true); rebuildOccupancy(); buildRoute(state.buildings.length - 1); recalcStats();`);
+  ok(g.run('isConnected(5)'), 'ferne Wohnung nicht angeschlossen');
   ok(g.run('stats.needs.waerme') < 1, 'Ferne Wohnung trotzdem warm');
   ok(g.run('stats.happiness') < 100, 'Zufriedenheit unverändert');
 });
@@ -249,7 +253,7 @@ test('Export und Import', () => {
 
 test('Offline-Fortschritt: läuft weiter, höchstens 8 Stunden, verstellte Uhr schadet nicht', () => {
   const g = fresh();
-  g.run(`state.res.holz = 100; const sp = findFreeSpot('holzsammler', 26, 26); placeBuilding('holzsammler', sp.x, sp.y); for (let i = 0; i < 40; i++) update(1);`);
+  g.run(`state.res.holz = 100; const sp = findFreeSpot('holzsammler', 26, 26); placeBuilding('holzsammler', sp.x, sp.y); buildRoute(5); for (let i = 0; i < 40; i++) update(1);`);
   const holz = g.run('state.res.holz');
   const r = g.run('JSON.stringify(applyOfflineProgress(Date.now() - 3600 * 1000))');
   ok(r && JSON.parse(r).seconds === 3600, 'Offline nicht gelaufen');
@@ -304,11 +308,14 @@ test('Einstieg: Schritte folgen den Handlungen, überspringen geht', () => {
   g.run('advanceTutorial()');   // Willkommen
   ok(g.run('tutorialStep().id') === 'sammlerin', 'Schritt 2 erwartet');
   g.run(`beginBuild('sammlerin'); confirmGhost();`);
-  ok(g.run('tutorialStep().id') === 'antippen', 'Nach Sammlerin: antippen');
-  g.run('for (let i = 0; i < 31; i++) update(1); emit("tapped", state.buildings[3]);');
+  if (g.run('tutorialStep().id') === 'pfad') {
+    g.run(`buildRoute(state.buildings.findIndex(b => b.type === 'sammlerin'))`);
+  }
+  ok(g.run('tutorialStep().id') === 'antippen', 'Nach Sammlerin und Weg: antippen, ist ' + g.run('tutorialStep().id'));
+  g.run('for (let i = 0; i < 31; i++) update(1); emit("tapped", state.buildings[5]);');
   ok(g.run('tutorialStep().id') === 'holzsammler', 'Nach Antippen: Holzsammler');
   g.run(`beginBuild('holzsammler'); confirmGhost();`);
-  g.run('liftBuilding(3); cancelGhost();');
+  g.run('liftBuilding(5); cancelGhost();');
   ok(g.run('tutorialStep().id') === 'wohnhoehle', 'Nach Hochheben: Wohnhöhle, ist ' + g.run('tutorialStep().id'));
   g.run('for (let i = 0; i < 31; i++) update(1);');
   g.run(`beginBuild('wohnhoehle'); confirmGhost();`);
@@ -330,9 +337,32 @@ test('Zeichnen und Oberfläche laufen ohne Fehler (Baustelle, Geist, Pfadmodus, 
     beginBuild('sammlerin'); confirmGhost(); beginBuild('jaegerlager'); drawScene(0.1);
     cancelGhost(); beginBuild('pfad'); drawScene(0.1); cancelGhost();
     for (let i = 0; i < 70; i++) update(1);
-    drawScene(0.1); renderAll(); showInfo(3); positionInfo(); showBuildingWindow(3); showBuildingWindow(0); askDemolish(3);
+    drawScene(0.1); renderAll(); showInfo(5); positionInfo(); showBuildingWindow(5); showBuildingWindow(6); showBuildingWindow(0); askDemolish(5);
     showPlotDialog(plotOf(10, 20)); openQuests(); openMenu(); openSlots(true); showExport(); showDailyReward();
     cam.zoom = ZOOM_MIN; drawScene(0.1); cam.zoom = ZOOM_MAX; drawScene(0.1); handleTap(400, 200);`);
+  noErrors(g);
+});
+
+test('Trampelpfad: ohne Weg kein Wohnen und keine Arbeit, Weg bauen verbindet, Abreißen trennt', () => {
+  const g = fresh();
+  g.run('state.res.holz = 200; state.res.stein = 200;');
+  // Gebäude weiter weg ohne Weg
+  const placed = g.run(`const far = findFreeSpot('holzsammler', 21, 42); placeBuilding('holzsammler', far.x, far.y)`);
+  ok(placed === null, 'Holzsammler nicht gebaut: ' + placed);
+  g.run('for (let i = 0; i < 31; i++) update(1);');
+  const i = g.run(`state.buildings.findIndex(b => b.type === 'holzsammler')`);
+  ok(g.run(`isConnected(${i})`) === false, 'ohne Weg verbunden');
+  ok(g.run(`outputFactor(${i})`) === 0 && !(g.run(`stats.staff[${i}]`) > 0), 'arbeitet ohne Weg');
+  const route = g.run(`pathRoute(${i}).length`);
+  ok(route > 0, 'kein Weg gefunden');
+  const holz = g.run('state.res.holz');
+  ok(g.run(`buildRoute(${i})`) === null && g.run(`isConnected(${i})`), 'Weg bauen verbindet nicht');
+  ok(g.run('state.res.holz') === holz - route, 'Weg kostet nicht 1 Holz je Feld');
+  g.run('update(1)');
+  ok(g.run(`stats.staff[${i}]`) === 2, 'arbeitet mit Weg nicht');
+  // Startpfad abreißen: die Wohnhöhle verliert ihre Bewohner
+  g.run(`demolish(3); recalcStats();`);
+  ok(g.run('stats.housing') === 3, 'Wohnhöhle ohne Weg zählt noch: ' + g.run('stats.housing'));
   noErrors(g);
 });
 

@@ -409,10 +409,13 @@ function roundRect(x, y, w, h, r) {
 function drawBubble(i) {
   const b = state.buildings[i];
   const def = BUILDINGS[b.type];
-  if (b.build || !def.produces || cam.zoom < 0.45) return;
+  if (b.build || def.isPath || b.type === 'lagerfeuer' || cam.zoom < 0.45) return;
   let icon;
+  const road = isConnected(i);
+  if (road && !def.produces) return;
   const lacking = def.consumes && Object.keys(def.consumes).find(id => (state.res[id] || 0) < 0.5);
-  if (def.workers && !(stats.staff[i] > 0)) icon = '👤❗';
+  if (!road) icon = '🛤️❗';
+  else if (def.workers && !(stats.staff[i] > 0)) icon = '👤❗';
   else if (lacking) icon = RESOURCES[lacking].icon + '❗';
   else {
     // Blasen kommen und gehen, damit nicht alles gleichzeitig blinkt

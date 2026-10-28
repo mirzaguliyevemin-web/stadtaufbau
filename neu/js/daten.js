@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 1;
+const APP_VERSION = 2;
 
 const CONFIG = {
   mapSize: 64,            // Felder je Seite
@@ -203,7 +203,8 @@ const BUILDINGS = {
   },
   pfad: {
     name: 'Trampelpfad', icon: '🟫', size: 1, line: 'weg', tier: 0, stage: 'alt',
-    color: '#b89a6a', cost: { holz: 1 }, time: 0, isPath: true, info: 'Ein Weg zwischen den Gebäuden.',
+    color: '#b89a6a', cost: { holz: 1 }, time: 0, isPath: true,
+    info: 'Verbindet die Gebäude mit dem Lagerfeuer – ohne Weg arbeitet ein Gebäude nicht.',
   },
 };
 
@@ -284,10 +285,11 @@ const DAILY_REWARDS = [
 const TUTORIAL = [
   { id: 'willkommen', text: 'Willkommen! Unser Stamm sucht eine neue Heimat – und hier am Fluss ist es schön. Verschiebe die Karte mit dem Finger, zoome mit zwei Fingern.', button: 'Los geht’s' },
   { id: 'sammlerin', text: 'Wir brauchen Nahrung. Zieh die Sammlerin aus der Leiste unten auf einen freien Platz und tippe ✔.', target: 'bar:sammlerin' },
+  { id: 'pfad', text: 'Jedes Gebäude braucht einen Trampelpfad zum Lagerfeuer. Wähle 🟫 Trampelpfad und zieh mit dem Finger vom Feuer zur Sammlerin – oder tippe die Sammlerin an und dann auf „Weg bauen“.', target: 'bar:pfad' },
   { id: 'antippen', text: 'Jetzt wird gebaut – höchstens 2 Baustellen gleichzeitig. Ist die Sammlerin fertig, tippe sie einmal an.' },
   { id: 'holzsammler', text: 'Gut gemacht! Nun Holz: Baue einen Holzsammler – am Wald sammelt er viel mehr.', target: 'bar:holzsammler' },
   { id: 'hochheben', text: 'Halte ein fertiges Gebäude gedrückt: Es hebt sich hoch. Dann kannst du es verschieben und mit ↻ drehen.' },
-  { id: 'wohnhoehle', text: 'Mehr Menschen brauchen Platz. Baue eine Wohnhöhle – nah am Feuer haben sie es warm.', target: 'bar:wohnhoehle' },
+  { id: 'wohnhoehle', text: 'Mehr Menschen brauchen Platz. Baue eine Wohnhöhle mit Weg zum Feuer – nah am Feuer haben sie es warm.', target: 'bar:wohnhoehle' },
   { id: 'forschung', text: 'Wissen bringt uns weiter. Baue einen Höhlenmaler, öffne dann die Forschung 📜 und starte die erste Forschung.', target: 'bar:hoehlenmaler' },
   { id: 'auftraege', text: 'Zum Schluss: Unter 📋 Aufträge findest du Aufgaben mit Belohnung. Schau mal hinein!', target: 'btn-quests' },
   { id: 'fertig', text: 'Jetzt gehört das Lager dir! Ich bin da, wenn es Neues gibt.', button: 'Danke!' },

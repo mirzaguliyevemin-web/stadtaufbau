@@ -13,7 +13,7 @@ function emit(event, data) { (listeners[event] || []).forEach(fn => fn(data)); }
 
 function storageCap() {
   let cap = 0;
-  for (const b of state.buildings) if (!b.build && BUILDINGS[b.type].storage) cap += BUILDINGS[b.type].storage;
+  state.buildings.forEach((b, i) => { if (!b.build && BUILDINGS[b.type].storage && isConnected(i)) cap += BUILDINGS[b.type].storage; });
   return Math.round(Math.max(cap, CONFIG.baseStorage) * (1 + techSum('storage')));
 }
 
@@ -166,6 +166,17 @@ function moveBuilding(i, x, y, rot) {
   return null;
 }
 
+// Fehlenden Trampelpfad zum Lagerfeuer automatisch legen (1 Holz je Feld)
+function buildRoute(i) {
+  const route = pathRoute(i);
+  if (route === null) return 'Kein Weg möglich – Bäume, Felsen oder Wasser im Weg';
+  if (!route.length) return null;
+  const cost = { holz: route.length * BUILDINGS.pfad.cost.holz };
+  if (!canAfford(cost)) return missingText(cost);
+  for (const [x, y] of route) placeBuilding('pfad', x, y);
+  return null;
+}
+
 function refundOf(b) {
   const def = BUILDINGS[b.type];
   const out = {};
@@ -233,7 +244,7 @@ let stats = { housing: 0, jobs: 0, workers: 0, happiness: 100, needs: {}, staff:
 
 function housingTotal() {
   let n = 0;
-  for (const b of state.buildings) if (!b.build) n += housingOf(b.type);
+  state.buildings.forEach((b, i) => { if (!b.build && isConnected(i)) n += housingOf(b.type); });
   return n;
 }
 
@@ -243,10 +254,10 @@ function activeNeeds() {
 
 // Anteil der Wohnplätze, die eine Quelle (Wärme oder Glaube) im Umkreis haben
 function areaCoverage(key) {
-  const sources = state.buildings.filter(b => !b.build && BUILDINGS[b.type][key]);
+  const sources = state.buildings.filter((b, i) => !b.build && BUILDINGS[b.type][key] && isConnected(i));
   let total = 0, covered = 0;
-  for (const h of state.buildings) {
-    const cap = h.build ? 0 : housingOf(h.type);
+  for (const [i, h] of state.buildings.entries()) {
+    const cap = h.build || !isConnected(i) ? 0 : housingOf(h.type);
     if (!cap) continue;
     total += cap;
     if (sources.some(s => {
@@ -263,7 +274,7 @@ function recalcStats() {
   // Arbeiter verteilen: zuerst die Nahrung, dann alles andere in Bau-Reihenfolge
   const order = state.buildings.map((b, i) => i).filter(i => {
     const b = state.buildings[i];
-    return !b.build && BUILDINGS[b.type].workers;
+    return !b.build && BUILDINGS[b.type].workers && isConnected(i);
   });
   order.sort((a, b) => foodFirst(state.buildings[b]) - foodFirst(state.buildings[a]));
   let free = Math.floor(state.pop);
@@ -310,7 +321,7 @@ function terrainBonus(b) {
 function outputFactor(i) {
   const b = state.buildings[i];
   const def = BUILDINGS[b.type];
-  if (b.build) return 0;
+  if (b.build || !isConnected(i)) return 0;
   const staffShare = def.workers ? (stats.staff[i] || 0) / def.workers : 1;
   const seasonF = SEASON_FACTORS[b.type] ? SEASON_FACTORS[b.type][seasonIndex()] : 1;
   return staffShare * seasonF * happinessFactor() * (1 + terrainBonus(b)) * (1 + techSum('bonus', b.type));

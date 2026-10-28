@@ -3,6 +3,16 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-28 – Täglicher Lauf (Version 71)
+
+- Alle 19 Tests bestanden. Bot (3 Läufe à 90 min), Durchschnitt: Kleinstadt 5,7 min · 50 Einw. 18,7 · Stadt 22,8 ·
+  150 Einw. 30,8 · 200 Einw. 35,5 · Antike ~16,2–16,6 · Mittelalter ~49 · Industrie in 1 von 3 Läufen (86,4) · Hunger 0 · Frost 0.
+  Alle Zielwerte eingehalten.
+- `wuensche.md`: nur der Ruckel-Fehler offen; er wird laut Eintrag in einer Sitzung mit Emin gebaut – nicht angefasst.
+- Auffällig (kein Eingriff): in Lauf 3 bleibt `max` Gelehrte bei 2 (keine Schule) → Wissen ~24–150, Forschung im Mittelalter fast still
+  (schon am 2026-10-27 notiert, Hinweis im Forschungsfenster ist eingebaut). Kein klares Balancing-Problem.
+- Codebereich: keine zusätzliche Code-Lektüre in diesem Lauf. Keine Änderung nötig, keine Versionserhöhung.
+
 ## 2026-10-27 – Gelände-Bilder (Version 71)
 
 - Emin hat ein Bild mit 12 Gelände-Bausteinen geliefert (`bilder/quelle-gelaende.jpeg`). Ausgeschnitten und eingebaut:

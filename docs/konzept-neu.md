@@ -253,6 +253,24 @@ Gewünscht:
 
 ---
 
+## Stand der Planung (2026-10-28, vor Neustart des Rechners)
+
+**Erledigt in der Sitzung vom 2026-10-28:**
+- Plan geschrieben (diese Datei) und Emins Entscheidungen eingetragen (Name **Epochia**, 8 Epochen, Weltreligionen,
+  keine Katastrophen, Bauen mit ✔, 2 Drehrichtungen, Forschung mit Wissen + Zeit, komplett neu anfangen).
+- Emins Beispielbilder ausgewertet (große Gebäude mit Grundstück, nah gezoomt, Sprechblasen, ✖ ↻ ✔).
+- Epoche 1 Steinzeit ausgearbeitet: `docs/epoche-1-steinzeit.md` (Gebäude-Linien durch alle Epochen, Wohnhöhle,
+  Pfahlbau, Mammutjagd, 22 Forschungen, Einstieg mit dem Stammesältesten, Aufträge, tägliche Belohnung).
+- 77 Bild-Prompts: `bilder/epochia/README.md` (mit Gruppen) und `bilder/epochia/prompts.txt` (nur Text).
+
+**Als Nächstes:**
+1. Emin erzeugt **Gruppe A** (Lagerfeuer, Wohnhöhle, Sammlerin) → in `bilder/epochia/` ablegen → Claude prüft
+   Blickwinkel/Grundstück, passt den Stil-Satz an → bestes Bild wird Stil-Vorlage für den Rest.
+2. Emin sagt, ob Claude mit dem **Fundament** anfangen soll (Schrägansicht, Bedienung, Startseite, Forschungsbaum,
+   Einstieg – mit Platzhaltern unter `…/neu/`).
+
+**Noch offen (Emin entscheidet später):** Werkzeug für Sounds · ab wann man die Religion wechseln darf.
+
 ## Epochen im Detail
 
 - Epoche 1 Steinzeit: [`docs/epoche-1-steinzeit.md`](epoche-1-steinzeit.md) (Entwurf)

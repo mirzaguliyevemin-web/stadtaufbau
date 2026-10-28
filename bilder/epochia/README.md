@@ -8,7 +8,7 @@ Jeder Kasten ist ein **kompletter Prompt** – einfach ganz kopieren. Erledigtes
 Grundstück stimmen, nehmen wir das beste Bild als **Stil-Vorlage** (bei den meisten Bild-KIs kann man ein
 Referenzbild mitgeben) und erzeugen alle weiteren damit.
 
-**Stand 2026-10-28:** Gruppe A, Startseite, Ladebild, App-Icon, Fellzelt, Jägerlager und Mammutjägerlager sind fertig und eingebaut – Stil, Blickwinkel und Grasplatte mit
+**Stand 2026-10-28:** Gruppe A, Startseite, Ladebild, App-Icon, Fellzelt, Jägerlager, Mammutjägerlager und Holzsammler sind fertig und eingebaut – Stil, Blickwinkel und Grasplatte mit
 Erdsockel passen. Lagerfeuer, Wohnhöhle und Sammlerin sind die **Stil-Vorlage** für alle weiteren Gebäude. Dateinamen sind egal
 (Claude benennt um); die Originale liegen danach in `quelle/`, das Spiel nutzt die verkleinerten `.webp`
 (`python3 neu/tools/bild-einbauen.py …`). Fehlt ein Bild, zeigt das Spiel einen einfachen Platzhalter.
@@ -84,7 +84,7 @@ Stone age, prehistoric, everything made of wood, stone, bones, leather and furs,
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A bigger hunters' camp with a large hut built from mammoth tusks and bones covered with furs, long spears on racks, a huge mammoth fur drying, medium plot (3x3). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Holzsammler (2×2)** → `1-holzsammler.png`
+- [x] **Holzsammler (2×2)** → `1-holzsammler.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A woodgatherer's spot: a stack of branches and logs, a stone axe stuck in a tree stump, a small shelter of branches, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format

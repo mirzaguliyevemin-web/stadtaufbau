@@ -17,19 +17,19 @@ Größen der Grundstücke: 2×2 = klein, 3×3 = mittel, 4×4 = groß. Alle Gebä
 
 ## Gruppe A – zuerst (Stil festlegen)
 
-- [x] **Lagerfeuer (3×3)** → `1-lagerfeuer.png`
+- [x] ~~**Lagerfeuer (3×3)**~~ → `1-lagerfeuer.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A cozy prehistoric camp center: a big crackling campfire in a ring of stones, logs to sit on around it, a wooden drying rack with furs, baskets with berries, a small pile of firewood, medium-size plot (3x3). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [x] **Wohnhöhle (2×2)** → `1-wohnhoehle.png`
+- [x] ~~**Wohnhöhle (2×2)**~~ → `1-wohnhoehle.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A small cozy cave dwelling: a rocky overhang of grey boulders with a leather curtain at the entrance, a small fire glowing inside, a few furs and a stone bowl in front, grass and tiny flowers around, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [x] **Sammlerin (2×2)** → `1-sammlerin.png`
+- [x] ~~**Sammlerin (2×2)**~~ → `1-sammlerin.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A gatherer's spot: a small lean-to shelter of branches and leaves, woven baskets full of red berries and mushrooms, a few berry bushes, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
@@ -37,19 +37,19 @@ Stone age, prehistoric, everything made of wood, stone, bones, leather and furs,
 
 ## Gruppe B – Spielfiguren und Startseite
 
-- [x] **Startseite (16:9 quer)** → `start.png`
+- [x] ~~**Startseite (16:9 quer)**~~ → `start.png`
 
 ```
 A wide bright cheerful landscape for the title screen of a cozy city building game about the ages of humanity: a sunny green valley with a river; on the left a stone age camp with a campfire and furs tents, in the middle an ancient village and a medieval castle on a hill, on the far right horizon a modern city skyline; soft clouds, birds, warm morning light, cartoon mobile game art style, soft warm colors, clean outlines, lots of empty sky at the top for a logo and calm empty meadow in the lower middle for buttons, no text, no letters, 16:9 wide format, 1920x1080
 ```
 
-- [x] **Ladefenster (16:9 quer)** → `ladebild.png`
+- [x] ~~**Ladefenster (16:9 quer)**~~ → `ladebild.png`
 
 ```
 A calm cheerful loading screen illustration: a single campfire at dusk on a green hill, behind it a soft gradient sky from warm orange to light blue, faint silhouettes of a pyramid, a castle and a modern tower far away in the sky like a dream, cartoon mobile game art style, soft warm colors, large empty space in the center for a logo and a loading bar, no text, no letters, 16:9 wide format, 1920x1080
 ```
 
-- [x] **App-Icon (1024×1024)** → `icon.png`
+- [x] ~~**App-Icon (1024×1024)**~~ → `icon.png`
 
 ```
 App icon for a cozy city building game about the ages of humanity: a cheerful round emblem with a small campfire and a stone age hut in front, behind them a castle tower and a modern skyscraper rising like steps toward a bright sun, green hill, blue sky, bright cheerful cartoon style, soft warm colors, clean outlines, all important parts inside the central 70 percent, the sky background color fills the whole square to all edges, no text, no letters, no border, square 1:1, 1024x1024
@@ -66,43 +66,43 @@ Bürgermeister (Neuzeit). Prompts dafür kommen mit der jeweiligen Epoche – mi
 
 ## Gruppe C – Gebäude Altsteinzeit
 
-- [x] **Fellzelt (2×2)** → `1-fellzelt.png`
+- [x] ~~**Fellzelt (2×2)**~~ → `1-fellzelt.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A cozy tent made of wooden poles covered with sewn animal furs, smoke hole at the top, a small fire pit and a drying fur in front, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [x] **Jägerlager (3×3)** → `1-jaegerlager.png`
+- [x] ~~**Jägerlager (3×3)**~~ → `1-jaegerlager.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A hunters' camp: two small fur tents, spears leaning on a wooden rack, antlers on a post, a deer hide stretched on a frame, a meat drying rack, medium plot (3x3). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [x] **Mammutjägerlager (3×3)** → `1-mammutjaegerlager.png`
+- [x] ~~**Mammutjägerlager (3×3)**~~ → `1-mammutjaegerlager.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A bigger hunters' camp with a large hut built from mammoth tusks and bones covered with furs, long spears on racks, a huge mammoth fur drying, medium plot (3x3). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [x] **Holzsammler (2×2)** → `1-holzsammler.png`
+- [x] ~~**Holzsammler (2×2)**~~ → `1-holzsammler.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A woodgatherer's spot: a stack of branches and logs, a stone axe stuck in a tree stump, a small shelter of branches, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [x] **Steinsammler (2×2)** → `1-steinsammler.png`
+- [x] ~~**Steinsammler (2×2)**~~ → `1-steinsammler.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A stone gatherer's spot: piles of grey stones and flint, a wooden sled with stones, a stone hammer, a few boulders, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [x] **Höhlenmaler (2×2)** → `1-hoehlenmaler.png`
+- [x] ~~**Höhlenmaler (2×2)**~~ → `1-hoehlenmaler.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A rock wall with colorful cave paintings of animals and hand prints, pots of red and ochre paint, a small fire for light, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [x] **Feuerplatz (2×2)** → `1-feuerplatz.png`
+- [x] ~~**Feuerplatz (2×2)**~~ → `1-feuerplatz.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A small fire place: a little campfire in a stone ring, two log benches, a pot hanging over the fire, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
@@ -110,13 +110,13 @@ Stone age, prehistoric, everything made of wood, stone, bones, leather and furs,
 
 ## Gruppe D – Gebäude Mittelsteinzeit
 
-- [x] **Fischerplatz mit Einbaum (2×2, am Wasser)** → `1-fischerplatz.png`
+- [x] ~~**Fischerplatz mit Einbaum (2×2, am Wasser)**~~ → `1-fischerplatz.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A fishing spot at a river bank: a dugout canoe made from a tree trunk, fishing spears and woven fish traps, fish drying on a rack; the back half of the plot is blue water, the front half grass, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [x] **Fellmacherin (2×2)** → `1-fellmacherin.png`
+- [x] ~~**Fellmacherin (2×2)**~~ → `1-fellmacherin.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A fur workshop: furs stretched on wooden frames, a small hut with a fur roof, bone needles and fur clothes hanging on a line, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format

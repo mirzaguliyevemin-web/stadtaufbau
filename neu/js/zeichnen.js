@@ -3,7 +3,8 @@
 // Hintere Dinge werden zuerst gezeichnet, vordere davor. Der Boden wird vorab in Stücke gezeichnet.
 
 const TW = CONFIG.tileW, TH = CONFIG.tileH;
-const CHUNK = 16;   // Boden-Stück = 16 × 16 Felder
+const CHUNK = 16;
+const FONT = "Fredoka, 'Trebuchet MS', sans-serif";   // Schrift für Texte auf der Karte (Zeichen/Emoji fallen auf die Systemschrift zurück)   // Boden-Stück = 16 × 16 Felder
 
 const cam = { x: 0, y: N * TH / 2, zoom: 0.8 };
 const ZOOM_MIN = 0.3, ZOOM_MAX = 2.2;
@@ -389,7 +390,7 @@ function drawConstruction(b) {
   ctx.fillStyle = '#8fd14f';
   roundRect(top.x - bw / 2, by, bw * Math.max(0, Math.min(1, done)), bh, 3); ctx.fill();
   ctx.fillStyle = '#fff';
-  ctx.font = `bold ${Math.max(11, Math.round(12 * cam.zoom))}px sans-serif`;
+  ctx.font = `600 ${Math.max(11, Math.round(12 * cam.zoom))}px ${FONT}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   ctx.fillText('🔨 ' + formatTime(b.build), top.x, by - 3);
@@ -456,7 +457,7 @@ function drawPlots(range) {
     if (canBuyPlot(p) && cam.zoom > 0.35) {
       const c = tileToScreen(px + ps / 2, py + ps / 2);
       const size = Math.max(12, 15 * cam.zoom);
-      ctx.font = `bold ${Math.round(size)}px sans-serif`;
+      ctx.font = `600 ${Math.round(size)}px ${FONT}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const text = '🛒 ' + formatAmounts(price);

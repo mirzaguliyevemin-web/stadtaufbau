@@ -16,6 +16,15 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
 }
 
+/* Fredoka (SIL Open Font License, siehe fonts/OFL.txt) – liegt im Spiel, damit sie auch offline da ist */
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(fonts/fredoka.woff2) format('woff2');
+}
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html, body {
@@ -23,7 +32,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: #3d7a2a;
-  font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  font-family: 'Fredoka', "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
   color: var(--ink);
   user-select: none;
   -webkit-user-select: none;
@@ -77,6 +86,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #loading { background: radial-gradient(circle at 50% 70%, #ffcf7a 0%, #f4934a 30%, #6b8fc0 75%, #3c5f92 100%); background-size: cover; background-position: center; }
 
 .logo {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
   font-size: clamp(48px, 11vw, 96px);
   font-weight: 900;
   letter-spacing: 2px;

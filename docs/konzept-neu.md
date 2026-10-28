@@ -308,6 +308,7 @@ Bot mit Wegen: Jungsteinzeit ≈ 38–47 min, Kupferfund ≈ 73–81 min.
 ## Entscheidungen
 
 <!-- Hier wird jede Entscheidung mit Datum eingetragen -->
+- 2026-10-28: Schrift im Spiel: **Fredoka** (Epochia Version 3); Logo und Schriftband kommen als Bilder (Prompts 78–80).
 - 2026-10-28: **Trampelpfad ist Pflicht** – Gebäude brauchen einen Weg zum Lagerfeuer (Epochia Version 2).
 - 2026-10-28: Gruppe-A-Bilder und Startseite passen (Stil-Vorlage). Fundament gebaut (Epochia Version 1 unter `neu/`).
 - 2026-10-28: Neustart beschlossen; vorhandene Spiellogik wird weiterverwendet; gebaut wird Epoche für Epoche.

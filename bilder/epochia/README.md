@@ -523,5 +523,5 @@ Decorative empty banner for a cozy mobile game: a wide ribbon made of tan leathe
 Small game logo badge for a loading screen: the word "Epochia" in big bold rounded golden sandstone cartoon letters with thick dark brown outline, exactly these 7 letters E-p-o-c-h-i-a, correct spelling, placed on a round stone tablet with a small campfire below the letters, cheerful bright mobile game style, soft warm colors, centered, square 1:1 format, plain pure white background, no other text, no border
 ```
 
-Die Schrift für alle Texte im Spiel (Knöpfe, Fenster) ist eine echte Schriftart, kein Bild – Vorschlag: **Fredoka**
-(rund, fröhlich, gut lesbar, frei nutzbar). Claude baut sie ein, sobald Emin zustimmt.
+Die Schrift für alle Texte im Spiel (Knöpfe, Fenster) ist eine echte Schriftart, kein Bild: ✅ **Fredoka**
+(rund, fröhlich, frei nutzbar) – liegt seit Epochia Version 3 in `neu/fonts/` und funktioniert auch offline.

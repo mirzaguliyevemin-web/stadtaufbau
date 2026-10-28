@@ -108,7 +108,7 @@ Größen nach dem neuen Maßstab: klein 2×2 · mittel 3×3 · groß 4×4 (das B
 | 🪨 Steinsammler | 2×2 | 30 s | 15 Holz | Stein (mehr an Felsen) |
 | 🎨 Höhlenmaler | 2×2 | 60 s | 20 Holz, 20 Stein | Wissen (mehr an Felsen) |
 | 🔥 Feuerplatz | 2×2 | 30 s | 15 Holz, 10 Stein | Wärme für Zelte im Umkreis (für weiter entfernte Wohnorte) |
-| 🛤️ Trampelpfad | 1×1 | sofort | 1 Holz | Weg; Gebäude brauchen Anschluss |
+| 🛤️ Trampelpfad | 1×1 | sofort | 1 Holz | Weg; ✅ jedes Gebäude braucht einen Weg zum Lagerfeuer |
 | 🦣 Mammutjägerlager | 3×3 | 2 min | Weiterentwicklung vom Jägerlager: 60 Holz, 40 Stein | doppelt so viel Nahrung und Felle; schickt Jäger zur Mammutjagd |
 
 **🦣 Mammutjagd** (nach Forschung „Mammutjagd“): Von Zeit zu Zeit zieht eine Mammutherde über die Karte. Tippt man
@@ -236,7 +236,9 @@ Damit der Einstieg und die Wirtschaft aufgehen, weicht Version 1 an diesen Stell
 - **Höhlenmaler**: 4 Wissen/min, kostet 15 Holz + 15 Stein, Bauzeit 45 s (Wissen war der Engpass).
 - **Fellmacherin**: 4 Felle → 2 Kleidung je Minute; Einwohner brauchen 0,02 Kleidung bzw. Töpferwaren je Minute.
 - Wer Holz *und* Stein aufgebraucht hat, kommt durch Bäume fällen / Felsen abtragen (+3) wieder heraus.
-- Mammutherden und der Mammut-Zug fehlen noch; Trampelpfade sind noch keine Pflicht.
+- Mammutherden und der Mammut-Zug fehlen noch.
+- Land kostet 30 + 20 Holz und Nahrung je schon gekauftem Stück (statt ×1,5 – das wäre bald über den Lagerplatz gestiegen).
+- Version 2: Trampelpfad ist Pflicht; beim Start sind die Wohnhöhlen schon mit dem Feuer verbunden. Einstieg mit eigenem Pfad-Schritt (10 Schritte).
 
 ## Nächster Schritt danach
 

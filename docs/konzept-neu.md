@@ -276,8 +276,13 @@ Gewünscht:
   nach Emins Handy-Test kürzen wir die Zeiten.
 
 **Noch nicht drin (kommt mit Epoche 1 / später):** Mammutherden (Forschung „Mammutjagd“ schaltet bisher nur das
-Mammutjägerlager frei), Menschen-Figuren und Tiere, Sounds/Musik, Nacht, Jahreszeiten-Bilder, Anschluss-Pflicht
-für Wege (❓ Emin: sollen Gebäude einen Trampelpfad brauchen?), Aufbruch in die Bronzezeit.
+Mammutjägerlager frei), Menschen-Figuren und Tiere, Sounds/Musik, Nacht, Jahreszeiten-Bilder, Aufbruch in die Bronzezeit.
+
+**Version 2 (2026-10-28): Trampelpfad ist Pflicht** (✅ Emin). Jedes Gebäude braucht über Pfade eine Verbindung zum
+Lagerfeuer (direkt am Feuer zählt auch). Ohne Weg: keine Bewohner, keine Arbeit, keine Wärme – Blase 🛤️❗ über dem Gebäude.
+Im Gebäude-Fenster legt „🛤️ Weg bauen“ den kürzesten Pfad (1 Holz je Feld). Eigener Schritt im Einstieg.
+Landpreis steigt jetzt gleichmäßig (30 + 20 Holz/Nahrung je gekauftem Stück), damit er nie über den Lagerplatz springt.
+Bot mit Wegen: Jungsteinzeit ≈ 38–47 min, Kupferfund ≈ 73–81 min.
 
 **Als Nächstes:**
 1. Emin testet `…/neu/` am Handy und trägt Fehler/Wünsche in `docs/wuensche.md` ein.
@@ -303,6 +308,7 @@ für Wege (❓ Emin: sollen Gebäude einen Trampelpfad brauchen?), Aufbruch in d
 ## Entscheidungen
 
 <!-- Hier wird jede Entscheidung mit Datum eingetragen -->
+- 2026-10-28: **Trampelpfad ist Pflicht** – Gebäude brauchen einen Weg zum Lagerfeuer (Epochia Version 2).
 - 2026-10-28: Gruppe-A-Bilder und Startseite passen (Stil-Vorlage). Fundament gebaut (Epochia Version 1 unter `neu/`).
 - 2026-10-28: Neustart beschlossen; vorhandene Spiellogik wird weiterverwendet; gebaut wird Epoche für Epoche.
 - 2026-10-28: Name **Epochia** · komplett neu, alte Städte nicht übernehmen · 8 Epochen, Unterteilungen als

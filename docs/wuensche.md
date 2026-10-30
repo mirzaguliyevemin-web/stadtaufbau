@@ -16,10 +16,16 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
+- Arbeitende Menschen Teil 2: Fischer im Einbaum, Höhlenmaler, Fellmacherin, Steinschläger, Töpferei (Emin, 30.10.).
+- Karte größer machen (Emin, 30.10.).
+- Mehr Topografie: ein Gebirge auf der Karte, Bilder mit Canva (Emin, 30.10.).
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 21 – Arbeitende Menschen (Teil 1): Holzsammler gehen zu Bäumen und hacken mit der Axt (Späne
+  fliegen), Steinsammler schlagen mit der Spitzhacke am Felsen (Splitter), Sammlerinnen pflücken Beeren, Jäger ziehen in den
+  Wald; alle tragen die Beute (Holz, Stein, Nahrung) zurück. So viele Figuren, wie dort arbeiten (höchstens 2 je Gebäude).
 - 2026-10-30, Epochia Version 20 – Brücke: Pfade gehen nicht mehr aufs Wasser; malt man einen Pfad über den Fluss, entsteht dort
   automatisch eine Holzbrücke (8 Holz je Feld, Bild aus Canva, auch in der Bauleiste unter Wege). Auch „Weg bauen“ nutzt Brücken.
 - 2026-10-30, Epochia Version 20 – Forschungsleiste mitten auf der Karte entfernt: Restzeit und Balken stehen am Forschung-Knopf.

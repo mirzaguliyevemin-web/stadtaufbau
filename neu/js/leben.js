@@ -181,6 +181,139 @@ function mammothAtScreen(sx, sy) {
   return null;
 }
 
+// ---------------------------------------------------------------------
+// Arbeitende Menschen: laufen vom Gebäude zum Baum/Felsen/Busch, arbeiten dort und tragen die Beute zurück
+// ---------------------------------------------------------------------
+
+// Wer wohin geht: Gelände-Ziel, Werkzeug, was zurückgetragen wird, Figur, Teilchen beim Arbeiten
+const WORK = {
+  holzsammler:       { target: 'wald', tool: 'axt',   carry: 'ware-holz',    img: 'mensch-mann', chips: '#a8743f', swing: 'hack' },
+  steinsammler:      { target: 'fels', tool: 'hacke', carry: 'ware-stein',   img: 'mensch-mann', chips: '#b9b4a8', swing: 'hack' },
+  sammlerin:         { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-frau', chips: '#d8344a', swing: 'pick' },
+  jaegerlager:       { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true },
+  mammutjaegerlager: { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true },
+};
+const WORK_SECONDS = 7, WORK_WALK = 0.75;   // so lange wird gearbeitet, so schnell gelaufen (Felder je Sekunde)
+
+life.workers = [];
+life.workTimer = 0;
+
+// Nächstes passendes Geländefeld in der Nähe eines Gebäudes, dazu ein freier Standplatz daneben
+function workSpot(b, kind, far, k = 0) {
+  const s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
+  const id = TERRAIN[kind].id, max = far ? 10 : 7;
+  let best = null, bestD = Infinity;
+  for (let y = Math.floor(cy - max); y <= cy + max; y++)
+    for (let x = Math.floor(cx - max); x <= cx + max; x++) {
+      if (!inMap(x, y) || terrain[y * N + x] !== id) continue;
+      const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + hash(x + b.x + k * 13, y - b.y + k * 7) * (far ? 4 : 2.5);   // nicht alle zum selben Baum
+      if (d >= bestD) continue;
+      for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+        if (!animalFree(x + dx, y + dy) && !isPathAt(x + dx, y + dy)) continue;
+        best = { tx: x + 0.5, ty: y + 0.5, sx: x + 0.5 + dx * 0.7, sy: y + 0.5 + dy * 0.7 }; bestD = d; break;
+      }
+    }
+  return best;
+}
+
+function updateWorkers(dt) {
+  life.workTimer -= dt;
+  if (life.workTimer <= 0) {   // einmal pro Sekunde: wer soll draußen arbeiten?
+    life.workTimer = 1;
+    const want = [];
+    state.buildings.forEach((b, i) => {
+      const w = WORK[b.type];
+      if (!w || b.build || b.paused || !isConnected(i)) return;
+      const n = Math.min(2, stats.staff[i] || 0);
+      for (let k = 0; k < n; k++) want.push({ b, k });
+    });
+    life.workers = life.workers.filter(w => want.some(o => o.b === w.b && o.k === w.k));
+    for (const o of want) {
+      if (life.workers.some(w => w.b === o.b && w.k === o.k)) continue;
+      const s = BUILDINGS[o.b.type].size;
+      const home = { x: o.b.x + s + 0.3, y: o.b.y + s / 2 + (o.k ? 0.5 : -0.5) };   // vor dem Haus (rechts unten im Bild)
+      life.workers.push({ b: o.b, k: o.k, kind: WORK[o.b.type], home, x: home.x, y: home.y, phase: 'rest', t: 1 + o.k * 2.5 + lifeRandom() * 2, face: 1, ph: lifeRandom() * 9 });
+    }
+  }
+  for (const w of life.workers) {
+    w.t -= dt;
+    if (w.phase === 'rest') {
+      if (w.t > 0) continue;
+      const spot = workSpot(w.b, w.kind.target, w.kind.far, w.k);
+      if (!spot) { w.t = 5; continue; }
+      Object.assign(w, spot, { phase: 'go' });
+    } else if (w.phase === 'go' || w.phase === 'back') {
+      const [gx, gy] = w.phase === 'go' ? [w.sx, w.sy] : [w.home.x, w.home.y];
+      const dx = gx - w.x, dy = gy - w.y, d = Math.hypot(dx, dy);
+      if (d < 0.05) {
+        if (w.phase === 'go') { w.phase = 'work'; w.t = WORK_SECONDS * (0.8 + lifeRandom() * 0.4); }
+        else { w.phase = 'rest'; w.t = 3 + lifeRandom() * 3; }
+        continue;
+      }
+      const step = Math.min(d, WORK_WALK * dt);
+      w.x += dx / d * step; w.y += dy / d * step;
+      if (Math.abs(dx - dy) > 0.01) w.face = dx - dy > 0 ? -1 : 1;
+    } else if (w.phase === 'work') {
+      const sxd = w.tx - w.x - (w.ty - w.y);
+      if (Math.abs(sxd) > 0.01) w.face = sxd > 0 ? -1 : 1;   // zum Baum/Felsen schauen
+      if (w.t <= 0) w.phase = 'back';
+    }
+  }
+}
+
+function workerObjects(inView, t) {
+  const out = [];
+  for (const w of life.workers) {
+    if (w.phase === 'rest' || !inView(w.x, w.y)) continue;
+    out.push({ d: w.x + w.y - 0.5, kind: 'leben', draw: () => drawWorker(w, t) });
+  }
+  return out;
+}
+
+function drawWorker(w, t) {
+  const z = cam.zoom, walking = w.phase !== 'work', step = t * 10 + w.ph;
+  let bob = walking ? Math.abs(Math.sin(step)) * 1.2 * z : 0;
+  const swing = w.kind.swing;
+  if (!walking && swing === 'pick') bob = -Math.max(0, Math.sin(t * 3 + w.ph)) * 3 * z;   // bückt sich zum Busch
+  drawCreature(w.kind.img, w.x, w.y, 32, w.face, bob, '🧍', walking ? step : null);
+  const p = tileToScreen(w.x, w.y);
+  // Werkzeug schwingen (hoch – runter – Schlag)
+  if (!walking && w.kind.tool && images[w.kind.tool]) {
+    const cyc = (t * 1.6 + w.ph) % 1;
+    const ang = cyc < 0.7 ? -1.6 * (cyc / 0.7) : -1.6 + 2.2 * ((cyc - 0.7) / 0.3);   // langsam ausholen, schnell zuschlagen
+    const s = 24 * z;
+    ctx.save();
+    ctx.translate(p.x - 5 * z * w.face, p.y - 18 * z);
+    ctx.scale(-w.face, 1);
+    ctx.rotate(ang);
+    ctx.drawImage(images[w.kind.tool], -s * 0.2, -s, s, s);
+    ctx.restore();
+    // Späne bzw. Splitter beim Aufschlag
+    if (cyc > 0.85 && w.kind.chips) {
+      const q = (cyc - 0.85) / 0.15;
+      const hx = tileToScreen(w.tx, w.ty);
+      ctx.fillStyle = w.kind.chips;
+      for (let i = 0; i < 4; i++) {
+        const a = i * 1.7 + w.ph;
+        ctx.globalAlpha = 1 - q;
+        ctx.fillRect(hx.x + Math.cos(a) * 9 * q * z - 1.5, hx.y - 12 * z - Math.abs(Math.sin(a)) * 10 * q * z, 3 * z, 3 * z);
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+  // Beeren pflücken: ab und zu hüpft eine Beere in den Korb
+  if (!walking && swing === 'pick') {
+    const q = (t * 0.9 + w.ph) % 1;
+    ctx.fillStyle = '#d8344a';
+    ctx.beginPath(); ctx.arc(p.x - 8 * z * w.face, p.y - 14 * z - Math.sin(q * Math.PI) * 8 * z, 2.2 * z, 0, 7); ctx.fill();
+  }
+  // Beute auf dem Rückweg tragen
+  if (w.phase === 'back' && images[w.kind.carry]) {
+    const s = 14 * z;
+    ctx.drawImage(images[w.kind.carry], p.x - s / 2, p.y - 32 * z - s * 0.6 - bob, s, s);
+  }
+}
+
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
 const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };
 
@@ -247,6 +380,7 @@ function lifeObjects(range) {
   const t = frameTime;
   out.push(...felledObjects(lifeDt));
   out.push(...hunterObjects(inView, t));
+  out.push(...workerObjects(inView, t));
   for (const w of life.walkers) {
     if (!inView(w.x, w.y)) continue;
     const moving = w.wait <= 0;
@@ -364,11 +498,12 @@ function updateLife(dt, range) {
   lifeDt = dt;
   if (!state || !occ) return;
   updateWalkers(dt);
+  updateWorkers(dt);
   updateAnimals(dt);
   updateSky(dt, range);
 }
 
 // Neues Spiel oder anderer Spielstand: alles Lebendige neu verteilen
 function resetLife() {
-  life.walkers = []; life.animals = []; life.birds = []; life.jumps = []; life.butterflies = []; life.felled = [];
+  life.walkers = []; life.workers = []; life.animals = []; life.birds = []; life.jumps = []; life.butterflies = []; life.felled = [];
 }

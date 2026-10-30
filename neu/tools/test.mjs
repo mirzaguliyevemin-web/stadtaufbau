@@ -504,6 +504,20 @@ test('Brücke: Pfad nie aufs Wasser, Brücke nur aufs Wasser, über Brücken ist
   noErrors(g);
 });
 
+test('Arbeitende Menschen: gehen zum Baum, arbeiten und kommen zurück', () => {
+  const g = fresh();
+  g.run(`state.res.holz = 999; state.res.stein = 999; state.pop = 12;
+    for (const t of ['holzsammler', 'steinsammler', 'sammlerin']) { const sp = findFreeSpot(t, 30, 30); placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
+    recalcStats();`);
+  const all = '{x0:0,y0:0,x1:N-1,y1:N-1}';
+  const seen = g.run(`(() => { const ph = {}; for (let i = 0; i < 1200; i++) { updateLife(0.05, ${all}); for (const w of life.workers) ph[w.b.type + ':' + w.phase] = true; if (i % 50 === 0) drawScene(0.05); } return Object.keys(ph).join(','); })()`);
+  for (const p of ['holzsammler:work', 'holzsammler:back', 'steinsammler:work', 'sammlerin:work']) ok(seen.includes(p), 'nie gesehen: ' + p + ' (' + seen + ')');
+  // pausiert: niemand geht mehr raus
+  g.run(`state.buildings.forEach((b, i) => { if (b.type === 'holzsammler') togglePause(i); }); for (let i = 0; i < 30; i++) updateLife(0.05, ${all});`);
+  ok(!g.run(`life.workers.some(w => w.b.type === 'holzsammler')`), 'pausierter Holzsammler arbeitet weiter');
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   test('Bot: Altsteinzeit dauert über 40 Minuten, Mittelsteinzeit ist in 90 Spielminuten erreichbar', () => {

@@ -20,6 +20,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 14 – alle 24 Forschungen haben Bilder aus Canva.
 - 2026-10-30, Epochia Version 13 – Gebäude entwickeln sich mit dem Zeitalter weiter (z. B. alle Wohnhöhlen werden Fellzelte),
   in der Leiste und auf dem Feld; gilt auch für alte Spielstände.
 - 2026-10-30, Epochia Version 13 – Ränder der Gebäude passten nicht zusammen (mal Holz, mal Stein, mal nur Gras): alle haben

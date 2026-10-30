@@ -157,76 +157,76 @@ A clay pot with a simple painted pattern. Style: round game icon, bright cheerfu
 53. Truhe (tägliche Belohnung)  →  Datei: truhe.png
 A wooden treasure chest bound with leather straps, slightly open, glowing warm light, berries and furs peeking out. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-54. Feuer hüten  →  Datei: f-feuer.png
+✅ ERLEDIGT – 5̶4̶.̶ ̶F̶e̶u̶e̶r̶ ̶h̶ü̶t̶e̶n̶  →  Datei: f-feuer.png
 A small campfire with sparks. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-55. Faustkeil  →  Datei: f-faustkeil.png
+✅ ERLEDIGT – 5̶5̶.̶ ̶F̶a̶u̶s̶t̶k̶e̶i̶l̶  →  Datei: f-faustkeil.png
 A stone hand axe. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-56. Flechtkörbe  →  Datei: f-koerbe.png
+✅ ERLEDIGT – 5̶6̶.̶ ̶F̶l̶e̶c̶h̶t̶k̶ö̶r̶b̶e̶  →  Datei: f-koerbe.png
 A woven basket full of berries. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-57. Speerspitzen  →  Datei: f-speer.png
+✅ ERLEDIGT – 5̶7̶.̶ ̶S̶p̶e̶e̶r̶s̶p̶i̶t̶z̶e̶n̶  →  Datei: f-speer.png
 A wooden spear with a flint tip. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-58. Fellzelte  →  Datei: f-fellzelte.png
+✅ ERLEDIGT – 5̶8̶.̶ ̶F̶e̶l̶l̶z̶e̶l̶t̶e̶  →  Datei: f-fellzelte.png
 A small fur tent. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-59. Höhlenmalerei  →  Datei: f-hoehlenmalerei.png
+✅ ERLEDIGT – 5̶9̶.̶ ̶H̶ö̶h̶l̶e̶n̶m̶a̶l̶e̶r̶e̶i̶  →  Datei: f-hoehlenmalerei.png
 A cave painting of a deer and a hand print. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-60. Mammutjagd  →  Datei: f-mammutjagd.png
+✅ ERLEDIGT – 6̶0̶.̶ ̶M̶a̶m̶m̶u̶t̶j̶a̶g̶d̶  →  Datei: f-mammutjagd.png
 A mammoth head with tusks and a spear. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-61. Übergang Mittelsteinzeit  →  Datei: f-mittelsteinzeit.png
+✅ ERLEDIGT – 6̶1̶.̶ ̶Ü̶b̶e̶r̶g̶a̶n̶g̶ ̶M̶i̶t̶t̶e̶l̶s̶t̶e̶i̶n̶z̶e̶i̶t̶  →  Datei: f-mittelsteinzeit.png
 A sunrise over a river with a canoe. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-62. Pfeil und Bogen  →  Datei: f-bogen.png
+✅ ERLEDIGT – 6̶2̶.̶ ̶P̶f̶e̶i̶l̶ ̶u̶n̶d̶ ̶B̶o̶g̶e̶n̶  →  Datei: f-bogen.png
 A wooden bow with an arrow. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-63. Einbaum  →  Datei: f-einbaum.png
+✅ ERLEDIGT – 6̶3̶.̶ ̶E̶i̶n̶b̶a̶u̶m̶  →  Datei: f-einbaum.png
 A dugout canoe with a paddle. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-64. Feine Klingen  →  Datei: f-klingen.png
+✅ ERLEDIGT – 6̶4̶.̶ ̶F̶e̶i̶n̶e̶ ̶K̶l̶i̶n̶g̶e̶n̶  →  Datei: f-klingen.png
 Small sharp flint blades. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-65. Fellbearbeitung  →  Datei: f-fellbearbeitung.png
+✅ ERLEDIGT – 6̶5̶.̶ ̶F̶e̶l̶l̶b̶e̶a̶r̶b̶e̶i̶t̶u̶n̶g̶  →  Datei: f-fellbearbeitung.png
 A bone needle sewing fur. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-66. Grubenhaus  →  Datei: f-grubenhaus.png
+✅ ERLEDIGT – 6̶6̶.̶ ̶G̶r̶u̶b̶e̶n̶h̶a̶u̶s̶  →  Datei: f-grubenhaus.png
 A small pit house with a thatched roof. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-67. Ahnenkult  →  Datei: f-ahnenkult.png
+✅ ERLEDIGT – 6̶7̶.̶ ̶A̶h̶n̶e̶n̶k̶u̶l̶t̶  →  Datei: f-ahnenkult.png
 A carved wooden totem pole. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-68. Übergang Jungsteinzeit  →  Datei: f-jungsteinzeit.png
+✅ ERLEDIGT – 6̶8̶.̶ ̶Ü̶b̶e̶r̶g̶a̶n̶g̶ ̶J̶u̶n̶g̶s̶t̶e̶i̶n̶z̶e̶i̶t̶  →  Datei: f-jungsteinzeit.png
 A sunrise over a wheat field. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-69. Ackerbau  →  Datei: f-ackerbau.png
+✅ ERLEDIGT – 6̶9̶.̶ ̶A̶c̶k̶e̶r̶b̶a̶u̶  →  Datei: f-ackerbau.png
 Wheat ears and a digging stick. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-70. Sichel  →  Datei: f-sichel.png
+✅ ERLEDIGT – 7̶0̶.̶ ̶S̶i̶c̶h̶e̶l̶  →  Datei: f-sichel.png
 A stone sickle with wheat. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-71. Viehzucht  →  Datei: f-viehzucht.png
+✅ ERLEDIGT – 7̶1̶.̶ ̶V̶i̶e̶h̶z̶u̶c̶h̶t̶  →  Datei: f-viehzucht.png
 A cute goat head. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-72. Töpfern  →  Datei: f-toepfern.png
+✅ ERLEDIGT – 7̶2̶.̶ ̶T̶ö̶p̶f̶e̶r̶n̶  →  Datei: f-toepfern.png
 Hands shaping a clay pot. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-73. Langhausbau  →  Datei: f-langhaus.png
+✅ ERLEDIGT – 7̶3̶.̶ ̶L̶a̶n̶g̶h̶a̶u̶s̶b̶a̶u̶  →  Datei: f-langhaus.png
 A neolithic longhouse. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-74. Pfahlbauten  →  Datei: f-pfahlbauten.png
+✅ ERLEDIGT – 7̶4̶.̶ ̶P̶f̶a̶h̶l̶b̶a̶u̶t̶e̶n̶  →  Datei: f-pfahlbauten.png
 A hut on stilts over water. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-75. Vorratshaltung  →  Datei: f-vorrat.png
+✅ ERLEDIGT – 7̶5̶.̶ ̶V̶o̶r̶r̶a̶t̶s̶h̶a̶l̶t̶u̶n̶g̶  →  Datei: f-vorrat.png
 Big clay storage pots with grain. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-76. Sternenkunde  →  Datei: f-sterne.png
+✅ ERLEDIGT – 7̶6̶.̶ ̶S̶t̶e̶r̶n̶e̶n̶k̶u̶n̶d̶e̶  →  Datei: f-sterne.png
 A night sky with stars over a standing stone. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-77. Kupferfund  →  Datei: f-kupfer.png
+✅ ERLEDIGT – 7̶7̶.̶ ̶K̶u̶p̶f̶e̶r̶f̶u̶n̶d̶  →  Datei: f-kupfer.png
 A shiny orange copper nugget on a stone. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
 ✅ ERLEDIGT – 7̶8̶.̶ ̶L̶o̶g̶o̶-̶S̶c̶h̶r̶i̶f̶t̶z̶u̶g̶ ̶(̶b̶r̶e̶i̶t̶ ̶3̶:̶1̶)̶  →  Datei: logo.png

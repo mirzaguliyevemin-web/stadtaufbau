@@ -356,145 +356,145 @@ A wooden treasure chest bound with leather straps, slightly open, glowing warm l
 
 ## Gruppe I – Forschungs-Bildchen (rund)
 
-- [ ] **Feuer hüten** → `f-feuer.png`
+- [x] ~~**Feuer hüten**~~ → `f-feuer.png`
 
 ```
 A small campfire with sparks. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Faustkeil** → `f-faustkeil.png`
+- [x] ~~**Faustkeil**~~ → `f-faustkeil.png`
 
 ```
 A stone hand axe. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Flechtkörbe** → `f-koerbe.png`
+- [x] ~~**Flechtkörbe**~~ → `f-koerbe.png`
 
 ```
 A woven basket full of berries. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Speerspitzen** → `f-speer.png`
+- [x] ~~**Speerspitzen**~~ → `f-speer.png`
 
 ```
 A wooden spear with a flint tip. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Fellzelte** → `f-fellzelte.png`
+- [x] ~~**Fellzelte**~~ → `f-fellzelte.png`
 
 ```
 A small fur tent. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Höhlenmalerei** → `f-hoehlenmalerei.png`
+- [x] ~~**Höhlenmalerei**~~ → `f-hoehlenmalerei.png`
 
 ```
 A cave painting of a deer and a hand print. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Mammutjagd** → `f-mammutjagd.png`
+- [x] ~~**Mammutjagd**~~ → `f-mammutjagd.png`
 
 ```
 A mammoth head with tusks and a spear. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Übergang Mittelsteinzeit** → `f-mittelsteinzeit.png`
+- [x] ~~**Übergang Mittelsteinzeit**~~ → `f-mittelsteinzeit.png`
 
 ```
 A sunrise over a river with a canoe. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Pfeil und Bogen** → `f-bogen.png`
+- [x] ~~**Pfeil und Bogen**~~ → `f-bogen.png`
 
 ```
 A wooden bow with an arrow. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Einbaum** → `f-einbaum.png`
+- [x] ~~**Einbaum**~~ → `f-einbaum.png`
 
 ```
 A dugout canoe with a paddle. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Feine Klingen** → `f-klingen.png`
+- [x] ~~**Feine Klingen**~~ → `f-klingen.png`
 
 ```
 Small sharp flint blades. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Fellbearbeitung** → `f-fellbearbeitung.png`
+- [x] ~~**Fellbearbeitung**~~ → `f-fellbearbeitung.png`
 
 ```
 A bone needle sewing fur. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Grubenhaus** → `f-grubenhaus.png`
+- [x] ~~**Grubenhaus**~~ → `f-grubenhaus.png`
 
 ```
 A small pit house with a thatched roof. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Ahnenkult** → `f-ahnenkult.png`
+- [x] ~~**Ahnenkult**~~ → `f-ahnenkult.png`
 
 ```
 A carved wooden totem pole. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Übergang Jungsteinzeit** → `f-jungsteinzeit.png`
+- [x] ~~**Übergang Jungsteinzeit**~~ → `f-jungsteinzeit.png`
 
 ```
 A sunrise over a wheat field. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Ackerbau** → `f-ackerbau.png`
+- [x] ~~**Ackerbau**~~ → `f-ackerbau.png`
 
 ```
 Wheat ears and a digging stick. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Sichel** → `f-sichel.png`
+- [x] ~~**Sichel**~~ → `f-sichel.png`
 
 ```
 A stone sickle with wheat. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Viehzucht** → `f-viehzucht.png`
+- [x] ~~**Viehzucht**~~ → `f-viehzucht.png`
 
 ```
 A cute goat head. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Töpfern** → `f-toepfern.png`
+- [x] ~~**Töpfern**~~ → `f-toepfern.png`
 
 ```
 Hands shaping a clay pot. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Langhausbau** → `f-langhaus.png`
+- [x] ~~**Langhausbau**~~ → `f-langhaus.png`
 
 ```
 A neolithic longhouse. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Pfahlbauten** → `f-pfahlbauten.png`
+- [x] ~~**Pfahlbauten**~~ → `f-pfahlbauten.png`
 
 ```
 A hut on stilts over water. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Vorratshaltung** → `f-vorrat.png`
+- [x] ~~**Vorratshaltung**~~ → `f-vorrat.png`
 
 ```
 Big clay storage pots with grain. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Sternenkunde** → `f-sterne.png`
+- [x] ~~**Sternenkunde**~~ → `f-sterne.png`
 
 ```
 A night sky with stars over a standing stone. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Kupferfund** → `f-kupfer.png`
+- [x] ~~**Kupferfund**~~ → `f-kupfer.png`
 
 ```
 A shiny orange copper nugget on a stone. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format

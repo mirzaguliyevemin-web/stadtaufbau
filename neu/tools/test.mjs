@@ -453,6 +453,32 @@ test('Mammutjagd: erst nach der Forschung, Jäger bringen Beute, Herde kommt wie
   noErrors(g);
 });
 
+test('Tag und Nacht, Wetter und Jahreszeiten: passen zur Zeit, Schnee nur im Winter, Hagel nie im Winter', () => {
+  const g = fresh();
+  ok(g.run('state.playTime = 10; darkness()') === 0, 'am Morgen ist es dunkel');
+  ok(g.run('state.playTime = CONFIG.daySeconds * 0.8; darkness()') === 1, 'in der Nacht ist es hell');
+  ok(g.run('state.playTime = CONFIG.daySeconds * 0.8; timeOfDay().name') === 'Nacht', 'Nacht heißt nicht Nacht');
+  // viele Wetter-Abschnitte durchgehen: jede Jahreszeit hat nur ihr Wetter
+  const seen = g.run(`(() => {
+    const out = {};
+    for (let t = 0; t < CONFIG.yearSeconds * 40; t += CONFIG.weatherSeconds) {
+      state.playTime = t; state.yearTime = t % CONFIG.yearSeconds;
+      const w = currentWeather();
+      (out[seasonIndex()] ||= {})[w.id] = true;
+      if (!(w.k >= 0 && w.k <= 1)) return 'Stärke ' + w.k;
+    }
+    return out;
+  })()`);
+  ok(typeof seen === 'object', 'Wetterstärke falsch: ' + seen);
+  ok(!seen[0].schnee && !seen[1].schnee && !seen[2].schnee, 'Schnee außerhalb des Winters');
+  ok(seen[3].schnee && !seen[3].regen && !seen[3].hagel, 'Winter ohne Schnee oder mit Regen/Hagel');
+  ok(seen[2].regen && (seen[0].hagel || seen[1].hagel), 'kein Regen im Herbst oder nie Hagel');
+  ok(g.run('state.yearTime = CONFIG.yearSeconds * 0.95; snowCover()') === 1 && g.run('state.yearTime = CONFIG.yearSeconds * 0.4; snowCover()') === 0, 'Schneedecke falsch');
+  // Zeichnen bei Nacht und jedem Wetter läuft ohne Fehler
+  g.run(`for (const id of Object.keys(WEATHERS)) { currentWeather = () => ({ id, k: 1, ...WEATHERS[id] }); state.playTime = CONFIG.daySeconds * 0.8; drawScene(0.1); drawScene(0.1); }`);
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   test('Bot: Altsteinzeit dauert über 40 Minuten, Mittelsteinzeit ist in 90 Spielminuten erreichbar', () => {

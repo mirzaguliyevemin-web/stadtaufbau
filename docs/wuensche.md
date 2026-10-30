@@ -20,6 +20,11 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 17 – Tag und Nacht, Wetter und Jahreszeiten: Abendrot, dunkle Nacht mit leuchtenden Feuern;
+  Sonne, Wolken (ziehende Schatten), Regen mit Spritzern, Hagel, Schnee – je nach Jahreszeit; Schneedecke im Winter,
+  Herbstfarben und fallendes Laub, Blütenblätter im Frühling; Bäume aus Canva je Jahreszeit (Blüten, buntes Laub, kahl
+  und verschneit). Oben rechts zeigt das Symbol Jahreszeit und Wetter, antippen nennt auch die Tageszeit. Bisher nur fürs
+  Auge – keine Wirkung auf die Wirtschaft. Zeiten (Tag 160 s, Wetter 75 s) stehen in `CONFIG` und werden später angepasst.
 - 2026-10-30, Epochia Version 16 – letzte Bilder aus Canva: Truhe (Belohnungs-Knopf und -Fenster), Schriftband aus Leder hinter
   den Seitentiteln, rundes Logo im Menü. Damit sind alle 80 Bild-Prompts erledigt.
 - 2026-10-30, Epochia Version 15 – Mammutjagd: nach der Forschung „Mammutjagd“ ein Mammut antippen, die Jäger ziehen los und

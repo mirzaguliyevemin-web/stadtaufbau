@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 16;
+const APP_VERSION = 17;
 
 const CONFIG = {
   mapSize: 64,            // Felder je Seite
@@ -12,6 +12,8 @@ const CONFIG = {
   tileH: 44,              // Höhe einer Raute – so flach wie die Grasplatten auf Emins Bildern (≈ 0,69 × Breite)
   maxConstructions: 2,    // höchstens so viele Baustellen gleichzeitig
   yearSeconds: 480,       // ein Jahr = 4 Jahreszeiten à 2 Minuten
+  daySeconds: 160,        // ein Tag mit Nacht (Zeiten passen wir später an)
+  weatherSeconds: 75,     // so lange hält ein Wetter an, dann wird neu ausgewürfelt
   foodPerPerson: 0.4,     // Nahrung je Einwohner und Minute
   goodsPerPerson: 0.02,   // Kleidung / Töpferwaren je Einwohner und Minute (wenn das Bedürfnis zählt)
   growthSeconds: 15,      // so oft zieht jemand ein (wenn Platz, Nahrung und Laune passen)
@@ -67,6 +69,15 @@ const SEASONS = [
   { name: 'Herbst',   icon: '🍂' },
   { name: 'Winter',   icon: '❄️' },
 ];
+
+// Wetter je Jahreszeit (Frühling, Sommer, Herbst, Winter): Wahrscheinlichkeiten. Bisher nur fürs Auge.
+const WEATHERS = {
+  klar:   { name: 'Sonnig',  icon: '☀️', chance: [0.45, 0.62, 0.30, 0.35] },
+  wolkig: { name: 'Wolkig',  icon: '☁️', chance: [0.20, 0.15, 0.30, 0.20] },
+  regen:  { name: 'Regen',   icon: '🌧️', chance: [0.30, 0.13, 0.40, 0] },
+  hagel:  { name: 'Hagel',   icon: '🌨️', chance: [0.05, 0.10, 0, 0] },
+  schnee: { name: 'Schnee',  icon: '❄️', chance: [0, 0, 0, 0.45] },
+};
 
 // Wie stark die Jahreszeit (Frühling, Sommer, Herbst, Winter) ein Gebäude beeinflusst
 const SEASON_FACTORS = {

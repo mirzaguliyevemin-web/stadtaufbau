@@ -48,6 +48,18 @@ function visibleResources() {
 }
 
 let lastTopbar = '';
+
+// Wetter-Symbol oben: nachts der Mond, sonst das Wetter (sobald es richtig da ist)
+function weatherIcon() {
+  const w = currentWeather();
+  if (darkness() > 0.5 && (w.id === 'klar' || w.k < 0.5)) return '🌙';
+  return w.k >= 0.5 ? w.icon : '';
+}
+
+function weatherTip() {
+  const w = currentWeather();
+  toast(`${season().icon} ${season().name} · ${w.icon} ${w.name} · ${timeOfDay().icon} ${timeOfDay().name} · ${STAGES[stageIndex()].name}`);
+}
 // Maß für das Layout merken (z. B. Höhe der oberen Leiste); im Test ohne Browser gibt es kein documentElement
 function setCssVar(name, value) {
   const root = typeof document !== 'undefined' && document.documentElement;
@@ -68,7 +80,7 @@ function renderTopbar() {
     <div class="chips right">
       <button class="chip" onclick="popTip()">👥<b>${Math.floor(state.pop)}/${stats.housing}</b></button>
       <button class="chip" onclick="happyTip()">${face}<b>${happy}%</b></button>
-      <button class="chip" onclick="toast('${season().name} · ${stage.name}')">${season().icon}</button>
+      <button class="chip" onclick="weatherTip()">${season().icon}${weatherIcon()}</button>
     </div>`;
   if (html !== lastTopbar) {
     $('topbar').innerHTML = html;

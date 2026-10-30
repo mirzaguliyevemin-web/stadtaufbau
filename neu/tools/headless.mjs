@@ -50,6 +50,7 @@ function fakeCanvasContext() {
     get(target, prop) {
       if (prop in target) return target[prop];
       if (prop === 'measureText') return text => ({ width: String(text).length * 8 });
+      if (prop === 'createRadialGradient' || prop === 'createLinearGradient') return () => ({ addColorStop() {} });
       return () => {};
     },
     set(target, prop, value) { target[prop] = value; return true; },

@@ -97,7 +97,8 @@ function median(list) {
 
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
-    'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'truhe', 'band', 'logo-rund', ...GROUND_TEXTURES, ...LIFE_NAMES]);
+    'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'truhe', 'band', 'logo-rund',
+    ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, ...LIFE_NAMES]);
   for (const b of Object.values(BUILDINGS)) if (b.bild) names.add(b.bild);
   for (const r of Object.values(RESOURCES)) if (r.bild) names.add(r.bild);
   for (const t of Object.values(TECHS)) if (t.bild) names.add(t.bild);
@@ -356,12 +357,28 @@ function rockSprite(variant) {
   });
 }
 
+// Bäume je Jahreszeit (Bilder aus Canva). Nicht alle wechseln auf einmal: jeder Baum ein paar Sekunden versetzt.
+const TREE_SEASONS = {
+  'baum-laub':  ['baum-laub-fruehling', null, 'baum-laub-herbst', 'baum-laub-winter'],
+  'baum-birke': ['baum-birke-fruehling', null, 'baum-birke-herbst', 'baum-birke-winter'],
+  'baum-tanne': [null, null, null, 'baum-tanne-winter'],
+};
+function treeSeasonName(name, v) {
+  const list = TREE_SEASONS[name];
+  if (!list || !state) return name;
+  const q = CONFIG.yearSeconds / 4, t = (state.yearTime + CONFIG.yearSeconds - v * 15) % CONFIG.yearSeconds;
+  let si = Math.floor(t / q);
+  if (si === 0 && snowCover() > 0.5) si = 3;   // Schnee taut noch: Bäume bleiben verschneit
+  const seasonal = list[si];
+  return seasonal && images[seasonal] ? seasonal : name;
+}
+
 function drawTerrainObject(x, y, kind, anim = null) {
   const p = tileToScreen(x + 0.5, y + 0.5);
   const v = hash(x, y);
   let name, s;
   if (kind === 'wald') {
-    name = v > 0.7 ? 'baum-tanne' : v < 0.2 ? 'baum-birke' : 'baum-laub';
+    name = treeSeasonName(v > 0.7 ? 'baum-tanne' : v < 0.2 ? 'baum-birke' : 'baum-laub', v);
     s = (0.95 + v * 0.3) * cam.zoom;
   } else {
     name = v > 0.5 ? 'fels-gross' : 'fels-klein';
@@ -553,6 +570,7 @@ function drawBuildingEffects(img, name, seed) {
       const p = lastImagePoint(fx.u, fx.v);
       const fl = flicker(t, ph);
       const r = fx.feuer * (14 + fl * 4) * z;
+      if (typeof addLight === 'function') addLight(p.x, p.y, fx.feuer * 120 * z);   // leuchtet in der Nacht
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
@@ -829,6 +847,7 @@ function drawScene(dt) {
   drawGround(range);
   drawWater(range);
   drawPlots(range);
+  drawSeasonGround();
   if (ghost || pathMode) drawGrid(range);
   if (selected >= 0 && state.buildings[selected]) {
     const b = state.buildings[selected];
@@ -864,14 +883,16 @@ function drawScene(dt) {
   }
   drawSmoke();
   drawSky();
-  for (const o of objects) if (o.kind === 'b') drawBubble(o.i);
-  if (ghost) drawGhost(ghost);
-
   // Winter: leichter blauer Schimmer
   if (seasonIndex() === 3) {
     ctx.fillStyle = 'rgba(200,225,255,0.12)';
     ctx.fillRect(0, 0, viewW, viewH);
   }
+  drawWeather(dt);
+  drawDayNight();
+  // Blasen und das geplante Gebäude bleiben auch nachts und im Regen gut zu sehen
+  for (const o of objects) if (o.kind === 'b') drawBubble(o.i);
+  if (ghost) drawGhost(ghost);
 }
 
 function resizeCanvas() {

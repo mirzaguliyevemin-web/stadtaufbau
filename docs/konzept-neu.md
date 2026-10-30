@@ -275,7 +275,8 @@ Gewünscht:
   Ziel war 45–60 min für echte Spieler → noch zu lang. Die reinen Forschungszeiten ergeben schon ≈ 47 min;
   nach Emins Handy-Test kürzen wir die Zeiten.
 
-**Noch nicht drin (kommt mit Epoche 1 / später):** Sounds/Musik, Nacht, Jahreszeiten-Bilder, Aufbruch in die Bronzezeit.
+**Noch nicht drin (kommt mit Epoche 1 / später):** Sounds/Musik, Aufbruch in die Bronzezeit, Wirkung des Wetters auf die Wirtschaft.
+(Tag/Nacht, Wetter und Jahreszeiten-Bäume seit Version 17, `neu/js/wetter.js`.)
 
 **Version 2 (2026-10-28): Trampelpfad ist Pflicht** (✅ Emin). Jedes Gebäude braucht über Pfade eine Verbindung zum
 Lagerfeuer (direkt am Feuer zählt auch). Ohne Weg: keine Bewohner, keine Arbeit, keine Wärme – Blase 🛤️❗ über dem Gebäude.

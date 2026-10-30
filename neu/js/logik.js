@@ -316,6 +316,63 @@ function foodFirst(b) {
 
 function happinessFactor() { return 0.5 + 0.5 * stats.happiness / 100; }
 
+// ---------------------------------------------------------------------
+// Tag und Nacht, Wetter – alles aus der Spielzeit berechnet, darum muss nichts gespeichert werden
+// ---------------------------------------------------------------------
+
+// Anteil des Tages: 0 = Sonnenaufgang. Tag bis 0,60, Abend bis 0,70, Nacht bis 0,92, dann Morgen.
+function dayPart() { return ((state.playTime % CONFIG.daySeconds) + CONFIG.daySeconds) % CONFIG.daySeconds / CONFIG.daySeconds; }
+
+// Wie dunkel ist es? 0 = heller Tag, 1 = tiefe Nacht (weicher Übergang am Abend und am Morgen)
+function darkness(p = dayPart()) {
+  const smooth = k => k * k * (3 - 2 * k);
+  if (p < 0.60) return 0;
+  if (p < 0.70) return smooth((p - 0.60) / 0.10);
+  if (p < 0.92) return 1;
+  return 1 - smooth((p - 0.92) / 0.08);
+}
+
+function timeOfDay(p = dayPart()) {
+  if (p < 0.08 || p >= 0.92) return { name: 'Morgen', icon: '🌅' };
+  if (p < 0.60) return { name: 'Tag', icon: '☀️' };
+  if (p < 0.70) return { name: 'Abend', icon: '🌇' };
+  return { name: 'Nacht', icon: '🌙' };
+}
+
+// Wetter im Abschnitt Nummer slot (je CONFIG.weatherSeconds): gewürfelt aus Spielstand-Zahl und Abschnitt,
+// gewichtet nach der Jahreszeit am Anfang des Abschnitts
+function weatherInSlot(slot) {
+  const start = slot * CONFIG.weatherSeconds;
+  const year = CONFIG.yearSeconds;
+  const yearAt = (((state.yearTime - (state.playTime - start)) % year) + year) % year;
+  const si = Math.floor(yearAt / (year / 4));
+  let r = hash(slot * 7 + 3, (state.seed % 9973) + 11);
+  for (const [id, w] of Object.entries(WEATHERS)) {
+    r -= w.chance[si];
+    if (r < 0) return id;
+  }
+  return 'klar';
+}
+
+// Aktuelles Wetter mit Stärke k (0–1): am Anfang und Ende eines Abschnitts zieht es auf bzw. ab
+function currentWeather() {
+  const len = CONFIG.weatherSeconds, ramp = 10;
+  const slot = Math.floor(state.playTime / len), s = state.playTime - slot * len;
+  const id = weatherInSlot(slot);
+  let k = 1;
+  if (s < ramp && weatherInSlot(slot - 1) !== id) k = Math.min(k, s / ramp);
+  if (len - s < ramp && weatherInSlot(slot + 1) !== id) k = Math.min(k, (len - s) / ramp);
+  return { id, k: Math.max(0, k), ...WEATHERS[id] };
+}
+
+// Schneedecke: wächst zu Winterbeginn, schmilzt am Anfang des Frühlings (0–1)
+function snowCover() {
+  const q = CONFIG.yearSeconds / 4, t = state.yearTime % CONFIG.yearSeconds;
+  if (t >= 3 * q) return Math.min(1, (t - 3 * q) / 40);
+  if (t < 30 && state.playTime > t + 1) return 1 - t / 30;   // nur wenn schon ein Winter war (nicht beim Spielstart)
+  return 0;
+}
+
 function seasonIndex() { return Math.floor((state.yearTime % CONFIG.yearSeconds) / (CONFIG.yearSeconds / 4)); }
 function season() { return SEASONS[seasonIndex()]; }
 

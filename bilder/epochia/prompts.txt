@@ -118,13 +118,13 @@ A small cluster of grey boulders with moss. Style: bright cheerful cartoon mobil
 ✅ ERLEDIGT – 4̶0̶.̶ ̶B̶l̶u̶m̶e̶n̶  →  Datei: blumen.png
 A small patch of colorful wild flowers in grass. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
-41. Mammut  →  Datei: mammut.png
+✅ ERLEDIGT – 4̶1̶.̶ ̶M̶a̶m̶m̶u̶t̶  →  Datei: mammut.png
 A cute woolly mammoth walking to the left, brown shaggy fur, curved white tusks. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
-42. Hirsch  →  Datei: hirsch.png
+✅ ERLEDIGT – 4̶2̶.̶ ̶H̶i̶r̶s̶c̶h̶  →  Datei: hirsch.png
 A cute deer walking to the left. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
-43. Ziege  →  Datei: ziege.png
+✅ ERLEDIGT – 4̶3̶.̶ ̶Z̶i̶e̶g̶e̶  →  Datei: ziege.png
 A cute goat standing. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
 44. Nahrung  →  Datei: ware-nahrung.png

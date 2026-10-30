@@ -272,19 +272,19 @@ A small cluster of grey boulders with moss. Style: bright cheerful cartoon mobil
 A small patch of colorful wild flowers in grass. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 ```
 
-- [ ] **Mammut** → `mammut.png`
+- [x] ~~**Mammut**~~ → `mammut.png`
 
 ```
 A cute woolly mammoth walking to the left, brown shaggy fur, curved white tusks. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 ```
 
-- [ ] **Hirsch** → `hirsch.png`
+- [x] ~~**Hirsch**~~ → `hirsch.png`
 
 ```
 A cute deer walking to the left. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 ```
 
-- [ ] **Ziege** → `ziege.png`
+- [x] ~~**Ziege**~~ → `ziege.png`
 
 ```
 A cute goat standing. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format

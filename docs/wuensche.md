@@ -20,6 +20,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 11 – mehr Leben: Menschen laufen auf den Trampelpfaden, Hirsche und eine Mammutherde ziehen
+  umher, Ziegen grasen am Gehege, Fische springen, Vögel fliegen vorbei, Schmetterlinge über den Blumen (Bilder aus Canva).
 - 2026-10-30, Epochia Version 10 – Forschung, Aufträge und Menü neu gestaltet (Epochen-Streifen und Banner, leuchtende
   Karten, Detailkarte; Auftragskarten mit Bild, Balken und Belohnung; Menü mit Kacheln und Schaltern);
   ⏸ Pause direkt in der kleinen Gebäude-Info.

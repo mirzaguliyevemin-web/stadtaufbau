@@ -97,7 +97,7 @@ function median(list) {
 
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
-    'fels-gross', 'fels-klein', 'busch', 'blumen', ...GROUND_TEXTURES]);
+    'fels-gross', 'fels-klein', 'busch', 'blumen', ...GROUND_TEXTURES, ...LIFE_NAMES]);
   for (const b of Object.values(BUILDINGS)) if (b.bild) names.add(b.bild);
   for (const s of [2, 3, 4]) names.add('1-baustelle-' + s);
   return [...names];
@@ -795,6 +795,7 @@ function drawScene(dt) {
   ctx.fillStyle = '#5a9a3a';
   ctx.fillRect(0, 0, viewW, viewH);
   const range = visibleRange();
+  updateLife(dt, range);
   drawGround(range);
   drawWater(range);
   drawPlots(range);
@@ -821,15 +822,18 @@ function drawScene(dt) {
     if (ghost && ghost.from === i) return;   // wird gerade verschoben
     objects.push({ d: BUILDINGS[b.type].isPath ? -1e6 + b.x + b.y : b.x + b.y + s, kind: 'b', i });
   });
+  objects.push(...lifeObjects(range));
   objects.sort((a, b) => a.d - b.d || (a.x || 0) - (b.x || 0));
   for (const o of objects) {
     if (o.kind === 'b') {
       const b = state.buildings[o.i];
       if (b.build > 0) drawConstruction(b);
       else drawBuildingSprite(b.type, b.x, b.y, b.rot);
-    } else drawTerrainObject(o.x, o.y, o.kind);
+    } else if (o.kind === 'leben') o.draw();
+    else drawTerrainObject(o.x, o.y, o.kind);
   }
   drawSmoke();
+  drawSky();
   for (const o of objects) if (o.kind === 'b') drawBubble(o.i);
   if (ghost) drawGhost(ghost);
 

@@ -44,6 +44,7 @@ function centerOnCamp() {
 
 // Spiel auf dem aktuellen Platz öffnen (Stand laden oder neu anfangen)
 function enterGame() {
+  resetLife();
   show($('start'), false);
   show($('game'), true);
   resizeCanvas();

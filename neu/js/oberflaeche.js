@@ -153,6 +153,21 @@ function categoryOf(type) {
   return (BAR_CATEGORIES.find(c => c.lines.includes(line)) || BAR_CATEGORIES[0]).id;
 }
 
+// Bauleiste einklappen (mehr Platz für die Karte) und wieder aufklappen; bleibt gespeichert
+function applyBarHidden() {
+  const hidden = !!settings.barHidden;
+  const game = $('game');
+  if (game && game.classList) game.classList.toggle('bar-hidden', hidden);
+  const btn = $('bar-toggle');
+  if (btn) btn.innerHTML = hidden ? '🔨 <b>Bauen</b>' : '▾';
+}
+
+function toggleBuildBar(force) {
+  settings.barHidden = force === undefined ? !settings.barHidden : !!force;
+  saveSettings();
+  applyBarHidden();
+}
+
 function setBarCategory(id) {
   barCategory = id;
   lastBar = null;
@@ -180,10 +195,11 @@ function renderBuildBar() {
         onpointerup="onBarPointerUp(event)" onpointercancel="onBarPointerUp(event)">
       ${isNew ? '<span class="new">Neu</span>' : ''}
       ${iconHtml(def.bild, def.icon, 'big')}
-      <span class="name">${esc(def.name)}</span>
-      <span class="costs">${locked ? '🔒' : costHtml(def.cost)}</span>
+      <span class="txt"><span class="name">${esc(def.name)}</span>
+      <span class="costs">${locked ? '🔒' : costHtml(def.cost)}</span></span>
     </div>`;
   }).join('');
+  applyBarHidden();
   if (items !== lastBar) {
     $('buildbar').innerHTML = items;
     lastBar = items;

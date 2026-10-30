@@ -20,6 +20,10 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 19 – Trampelpfade schöner: neue Erd-Textur mit Steinchen (Canva), Pfade sind zusammenhängende,
+  runde Wege mit dunklerem Rand und führen bis an die Gebäude (statt einzelner Sand-Rauten); im Winter leicht verschneit.
+- 2026-10-30, Epochia Version 19 – Untere Leiste am Handy war zu hoch: Karten liegen quer, Kategorien als kleine Symbole links
+  in der Leiste (etwa halb so hoch); Knopf ▾ klappt die Leiste ganz ein, „🔨 Bauen“ wieder auf (bleibt gespeichert).
 - 2026-10-30, Epochia Version 18 – Update-Meldung: Ist eine neue Version online, erscheint oben „✨ Neue Version … ist da!“ mit
   Knopf „🔄 Jetzt aktualisieren“ (speichert und lädt neu); im Menü „🔄 Nach Updates suchen“.
 - 2026-10-30, Epochia Version 18 – Forschungsfenster neu: Reiter je Zeitalter mit Fortschritt (z. B. 3/7), Karten in Spalten,

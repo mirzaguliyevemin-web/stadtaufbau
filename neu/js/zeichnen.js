@@ -841,6 +841,63 @@ function drawGhost(g) {
   drawBuildingSprite(g.type, g.x, g.y, g.rot, lift, 0.88);
 }
 
+// ---------------------------------------------------------------------
+// Trampelpfade: zusammenhängende, runde Wege statt einzelner Rauten. Gezeichnet in Feld-Koordinaten
+// (schräge Ansicht per Transformation), erst alle Ränder, dann alle Flächen – so verschmelzen Nachbarfelder.
+// ---------------------------------------------------------------------
+
+const PATH_WIDTH = 0.56;   // Breite des Weges (Anteil eines Feldes)
+
+function drawPaths(range) {
+  const tiles = [];
+  for (const b of state.buildings) {
+    if (!BUILDINGS[b.type].isPath) continue;
+    if (b.x < range.x0 - 1 || b.x > range.x1 + 1 || b.y < range.y0 - 1 || b.y > range.y1 + 1) continue;
+    tiles.push(b);
+  }
+  if (!tiles.length) return;
+  const o = tileToScreen(0, 0), ex = tileToScreen(1, 0), ey = tileToScreen(0, 1);
+  ctx.save();
+  ctx.transform(ex.x - o.x, ex.y - o.y, ey.x - o.x, ey.y - o.y, o.x, o.y);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  // Weg-Stücke: von der Feldmitte zu jedem Nachbarn mit Weg oder Gebäude (so führt der Pfad bis an die Tür)
+  const shape = () => {
+    ctx.beginPath();
+    for (const b of tiles) {
+      const cx = b.x + 0.5, cy = b.y + 0.5;
+      ctx.moveTo(cx, cy); ctx.lineTo(cx + 0.001, cy);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const i = buildingAt(b.x + dx, b.y + dy);
+        if (i < 0) continue;
+        const reach = BUILDINGS[state.buildings[i].type].isPath ? 0.5 : 0.62;
+        ctx.moveTo(cx, cy); ctx.lineTo(cx + dx * reach, cy + dy * reach);
+      }
+    }
+  };
+  // Rand: etwas dunklere, festgetretene Erde am Grasrand
+  shape();
+  ctx.strokeStyle = 'rgba(92, 64, 30, 0.55)';
+  ctx.lineWidth = PATH_WIDTH + 0.14;
+  ctx.stroke();
+  // Fläche mit der Weg-Textur
+  const img = images.pfad;
+  let fill = '#b8915a';
+  if (img && ctx.createPattern && typeof DOMMatrix !== 'undefined') {
+    fill = ctx.createPattern(img, 'repeat');
+    const k = 2 / img.width;   // eine Textur deckt 2 × 2 Felder
+    fill.setTransform(new DOMMatrix([k, 0, 0, k, 0, 0]));
+  }
+  shape();
+  ctx.strokeStyle = fill;
+  ctx.lineWidth = PATH_WIDTH;
+  ctx.stroke();
+  // im Winter liegt etwas Schnee auf dem Weg
+  const snow = typeof snowCover === 'function' ? snowCover() : 0;
+  if (snow > 0) { ctx.strokeStyle = `rgba(245,250,255,${0.35 * snow})`; ctx.stroke(); }
+  ctx.restore();
+}
+
 function drawScene(dt) {
   if (!ctx || !state) return;
   frameTime += dt;
@@ -853,6 +910,7 @@ function drawScene(dt) {
   drawWater(range);
   drawPlots(range);
   drawSeasonGround();
+  drawPaths(range);
   if (ghost || pathMode) drawGrid(range);
   if (selected >= 0 && state.buildings[selected]) {
     const b = state.buildings[selected];
@@ -874,7 +932,8 @@ function drawScene(dt) {
     const s = BUILDINGS[b.type].size;
     if (b.x > range.x1 + 1 || b.y > range.y1 + 1 || b.x + s < range.x0 || b.y + s < range.y0) return;
     if (ghost && ghost.from === i) return;   // wird gerade verschoben
-    objects.push({ d: BUILDINGS[b.type].isPath ? -1e6 + b.x + b.y : b.x + b.y + s, kind: 'b', i });
+    if (BUILDINGS[b.type].isPath) return;    // Pfade zeichnet drawPaths vorher am Stück
+    objects.push({ d: b.x + b.y + s, kind: 'b', i });
   });
   objects.push(...lifeObjects(range));
   objects.sort((a, b) => a.d - b.d || (a.x || 0) - (b.x || 0));

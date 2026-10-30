@@ -246,6 +246,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 4px 3px 5px;
   touch-action: pan-x;
 }
+.bar-item .txt { display: flex; flex-direction: column; align-items: center; max-width: 100%; }
 .bar-item .name { font-size: 11px; font-weight: bold; text-align: center; line-height: 1.1; }
 .bar-item .costs { font-size: 10px; white-space: nowrap; overflow: hidden; max-width: 100%; }
 .bar-item.locked { filter: grayscale(0.9); opacity: 0.6; }
@@ -632,4 +633,33 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .tech-detail { margin-top: 5px; padding: 5px 10px; min-height: 0; }
   .td-medal { width: 46px; height: 46px; }
   .tech-detail p { margin: 2px 0; }
+}
+
+/* Bauleiste ein-/ausklappen */
+#bar-toggle {
+  position: absolute; right: calc(8px + var(--safe-r)); bottom: calc(var(--bar-h, 100px) + 4px); z-index: 5;
+  min-width: 34px; height: 30px; border-radius: 15px; padding: 0 10px;
+  font: inherit; font-size: 16px; color: #fff; cursor: pointer;
+  background: linear-gradient(#b3814a, var(--wood)); border: 2px solid var(--wood-dark); box-shadow: 0 3px 0 var(--wood-dark);
+  transition: bottom 0.25s;
+}
+#buildbar, #bar-tabs { transition: transform 0.25s ease-in; }
+#game.bar-hidden #buildbar, #game.bar-hidden #bar-tabs { transform: translateY(calc(100% + var(--bar-h, 100px))); pointer-events: none; }
+#game.bar-hidden #bar-toggle { bottom: calc(8px + var(--safe-b)); font-size: 14px; padding: 0 14px; height: 36px; border-radius: 18px; }
+
+/* Handy quer: flache Leiste – Karten liegen quer, Kategorien als kleine Symbole links in der Leiste */
+@media (max-height: 500px) {
+  #buildbar { padding: 4px calc(52px + var(--safe-r)) calc(4px + var(--safe-b)) calc(112px + var(--safe-l)); gap: 5px; align-items: center; min-height: 60px; box-sizing: border-box; }
+  .bar-item { width: auto; min-width: 118px; max-width: 150px; flex-direction: row; align-items: center; gap: 5px; padding: 3px 8px 3px 4px; border-radius: 12px; }
+  .bar-item .ic.big { width: 38px; height: 38px; line-height: 38px; font-size: 26px; flex: none; }
+  .bar-item .name, .bar-item .costs { text-align: left; }
+  .bar-item .txt { align-items: flex-start; min-width: 0; }
+  #bar-tabs {
+    left: calc(6px + var(--safe-l)); right: auto; bottom: calc(4px + var(--safe-b)); z-index: 2;
+    display: grid; grid-template-columns: repeat(3, 32px); gap: 3px; padding: 0;
+  }
+  .bar-tab { padding: 0; width: 32px; height: 24px; justify-content: center; border-radius: 8px; }
+  .bar-tab .tname { display: none; }
+  .bar-tab .emoji { font-size: 15px; }
+  #bar-toggle { right: calc(8px + var(--safe-r)); bottom: calc(var(--bar-h, 60px) / 2 - 15px); }
 }

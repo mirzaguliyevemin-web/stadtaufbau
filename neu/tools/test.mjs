@@ -479,6 +479,17 @@ test('Tag und Nacht, Wetter und Jahreszeiten: passen zur Zeit, Schnee nur im Win
   noErrors(g);
 });
 
+test('Bauleiste einklappen bleibt gespeichert, Pfade zeichnen ohne Fehler', () => {
+  const g = fresh();
+  g.run(`renderAll(); toggleBuildBar();`);
+  ok(g.run('settings.barHidden') === true, 'Leiste nicht eingeklappt');
+  ok(JSON.parse(g.run(`storageGet(SETTINGS_KEY)`)).barHidden === true, 'Einklappen nicht gespeichert');
+  g.run(`toggleBuildBar();`);
+  ok(g.run('settings.barHidden') === false, 'Leiste geht nicht wieder auf');
+  g.run(`state.res.holz = 50; for (let x = 20; x < 26; x++) placeBuilding('pfad', x, 30); drawPaths(visibleRange()); drawScene(0.1);`);
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   test('Bot: Altsteinzeit dauert über 40 Minuten, Mittelsteinzeit ist in 90 Spielminuten erreichbar', () => {

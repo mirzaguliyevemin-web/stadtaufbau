@@ -285,7 +285,8 @@ function showBuildingWindow(i) {
       lines.push(belief ? '🗿 Ahnenplatz in der Nähe' : '🗿 Kein Ahnenplatz in der Nähe');
     }
   }
-  if (def.workers && !b.build) lines.push(`👤 Arbeiter: ${stats.staff[i] || 0} von ${def.workers}`);
+  if (def.workers && !b.build) lines.push(b.paused ? '⏸ Pausiert – die Arbeiter helfen in anderen Gebäuden'
+    : `👤 Arbeiter: ${stats.staff[i] || 0} von ${def.workers}`);
   if (def.produces && !b.build) {
     const out = outputPerMinute(i);
     lines.push('Stellt her: ' + Object.entries(out).map(([id, n]) => `${RESOURCES[id].icon} ${n.toFixed(1)}/min`).join(', '));
@@ -318,10 +319,18 @@ function showBuildingWindow(i) {
     <ul class="lines">${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
     ${upgrade}
     <div class="buttons">
+      ${def.workers && !b.build ? `<button class="btn" onclick="doTogglePause(${i})">${b.paused ? '▶ Weiter' : '⏸ Pause'}</button>` : ''}
       ${def.isPath ? '' : `<button class="btn" onclick="closeDialog(); liftBuilding(${i})">✋ Verschieben</button>`}
       ${canRemove ? `<button class="btn danger" onclick="askDemolish(${i})">🗑 Abreißen</button>` : ''}
       <button class="btn" onclick="closeDialog()">Schließen</button>
     </div>`);
+}
+
+function doTogglePause(i) {
+  if (!togglePause(i)) return;
+  const b = state.buildings[i];
+  toast(b.paused ? `⏸ ${BUILDINGS[b.type].name} pausiert – die Leute arbeiten jetzt anderswo` : `▶ ${BUILDINGS[b.type].name} arbeitet wieder`);
+  showBuildingWindow(i);
 }
 
 function doBuildRoute(i) {

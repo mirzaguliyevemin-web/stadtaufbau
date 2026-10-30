@@ -692,6 +692,7 @@ function drawBubble(i) {
   if (road && !def.produces) return;
   const lacking = def.consumes && Object.keys(def.consumes).find(id => (state.res[id] || 0) < 0.5);
   if (!road) icon = '🛤️❗';
+  else if (b.paused) icon = '⏸';
   else if (def.workers && !(stats.staff[i] > 0)) icon = '👤❗';
   else if (lacking) icon = RESOURCES[lacking].icon + '❗';
   else {

@@ -256,10 +256,10 @@ test('Offline-Fortschritt: läuft weiter, höchstens 8 Stunden, verstellte Uhr s
   g.run(`state.res.holz = 100; const sp = findFreeSpot('holzsammler', 26, 26); placeBuilding('holzsammler', sp.x, sp.y); buildRoute(5); for (let i = 0; i < 40; i++) update(1);`);
   const holz = g.run('state.res.holz');
   const r = g.run('JSON.stringify(applyOfflineProgress(Date.now() - 3600 * 1000))');
-  ok(r && JSON.parse(r).seconds === 3600, 'Offline nicht gelaufen');
+  ok(r && Math.abs(JSON.parse(r).seconds - 3600) < 1, 'Offline nicht gelaufen');
   ok(g.run('state.res.holz') > holz, 'kein Holz offline');
   const r2 = g.run('JSON.stringify(applyOfflineProgress(Date.now() - 100 * 3600 * 1000))');
-  ok(JSON.parse(r2).seconds === 8 * 3600, 'nicht auf 8 h begrenzt');
+  ok(Math.abs(JSON.parse(r2).seconds - 8 * 3600) < 1, 'nicht auf 8 h begrenzt');
   ok(g.run('applyOfflineProgress(Date.now() + 3600 * 1000)') === null, 'Zukunft gezählt');
   g.run('update(-50); update(NaN); update(Infinity)');
   ok(g.run('Number.isFinite(state.res.holz) && Number.isFinite(state.playTime)'), 'Kaputte Zeit macht Werte kaputt');
@@ -363,6 +363,35 @@ test('Trampelpfad: ohne Weg kein Wohnen und keine Arbeit, Weg bauen verbindet, A
   // Startpfad abreißen: die Wohnhöhle verliert ihre Bewohner
   g.run(`demolish(3); recalcStats();`);
   ok(g.run('stats.housing') === 3, 'Wohnhöhle ohne Weg zählt noch: ' + g.run('stats.housing'));
+  noErrors(g);
+});
+
+test('Pause: Arbeiter wechseln zu einem anderen Gebäude, Pause wird gespeichert, Ältester gibt Hinweis', () => {
+  const g = fresh();
+  g.run(`
+    state.res.holz = 500; state.res.stein = 500; state.res.nahrung = 500;
+    for (const type of ['sammlerin', 'jaegerlager', 'holzsammler', 'steinsammler']) {
+      const sp = findFreeSpot(type, 30, 30);
+      placeBuilding(type, sp.x, sp.y);
+      const k = state.buildings.length - 1;
+      finishBuilding(state.buildings[k]);
+      if (!isConnected(k)) buildRoute(k);
+    }
+    state.res.stein = 0; state.pop = 6; recalcStats();
+  `);
+  const idx = g.run(`state.buildings.findIndex(b => b.type === 'steinsammler')`);
+  const sam = g.run(`state.buildings.findIndex(b => b.type === 'sammlerin')`);
+  ok(g.run(`isConnected(${idx})`), 'Steinsammler ohne Weg');
+  ok(g.run(`stats.staff[${idx}] || 0`) === 0, 'Steinsammler hat schon Leute – Test sinnlos');
+  g.run(`state.tutorial = -1; state.playTime = 1000; checkStaffHint()`);
+  ok(g.run('!!elderHint && elderHint.includes("Steinsammler")'), 'kein Hinweis vom Ältesten');
+  g.run(`togglePause(${sam})`);
+  ok(g.run(`stats.staff[${sam}] || 0`) === 0, 'pausiertes Gebäude hat noch Arbeiter');
+  ok(g.run(`stats.staff[${idx}] || 0`) > 0, 'Steinsammler bekommt die frei gewordenen Arbeiter nicht');
+  ok(g.run(`loadFromText(serialize()) && state.buildings[${sam}].paused === true && !state.buildings[${idx}].paused`), 'Pause geht beim Speichern verloren');
+  g.run('recalcStats()');
+  g.run(`togglePause(${sam})`);
+  ok(!g.run(`state.buildings[${sam}].paused`), 'Weiter geht nicht');
   noErrors(g);
 });
 

@@ -20,6 +20,9 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 9 – Sackgasse „Steinsammler ohne Personal, kein Stein für eine Wohnhöhle“: Gebäude lassen sich
+  pausieren (⏸ im Gebäudefenster, die Leute arbeiten dann anderswo); der Stammesälteste erklärt, was hilft, wenn ein Gebäude
+  ohne Arbeiter dasteht (auch: Felsen antippen gibt Stein).
 - 2026-10-30, Epochia Version 8 – Leben im Bild: Wasser fließt und glitzert, Feuer flackert mit Funken, Rauch steigt aus
   Lagerfeuer, Feuerstellen, Langhaus und Töpferei, Bäume wiegen sich im Wind.
 - 2026-10-30, Epochia Version 8 – Gebäude standen unterschiedlich hoch (verschieden dicke Sockel in den Bildern):

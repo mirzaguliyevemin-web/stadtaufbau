@@ -88,6 +88,7 @@ function loop(now) {
     if (ghost) renderActionBar();
     if (infoFor) positionInfo();
     if (pageOpen === 'research') $('research-top').innerHTML = researchTopHtml();
+    checkStaffHint();
   }
   saveTimer += dt;
   if (saveTimer > 10) { saveTimer = 0; saveGame(); }

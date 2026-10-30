@@ -184,6 +184,15 @@ function refundOf(b) {
   return out;
 }
 
+// Pause: Das Gebäude gibt seine Arbeiter frei, sie gehen ans nächste Gebäude, das Leute braucht
+function togglePause(i) {
+  const b = state.buildings[i];
+  if (!b || !BUILDINGS[b.type].workers) return false;
+  if (b.paused) delete b.paused; else b.paused = true;
+  recalcStats();
+  return true;
+}
+
 function demolish(i) {
   const b = state.buildings[i];
   if (!b || BUILDINGS[b.type].buildable === false) return false;
@@ -274,7 +283,7 @@ function recalcStats() {
   // Arbeiter verteilen: zuerst die Nahrung, dann alles andere in Bau-Reihenfolge
   const order = state.buildings.map((b, i) => i).filter(i => {
     const b = state.buildings[i];
-    return !b.build && BUILDINGS[b.type].workers && isConnected(i);
+    return !b.build && !b.paused && BUILDINGS[b.type].workers && isConnected(i);
   });
   order.sort((a, b) => foodFirst(state.buildings[b]) - foodFirst(state.buildings[a]));
   let free = Math.floor(state.pop);

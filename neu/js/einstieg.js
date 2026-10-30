@@ -44,9 +44,9 @@ function restartTutorial() {
 function renderTutorial() {
   const step = tutorialStep();
   const box = $('tutorial');
-  show(box, !!step);
+  show(box, !!step || !!elderHint);
   highlightTutorialTarget();
-  if (!step) return;
+  if (!step) { if (elderHint) renderElderHint(); return; }
   const face = images['aeltester-1'] ? `<img src="${IMAGE_DIR}aeltester-1.webp" alt="">` : '<span class="emoji">👴</span>';
   const last = state.tutorial === TUTORIAL.length - 1;
   box.innerHTML = `<div class="elder">${face}</div>
@@ -90,3 +90,42 @@ function onTutorialEvent(name, data) {
 }
 
 for (const name of ['placed', 'moved', 'tapped', 'lifted', 'researchStarted', 'questsOpened']) on(name, data => onTutorialEvent(name, data));
+
+// ---------------------------------------------------------------------
+// Hinweise des Stammesältesten nach dem Einstieg (z. B. Gebäude ohne Arbeiter)
+// ---------------------------------------------------------------------
+
+let elderHint = null;
+let lastHintAt = -1e9;
+const HINT_PAUSE_S = 300;   // höchstens alle 5 Spielminuten ein Hinweis
+
+function renderElderHint() {
+  const face = images['aeltester-1'] ? `<img src="${IMAGE_DIR}aeltester-1.webp" alt="">` : '<span class="emoji">👴</span>';
+  $('tutorial').innerHTML = `<div class="elder">${face}</div>
+    <div class="speech"><b>Stammesältester</b><p>${esc(elderHint)}</p>
+      <div class="tut-buttons"><button class="btn primary" onclick="closeElderHint()">Verstanden</button></div>
+    </div>`;
+}
+
+function closeElderHint() {
+  elderHint = null;
+  renderTutorial();
+}
+
+// Steht ein fertiges Gebäude mit Weg ohne Arbeiter da, weil alle Menschen schon arbeiten? Dann erklären, was hilft.
+function checkStaffHint() {
+  if (elderHint || tutorialStep() || state.playTime - lastHintAt < HINT_PAUSE_S) return;
+  if (Math.floor(state.pop) < stats.housing) return;   // es ziehen noch Menschen zu
+  const i = state.buildings.findIndex((b, k) => {
+    const def = BUILDINGS[b.type];
+    return def.workers && !b.build && !b.paused && isConnected(k) && !(stats.staff[k] > 0);
+  });
+  if (i < 0) return;
+  lastHintAt = state.playTime;
+  const name = BUILDINGS[state.buildings[i].type].name;
+  let text = `Beim ${name} arbeitet niemand – alle Menschen sind schon beschäftigt. Baue eine Wohnung, dann kommen mehr Menschen. ` +
+    `Oder tippe ein anderes Gebäude an und drücke ⏸ Pause: Dann arbeiten dessen Leute hier.`;
+  if ((state.res.stein || 0) < (BUILDINGS.wohnhoehle.cost.stein || 0)) text += ' Fehlt dir Stein? Tippe auf einen Felsen und trage ihn ab.';
+  elderHint = text;
+  renderTutorial();
+}

@@ -49,7 +49,7 @@ function sanitizeState(data) {
   }
   s.buildings = data.buildings
     .filter(b => b && BUILDINGS[b.type] && Number.isInteger(b.x) && Number.isInteger(b.y))
-    .map(b => ({ type: b.type, x: b.x, y: b.y, rot: !!b.rot, build: Number.isFinite(b.build) && b.build > 0 ? b.build : 0 }));
+    .map(b => ({ type: b.type, x: b.x, y: b.y, rot: !!b.rot, build: Number.isFinite(b.build) && b.build > 0 ? b.build : 0, ...(b.paused ? { paused: true } : {}) }));
   if (Array.isArray(data.plots) && data.plots.length === s.plots.length) s.plots = data.plots.map(p => (p === 1 ? 1 : 0));
   if (Array.isArray(data.cleared)) s.cleared = data.cleared.filter(Number.isInteger);
   if (data.techs && typeof data.techs === 'object') for (const id of Object.keys(data.techs)) if (TECHS[id]) s.techs[id] = true;

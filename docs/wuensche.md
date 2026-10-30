@@ -20,6 +20,10 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 8 – Leben im Bild: Wasser fließt und glitzert, Feuer flackert mit Funken, Rauch steigt aus
+  Lagerfeuer, Feuerstellen, Langhaus und Töpferei, Bäume wiegen sich im Wind.
+- 2026-10-30, Epochia Version 8 – Gebäude standen unterschiedlich hoch (verschieden dicke Sockel in den Bildern):
+  jetzt haben alle dieselbe Sockelhöhe.
 - 2026-10-30, Epochia Version 7 – Gelände und Wege als Bilder (Canva): Wiese, Wasser, Sand und Trampelpfad als Boden-Texturen,
   dazu Birke, Busch und Blumen.
 - 2026-10-30, Epochia Version 6 – Gebäude standen schief, Wege sahen neben Gebäuden abgeschnitten aus bzw. hatten Lücken:

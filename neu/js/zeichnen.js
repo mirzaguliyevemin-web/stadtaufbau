@@ -34,9 +34,10 @@ function loadImage(name) {
 // Gebäudebild: Wo liegen die linke, rechte und vordere Ecke der Unterkante des Erdsockels?
 // Die Unterkante ist ein flaches „V“; durch beide Schenkel legen wir je eine Gerade (Median der Steigungen,
 // damit Pfähle oder Steine am Rand nicht stören). Ergebnis als Anteile von Bildbreite und -höhe.
+// Dazu: wie dick ist der Sockel (dicke, Anteil der Bildhöhe) und welche Farbe hat er (farbe)?
 function measurePlate(img) {
   try {
-    const w = Math.min(256, img.width), h = Math.round(img.height * w / img.width);
+    const w = Math.min(512, img.width), h = Math.round(img.height * w / img.width);
     const c = document.createElement('canvas');
     c.width = w; c.height = h;
     const g = c.getContext('2d');
@@ -58,13 +59,34 @@ function measurePlate(img) {
     };
     const l = fit(0.08, 0.42), r = fit(0.58, 0.92);
     const fx = (r.b - l.b) / (l.m - r.m);
+    // Sockeldicke: in jeder Spalte von der Unterkante aufwärts die Stelle, wo es deutlich heller wird
+    // (dort beginnt die sonnige Oberseite der Platte). Nebenbei die Farbe knapp über der Unterkante sammeln.
+    const lum = (x, y) => { const i = (y * w + x) * 4; return 0.3 * data[i] + 0.59 * data[i + 1] + 0.11 * data[i + 2]; };
+    const thick = [], color = [0, 0, 0];
+    let colorN = 0;
+    for (const [x, y0] of bottom) {
+      const fr = (x - xl) / span;
+      if (!(fr > 0.1 && fr < 0.4) && !(fr > 0.6 && fr < 0.9)) continue;
+      if (y0 > 6) {
+        const i = ((y0 - 3) * w + x) * 4;
+        color[0] += data[i]; color[1] += data[i + 1]; color[2] += data[i + 2]; colorN++;
+      }
+      const L = [];
+      for (let k = 0; k < 0.12 * span && y0 - k - 3 >= 0; k++) L.push((lum(x, y0 - k) + lum(x, y0 - k - 1) + lum(x, y0 - k - 2)) / 3);
+      let best = 25, bk = -1;
+      for (let k = 3; k < L.length - 3; k++) if (L[k + 2] - L[k - 2] > best) { best = L[k + 2] - L[k - 2]; bk = k; }
+      if (bk > 0) thick.push(bk);
+    }
+    const n = Math.max(1, colorN);
     return {
       lx: xl / w, ly: (l.m * xl + l.b) / h,
       rx: xr / w, ry: (r.m * xr + r.b) / h,
       fx: fx / w, fy: (l.m * fx + l.b) / h,
+      dicke: (thick.length ? median(thick) : 0.06 * span) / h,
+      farbe: `rgb(${Math.round(color[0] / n)},${Math.round(color[1] / n)},${Math.round(color[2] / n)})`,
     };
-  } catch (e) {
-    return { lx: 0, ly: 0.62, rx: 1, ry: 0.62, fx: 0.5, fy: 1 };   // Bild nicht lesbar: ungefähre Werte
+  } catch (e) {   // Bild nicht lesbar: ungefähre Werte
+    return { lx: 0, ly: 0.62, rx: 1, ry: 0.62, fx: 0.5, fy: 1, dicke: 0.05, farbe: '#7a6a3a' };
   }
 }
 
@@ -351,7 +373,16 @@ function drawTerrainObject(x, y, kind) {
   if (photo && kind === 'wald') { h = TW * 1.25 * s; w = h * img.width / img.height; }
   else { w = (photo ? TW * 0.95 : img.width) * s; h = w * img.height / img.width; }
   const ox = (hash(y, x) - 0.5) * 10 * cam.zoom;
-  ctx.drawImage(img, p.x - w / 2 + ox, p.y - h + (photo ? h * 0.08 : 10 * s), w, h);
+  const foot = photo ? h * 0.08 : 10 * s;
+  if (kind !== 'wald') { ctx.drawImage(img, p.x - w / 2 + ox, p.y - h + foot, w, h); return; }
+  // Wind: jeder Baum wiegt sich etwas anders, dazu laufen sanfte Böen über die Karte
+  const t = frameTime;
+  const sway = Math.sin(t * 1.4 + v * 40) * 0.03 + Math.sin(t * 0.6 - (x + y) * 0.25) * 0.025;
+  ctx.save();
+  ctx.translate(p.x + ox, p.y + foot);
+  ctx.transform(1, 0, -sway, 1, 0, 0);
+  ctx.drawImage(img, -w / 2, -h, w, h);
+  ctx.restore();
 }
 
 // ---------------------------------------------------------------------
@@ -402,13 +433,31 @@ function drawPlaceholder(def, x, y, s, lift) {
   ctx.fillText(def.icon, top.x, top.y - height - 2 * cam.zoom);
 }
 
-// Bild: Die drei unteren Ecken des Erdsockels werden genau auf die linke, rechte und vordere Ecke
-// der Raute gelegt (schräg verzerrt) – so passt jedes Bild ans Raster, auch wenn die Platte etwas schief ist.
+// Bild: Die drei Ecken der Grasoberfläche (Unterkante des Sockels minus seine Dicke) werden genau über die
+// linke, rechte und vordere Ecke der Raute gelegt (schräg verzerrt), alle in derselben Sockelhöhe – so passt
+// jedes Bild ans Raster und alle Gebäude stehen gleich hoch. Den Sockel darunter schneiden wir auf diese Höhe
+// zu bzw. ergänzen ihn in seiner Farbe, wenn er im Bild dünner ist.
+const SOCKEL_HOEHE = 0.05;   // Anteil der Grundstücksbreite
+
 function drawImageOnTiles(img, x, y, s, rot, lift = 0) {
   const iw = img.width, ih = img.height, p = img.sockel;
-  let L = [p.lx * iw, p.ly * ih], R = [p.rx * iw, p.ry * ih], F = [p.fx * iw, p.fy * ih];
+  const up = p.dicke * ih;
+  let L = [p.lx * iw, p.ly * ih - up], R = [p.rx * iw, p.ry * ih - up], F = [p.fx * iw, p.fy * ih - up];
   if (rot) [L, R, F] = [[iw - R[0], R[1]], [iw - L[0], L[1]], [iw - F[0], F[1]]];
-  const left = tileToScreen(x, y + s), right = tileToScreen(x + s, y), front = tileToScreen(x + s, y + s);
+  const bl = tileToScreen(x, y + s), br = tileToScreen(x + s, y), bf = tileToScreen(x + s, y + s);
+  bl.y -= lift; br.y -= lift; bf.y -= lift;
+  const H = SOCKEL_HOEHE * (br.x - bl.x);
+  const left = { x: bl.x, y: bl.y - H }, right = { x: br.x, y: br.y - H }, front = { x: bf.x, y: bf.y - H };
+  // eigener Sockel (sichtbar nur dort, wo der gezeichnete zu dünn ist)
+  ctx.fillStyle = p.farbe;
+  ctx.beginPath();
+  ctx.moveTo(left.x, left.y); ctx.lineTo(front.x, front.y); ctx.lineTo(right.x, right.y);
+  ctx.lineTo(br.x, br.y); ctx.lineTo(bf.x, bf.y); ctx.lineTo(bl.x, bl.y); ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';   // rechte Seite liegt im Schatten
+  ctx.beginPath();
+  ctx.moveTo(front.x, front.y); ctx.lineTo(right.x, right.y); ctx.lineTo(br.x, br.y); ctx.lineTo(bf.x, bf.y); ctx.closePath();
+  ctx.fill();
   // Abbildung Bild → Bildschirm aus drei Punktpaaren
   const det = (R[0] - L[0]) * (F[1] - L[1]) - (F[0] - L[0]) * (R[1] - L[1]);
   const map = (tl, tr, tf) => {
@@ -417,13 +466,139 @@ function drawImageOnTiles(img, x, y, s, rot, lift = 0) {
     return [a, c, tl - a * L[0] - c * L[1]];
   };
   const [a, c, e] = map(left.x, right.x, front.x);
-  const [b, d, f] = map(left.y - lift, right.y - lift, front.y - lift);
+  const [b, d, f] = map(left.y, right.y, front.y);
   ctx.save();
+  // alles unterhalb der Sockel-Unterkante abschneiden (zu dicke Sockel)
+  const wide = br.x - bl.x;
+  ctx.beginPath();
+  ctx.moveTo(bl.x - wide, -1e5); ctx.lineTo(bl.x - wide, bl.y); ctx.lineTo(bl.x, bl.y); ctx.lineTo(bf.x, bf.y);
+  ctx.lineTo(br.x, br.y); ctx.lineTo(br.x + wide, br.y); ctx.lineTo(br.x + wide, -1e5); ctx.closePath();
+  ctx.clip();
   ctx.transform(a, b, c, d, e, f);
   if (rot) { ctx.translate(iw, 0); ctx.scale(-1, 1); }
   ctx.drawImage(img, 0, 0);
   ctx.restore();
-  return left.y - lift - (b * iw / 2 + f);   // so hoch ragt das Bild über die seitlichen Ecken der Raute
+  // Punkt auf dem Bild (Anteile u, v) → Bildschirm – für Feuer und Rauch
+  lastImagePoint = (u, v) => {
+    const px = (rot ? 1 - u : u) * iw, py = v * ih;
+    return { x: a * px + c * py + e, y: b * px + d * py + f };
+  };
+  return bl.y - (b * iw / 2 + f);   // so hoch ragt das Bild über die seitlichen Ecken der Raute
+}
+let lastImagePoint = null;
+
+// ---------------------------------------------------------------------
+// Leben im Bild: Feuer flackert, Rauch steigt auf, Wasser fließt, Bäume wiegen sich im Wind
+// ---------------------------------------------------------------------
+
+// Wo auf den Gebäudebildern brennt ein Feuer (u, v = Anteil von Bildbreite und -höhe) und wo steigt Rauch auf?
+// feuer = Größe des Flackerns, rauch = Stärke des Rauchs (0 = keiner)
+const EFFECTS = {
+  '1-lagerfeuer':        [{ u: 0.50, v: 0.50, feuer: 1.5, rauch: 1.2, rv: 0.38 }],
+  '1-feuerplatz':        [{ u: 0.47, v: 0.47, feuer: 1.0, rauch: 0.9, rv: 0.32 }],
+  '1-wohnhoehle':        [{ u: 0.45, v: 0.47, feuer: 0.6, rauch: 0 }],
+  '1-jaegerlager':       [{ u: 0.50, v: 0.54, feuer: 0.9, rauch: 0.8, rv: 0.49 }],
+  '1-fellzelt':          [{ u: 0.33, v: 0.66, feuer: 0.7, rauch: 0.6, rv: 0.62 }],
+  '1-mammutjaegerlager': [{ u: 0.43, v: 0.68, feuer: 0.9, rauch: 0.8, rv: 0.63 }],
+  '1-ahnenplatz':        [{ u: 0.50, v: 0.51, feuer: 0.7, rauch: 0.6, rv: 0.47 }],
+  '1-hoehlenmaler':      [{ u: 0.47, v: 0.53, feuer: 0.7, rauch: 0 }],
+  '1-steinkreis':        [{ u: 0.51, v: 0.38, feuer: 0.9, rauch: 0.7, rv: 0.34 }],
+  '1-langhaus':          [{ u: 0.76, v: 0.25, feuer: 0, rauch: 1.0 }],
+  '1-toepferei':         [{ u: 0.75, v: 0.45, feuer: 0.6, rauch: 0 }, { u: 0.78, v: 0.23, feuer: 0, rauch: 1.1 }],
+};
+
+let smokeQueue = [];   // Rauch wird zuletzt gezeichnet, damit er über allem liegt
+
+function flicker(t, ph) {
+  return 0.5 + 0.3 * Math.sin(t * 11 + ph) + 0.2 * Math.sin(t * 23.7 + ph * 3);
+}
+
+function drawBuildingEffects(img, name, seed) {
+  const list = EFFECTS[name];
+  if (!list || !lastImagePoint) return;
+  const z = cam.zoom, t = frameTime;
+  list.forEach((fx, k) => {
+    const ph = seed * 17 + k * 5;
+    if (fx.feuer) {
+      const p = lastImagePoint(fx.u, fx.v);
+      const fl = flicker(t, ph);
+      const r = fx.feuer * (14 + fl * 4) * z;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+      grad.addColorStop(0, `rgba(255,190,80,${0.35 + fl * 0.25})`);
+      grad.addColorStop(1, 'rgba(255,120,30,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * 0.75, 0, 0, 7); ctx.fill();
+      // Funken
+      for (let i = 0; i < 3; i++) {
+        const q = (t * 0.9 + i / 3 + seed) % 1;
+        const sx = p.x + Math.sin(t * 3 + i * 2 + ph) * 4 * z * fx.feuer;
+        const sy = p.y - q * 26 * z * fx.feuer;
+        ctx.fillStyle = `rgba(255,${200 - q * 80},90,${(1 - q) * 0.9})`;
+        ctx.beginPath(); ctx.arc(sx, sy, Math.max(0.8, 1.6 * z * (1 - q)), 0, 7); ctx.fill();
+      }
+      ctx.restore();
+    }
+    if (fx.rauch) smokeQueue.push({ p: lastImagePoint(fx.u, fx.rv ?? fx.v), s: fx.rauch, ph });
+  });
+}
+
+function drawSmoke() {
+  const z = cam.zoom, t = frameTime, n = 7, period = 5;
+  for (const sm of smokeQueue) {
+    for (let i = 0; i < n; i++) {
+      const q = (t / period + i / n + sm.ph * 0.13) % 1;
+      const x = sm.p.x + (q * q * 22 + Math.sin(t * 0.8 + i * 1.7 + sm.ph) * 3) * z * sm.s;
+      const y = sm.p.y - q * 70 * z * sm.s;
+      const r = (3 + q * 10) * z * sm.s;
+      const a = 0.42 * (1 - q) * Math.min(1, q * 6);
+      ctx.fillStyle = `rgba(238,236,232,${a})`;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+    }
+  }
+  smokeQueue = [];
+}
+
+// Fließendes Wasser: über das vorgezeichnete Wasser zwei langsam wandernde Lagen der Wasser-Textur legen
+function drawWater(range) {
+  if (!images.wasser) return;
+  const tiles = [];
+  for (let y = range.y0; y <= range.y1; y++)
+    for (let x = range.x0; x <= range.x1; x++) if (terrain[y * N + x] === TERRAIN.wasser.id) tiles.push([x, y]);
+  if (!tiles.length) return;
+  const g = 0.6;
+  ctx.beginPath();
+  for (const [x, y] of tiles) {
+    const a = tileToScreen(x, y), b = tileToScreen(x + 1, y), c = tileToScreen(x + 1, y + 1), d = tileToScreen(x, y + 1);
+    ctx.moveTo(a.x, a.y - g); ctx.lineTo(b.x + g * 2, b.y); ctx.lineTo(c.x, c.y + g); ctx.lineTo(d.x - g * 2, d.y); ctx.closePath();
+  }
+  const t = frameTime;
+  const layer = (fx, fy, alpha) => {
+    const ox = fx * TW / 2 - fy * TW / 2, oy = fx * TH / 2 + fy * TH / 2;
+    const o = worldToScreen(ox, oy);
+    const pattern = groundPattern(ctx, 'wasser', o.x, o.y, cam.zoom);
+    if (!pattern) return;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = pattern;
+    ctx.fill();
+  };
+  layer((t * 0.18) % TEXTURE_TILES, (t * 0.05) % TEXTURE_TILES, 1);
+  layer((t * 0.07) % TEXTURE_TILES, (t * 0.15) % TEXTURE_TILES, 0.35);
+  ctx.globalAlpha = 1;
+  // Glitzern
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = Math.max(1, 1.5 * cam.zoom);
+  for (const [x, y] of tiles) {
+    const h = hash(x + 3, y + 11);
+    if (h < 0.75) continue;
+    const a = Math.pow(Math.max(0, Math.sin(t * 1.7 + h * 40)), 6);
+    if (a < 0.05) continue;
+    const p = tileToScreen(x + 0.5, y + 0.5);
+    ctx.globalAlpha = a * 0.8;
+    ctx.beginPath(); ctx.moveTo(p.x - 5 * cam.zoom, p.y); ctx.lineTo(p.x + 5 * cam.zoom, p.y); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
 }
 
 function drawBuildingSprite(type, x, y, rot, lift = 0, alpha = 1) {
@@ -442,8 +617,10 @@ function drawBuildingSprite(type, x, y, rot, lift = 0, alpha = 1) {
     return;
   }
   const img = def.bild && images[def.bild];
-  if (img) drawImageOnTiles(img, x, y, s, rot, lift);
-  else {
+  if (img) {
+    drawImageOnTiles(img, x, y, s, rot, lift);
+    if (alpha === 1 && !lift) drawBuildingEffects(img, def.bild, hash(x, y));
+  } else {
     drawPlot(x, y, s, lift ? 'rgba(160,220,110,0.9)' : '#93d466', '#6fae48');
     drawPlaceholder(def, x, y, s, lift);
   }
@@ -618,6 +795,7 @@ function drawScene(dt) {
   ctx.fillRect(0, 0, viewW, viewH);
   const range = visibleRange();
   drawGround(range);
+  drawWater(range);
   drawPlots(range);
   if (ghost || pathMode) drawGrid(range);
   if (selected >= 0 && state.buildings[selected]) {
@@ -650,6 +828,7 @@ function drawScene(dt) {
       else drawBuildingSprite(b.type, b.x, b.y, b.rot);
     } else drawTerrainObject(o.x, o.y, o.kind);
   }
+  drawSmoke();
   for (const o of objects) if (o.kind === 'b') drawBubble(o.i);
   if (ghost) drawGhost(ghost);
 

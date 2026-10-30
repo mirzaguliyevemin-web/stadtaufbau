@@ -117,8 +117,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 5px calc(6px + var(--safe-r)) 5px calc(6px + var(--safe-l));
   pointer-events: none;
 }
-.chips { display: flex; flex-wrap: wrap; gap: 4px; pointer-events: auto; }
-.chips.right { flex-wrap: nowrap; }
+.chips { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px; pointer-events: auto; flex: 1 1 auto; min-width: 0; }
+.chips.right { flex: none; flex-wrap: nowrap; }
 .chip {
   display: flex; align-items: center; gap: 3px;
   border: 0; border-radius: 20px;
@@ -134,7 +134,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #side {
   position: absolute;
   left: calc(6px + var(--safe-l));
-  top: 46px;
+  top: calc(var(--top-h, 40px) + 6px);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -201,6 +201,25 @@ button { font: inherit; color: inherit; cursor: pointer; }
   scrollbar-width: none;
 }
 #buildbar::-webkit-scrollbar { display: none; }
+#bar-tabs {
+  position: absolute;
+  left: calc(72px + var(--safe-l)); right: calc(8px + var(--safe-r));
+  bottom: calc(var(--bar-h, 100px) - 2px);
+  display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none;
+  padding: 0 0 2px;
+}
+#bar-tabs::-webkit-scrollbar { display: none; }
+.bar-tab {
+  position: relative; flex: none;
+  display: flex; align-items: center; gap: 4px;
+  font: inherit; font-size: 13px; font-weight: 700; color: var(--ink);
+  background: rgba(255, 246, 227, 0.88); border: 2px solid var(--paper-dark); border-radius: 14px 14px 6px 6px;
+  padding: 3px 10px 3px 7px; box-shadow: 0 2px 6px rgba(40, 25, 10, 0.25); cursor: pointer;
+}
+.bar-tab .emoji { font-size: 16px; }
+.bar-tab.active { background: linear-gradient(#ffe9a8, #f2c24a); border-color: #d99a1f; box-shadow: 0 0 0 2px rgba(255, 210, 90, 0.5), 0 2px 6px rgba(40, 25, 10, 0.3); }
+.bar-tab .dot { position: absolute; top: -3px; right: -3px; width: 11px; height: 11px; border-radius: 50%; background: var(--red); border: 2px solid #fff; }
+@media (max-width: 560px) { .bar-tab .tname { display: none; } .bar-tab { padding: 4px 9px; } }
 .bar-item {
   position: relative;
   flex: none;
@@ -250,7 +269,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #tutorial {
   position: absolute;
   right: calc(10px + var(--safe-r));
-  bottom: 112px;
+  bottom: calc(var(--bar-h, 100px) + 40px);
   display: flex; align-items: flex-end; gap: 6px;
   max-width: min(440px, 70vw);
   pointer-events: auto;
@@ -351,12 +370,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .page-head { border-bottom: 3px solid var(--wood-dark); box-shadow: 0 3px 8px rgba(40, 25, 10, 0.3); z-index: 1; }
 .page-head h2 { text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25); font-size: 20px; }
 
-.chip {
+.tag {
   display: inline-flex; align-items: center; gap: 3px;
   background: #fff8e6; border: 2px solid #ead3a3; border-radius: 999px;
   padding: 1px 9px; font-size: 12px; font-weight: 600; color: var(--ink); white-space: nowrap;
 }
-.chip.good { background: #e3f6d3; border-color: #9fd77d; color: var(--green-dark); }
+.tag.good { background: #e3f6d3; border-color: #9fd77d; color: var(--green-dark); }
 
 /* ---------- Forschung ---------- */
 .research-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 4px 2px 8px; }
@@ -519,7 +538,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .side-btn { width: 50px; height: 46px; font-size: 19px; }
   .ic.big { width: 38px; height: 38px; line-height: 38px; font-size: 27px; }
   .bar-item { width: 82px; }
-  #tutorial { bottom: 98px; }
+  #tutorial { bottom: calc(var(--bar-h, 90px) + 36px); }
   #tutorial .elder { width: 80px; height: 80px; }
   #tutorial .elder .emoji { font-size: 40px; }
   #tutorial .speech { font-size: 13px; }

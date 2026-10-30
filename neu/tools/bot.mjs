@@ -1,5 +1,5 @@
 // Epochia – Balancing-Bot: spielt die Steinzeit ohne Browser und misst, wie lange die Stufen dauern.
-// Aufruf: node neu/tools/bot.mjs [Minuten] [Läufe]   (Ziel laut Plan: Steinzeit in 45–60 Spielminuten)
+// Aufruf: node neu/tools/bot.mjs [Minuten] [Läufe]   (Ziel seit 30.10.: Steinzeit in etwa 6 Stunden, Mittelsteinzeit nach gut 1 Stunde)
 import { loadGame } from './headless.mjs';
 import { fileURLToPath } from 'node:url';
 
@@ -153,7 +153,7 @@ function botRun(minutes, seed) {
     for (const id of ['mittelsteinzeit', 'jungsteinzeit', 'kupferfund'])
       if (state.techs[id] && botReport[id] === null) botReport[id] = Math.round(sec / 6) / 10;
   }
-  botReport.final = { pop: state.pop, stage: state.stage, techs: Object.keys(state.techs).length, res: Object.fromEntries(Object.entries(state.res).map(([k, v]) => [k, Math.floor(v)])) };
+  botReport.final = { needs: JSON.stringify(stats.needs), counts: JSON.stringify(state.buildings.reduce((m, b) => (m[b.type] = (m[b.type] || 0) + 1, m), {})), jobs: stats.jobs, workers: stats.workers, housing: stats.housing, pop: state.pop, stage: state.stage, techs: Object.keys(state.techs).length, res: Object.fromEntries(Object.entries(state.res).map(([k, v]) => [k, Math.floor(v)])) };
   return botReport;
 }
 `;
@@ -176,6 +176,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.log(`  Ende: ${report.final.pop} Einwohner, ${report.final.techs} Forschungen, Hunger ${report.hungerMin} min, unzufrieden ${report.lowHappyMin} min`);
     console.log(`  Einwohner je 10 min: ${report.pop.filter((_, i) => i % 10 === 9).join(' · ')}`);
     console.log(`  Waren: ${JSON.stringify(report.final.res)}`);
+    console.log(`  Bedürfnisse: ${report.final.needs} · Arbeit ${report.final.workers}/${report.final.jobs} · Wohnplätze ${report.final.housing}`);
+    console.log(`  Gebäude: ${report.final.counts}`);
     console.log(`  Fehlte oft: ${Object.entries(report.blocked).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t, n]) => t + ' ' + n).join(', ')}`);
   }
 }

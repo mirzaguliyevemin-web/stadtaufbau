@@ -20,6 +20,12 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 12 – Zeitalter kamen viel zu schnell, man brauchte nur 3 Häuser: Forschungen dauern etwa fünfmal
+  so lang, kosten mehr Wissen und Waren und brauchen eine Mindestzahl Einwohner (Steinzeit ≈ 6 Stunden, Bronzezeit-Aufbruch
+  mit 120 Einwohnern); Landpreis bleibt unter dem Lagerplatz.
+- 2026-10-30, Epochia Version 12 – Beine von Rehen & Co. bewegten sich nicht: Vorder- und Hinterbeine schwingen beim Laufen.
+- 2026-10-30, Epochia Version 12 – Einwohnerzahl oben war nicht zu sehen: obere Leiste repariert, Seitenknöpfe rutschen darunter.
+- 2026-10-30, Epochia Version 12 – Bauleiste mit Kategorien (Wohnen, Nahrung, Rohstoffe, Handwerk, Feuer & Glaube, Wege).
 - 2026-10-30, Epochia Version 11 – mehr Leben: Menschen laufen auf den Trampelpfaden, Hirsche und eine Mammutherde ziehen
   umher, Ziegen grasen am Gehege, Fische springen, Vögel fliegen vorbei, Schmetterlinge über den Blumen (Bilder aus Canva).
 - 2026-10-30, Epochia Version 10 – Forschung, Aufträge und Menü neu gestaltet (Epochen-Streifen und Banner, leuchtende

@@ -48,6 +48,12 @@ function visibleResources() {
 }
 
 let lastTopbar = '';
+// Maß für das Layout merken (z. B. Höhe der oberen Leiste); im Test ohne Browser gibt es kein documentElement
+function setCssVar(name, value) {
+  const root = typeof document !== 'undefined' && document.documentElement;
+  if (root && root.style) root.style.setProperty(name, value);
+}
+
 function renderTopbar() {
   const cap = storageCap();
   const chips = visibleResources().map(id => {
@@ -64,7 +70,13 @@ function renderTopbar() {
       <button class="chip" onclick="happyTip()">${face}<b>${happy}%</b></button>
       <button class="chip" onclick="toast('${season().name} · ${stage.name}')">${season().icon}</button>
     </div>`;
-  if (html !== lastTopbar) { $('topbar').innerHTML = html; lastTopbar = html; }
+  if (html !== lastTopbar) {
+    $('topbar').innerHTML = html;
+    lastTopbar = html;
+    // Seitenknöpfe unter die (evtl. zweizeilige) obere Leiste schieben
+    const h = $('topbar').offsetHeight;
+    if (h) setCssVar('--top-h', h + 'px');
+  }
 }
 
 function resourceTip(id) {
@@ -107,10 +119,33 @@ function renderSideButtons() {
 // Bauleiste (unten)
 // ---------------------------------------------------------------------
 
-let lastBar = '';
+let lastBar = '', lastTabs = '';
+let barCategory = 'wohnen';
+
+function categoryOf(type) {
+  const line = BUILDINGS[type].line;
+  return (BAR_CATEGORIES.find(c => c.lines.includes(line)) || BAR_CATEGORIES[0]).id;
+}
+
+function setBarCategory(id) {
+  barCategory = id;
+  lastBar = null;
+  renderBuildBar();
+  const bar = $('buildbar');
+  if (bar) bar.scrollLeft = 0;
+}
+
 function renderBuildBar() {
   if (barDrag) return;   // nicht neu aufbauen, solange ein Finger auf der Leiste liegt
-  const items = barEntries().map(({ type, locked }) => {
+  // Im Einstieg zeigt die Leiste die Kategorie, in der das gesuchte Gebäude steht
+  const step = typeof tutorialStep === 'function' ? tutorialStep() : null;
+  if (step && step.target && step.target.startsWith('bar:') && BUILDINGS[step.target.slice(4)]) barCategory = categoryOf(step.target.slice(4));
+  const entries = barEntries();
+  const fresh = new Set(entries.filter(({ type, locked }) => !locked && BUILDINGS[type].requires && !(state.seen || {})[type]).map(e => categoryOf(e.type)));
+  const tabs = BAR_CATEGORIES.filter(c => entries.some(e => categoryOf(e.type) === c.id)).map(c =>
+    `<button class="bar-tab${c.id === barCategory ? ' active' : ''}" onclick="setBarCategory('${c.id}')"><span class="emoji">${c.icon}</span><span class="tname">${esc(c.name)}</span>${fresh.has(c.id) && c.id !== barCategory ? '<i class="dot"></i>' : ''}</button>`).join('');
+  if (tabs !== lastTabs) { $('bar-tabs').innerHTML = tabs; lastTabs = tabs; }
+  const items = entries.filter(e => categoryOf(e.type) === barCategory).map(({ type, locked }) => {
     const def = BUILDINGS[type];
     const isNew = !locked && def.requires && !(state.seen || {})[type];
     const affordable = canAfford(def.cost);
@@ -126,6 +161,8 @@ function renderBuildBar() {
   if (items !== lastBar) {
     $('buildbar').innerHTML = items;
     lastBar = items;
+    const h = $('buildbar').offsetHeight;
+    if (h) setCssVar('--bar-h', h + 'px');
     if (typeof highlightTutorialTarget === 'function') highlightTutorialTarget();
   }
 }
@@ -152,6 +189,7 @@ function renderActionBar() {
   show(el, !!html);
   if (html !== lastAction) { el.innerHTML = html; lastAction = html; }
   show($('buildbar'), !html);
+  show($('bar-tabs'), !html);
 }
 
 // ---------------------------------------------------------------------
@@ -470,15 +508,15 @@ function techDetailHtml() {
   const problem = researchProblem(id);
   const status = techStatus(id);
   const req = t.requires.length ? t.requires.map(r => `${state.techs[r] ? '✔' : '✖'} ${TECHS[r].name}`).join(', ') : 'nichts';
-  const effects = techEffectText(id).split(' · ').map(e => `<span class="chip">${esc(e)}</span>`).join('');
+  const effects = techEffectText(id).split(' · ').map(e => `<span class="tag">${esc(e)}</span>`).join('');
   return `<div class="td-medal ${status}">${iconHtml(t.bild, t.icon, 'big')}</div>
     <div class="td-main">
       <h3>${esc(t.name)}</h3>
       <div class="td-chips">${effects}</div>
       <p><b>Kosten:</b> ${costHtml(t.cost)} · ⏱ ${formatTime(t.time)}${t.population ? ` · 👥 ${t.population} Einwohner` : ''} · <b>Vorher:</b> ${esc(req)}</p>
     </div>
-    <div class="td-action">${status === 'done' ? '<span class="chip good">✔ Erforscht</span>'
-      : status === 'running' ? '<span class="chip">⏳ Läuft …</span>'
+    <div class="td-action">${status === 'done' ? '<span class="tag good">✔ Erforscht</span>'
+      : status === 'running' ? '<span class="tag">⏳ Läuft …</span>'
       : `<button class="btn primary" ${problem ? 'disabled' : ''} onclick="doResearch('${id}')">📜 Erforschen</button>${problem ? `<small class="bad">${esc(problem)}</small>` : ''}`}</div>`;
 }
 
@@ -528,7 +566,7 @@ function questIcon(q) {
 }
 
 function rewardChips(reward) {
-  return Object.entries(reward).map(([id, n]) => `<span class="chip">${RESOURCES[id].icon} ${n}</span>`).join('');
+  return Object.entries(reward).map(([id, n]) => `<span class="tag">${RESOURCES[id].icon} ${n}</span>`).join('');
 }
 
 function questsHtml() {

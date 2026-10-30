@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 11;
+const APP_VERSION = 12;
 
 const CONFIG = {
   mapSize: 64,            // Felder je Seite
@@ -211,46 +211,56 @@ const BUILDINGS = {
 // Forschungsbaum. col/row = Platz im Baum (Spalte von links, Reihe: 0–1 Nahrung, 2 Wohnen, 3 Handwerk, 4 Wissen)
 // effect: unlock (Gebäude), bonus (Produktion +x je Gebäude), housing (+Plätze je Gebäude), warmth (+Umkreis), stage
 const TECHS = {
-  flechtkoerbe:   { name: 'Flechtkörbe',    icon: '🧺', stage: 'alt', col: 0, row: 0, requires: [], cost: { wissen: 8 }, time: 60, effect: { bonus: { sammlerin: 0.4 } }, bild: 'f-koerbe' },
-  speerspitzen:   { name: 'Speerspitzen',   icon: '🗡️', stage: 'alt', col: 1, row: 1, requires: ['faustkeil'], cost: { wissen: 12 }, time: 75, effect: { bonus: { jaegerlager: 0.4, mammutjaegerlager: 0.4 } }, bild: 'f-speer' },
-  mammutjagd:     { name: 'Mammutjagd',     icon: '🦣', stage: 'alt', col: 2, row: 1, requires: ['speerspitzen'], cost: { wissen: 20 }, time: 120, effect: {}, bild: 'f-mammutjagd' },
-  fellzelte:      { name: 'Fellzelte',      icon: '⛺', stage: 'alt', col: 1, row: 2, requires: ['faustkeil'], cost: { wissen: 12 }, time: 75, effect: { housing: { fellzelt: 1 } }, bild: 'f-fellzelte' },
-  faustkeil:      { name: 'Faustkeil',      icon: '🪨', stage: 'alt', col: 0, row: 3, requires: [], cost: { wissen: 8 }, time: 60, effect: { bonus: { holzsammler: 0.3, steinsammler: 0.3 } }, bild: 'f-faustkeil' },
-  feuer_hueten:   { name: 'Feuer hüten',    icon: '🔥', stage: 'alt', col: 0, row: 4, requires: [], cost: { wissen: 5 }, time: 45, effect: { warmth: 2 }, bild: 'f-feuer' },
-  hoehlenmalerei: { name: 'Höhlenmalerei',  icon: '🎨', stage: 'alt', col: 1, row: 4, requires: ['feuer_hueten'], cost: { wissen: 15 }, time: 90, effect: { bonus: { hoehlenmaler: 0.3 } }, bild: 'f-hoehlenmalerei' },
+  flechtkoerbe:   { name: 'Flechtkörbe',    icon: '🧺', stage: 'alt', col: 0, row: 0, requires: [], cost: { wissen: 20 }, time: 300, effect: { bonus: { sammlerin: 0.4 } }, bild: 'f-koerbe' },
+  speerspitzen:   { name: 'Speerspitzen',   icon: '🗡️', stage: 'alt', col: 1, row: 1, requires: ['faustkeil'], population: 8, cost: { wissen: 30, holz: 20 }, time: 420, effect: { bonus: { jaegerlager: 0.4, mammutjaegerlager: 0.4 } }, bild: 'f-speer' },
+  mammutjagd:     { name: 'Mammutjagd',     icon: '🦣', stage: 'alt', col: 2, row: 1, requires: ['speerspitzen'], population: 18, cost: { wissen: 50, nahrung: 60 }, time: 600, effect: {}, bild: 'f-mammutjagd' },
+  fellzelte:      { name: 'Fellzelte',      icon: '⛺', stage: 'alt', col: 1, row: 2, requires: ['faustkeil'], population: 10, cost: { wissen: 30, felle: 5 }, time: 420, effect: { housing: { fellzelt: 1 } }, bild: 'f-fellzelte' },
+  faustkeil:      { name: 'Faustkeil',      icon: '🪨', stage: 'alt', col: 0, row: 3, requires: [], cost: { wissen: 20 }, time: 300, effect: { bonus: { holzsammler: 0.3, steinsammler: 0.3 } }, bild: 'f-faustkeil' },
+  feuer_hueten:   { name: 'Feuer hüten',    icon: '🔥', stage: 'alt', col: 0, row: 4, requires: [], cost: { wissen: 12 }, time: 240, effect: { warmth: 2 }, bild: 'f-feuer' },
+  hoehlenmalerei: { name: 'Höhlenmalerei',  icon: '🎨', stage: 'alt', col: 1, row: 4, requires: ['feuer_hueten'], population: 10, cost: { wissen: 40 }, time: 480, effect: { bonus: { hoehlenmaler: 0.3 } }, bild: 'f-hoehlenmalerei' },
   mittelsteinzeit: {
     name: 'Mittelsteinzeit', icon: '➡️', stage: 'alt', col: 3, row: 2, transition: true,
     requires: ['flechtkoerbe', 'speerspitzen', 'fellzelte', 'faustkeil', 'feuer_hueten', 'hoehlenmalerei'],
-    population: 15, cost: { wissen: 25, nahrung: 50 }, time: 120, effect: { stage: 'mittel' }, bild: 'f-mittelsteinzeit',
+    population: 25, cost: { wissen: 70, nahrung: 120, felle: 10 }, time: 1200, effect: { stage: 'mittel' }, bild: 'f-mittelsteinzeit',
   },
-  pfeil_bogen:     { name: 'Pfeil und Bogen', icon: '🏹', stage: 'mittel', col: 4, row: 0, requires: ['mittelsteinzeit'], cost: { wissen: 20 }, time: 90, effect: { bonus: { jaegerlager: 0.5, mammutjaegerlager: 0.5 } }, bild: 'f-bogen' },
-  einbaum:         { name: 'Einbaum',         icon: '🛶', stage: 'mittel', col: 5, row: 0, requires: ['pfeil_bogen'], cost: { wissen: 25, holz: 30 }, time: 120, effect: {}, bild: 'f-einbaum' },
-  fellbearbeitung: { name: 'Fellbearbeitung', icon: '🧥', stage: 'mittel', col: 5, row: 1, requires: ['pfeil_bogen', 'feine_klingen'], cost: { wissen: 25 }, time: 120, effect: {}, bild: 'f-fellbearbeitung' },
-  grubenhaus:      { name: 'Grubenhaus',      icon: '🏠', stage: 'mittel', col: 4, row: 2, requires: ['mittelsteinzeit'], cost: { wissen: 25, holz: 30 }, time: 120, effect: {}, bild: 'f-grubenhaus' },
-  feine_klingen:   { name: 'Feine Klingen',   icon: '🔪', stage: 'mittel', col: 4, row: 3, requires: ['mittelsteinzeit'], cost: { wissen: 20, stein: 20 }, time: 90, effect: {}, bild: 'f-klingen' },
-  ahnenkult:       { name: 'Ahnenkult',       icon: '🗿', stage: 'mittel', col: 4, row: 4, requires: ['mittelsteinzeit'], cost: { wissen: 30 }, time: 120, effect: {}, bild: 'f-ahnenkult' },
+  pfeil_bogen:     { name: 'Pfeil und Bogen', icon: '🏹', stage: 'mittel', col: 4, row: 0, requires: ['mittelsteinzeit'], population: 28, cost: { wissen: 50, holz: 40 }, time: 600, effect: { bonus: { jaegerlager: 0.5, mammutjaegerlager: 0.5 } }, bild: 'f-bogen' },
+  einbaum:         { name: 'Einbaum',         icon: '🛶', stage: 'mittel', col: 5, row: 0, requires: ['pfeil_bogen'], population: 40, cost: { wissen: 60, holz: 80 }, time: 720, effect: {}, bild: 'f-einbaum' },
+  fellbearbeitung: { name: 'Fellbearbeitung', icon: '🧥', stage: 'mittel', col: 5, row: 1, requires: ['pfeil_bogen', 'feine_klingen'], population: 42, cost: { wissen: 60, felle: 20 }, time: 720, effect: {}, bild: 'f-fellbearbeitung' },
+  grubenhaus:      { name: 'Grubenhaus',      icon: '🏠', stage: 'mittel', col: 4, row: 2, requires: ['mittelsteinzeit'], population: 30, cost: { wissen: 60, holz: 60 }, time: 660, effect: {}, bild: 'f-grubenhaus' },
+  feine_klingen:   { name: 'Feine Klingen',   icon: '🔪', stage: 'mittel', col: 4, row: 3, requires: ['mittelsteinzeit'], population: 32, cost: { wissen: 50, stein: 50 }, time: 600, effect: {}, bild: 'f-klingen' },
+  ahnenkult:       { name: 'Ahnenkult',       icon: '🗿', stage: 'mittel', col: 4, row: 4, requires: ['mittelsteinzeit'], population: 35, cost: { wissen: 75, nahrung: 80 }, time: 720, effect: {}, bild: 'f-ahnenkult' },
   jungsteinzeit: {
     name: 'Jungsteinzeit', icon: '➡️', stage: 'mittel', col: 6, row: 2, transition: true,
     requires: ['pfeil_bogen', 'einbaum', 'feine_klingen', 'fellbearbeitung', 'grubenhaus', 'ahnenkult'],
-    population: 30, cost: { wissen: 50, nahrung: 100, kleidung: 10 }, time: 180, effect: { stage: 'jung' }, bild: 'f-jungsteinzeit',
+    population: 60, cost: { wissen: 120, nahrung: 150, kleidung: 20 }, time: 1800, effect: { stage: 'jung' }, bild: 'f-jungsteinzeit',
   },
-  ackerbau:       { name: 'Ackerbau',       icon: '🌾', stage: 'jung', col: 7, row: 0, requires: ['jungsteinzeit'], cost: { wissen: 50 }, time: 120, effect: {}, bild: 'f-ackerbau' },
-  sichel:         { name: 'Sichel',         icon: '🌙', stage: 'jung', col: 8, row: 0, requires: ['ackerbau'], cost: { wissen: 40, werkzeug: 10 }, time: 120, effect: { bonus: { acker: 0.4 } }, bild: 'f-sichel' },
-  viehzucht:      { name: 'Viehzucht',      icon: '🐐', stage: 'jung', col: 8, row: 1, requires: ['ackerbau'], cost: { wissen: 60 }, time: 150, effect: {}, bild: 'f-viehzucht' },
-  langhausbau:    { name: 'Langhausbau',    icon: '🏡', stage: 'jung', col: 7, row: 2, requires: ['jungsteinzeit'], cost: { wissen: 60, werkzeug: 10 }, time: 150, effect: {}, bild: 'f-langhaus' },
-  pfahlbauten:    { name: 'Pfahlbauten',    icon: '🏘️', stage: 'jung', col: 8, row: 2, requires: ['langhausbau', 'einbaum'], cost: { wissen: 60, holz: 40 }, time: 150, effect: {}, bild: 'f-pfahlbauten' },
-  toepfern:       { name: 'Töpfern',        icon: '🏺', stage: 'jung', col: 7, row: 3, requires: ['jungsteinzeit'], cost: { wissen: 50 }, time: 120, effect: {}, bild: 'f-toepfern' },
-  vorratshaltung: { name: 'Vorratshaltung', icon: '🛖', stage: 'jung', col: 8, row: 3, requires: ['toepfern', 'langhausbau'], cost: { wissen: 60, toepferwaren: 10 }, time: 150, effect: { storage: 0.5 }, bild: 'f-vorrat' },
-  sternenkunde:   { name: 'Sternenkunde',   icon: '✨', stage: 'jung', col: 8, row: 4, requires: ['ahnenkult', 'langhausbau'], cost: { wissen: 80 }, time: 180, effect: {}, bild: 'f-sterne' },
-  kupferfund:     { name: 'Kupferfund',     icon: '🟠', stage: 'jung', col: 9, row: 2, requires: ['sichel', 'viehzucht', 'vorratshaltung', 'sternenkunde'], cost: { wissen: 100, werkzeug: 20 }, time: 180, effect: {}, bild: 'f-kupfer' },
+  ackerbau:       { name: 'Ackerbau',       icon: '🌾', stage: 'jung', col: 7, row: 0, requires: ['jungsteinzeit'], population: 65, cost: { wissen: 110, nahrung: 100 }, time: 840, effect: {}, bild: 'f-ackerbau' },
+  sichel:         { name: 'Sichel',         icon: '🌙', stage: 'jung', col: 8, row: 0, requires: ['ackerbau'], population: 75, cost: { wissen: 100, werkzeug: 20 }, time: 900, effect: { bonus: { acker: 0.4 } }, bild: 'f-sichel' },
+  viehzucht:      { name: 'Viehzucht',      icon: '🐐', stage: 'jung', col: 8, row: 1, requires: ['ackerbau'], population: 80, cost: { wissen: 130, nahrung: 120 }, time: 960, effect: {}, bild: 'f-viehzucht' },
+  langhausbau:    { name: 'Langhausbau',    icon: '🏡', stage: 'jung', col: 7, row: 2, requires: ['jungsteinzeit'], population: 70, cost: { wissen: 120, werkzeug: 15, holz: 80 }, time: 900, effect: {}, bild: 'f-langhaus' },
+  pfahlbauten:    { name: 'Pfahlbauten',    icon: '🏘️', stage: 'jung', col: 8, row: 2, requires: ['langhausbau', 'einbaum'], population: 85, cost: { wissen: 130, holz: 100 }, time: 960, effect: {}, bild: 'f-pfahlbauten' },
+  toepfern:       { name: 'Töpfern',        icon: '🏺', stage: 'jung', col: 7, row: 3, requires: ['jungsteinzeit'], population: 70, cost: { wissen: 110, stein: 60 }, time: 840, effect: {}, bild: 'f-toepfern' },
+  vorratshaltung: { name: 'Vorratshaltung', icon: '🛖', stage: 'jung', col: 8, row: 3, requires: ['toepfern', 'langhausbau'], population: 90, cost: { wissen: 130, toepferwaren: 15 }, time: 960, effect: { storage: 0.5 }, bild: 'f-vorrat' },
+  sternenkunde:   { name: 'Sternenkunde',   icon: '✨', stage: 'jung', col: 8, row: 4, requires: ['ahnenkult', 'langhausbau'], population: 100, cost: { wissen: 150, kleidung: 20 }, time: 1080, effect: {}, bild: 'f-sterne' },
+  kupferfund:     { name: 'Kupferfund',     icon: '🟠', stage: 'jung', col: 9, row: 2, requires: ['sichel', 'viehzucht', 'vorratshaltung', 'sternenkunde'], population: 110, cost: { wissen: 150, werkzeug: 40, toepferwaren: 20 }, time: 2400, effect: {}, bild: 'f-kupfer' },
 };
 
 // Ganz rechts im Baum: Aufbruch in die nächste Epoche (Bronzezeit wird in einem späteren Schritt gebaut)
 const NEXT_EPOCH = {
   name: 'Aufbruch in die Bronzezeit', icon: '🏺', col: 10, row: 2,
-  requires: Object.keys(TECHS), buildings: ['steinkreis'], population: 60,
+  requires: Object.keys(TECHS), buildings: ['steinkreis'], population: 120,
   cost: { holz: 300, stein: 250, nahrung: 300, toepferwaren: 30, werkzeug: 30 }, available: false,
 };
+
+// Kategorien der Bauleiste (je Kategorie die Linien aus BUILDINGS)
+const BAR_CATEGORIES = [
+  { id: 'wohnen',    name: 'Wohnen',    icon: '🏠', lines: ['wohnen', 'wasserwohnen'] },
+  { id: 'nahrung',   name: 'Nahrung',   icon: '🍖', lines: ['sammeln', 'jagen', 'fischen', 'feld', 'tiere'] },
+  { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'stein', 'ton'] },
+  { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['kleidung', 'werkzeug', 'toepfern', 'lager'] },
+  { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['waerme', 'glaube', 'wissen', 'wahrzeichen'] },
+  { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg'] },
+];
 
 // Aufträge (der Reihe nach, höchstens 3 gleichzeitig sichtbar)
 const QUESTS = [

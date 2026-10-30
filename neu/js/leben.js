@@ -122,8 +122,12 @@ function updateAnimals(dt) {
   }
 }
 
+// Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
+const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };
+
 // Figur mit Schatten zeichnen. Bilder schauen nach links; face = -1 spiegelt nach rechts.
-function drawCreature(name, x, y, height, face, bob, fallback) {
+// step = Laufphase (Bogenmaß) oder null im Stehen: Dann schwingen vordere und hintere Beine gegeneinander.
+function drawCreature(name, x, y, height, face, bob, fallback, step = null) {
   const p = tileToScreen(x, y);
   const z = cam.zoom;
   ctx.fillStyle = 'rgba(0,0,0,0.18)';
@@ -134,7 +138,24 @@ function drawCreature(name, x, y, height, face, bob, fallback) {
   ctx.save();
   ctx.translate(p.x, p.y - bob);
   if (face < 0) ctx.scale(-1, 1);
-  ctx.drawImage(img, -w / 2, -h, w, h);
+  const legs = LEGS[name];
+  if (step === null || !legs) {
+    ctx.drawImage(img, -w / 2, -h, w, h);
+  } else {
+    const iw = img.width, ih = img.height, cut = Math.round(ih * legs);
+    const top = -h + h * cut / ih;            // Hüfthöhe auf dem Bildschirm
+    const swing = Math.sin(step) * 0.38;      // Schräglage der Beine
+    // Oberkörper ruhig, dazu ein kleines Auf und Ab
+    ctx.drawImage(img, 0, 0, iw, cut + 1, -w / 2, -h, w, h * (cut + 1) / ih);
+    // vordere (links im Bild) und hintere Beinhälfte schwingen gegeneinander um die Hüfte
+    for (const [sx0, sx1, dir] of [[0, 0.5, 1], [0.5, 1, -1]]) {
+      ctx.save();
+      ctx.translate(0, top);
+      ctx.transform(1, 0, swing * dir, 1, 0, 0);
+      ctx.drawImage(img, iw * sx0, cut, iw * (sx1 - sx0) + 1, ih - cut, -w / 2 + w * sx0, 0, w * (sx1 - sx0) + 1, h * (ih - cut) / ih);
+      ctx.restore();
+    }
+  }
   ctx.restore();
 }
 
@@ -147,15 +168,16 @@ function lifeObjects(range) {
     if (!inView(w.x, w.y)) continue;
     const moving = w.wait <= 0;
     out.push({ d: w.x + w.y - 0.5, kind: 'leben', draw: () =>
-      drawCreature(w.img, w.x, w.y, 32, w.face, moving ? Math.abs(Math.sin(t * 9 + w.ph)) * 2 * cam.zoom : 0, '🧍') });
+      drawCreature(w.img, w.x, w.y, 32, w.face, moving ? Math.abs(Math.sin(t * 9 + w.ph)) * 1.2 * cam.zoom : 0, '🧍', moving ? t * 9 + w.ph : null) });
   }
   for (const a of life.animals) {
     if (!inView(a.x, a.y)) continue;
     const moving = Math.hypot(a.tx - a.x, a.ty - a.y) > 0.05;
     const size = a.kind === 'mammut' ? 56 : a.kind === 'hirsch' ? 32 : 22;
-    const bob = moving ? Math.abs(Math.sin(t * (a.kind === 'mammut' ? 4 : 8) + a.ph)) * 1.5 * cam.zoom : 0;
+    const pace = a.kind === 'mammut' ? 4 : a.kind === 'hirsch' ? 9 : 7;
+    const bob = moving ? Math.abs(Math.sin(t * pace + a.ph)) * 1.2 * cam.zoom : 0;
     const icon = a.kind === 'mammut' ? '🦣' : a.kind === 'hirsch' ? '🦌' : '🐐';
-    out.push({ d: a.x + a.y - 0.5, kind: 'leben', draw: () => drawCreature(a.kind, a.x, a.y, size, a.face, bob, icon) });
+    out.push({ d: a.x + a.y - 0.5, kind: 'leben', draw: () => drawCreature(a.kind, a.x, a.y, size, a.face, bob, icon, moving ? t * pace + a.ph : null) });
   }
   return out;
 }

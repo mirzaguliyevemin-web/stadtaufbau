@@ -124,12 +124,14 @@ test('Forschung: kostet Wissen, nur eine gleichzeitig, Übergang öffnet die nä
   ok(g.run(`startResearch('speerspitzen')`).startsWith('Erst'), 'Voraussetzung ignoriert');
   ok(g.run(`startResearch('feuer_hueten')`) === null, 'Start ging nicht');
   ok(g.run(`startResearch('faustkeil')`).includes('läuft schon'), 'Zwei Forschungen gleichzeitig');
-  ok(g.run('state.res.wissen') === 95, 'Wissen nicht abgezogen');
-  g.run('for (let i = 0; i < 46; i++) update(1)');
+  ok(g.run('state.res.wissen') === 100 - g.run('TECHS.feuer_hueten.cost.wissen'), 'Wissen nicht abgezogen');
+  g.run('for (let i = 0; i <= TECHS.feuer_hueten.time; i++) update(1)');
   ok(g.run('state.techs.feuer_hueten === true && state.research === null'), 'Forschung nicht fertig');
-  g.run(`for (const id of ['flechtkoerbe','speerspitzen','fellzelte','faustkeil','hoehlenmalerei']) state.techs[id] = true; state.res.nahrung = 100; state.res.wissen = 100;`);
-  ok(g.run(`startResearch('mittelsteinzeit')`).includes('15 Einwohner'), 'Einwohner-Bedingung fehlt');
-  g.run(`state.pop = 15; startResearch('mittelsteinzeit'); for (let i = 0; i < 121; i++) update(1);`);
+  g.run(`for (const id of ['flechtkoerbe','speerspitzen','fellzelte','faustkeil','hoehlenmalerei','mammutjagd']) state.techs[id] = true;
+    state.res.nahrung = 150; state.res.wissen = 150; state.res.felle = 150;`);
+  const need = g.run('TECHS.mittelsteinzeit.population');
+  ok(g.run(`startResearch('mittelsteinzeit')`).includes(need + ' Einwohner'), 'Einwohner-Bedingung fehlt');
+  g.run(`state.pop = ${need}; startResearch('mittelsteinzeit'); for (let i = 0; i <= TECHS.mittelsteinzeit.time; i++) update(1);`);
   ok(g.run('state.stage') === 'mittel', 'Stufe nicht gewechselt');
   ok(g.run(`activeNeeds().map(n => n.id).join()`) === 'nahrung,waerme,kleidung,glaube', 'Bedürfnisse der Mittelsteinzeit fehlen');
   noErrors(g);
@@ -406,11 +408,12 @@ test('Abreißen gibt die Hälfte zurück, Lagerfeuer bleibt', () => {
 
 const quick = process.argv.includes('--quick');
 if (!quick) {
-  test('Bot: die ganze Steinzeit ist in 90 Spielminuten durchspielbar', () => {
+  test('Bot: Altsteinzeit dauert über 40 Minuten, Mittelsteinzeit ist in 90 Spielminuten erreichbar', () => {
     const { report, errors } = runBot(90, 1);
     ok(!errors.length, errors.join('\n'));
     console.log(`   Mittelsteinzeit ${report.mittelsteinzeit} min · Jungsteinzeit ${report.jungsteinzeit} min · Kupferfund ${report.kupferfund} min · ${report.final.pop} Einwohner · Hunger ${report.hungerMin} min`);
-    ok(report.mittelsteinzeit !== null && report.jungsteinzeit !== null, 'Bot kommt nicht bis zur Jungsteinzeit');
+    ok(report.mittelsteinzeit !== null, 'Bot kommt nicht bis zur Mittelsteinzeit');
+    ok(report.mittelsteinzeit >= 40, 'Altsteinzeit ist zu schnell vorbei: ' + report.mittelsteinzeit + ' min');
     ok(report.hungerMin <= 5, 'Zu viel Hunger: ' + report.hungerMin + ' min');
   });
 }

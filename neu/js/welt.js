@@ -158,9 +158,12 @@ function isOwned(x, y) { return inMap(x, y) && state.plots[plotOf(x, y)] === 1; 
 function plotsBought() { return state.plots.filter(p => p === 1).length - CONFIG.startPlots ** 2; }
 
 function plotPrice() {
-  // gleichmäßig teurer, damit der Preis nicht über den Lagerplatz (150) springt
+  // gleichmäßig teurer, aber nie über den Lagerplatz (150) – sonst könnte man nie mehr Land kaufen.
+  // Ab dem 8. Stück kostet Land zusätzlich Stein.
   const n = plotsBought();
-  return { holz: 30 + 20 * n, nahrung: 30 + 20 * n };
+  const price = { holz: Math.min(140, 30 + 15 * n), nahrung: Math.min(140, 30 + 15 * n) };
+  if (n >= 7) price.stein = Math.min(140, 20 * (n - 6));
+  return price;
 }
 
 // Nur Landstücke neben eigenem Land kann man kaufen

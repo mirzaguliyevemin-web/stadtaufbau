@@ -96,6 +96,12 @@ function paintPath(sx, sy) {
   if (problem && problem !== gesture.lastProblem) { toast(problem); gesture.lastProblem = problem; }
 }
 
+function erasePath(sx, sy) {
+  const t = screenToTile(sx, sy);
+  if (!inMap(t.x, t.y) || !isPathAt(t.x, t.y)) return;
+  demolish(buildingAt(t.x, t.y));
+}
+
 // Welches Gebäude liegt unter dem Finger? Erst das Feld, dann (für hohe Bilder) der Umriss von vorne nach hinten.
 function buildingAtScreen(sx, sy) {
   const t = screenToTile(sx, sy);
@@ -170,7 +176,12 @@ function onPointerDown(e) {
     }
     return;
   }
-  if (pathMode) { gesture.mode = 'path'; paintPath(p.x, p.y); return; }
+  if (pathMode) {   // auf einem Weg anfangen = Wege wegwischen, sonst Wege malen
+    const t = screenToTile(p.x, p.y);
+    gesture.mode = isPathAt(t.x, t.y) ? 'erase' : 'path';
+    if (gesture.mode === 'erase') erasePath(p.x, p.y); else paintPath(p.x, p.y);
+    return;
+  }
   const i = buildingAtScreen(p.x, p.y);
   if (i >= 0 && !state.buildings[i].build) {
     pressTimer = setTimeout(() => {
@@ -220,6 +231,8 @@ function onPointerMove(e) {
     renderActionBar();
   } else if (gesture.mode === 'path') {
     paintPath(p.x, p.y);
+  } else if (gesture.mode === 'erase') {
+    erasePath(p.x, p.y);
   }
 }
 

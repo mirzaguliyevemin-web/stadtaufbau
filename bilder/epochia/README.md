@@ -198,13 +198,13 @@ Neolithic, early farmers, wood, clay, thatch and stone, no metal. A majestic but
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A construction site: a half-built wooden frame of poles tied with rope, piles of logs and stones, a basket with tools, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Baustelle 3×3** → `1-baustelle-3.png`
+- [x] ~~**Baustelle 3×3**~~ → `1-baustelle-3.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A construction site: a half-built wooden frame of poles tied with rope, piles of logs and stones, a basket with tools, medium plot (3x3). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 ```
 
-- [ ] **Baustelle 4×4** → `1-baustelle-4.png`
+- [x] ~~**Baustelle 4×4**~~ → `1-baustelle-4.png`
 
 ```
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A construction site: a half-built wooden frame of poles tied with rope, piles of logs and stones, a basket with tools, large plot (4x4). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
@@ -230,13 +230,13 @@ Seamless tileable texture of calm clear turquoise-blue water seen from directly 
 Seamless tileable texture of light warm sand seen from directly above, a few tiny pebbles, soft cheerful colors, flat cartoon game texture, no objects, even lighting, square
 ```
 
-- [ ] **Laubbaum** → `baum-laub.png`
+- [x] ~~**Laubbaum**~~ → `baum-laub.png`
 
 ```
 A single round leafy tree with a full bright green crown and short brown trunk. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 ```
 
-- [ ] **Tanne** → `baum-tanne.png`
+- [x] ~~**Tanne**~~ → `baum-tanne.png`
 
 ```
 A single tall pine tree, fresh green, cone shaped. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
@@ -254,13 +254,13 @@ A single small birch tree, white trunk with black marks, light green leaves. Sty
 A small round green bush with a few tiny pink and yellow flowers. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 ```
 
-- [ ] **Großer Felsen** → `fels-gross.png`
+- [x] ~~**Großer Felsen**~~ → `fels-gross.png`
 
 ```
 A big friendly grey rocky hill with moss and a few small plants, wide base. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 ```
 
-- [ ] **Kleine Felsen** → `fels-klein.png`
+- [x] ~~**Kleine Felsen**~~ → `fels-klein.png`
 
 ```
 A small cluster of grey boulders with moss. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format

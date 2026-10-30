@@ -146,7 +146,7 @@ function renderActionBar() {
       <button class="round turn" onclick="rotateGhost()">↻</button>
       <button class="round yes" ${problem ? 'disabled' : ''} onclick="confirmGhost()">✔</button>`;
   } else if (pathMode) {
-    html = `<div class="action-text">🟫 Trampelpfad · 1 🪵 je Feld<small>Mit dem Finger über die Felder ziehen</small></div>
+    html = `<div class="action-text">🟫 Trampelpfad · 1 🪵 je Feld<small>Über die Felder ziehen · auf einen Weg tippen löscht ihn</small></div>
       <button class="round yes" onclick="cancelGhost()">✔</button>`;
   }
   show(el, !!html);
@@ -318,7 +318,7 @@ function showBuildingWindow(i) {
     <ul class="lines">${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
     ${upgrade}
     <div class="buttons">
-      <button class="btn" onclick="closeDialog(); liftBuilding(${i})">✋ Verschieben</button>
+      ${def.isPath ? '' : `<button class="btn" onclick="closeDialog(); liftBuilding(${i})">✋ Verschieben</button>`}
       ${canRemove ? `<button class="btn danger" onclick="askDemolish(${i})">🗑 Abreißen</button>` : ''}
       <button class="btn" onclick="closeDialog()">Schließen</button>
     </div>`);

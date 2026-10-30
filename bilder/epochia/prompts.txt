@@ -82,10 +82,10 @@ Neolithic, early farmers, wood, clay, thatch and stone, no metal. A majestic but
 ✅ ERLEDIGT – 2̶8̶.̶ ̶B̶a̶u̶s̶t̶e̶l̶l̶e̶ ̶2̶×̶2̶  →  Datei: 1-baustelle-2.png
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A construction site: a half-built wooden frame of poles tied with rope, piles of logs and stones, a basket with tools, small plot (2x2). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 
-29. Baustelle 3×3  →  Datei: 1-baustelle-3.png
+✅ ERLEDIGT – 2̶9̶.̶ ̶B̶a̶u̶s̶t̶e̶l̶l̶e̶ ̶3̶×̶3̶  →  Datei: 1-baustelle-3.png
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A construction site: a half-built wooden frame of poles tied with rope, piles of logs and stones, a basket with tools, medium plot (3x3). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 
-30. Baustelle 4×4  →  Datei: 1-baustelle-4.png
+✅ ERLEDIGT – 3̶0̶.̶ ̶B̶a̶u̶s̶t̶e̶l̶l̶e̶ ̶4̶×̶4̶  →  Datei: 1-baustelle-4.png
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A construction site: a half-built wooden frame of poles tied with rope, piles of logs and stones, a basket with tools, large plot (4x4). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 
 31. Wiese (nahtlos)  →  Datei: wiese.png
@@ -97,10 +97,10 @@ Seamless tileable texture of calm clear turquoise-blue water seen from directly 
 33. Sand/Ufer (nahtlos)  →  Datei: sand.png
 Seamless tileable texture of light warm sand seen from directly above, a few tiny pebbles, soft cheerful colors, flat cartoon game texture, no objects, even lighting, square
 
-34. Laubbaum  →  Datei: baum-laub.png
+✅ ERLEDIGT – 3̶4̶.̶ ̶L̶a̶u̶b̶b̶a̶u̶m̶  →  Datei: baum-laub.png
 A single round leafy tree with a full bright green crown and short brown trunk. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
-35. Tanne  →  Datei: baum-tanne.png
+✅ ERLEDIGT – 3̶5̶.̶ ̶T̶a̶n̶n̶e̶  →  Datei: baum-tanne.png
 A single tall pine tree, fresh green, cone shaped. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
 36. Birke  →  Datei: baum-birke.png
@@ -109,10 +109,10 @@ A single small birch tree, white trunk with black marks, light green leaves. Sty
 37. Busch  →  Datei: busch.png
 A small round green bush with a few tiny pink and yellow flowers. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
-38. Großer Felsen  →  Datei: fels-gross.png
+✅ ERLEDIGT – 3̶8̶.̶ ̶G̶r̶o̶ß̶e̶r̶ ̶F̶e̶l̶s̶e̶n̶  →  Datei: fels-gross.png
 A big friendly grey rocky hill with moss and a few small plants, wide base. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
-39. Kleine Felsen  →  Datei: fels-klein.png
+✅ ERLEDIGT – 3̶9̶.̶ ̶K̶l̶e̶i̶n̶e̶ ̶F̶e̶l̶s̶e̶n̶  →  Datei: fels-klein.png
 A small cluster of grey boulders with moss. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
 40. Blumen  →  Datei: blumen.png

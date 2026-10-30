@@ -20,15 +20,16 @@ function loadImage(name) {
   return new Promise(resolve => {
     if (typeof Image === 'undefined') return resolve(false);
     const img = new Image();
-    img.onload = () => { img.ecke = measureCorner(img); images[name] = img; resolve(true); };
+    img.onload = () => { img.sockel = measurePlate(img); images[name] = img; resolve(true); };
     img.onerror = () => resolve(false);
     img.src = IMAGE_DIR + name + '.webp';
   });
 }
 
-// Gebäudebild: In welcher Höhe (Anteil der Bildhöhe) liegen die linke und rechte Ecke der Grasplatte?
-// Das ist die erste Zeile, in der das Bild (fast) seine volle Breite hat – darunter steht nur noch der Erdsockel.
-function measureCorner(img) {
+// Gebäudebild: Wo liegen die linke, rechte und vordere Ecke der Unterkante des Erdsockels?
+// Die Unterkante ist ein flaches „V“; durch beide Schenkel legen wir je eine Gerade (Median der Steigungen,
+// damit Pfähle oder Steine am Rand nicht stören). Ergebnis als Anteile von Bildbreite und -höhe.
+function measurePlate(img) {
   try {
     const w = Math.min(256, img.width), h = Math.round(img.height * w / img.width);
     const c = document.createElement('canvas');
@@ -36,17 +37,35 @@ function measureCorner(img) {
     const g = c.getContext('2d');
     g.drawImage(img, 0, 0, w, h);
     const data = g.getImageData(0, 0, w, h).data;
-    const widths = [];
-    for (let y = 0; y < h; y++) {
-      let left = -1, right = -1;
-      for (let x = 0; x < w; x++) if (data[(y * w + x) * 4 + 3] > 128) { if (left < 0) left = x; right = x; }
-      widths.push(left < 0 ? 0 : right - left);
+    const bottom = [];
+    for (let x = 0; x < w; x++) {
+      for (let y = h - 1; y >= 0; y--) if (data[(y * w + x) * 4 + 3] > 128) { bottom.push([x, y]); break; }
     }
-    const max = Math.max(...widths);
-    return widths.findIndex(v => v >= max * 0.985) / h;
+    const xl = bottom[0][0], xr = bottom[bottom.length - 1][0], span = xr - xl;
+    const fit = (from, to) => {
+      const pts = bottom.filter(([x]) => x > xl + from * span && x < xl + to * span);
+      const slopes = [];
+      for (let i = 0; i < pts.length; i += 3) {
+        for (let j = i + 6; j < pts.length; j += 3) slopes.push((pts[j][1] - pts[i][1]) / (pts[j][0] - pts[i][0]));
+      }
+      const m = median(slopes);
+      return { m, b: median(pts.map(([x, y]) => y - m * x)) };
+    };
+    const l = fit(0.08, 0.42), r = fit(0.58, 0.92);
+    const fx = (r.b - l.b) / (l.m - r.m);
+    return {
+      lx: xl / w, ly: (l.m * xl + l.b) / h,
+      rx: xr / w, ry: (r.m * xr + r.b) / h,
+      fx: fx / w, fy: (l.m * fx + l.b) / h,
+    };
   } catch (e) {
-    return 0.55;   // Bild nicht lesbar: ungefährer Wert
+    return { lx: 0, ly: 0.62, rx: 1, ry: 0.62, fx: 0.5, fy: 1 };   // Bild nicht lesbar: ungefähre Werte
   }
+}
+
+function median(list) {
+  const s = [...list].sort((a, b) => a - b);
+  return s.length ? s[s.length >> 1] : 0;
 }
 
 function imageNames() {
@@ -275,19 +294,23 @@ function rockSprite(variant) {
 function drawTerrainObject(x, y, kind) {
   const p = tileToScreen(x + 0.5, y + 0.5);
   const v = hash(x, y);
-  let img, s;
+  let name, s;
   if (kind === 'wald') {
-    img = images[v > 0.7 ? 'baum-tanne' : 'baum-laub'] || treeSprite(v > 0.7 ? 2 : v > 0.35 ? 1 : 0);
+    name = v > 0.7 ? 'baum-tanne' : 'baum-laub';
     s = (0.95 + v * 0.3) * cam.zoom;
   } else {
-    img = images[v > 0.5 ? 'fels-gross' : 'fels-klein'] || rockSprite(v > 0.5 ? 0 : 1);
+    name = v > 0.5 ? 'fels-gross' : 'fels-klein';
     s = 0.9 * cam.zoom;
   }
+  const photo = images[name];
+  const img = photo || (kind === 'wald' ? treeSprite(v > 0.7 ? 2 : v > 0.35 ? 1 : 0) : rockSprite(v > 0.5 ? 0 : 1));
   if (!img) return;
-  const w = (img.width > 200 ? TW * 1.1 : img.width) * s;
-  const h = w * img.height / img.width;
+  // Bilder von Emin: Bäume nach Höhe, Felsen nach Breite ausrichten (Tanne ist schmal)
+  let w, h;
+  if (photo && kind === 'wald') { h = TW * 1.25 * s; w = h * img.width / img.height; }
+  else { w = (photo ? TW * 0.95 : img.width) * s; h = w * img.height / img.width; }
   const ox = (hash(y, x) - 0.5) * 10 * cam.zoom;
-  ctx.drawImage(img, p.x - w / 2 + ox, p.y - h + (img.width > 200 ? h * 0.12 : 10 * s), w, h);
+  ctx.drawImage(img, p.x - w / 2 + ox, p.y - h + (photo ? h * 0.08 : 10 * s), w, h);
 }
 
 // ---------------------------------------------------------------------
@@ -338,16 +361,28 @@ function drawPlaceholder(def, x, y, s, lift) {
   ctx.fillText(def.icon, top.x, top.y - height - 2 * cam.zoom);
 }
 
-// Bild: Grasplatte füllt die volle Breite; ihre seitlichen Ecken liegen auf den Ecken der Raute
+// Bild: Die drei unteren Ecken des Erdsockels werden genau auf die linke, rechte und vordere Ecke
+// der Raute gelegt (schräg verzerrt) – so passt jedes Bild ans Raster, auch wenn die Platte etwas schief ist.
 function drawImageOnTiles(img, x, y, s, rot, lift = 0) {
-  const left = tileToScreen(x, y + s), right = tileToScreen(x + s, y);
-  const w = right.x - left.x, h = w * img.height / img.width;
+  const iw = img.width, ih = img.height, p = img.sockel;
+  let L = [p.lx * iw, p.ly * ih], R = [p.rx * iw, p.ry * ih], F = [p.fx * iw, p.fy * ih];
+  if (rot) [L, R, F] = [[iw - R[0], R[1]], [iw - L[0], L[1]], [iw - F[0], F[1]]];
+  const left = tileToScreen(x, y + s), right = tileToScreen(x + s, y), front = tileToScreen(x + s, y + s);
+  // Abbildung Bild → Bildschirm aus drei Punktpaaren
+  const det = (R[0] - L[0]) * (F[1] - L[1]) - (F[0] - L[0]) * (R[1] - L[1]);
+  const map = (tl, tr, tf) => {
+    const a = ((tr - tl) * (F[1] - L[1]) - (tf - tl) * (R[1] - L[1])) / det;
+    const c = ((tf - tl) * (R[0] - L[0]) - (tr - tl) * (F[0] - L[0])) / det;
+    return [a, c, tl - a * L[0] - c * L[1]];
+  };
+  const [a, c, e] = map(left.x, right.x, front.x);
+  const [b, d, f] = map(left.y - lift, right.y - lift, front.y - lift);
   ctx.save();
-  ctx.translate((left.x + right.x) / 2, left.y - lift);
-  if (rot) ctx.scale(-1, 1);
-  ctx.drawImage(img, -w / 2, -h * img.ecke, w, h);
+  ctx.transform(a, b, c, d, e, f);
+  if (rot) { ctx.translate(iw, 0); ctx.scale(-1, 1); }
+  ctx.drawImage(img, 0, 0);
   ctx.restore();
-  return h * img.ecke;   // so hoch ragt das Bild über die Ecken der Raute
+  return left.y - lift - (b * iw / 2 + f);   // so hoch ragt das Bild über die seitlichen Ecken der Raute
 }
 
 function drawBuildingSprite(type, x, y, rot, lift = 0, alpha = 1) {
@@ -375,7 +410,7 @@ function drawConstruction(b) {
   const img = images['1-baustelle-' + s] || images['1-baustelle-2'];
   let height = (0.55 + s * 0.22) * TH * cam.zoom;
   if (img) {
-    height = drawImageOnTiles(img, b.x, b.y, s, b.rot) - s * TH / 2 * cam.zoom;
+    height = drawImageOnTiles(img, b.x, b.y, s, b.rot);
     drawProgress(b, s, height);
     return;
   }

@@ -20,6 +20,10 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 6 – Gebäude standen schief, Wege sahen neben Gebäuden abgeschnitten aus bzw. hatten Lücken:
+  Raster an den Blickwinkel der Bilder angepasst, jedes Bild wird an den Ecken seines Erdsockels genau auf die Felder gesetzt.
+- 2026-10-30, Epochia Version 6 – Wege ließen sich nicht löschen: im Wege-Modus auf einen Weg tippen (oder darüber wischen) löscht ihn.
+- 2026-10-30, Epochia Version 6 – neue Bilder aus Canva: Baustelle 3×3 und 4×4, Laubbaum, Tanne, große und kleine Felsen.
 - 2026-10-27, Version 70 – Preisschilder der Landstücke überlappten weit herausgezoomt – jetzt passen sie in ihr Landstück.
 - 2026-10-27, Version 69 – Design: neue Karten haben Flüsse.
 - 2026-10-27, Version 71 – Gelände mit Emins Bildern: Gras, Wasser, Sand, Bäume je Jahreszeit, Berge, Büsche.

@@ -2,14 +2,14 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 5;
+const APP_VERSION = 6;
 
 const CONFIG = {
   mapSize: 64,            // Felder je Seite
   plotSize: 8,            // Landstück = 8 × 8 Felder
   startPlots: 4,          // in der Mitte gehören 4 × 4 Landstücke (32 × 32 Felder) von Anfang an dazu
   tileW: 64,              // Breite einer Raute in Bildpunkten (Zoom 1)
-  tileH: 32,              // Höhe einer Raute (halb so hoch wie breit)
+  tileH: 44,              // Höhe einer Raute – so flach wie die Grasplatten auf Emins Bildern (≈ 0,69 × Breite)
   maxConstructions: 2,    // höchstens so viele Baustellen gleichzeitig
   yearSeconds: 480,       // ein Jahr = 4 Jahreszeiten à 2 Minuten
   foodPerPerson: 0.4,     // Nahrung je Einwohner und Minute

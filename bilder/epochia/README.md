@@ -348,7 +348,7 @@ A lump of brown wet clay. Style: round game icon, bright cheerful cartoon style,
 A clay pot with a simple painted pattern. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Truhe (tägliche Belohnung)** → `truhe.png`
+- [x] ~~**Truhe (tägliche Belohnung)**~~ → `truhe.png`
 
 ```
 A wooden treasure chest bound with leather straps, slightly open, glowing warm light, berries and furs peeking out. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
@@ -511,13 +511,13 @@ Wenn ein Buchstabe falsch ist: einfach neu erzeugen. Weißer Hintergrund wird fr
 Game logo for a cozy city building game, the single word "Epochia" written in big bold rounded cartoon letters, exactly these 7 letters E-p-o-c-h-i-a, correct spelling, letters look carved from warm golden sandstone with a thick dark brown outline and a soft 3D bevel, the letter "o" is a small glowing campfire inside a stone ring, a tiny green leaf sprouting from the dot of the "i", subtle hint of time passing from rough stone on the left to polished smooth on the right, cheerful bright mobile game title style, soft warm sunny colors, centered, wide horizontal format 3:1, plain pure white background, no other text, no extra letters, no border, no scenery
 ```
 
-- [ ] **Leeres Schriftband (breit 4:1)** – das Spiel schreibt darauf z. B. „Neue Epoche!“, „Erforscht!“, „Bau fertig!“ → `band.png`
+- [x] ~~**Leeres Schriftband (breit 4:1)**~~ – das Spiel schreibt darauf z. B. „Neue Epoche!“, „Erforscht!“, „Bau fertig!“ → `band.png`
 
 ```
 Decorative empty banner for a cozy mobile game: a wide ribbon made of tan leather stretched between two wooden sticks tied with rope, small bone and feather decorations at both ends, the middle of the ribbon is completely empty and flat for text to be added later, bright cheerful cartoon style, soft warm colors, clean dark brown outlines, gentle shading, centered, wide horizontal format 4:1, plain pure white background, no text, no letters, no symbols on the ribbon, no border
 ```
 
-- [ ] **Logo rund (1:1)** – kleine Variante, z. B. für das Ladefenster am hochkant gehaltenen Handy → `logo-rund.png`
+- [x] ~~**Logo rund (1:1)**~~ – kleine Variante, z. B. für das Ladefenster am hochkant gehaltenen Handy → `logo-rund.png`
 
 ```
 Small game logo badge for a loading screen: the word "Epochia" in big bold rounded golden sandstone cartoon letters with thick dark brown outline, exactly these 7 letters E-p-o-c-h-i-a, correct spelling, placed on a round stone tablet with a small campfire below the letters, cheerful bright mobile game style, soft warm colors, centered, square 1:1 format, plain pure white background, no other text, no border

@@ -20,6 +20,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 16 – letzte Bilder aus Canva: Truhe (Belohnungs-Knopf und -Fenster), Schriftband aus Leder hinter
+  den Seitentiteln, rundes Logo im Menü. Damit sind alle 80 Bild-Prompts erledigt.
 - 2026-10-30, Epochia Version 15 – Mammutjagd: nach der Forschung „Mammutjagd“ ein Mammut antippen, die Jäger ziehen los und
   bringen nach 1 Minute Fleisch und Felle (mit Mammutjägerlager mehr); danach kommt nach ein paar Minuten die nächste Herde.
   Der Stammesälteste erklärt es beim ersten Mal. Ab der Jungsteinzeit sind die Mammuts ausgestorben.

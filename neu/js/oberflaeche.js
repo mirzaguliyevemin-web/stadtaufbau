@@ -113,6 +113,9 @@ function renderSideButtons() {
   const canResearch = !r && Object.keys(TECHS).some(id => !researchProblem(id));
   show($('research-badge'), canResearch);
   show($('btn-daily'), !!state.daily.pending);
+  // Truhe statt 🎁, sobald das Bild geladen ist
+  const daily = $('btn-daily');
+  if (images.truhe && !daily.querySelector('img')) daily.innerHTML = `${iconHtml('truhe', '🎁')}<span>Belohnung</span>`;
 }
 
 // ---------------------------------------------------------------------
@@ -650,7 +653,7 @@ function showDailyReward() {
   const day = state.daily.pending;
   if (!day) return;
   const boxes = DAILY_REWARDS.map((r, k) => `<div class="day${k + 1 === day ? ' today' : k + 1 < day ? ' past' : ''}"><b>Tag ${k + 1}</b><small>${formatAmounts(r)}</small></div>`).join('');
-  openDialog(`<h2>🎁 Tägliche Belohnung</h2>
+  openDialog(`<div class="daily-chest">${iconHtml('truhe', '🎁', 'big')}</div><h2>Tägliche Belohnung</h2>
     <p>Tag ${day} von 7 – komm jeden Tag wieder, am 7. Tag gibt es die große Truhe!</p>
     <div class="days">${boxes}</div>
     <div class="buttons"><button class="btn primary" onclick="doClaimDaily()">Abholen</button></div>`);
@@ -682,6 +685,7 @@ function menuHtml() {
   const sw = (key, icon, label, note) => `<label class="switch-row"><span>${icon} ${label}<small>${note}</small></span>
     <input type="checkbox" class="switch" ${settings[key] ? 'checked' : ''} onchange="settings.${key}=this.checked; saveSettings()"></label>`;
   return `<div class="menu">
+    ${images['logo-rund'] ? `<img class="menu-logo" src="${IMAGE_DIR}logo-rund.webp" alt="Epochia">` : ''}
     <section class="card wide">
       <h3>🏕️ Dein Stamm</h3>
       <div class="stats">

@@ -97,7 +97,7 @@ function median(list) {
 
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
-    'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', ...GROUND_TEXTURES, ...LIFE_NAMES]);
+    'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'truhe', 'band', 'logo-rund', ...GROUND_TEXTURES, ...LIFE_NAMES]);
   for (const b of Object.values(BUILDINGS)) if (b.bild) names.add(b.bild);
   for (const r of Object.values(RESOURCES)) if (r.bild) names.add(r.bild);
   for (const t of Object.values(TECHS)) if (t.bild) names.add(t.bild);

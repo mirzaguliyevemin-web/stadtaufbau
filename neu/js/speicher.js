@@ -56,7 +56,11 @@ function sanitizeState(data) {
   if (data.research && TECHS[data.research.id] && !s.techs[data.research.id] && Number.isFinite(data.research.left))
     s.research = { id: data.research.id, left: Math.max(0, data.research.left) };
   if (STAGES.some(st => st.id === data.stage)) s.stage = data.stage;
-  for (const key of ['pop', 'yearTime', 'playTime', 'savedAt']) if (Number.isFinite(data[key]) && data[key] >= 0) s[key] = data[key];
+  if (data.hunt && Number.isFinite(data.hunt.left)) {
+    const h = data.hunt, num = v => (Number.isFinite(Number(v)) ? Number(v) : 0);
+    s.hunt = { left: Math.max(0, h.left), cx: num(h.cx), cy: num(h.cy), x: num(h.x), y: num(h.y) };
+  }
+  for (const key of ['pop', 'yearTime', 'playTime', 'savedAt', 'herdWait']) if (Number.isFinite(data[key]) && data[key] >= 0) s[key] = data[key];
   s.pop = Math.floor(s.pop);
   if (data.quests && typeof data.quests === 'object') s.quests = { ...data.quests };
   if (data.built && typeof data.built === 'object') s.built = { ...data.built };

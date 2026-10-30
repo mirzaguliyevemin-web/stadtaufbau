@@ -236,7 +236,9 @@ Damit der Einstieg und die Wirtschaft aufgehen, weicht Version 1 an diesen Stell
 - **Höhlenmaler**: 4 Wissen/min, kostet 15 Holz + 15 Stein, Bauzeit 45 s (Wissen war der Engpass).
 - **Fellmacherin**: 4 Felle → 2 Kleidung je Minute; Einwohner brauchen 0,02 Kleidung bzw. Töpferwaren je Minute.
 - Wer Holz *und* Stein aufgebraucht hat, kommt durch Bäume fällen / Felsen abtragen (+3) wieder heraus.
-- Mammutherden und der Mammut-Zug fehlen noch.
+- Mammutjagd (Version 15): Herde antippen → 3 Jäger laufen vom Jagdlager hin und zurück (1 min), Beute 60 Nahrung + 6 Felle,
+  mit Mammutjägerlager ×1,5 (90 + 9). Danach 4 min Pause, bis wieder eine Herde kommt. Vor der Forschung zieht die Herde
+  nur zur Stimmung vorbei. Ab der Jungsteinzeit keine Mammuts mehr. Der Bot jagt nicht (Bot-Zeiten unverändert).
 - Land kostet 30 + 20 Holz und Nahrung je schon gekauftem Stück (statt ×1,5 – das wäre bald über den Lagerplatz gestiegen).
 - Version 2: Trampelpfad ist Pflicht; beim Start sind die Wohnhöhlen schon mit dem Feuer verbunden. Einstieg mit eigenem Pfad-Schritt (10 Schritte).
 

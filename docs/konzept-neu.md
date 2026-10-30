@@ -275,8 +275,7 @@ Gewünscht:
   Ziel war 45–60 min für echte Spieler → noch zu lang. Die reinen Forschungszeiten ergeben schon ≈ 47 min;
   nach Emins Handy-Test kürzen wir die Zeiten.
 
-**Noch nicht drin (kommt mit Epoche 1 / später):** Mammutherden (Forschung „Mammutjagd“ schaltet bisher nur das
-Mammutjägerlager frei), Menschen-Figuren und Tiere, Sounds/Musik, Nacht, Jahreszeiten-Bilder, Aufbruch in die Bronzezeit.
+**Noch nicht drin (kommt mit Epoche 1 / später):** Sounds/Musik, Nacht, Jahreszeiten-Bilder, Aufbruch in die Bronzezeit.
 
 **Version 2 (2026-10-28): Trampelpfad ist Pflicht** (✅ Emin). Jedes Gebäude braucht über Pfade eine Verbindung zum
 Lagerfeuer (direkt am Feuer zählt auch). Ohne Weg: keine Bewohner, keine Arbeit, keine Wärme – Blase 🛤️❗ über dem Gebäude.
@@ -287,7 +286,7 @@ Bot mit Wegen: Jungsteinzeit ≈ 38–47 min, Kupferfund ≈ 73–81 min.
 **Als Nächstes:**
 1. Emin testet `…/neu/` am Handy und trägt Fehler/Wünsche in `docs/wuensche.md` ein.
 2. Emin erzeugt die restlichen Bilder (Stammesältester, restliche Gebäude, Gelände, Waren, Forschung) mit den drei fertigen Bildern als Stil-Vorlage.
-3. Balancing (Steinzeit kürzer), Mammutherden, Figuren.
+3. Balancing (Steinzeit kürzer). (Mammutjagd seit Version 15, Figuren und Tiere seit Version 11.)
 
 **Noch offen (Emin entscheidet später):** Werkzeug für Sounds · ab wann man die Religion wechseln darf.
 

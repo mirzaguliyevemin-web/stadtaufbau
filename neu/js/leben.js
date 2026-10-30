@@ -1,6 +1,7 @@
 // Epochia – Leben auf der Karte: Menschen laufen auf den Trampelpfaden, Hirsche und eine Mammutherde ziehen
 // umher, Ziegen grasen am Gehege, Fische springen, Vögel fliegen vorbei, Schmetterlinge flattern über den Blumen.
-// Reine Darstellung: nichts davon wird gespeichert oder beeinflusst das Spiel.
+// Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
+// (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
 const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mammut', 'hirsch', 'ziege'];
 
@@ -80,13 +81,26 @@ function updateAnimals(dt) {
   // Hirsche: einige am Waldrand in der weiteren Umgebung
   const deer = life.animals.filter(a => a.kind === 'hirsch').length;
   if (deer < 5) { const p = randomFreeTile(cx, cy, 22, 9); if (p) spawnAnimal('hirsch', p[0], p[1], { home: p }); }
-  // Mammutherde: drei Tiere ziehen gemeinsam, weit weg vom Lager
+  // Mammutherde: drei Tiere ziehen gemeinsam, weit weg vom Lager – solange es Mammuts gibt und keine Jagd war
   life.herdTimer -= dt;
-  if (!life.animals.some(a => a.kind === 'mammut') && life.herdTimer <= 0) {
+  const hunt = state.hunt, phase = hunt ? huntPhase() : 0;
+  if (herdPresent() && !life.animals.some(a => a.kind === 'mammut') && life.herdTimer <= 0) {
     const p = randomFreeTile(cx, cy, 26, 14);
     if (p) for (let i = 0; i < 3; i++) spawnAnimal('mammut', p[0] + (i % 2), p[1] + Math.floor(i / 2), { home: p, herd: i });
     life.herdTimer = 20;
   }
+  // Jäger sind angekommen (oder keine Herde mehr da): ein Mammut ist erlegt, die anderen laufen davon
+  if (!herdPresent() && !(hunt && phase < 0.5)) {
+    const herd = life.animals.filter(a => a.kind === 'mammut' && !a.flee);
+    if (herd.length && hunt) life.animals.splice(life.animals.indexOf(herd.shift()), 1);
+    for (const a of herd) {
+      a.flee = 6;
+      const dx = a.x - cx, dy = a.y - cy, d = Math.hypot(dx, dy) || 1;
+      a.tx = a.x + dx / d * 8; a.ty = a.y + dy / d * 8;
+    }
+  }
+  for (const a of life.animals) if (a.flee) a.flee -= dt;
+  life.animals = life.animals.filter(a => !(a.flee <= 0));
   // Ziegen: zwei an jedem fertigen Ziegengehege
   const pens = state.buildings.filter(b => b.type === 'ziegengehege' && !b.build);
   const goats = life.animals.filter(a => a.kind === 'ziege');
@@ -100,11 +114,11 @@ function updateAnimals(dt) {
 
   const leader = life.animals.find(a => a.kind === 'mammut' && a.herd === 0);
   for (const a of life.animals) {
-    const speed = a.kind === 'mammut' ? 0.35 : a.kind === 'hirsch' ? 0.9 : 0.5;
+    const speed = a.flee ? 1.6 : a.kind === 'mammut' ? 0.35 : a.kind === 'hirsch' ? 0.9 : 0.5;
     const dx = a.tx - a.x, dy = a.ty - a.y, dist = Math.hypot(dx, dy);
     if (dist < 0.05) {
       a.wait -= dt;
-      if (a.wait > 0) continue;
+      if (a.wait > 0 || a.flee || (a.kind === 'mammut' && hunt)) continue;   // während der Jagd bleibt die Herde stehen
       // neues Ziel: Mammuts folgen der Leitkuh, die anderen bleiben in der Nähe ihres Zuhauses
       let p;
       if (a.kind === 'mammut' && leader && a !== leader) p = randomFreeTile(leader.tx, leader.ty, 1.5);
@@ -115,11 +129,56 @@ function updateAnimals(dt) {
     }
     const step = Math.min(dist, speed * dt);
     const nx = a.x + dx / dist * step, ny = a.y + dy / dist * step;
-    if (!animalFree(Math.floor(nx), Math.floor(ny))) { a.tx = a.x; a.ty = a.y; continue; }   // Hindernis: stehen bleiben
+    if (!a.flee && !animalFree(Math.floor(nx), Math.floor(ny))) { a.tx = a.x; a.ty = a.y; continue; }   // Hindernis: stehen bleiben
     a.x = nx; a.y = ny;
     const sx = dx - dy;
     if (Math.abs(sx) > 0.01) a.face = sx > 0 ? -1 : 1;
   }
+}
+
+// ---------------------------------------------------------------------
+// Mammutjagd: Jäger laufen vom Jagdlager zur Herde und tragen die Beute zurück
+// ---------------------------------------------------------------------
+
+// 0 = losgezogen, 0,5 = bei der Herde, 1 = zurück
+function huntPhase() {
+  return state.hunt ? Math.min(1, Math.max(0, 1 - state.hunt.left / CONFIG.hunt.seconds)) : 0;
+}
+
+function hunterObjects(inView, t) {
+  const h = state.hunt;
+  if (!h) return [];
+  const phase = huntPhase(), back = phase >= 0.5;
+  const k = back ? 2 - phase * 2 : phase * 2;     // 0 = am Lager, 1 = bei der Herde
+  const out = [];
+  for (let i = 0; i < 3; i++) {
+    const ox = (i - 1) * 0.55, oy = (i % 2) * 0.5;   // nebeneinander, leicht versetzt
+    const x = h.cx + (h.x - h.cx) * k + ox, y = h.cy + (h.y - h.cy) * k + oy;
+    if (!inView(x, y)) continue;
+    const dx = (h.x - h.cx) * (back ? -1 : 1), dy = (h.y - h.cy) * (back ? -1 : 1);
+    const face = dx - dy > 0 ? -1 : 1;
+    const step = t * 10 + i * 2;
+    out.push({ d: x + y - 0.5, kind: 'leben', draw: () => {
+      drawCreature('mensch-mann', x, y, 32, face, Math.abs(Math.sin(step)) * 1.2 * cam.zoom, '🧍', step);
+      if (back) {   // Beute auf dem Rückweg
+        const p = tileToScreen(x, y), z = cam.zoom, img = images['ware-nahrung'];
+        if (img) ctx.drawImage(img, p.x - 8 * z, p.y - 44 * z, 16 * z, 16 * z);
+        else { ctx.font = `${Math.round(14 * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.fillText('🍖', p.x, p.y - 32 * z); }
+      }
+    } });
+  }
+  return out;
+}
+
+// Liegt unter dem Finger ein Mammut? Gibt das Tier zurück oder null.
+function mammothAtScreen(sx, sy) {
+  const z = cam.zoom;
+  for (const a of life.animals) {
+    if (a.kind !== 'mammut' || a.flee) continue;
+    const p = tileToScreen(a.x, a.y);
+    if (Math.abs(sx - p.x) <= 34 * z && sy <= p.y + 8 * z && sy >= p.y - 60 * z) return a;
+  }
+  return null;
 }
 
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
@@ -187,6 +246,7 @@ function lifeObjects(range) {
   const inView = (x, y) => x >= range.x0 - 1 && x <= range.x1 + 1 && y >= range.y0 - 1 && y <= range.y1 + 1;
   const t = frameTime;
   out.push(...felledObjects(lifeDt));
+  out.push(...hunterObjects(inView, t));
   for (const w of life.walkers) {
     if (!inView(w.x, w.y)) continue;
     const moving = w.wait <= 0;

@@ -24,6 +24,8 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     cleared: [],
     techs: {},
     research: null,          // { id, left }
+    hunt: null,              // Mammutjagd unterwegs: { left, cx, cy, x, y }
+    herdWait: 0,             // Sekunden, bis wieder eine Mammutherde vorbeizieht
     stage: 'alt',
     pop: CONFIG.start.population,
     yearTime: 0,

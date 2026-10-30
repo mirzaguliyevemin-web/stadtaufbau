@@ -129,3 +129,14 @@ function checkStaffHint() {
   elderHint = text;
   renderTutorial();
 }
+
+// Erste Mammutherde nach der Forschung „Mammutjagd“: einmal erklären, wie die Jagd geht
+function checkHerdHint() {
+  if (elderHint || tutorialStep() || (state.seen || {}).mammutherde) return;
+  if (!state.techs.mammutjagd || !herdPresent() || !life.animals.some(a => a.kind === 'mammut')) return;
+  (state.seen ||= {}).mammutherde = true;
+  lastHintAt = state.playTime;
+  elderHint = 'Seht, eine Mammutherde zieht vorbei! Tippe ein Mammut an und schicke die Jäger los. ' +
+    'Nach einer Minute bringen sie viel Fleisch und Felle – mit dem Mammutjägerlager noch mehr.';
+  renderTutorial();
+}

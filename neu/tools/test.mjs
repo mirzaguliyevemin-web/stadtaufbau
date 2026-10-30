@@ -418,6 +418,41 @@ test('Abreißen gibt die Hälfte zurück, Lagerfeuer bleibt', () => {
   ok(g.run('state.pop') <= g.run('housingTotal()'), 'Mehr Einwohner als Platz');
 });
 
+test('Mammutjagd: erst nach der Forschung, Jäger bringen Beute, Herde kommt wieder, ab Jungsteinzeit ausgestorben', () => {
+  const g = fresh();
+  g.run(`state.res.holz = 500; state.res.stein = 500; state.res.nahrung = 0; state.res.felle = 0;`);
+  ok(g.run('herdPresent()'), 'am Anfang zieht keine Herde vorbei');
+  ok(/Mammutjagd/.test(g.run('huntProblem()')), 'Jagd ohne Forschung möglich');
+  g.run('state.techs.mammutjagd = true');
+  ok(/Jägerlager/.test(g.run('huntProblem()')), 'Jagd ohne Jägerlager möglich');
+  g.run(`const sp = findFreeSpot('jaegerlager', 30, 30); placeBuilding('jaegerlager', sp.x, sp.y);
+    const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); if (!isConnected(k)) buildRoute(k); recalcStats();`);
+  ok(g.run('huntProblem()') === null, 'Jagd mit Jägerlager nicht möglich: ' + g.run('huntProblem()'));
+  ok(g.run('startHunt(20, 20)') === null && g.run('!!state.hunt'), 'Jagd startet nicht');
+  ok(g.run('startHunt(20, 20)') !== null, 'zweite Jagd gleichzeitig möglich');
+  // Speichern mitten in der Jagd
+  ok(g.run('loadFromText(serialize()) && state.hunt && state.hunt.left > 0'), 'Jagd geht beim Speichern verloren');
+  g.run(`for (let i = 0; i <= CONFIG.hunt.seconds; i++) update(1);`);
+  ok(!g.run('state.hunt'), 'Jäger kommen nicht zurück');
+  ok(g.run('state.res.felle') >= 6, 'keine Felle von der Jagd');
+  ok(!g.run('herdPresent()') && /keine Mammutherde/.test(g.run('huntProblem()')), 'Herde sofort wieder da');
+  g.run(`for (let i = 0; i <= CONFIG.hunt.herdWait; i++) update(1);`);
+  ok(g.run('herdPresent()'), 'Herde kommt nicht wieder');
+  // Mammutjägerlager bringt mehr
+  // (beim Laden wurde das Jägerlager schon zum Mammutjägerlager – zum Vergleich zurückbauen)
+  const big = g.run('huntReward().nahrung');
+  g.run(`state.buildings.forEach(b => { if (b.type === 'mammutjaegerlager') b.type = 'jaegerlager'; })`);
+  const small = g.run('huntReward().nahrung');
+  g.run(`state.buildings.forEach(b => { if (b.type === 'jaegerlager') b.type = 'mammutjaegerlager'; })`);
+  ok(g.run('huntReward().nahrung') === big, 'Belohnung schwankt');
+  ok(g.run('huntReward().nahrung') > small, 'Mammutjägerlager bringt nicht mehr');
+  g.run(`state.stage = 'jung'`);
+  ok(!g.run('herdPresent()') && /ausgestorben/.test(g.run('huntProblem()')), 'Mammuts in der Jungsteinzeit');
+  // alter Spielstand ohne Jagd-Felder lädt
+  ok(g.run(`(() => { const d = JSON.parse(serialize()); delete d.hunt; delete d.herdWait; return loadFromText(JSON.stringify(d)) && state.hunt === null && state.herdWait === 0; })()`), 'alter Stand ohne Jagd lädt nicht');
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   test('Bot: Altsteinzeit dauert über 40 Minuten, Mittelsteinzeit ist in 90 Spielminuten erreichbar', () => {

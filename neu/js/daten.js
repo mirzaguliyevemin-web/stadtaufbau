@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 14;
+const APP_VERSION = 15;
 
 const CONFIG = {
   mapSize: 64,            // Felder je Seite
@@ -20,6 +20,12 @@ const CONFIG = {
   bonusRadius: 3,         // Umkreis für Geländebonus (Wald, Felsen)
   maxOfflineHours: 8,     // so lange läuft das Spiel offline weiter
   refundShare: 0.5,       // beim Abreißen gibt es die Hälfte zurück
+  hunt: {                 // Mammutjagd (nach der Forschung „Mammutjagd“, bis zur Jungsteinzeit)
+    seconds: 60,          // so lange sind die Jäger unterwegs
+    herdWait: 240,        // so lange dauert es nach einer Jagd, bis wieder eine Herde vorbeizieht
+    reward: { nahrung: 60, felle: 6 },
+    bigFactor: 1.5,       // mit einem Mammutjägerlager gibt es mehr
+  },
   start: {
     resources: { nahrung: 40, holz: 50, stein: 40 },   // geplant waren 40/20 – reicht nicht für den Einstieg
     population: 6,

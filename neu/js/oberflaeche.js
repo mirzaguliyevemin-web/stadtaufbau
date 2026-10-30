@@ -258,6 +258,25 @@ function showTerrainInfo(x, y) {
   infoTimer = setTimeout(closeInfo, 4000);
 }
 
+// Mammutherde angetippt: Speer zum Losschicken der Jäger (oder erklären, was noch fehlt)
+function showHuntInfo(a) {
+  const problem = huntProblem();
+  if (problem) { closeInfo(); toast('🦣 ' + problem); return; }
+  infoFor = { kind: 'herd', a };
+  const el = $('info-pop');
+  el.classList.add('tool');
+  el.innerHTML = `<span class="tool-ic">${iconHtml('f-speer', '🗡️', 'big')}</span><span>Mammut jagen<small>+${formatAmounts(huntReward())}</small></span>`;
+  el.onclick = () => {
+    const err = startHunt(a.x, a.y);
+    toast(err || `🏹 Die Jäger ziehen los – in ${formatTime(CONFIG.hunt.seconds)} sind sie zurück`);
+    closeInfo();
+  };
+  show(el, true);
+  positionInfo();
+  clearTimeout(infoTimer);
+  infoTimer = setTimeout(closeInfo, 4000);
+}
+
 function positionInfo() {
   if (!infoFor) return;
   const el = $('info-pop');
@@ -270,8 +289,8 @@ function positionInfo() {
     const html = infoPopHtml(infoFor.i);
     if (el.innerHTML !== html) el.innerHTML = html;
   } else {
-    // Werkzeug schwebt über dem Baum bzw. Felsen
-    const c = tileToScreen(infoFor.x + 0.5, infoFor.y + 0.5);
+    // Werkzeug schwebt über dem Baum bzw. Felsen (oder über dem Mammut)
+    const c = infoFor.kind === 'herd' ? tileToScreen(infoFor.a.x, infoFor.a.y) : tileToScreen(infoFor.x + 0.5, infoFor.y + 0.5);
     const w = el.offsetWidth || 120, h = el.offsetHeight || 60;
     el.style.left = Math.max(8, Math.min(viewW - w - 8, c.x - w / 2)) + 'px';
     el.style.top = Math.max(50, Math.min(viewH - h - 120, c.y - TW * 1.3 * cam.zoom - h)) + 'px';

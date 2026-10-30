@@ -20,6 +20,9 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 15 – Mammutjagd: nach der Forschung „Mammutjagd“ ein Mammut antippen, die Jäger ziehen los und
+  bringen nach 1 Minute Fleisch und Felle (mit Mammutjägerlager mehr); danach kommt nach ein paar Minuten die nächste Herde.
+  Der Stammesälteste erklärt es beim ersten Mal. Ab der Jungsteinzeit sind die Mammuts ausgestorben.
 - 2026-10-30, Epochia Version 14 – alle 24 Forschungen haben Bilder aus Canva.
 - 2026-10-30, Epochia Version 13 – Gebäude entwickeln sich mit dem Zeitalter weiter (z. B. alle Wohnhöhlen werden Fellzelte),
   in der Leiste und auf dem Feld; gilt auch für alte Spielstände.

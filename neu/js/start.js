@@ -90,6 +90,7 @@ function loop(now) {
     if (infoFor) positionInfo();
     if (pageOpen === 'research') $('research-top').innerHTML = researchTopHtml();
     checkStaffHint();
+    checkHerdHint();
   }
   saveTimer += dt;
   if (saveTimer > 10) { saveTimer = 0; saveGame(); }
@@ -111,6 +112,7 @@ on('researchDone', id => {
       <div class="buttons"><button class="btn primary" onclick="closeDialog()">Weiter</button></div>`);
   }
 });
+on('huntDone', reward => { if (gameRunning) toast(`🦣 Die Jäger sind zurück: +${formatAmounts(reward)}`); });
 on('placed', b => { (state.seen ||= {})[b.type] = true; });
 
 function boot() {

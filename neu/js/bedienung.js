@@ -130,6 +130,8 @@ function handleTap(sx, sy) {
     return;
   }
   if (pathMode) return;
+  const mammoth = typeof mammothAtScreen === 'function' ? mammothAtScreen(sx, sy) : null;
+  if (mammoth) { showHuntInfo(mammoth); return; }
   const i = buildingAtScreen(sx, sy);
   if (i >= 0) {
     selected = i;

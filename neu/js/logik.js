@@ -465,6 +465,60 @@ function evolveBuildings() {
 }
 
 // ---------------------------------------------------------------------
+// Mammutjagd: Herde antippen, Jäger ziehen los und kommen mit Nahrung und Fellen zurück
+// ---------------------------------------------------------------------
+
+// Ab der Jungsteinzeit sind die Mammuts ausgestorben
+function mammothsExtinct() { return stageReached('jung'); }
+
+// Zieht gerade eine Herde vorbei, die man jagen kann (bzw. zur Stimmung, solange die Forschung fehlt)?
+function herdPresent() { return !mammothsExtinct() && !state.hunt && !(state.herdWait > 0); }
+
+// Fertige, verbundene, nicht pausierte Jagdlager (Jägerlager, Mammutjägerlager)
+function huntCamps() {
+  return state.buildings.map((b, i) => i)
+    .filter(i => { const b = state.buildings[i]; return BUILDINGS[b.type].line === 'jagen' && !b.build && !b.paused && isConnected(i); });
+}
+
+function huntReward() {
+  const big = huntCamps().some(i => state.buildings[i].type === 'mammutjaegerlager');
+  const out = {};
+  for (const [id, n] of Object.entries(CONFIG.hunt.reward)) out[id] = Math.round(n * (big ? CONFIG.hunt.bigFactor : 1));
+  return out;
+}
+
+function huntProblem() {
+  if (mammothsExtinct()) return 'Die Mammuts sind ausgestorben';
+  if (state.hunt) return 'Die Jäger sind schon unterwegs';
+  if (!herdPresent()) return 'Gerade zieht keine Mammutherde vorbei';
+  if (!state.techs.mammutjagd) return 'Erforsche erst 🦣 Mammutjagd, dann könnt ihr Mammuts jagen';
+  if (!huntCamps().length) return 'Du brauchst ein fertiges Jägerlager mit Weg';
+  return null;
+}
+
+// Jäger losschicken. x/y = wo die Herde steht (nur für die Figuren auf der Karte). Gibt einen Fehlertext oder null zurück.
+function startHunt(x = 0, y = 0) {
+  const problem = huntProblem();
+  if (problem) return problem;
+  const b = state.buildings[huntCamps()[0]], half = BUILDINGS[b.type].size / 2;
+  state.hunt = { left: CONFIG.hunt.seconds, cx: b.x + half, cy: b.y + half, x: Number(x) || 0, y: Number(y) || 0 };
+  emit('huntStarted', state.hunt);
+  return null;
+}
+
+function updateHunt(dt) {
+  if (state.hunt) {
+    state.hunt.left -= dt;
+    if (state.hunt.left > 0) return;
+    const reward = huntReward();
+    addResources(reward);
+    state.hunt = null;
+    state.herdWait = CONFIG.hunt.herdWait;
+    emit('huntDone', reward);
+  } else if (state.herdWait > 0) state.herdWait = Math.max(0, state.herdWait - dt);
+}
+
+// ---------------------------------------------------------------------
 // Aufträge und tägliche Belohnung
 // ---------------------------------------------------------------------
 
@@ -535,6 +589,7 @@ function update(dt) {
   updateProduction(dt);
   updatePopulation(dt);
   updateResearch(dt);
+  updateHunt(dt);
 }
 
 // Läuft die Zeit nach, in der das Spiel zu war. Gibt zurück, was dazugekommen ist.

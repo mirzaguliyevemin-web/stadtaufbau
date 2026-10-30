@@ -20,6 +20,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 7 – Gelände und Wege als Bilder (Canva): Wiese, Wasser, Sand und Trampelpfad als Boden-Texturen,
+  dazu Birke, Busch und Blumen.
 - 2026-10-30, Epochia Version 6 – Gebäude standen schief, Wege sahen neben Gebäuden abgeschnitten aus bzw. hatten Lücken:
   Raster an den Blickwinkel der Bilder angepasst, jedes Bild wird an den Ecken seines Erdsockels genau auf die Felder gesetzt.
 - 2026-10-30, Epochia Version 6 – Wege ließen sich nicht löschen: im Wege-Modus auf einen Weg tippen (oder darüber wischen) löscht ihn.

@@ -88,13 +88,13 @@ Stone age, prehistoric, everything made of wood, stone, bones, leather and furs,
 ✅ ERLEDIGT – 3̶0̶.̶ ̶B̶a̶u̶s̶t̶e̶l̶l̶e̶ ̶4̶×̶4̶  →  Datei: 1-baustelle-4.png
 Stone age, prehistoric, everything made of wood, stone, bones, leather and furs, no metal. A construction site: a half-built wooden frame of poles tied with rope, piles of logs and stones, a basket with tools, large plot (4x4). Style: bright cheerful cartoon mobile game asset, cozy and friendly, soft warm sunny colors, clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, the building stands on a diamond-shaped plot of grass that fills the full width of the image, plot and building fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, highly detailed, consistent style across all assets, square 1:1 format
 
-31. Wiese (nahtlos)  →  Datei: wiese.png
+✅ ERLEDIGT – 3̶1̶.̶ ̶W̶i̶e̶s̶e̶ ̶(̶n̶a̶h̶t̶l̶o̶s̶)̶  →  Datei: wiese.png
 Seamless tileable texture of short bright green grass seen from directly above, a few tiny lighter and darker patches, soft cheerful colors, flat cartoon game texture, no objects, no flowers, even lighting, square
 
-32. Wasser (nahtlos)  →  Datei: wasser.png
+✅ ERLEDIGT – 3̶2̶.̶ ̶W̶a̶s̶s̶e̶r̶ ̶(̶n̶a̶h̶t̶l̶o̶s̶)̶  →  Datei: wasser.png
 Seamless tileable texture of calm clear turquoise-blue water seen from directly above, small gentle cartoon wave lines and sparkles, soft cheerful colors, flat game texture, no objects, no shore, even lighting, square
 
-33. Sand/Ufer (nahtlos)  →  Datei: sand.png
+✅ ERLEDIGT – 3̶3̶.̶ ̶S̶a̶n̶d̶/̶U̶f̶e̶r̶ ̶(̶n̶a̶h̶t̶l̶o̶s̶)̶  →  Datei: sand.png
 Seamless tileable texture of light warm sand seen from directly above, a few tiny pebbles, soft cheerful colors, flat cartoon game texture, no objects, even lighting, square
 
 ✅ ERLEDIGT – 3̶4̶.̶ ̶L̶a̶u̶b̶b̶a̶u̶m̶  →  Datei: baum-laub.png
@@ -103,10 +103,10 @@ A single round leafy tree with a full bright green crown and short brown trunk. 
 ✅ ERLEDIGT – 3̶5̶.̶ ̶T̶a̶n̶n̶e̶  →  Datei: baum-tanne.png
 A single tall pine tree, fresh green, cone shaped. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
-36. Birke  →  Datei: baum-birke.png
+✅ ERLEDIGT – 3̶6̶.̶ ̶B̶i̶r̶k̶e̶  →  Datei: baum-birke.png
 A single small birch tree, white trunk with black marks, light green leaves. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
-37. Busch  →  Datei: busch.png
+✅ ERLEDIGT – 3̶7̶.̶ ̶B̶u̶s̶c̶h̶  →  Datei: busch.png
 A small round green bush with a few tiny pink and yellow flowers. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
 ✅ ERLEDIGT – 3̶8̶.̶ ̶G̶r̶o̶ß̶e̶r̶ ̶F̶e̶l̶s̶e̶n̶  →  Datei: fels-gross.png
@@ -115,7 +115,7 @@ A big friendly grey rocky hill with moss and a few small plants, wide base. Styl
 ✅ ERLEDIGT – 3̶9̶.̶ ̶K̶l̶e̶i̶n̶e̶ ̶F̶e̶l̶s̶e̶n̶  →  Datei: fels-klein.png
 A small cluster of grey boulders with moss. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
-40. Blumen  →  Datei: blumen.png
+✅ ERLEDIGT – 4̶0̶.̶ ̶B̶l̶u̶m̶e̶n̶  →  Datei: blumen.png
 A small patch of colorful wild flowers in grass. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
 41. Mammut  →  Datei: mammut.png

@@ -20,7 +20,12 @@ function loadImage(name) {
   return new Promise(resolve => {
     if (typeof Image === 'undefined') return resolve(false);
     const img = new Image();
-    img.onload = () => { img.sockel = measurePlate(img); images[name] = img; resolve(true); };
+    img.onload = () => {
+      img.sockel = measurePlate(img);
+      images[name] = img;
+      if (GROUND_TEXTURES.includes(name) || name === 'busch' || name === 'blumen') onTerrainChanged();   // Boden neu zeichnen
+      resolve(true);
+    };
     img.onerror = () => resolve(false);
     img.src = IMAGE_DIR + name + '.webp';
   });
@@ -69,7 +74,8 @@ function median(list) {
 }
 
 function imageNames() {
-  const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'fels-gross', 'fels-klein']);
+  const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
+    'fels-gross', 'fels-klein', 'busch', 'blumen', ...GROUND_TEXTURES]);
   for (const b of Object.values(BUILDINGS)) if (b.bild) names.add(b.bild);
   for (const s of [2, 3, 4]) names.add('1-baustelle-' + s);
   return [...names];
@@ -171,6 +177,24 @@ function groundColor(x, y) {
   return shade(TERRAIN.gras.color, v);
 }
 
+// Boden-Texturen (Draufsicht, nahtlos): eine Textur deckt TEXTURE_TILES × TEXTURE_TILES Felder und wird
+// schräg aufs Raster gelegt. ox/oy = wo die obere Ecke von Feld (0, 0) liegt – so passen alle Stücke aneinander.
+const TEXTURE_TILES = 4;
+const GROUND_TEXTURES = ['wiese', 'wasser', 'sand', 'pfad'];
+
+function groundPattern(g, name, ox, oy, zoom = 1) {
+  const img = images[name];
+  if (!img || !g.createPattern || typeof DOMMatrix === 'undefined') return null;
+  const p = g.createPattern(img, 'repeat');
+  const k = TEXTURE_TILES / img.width / 2 * zoom;
+  p.setTransform(new DOMMatrix([TW * k, TH * k, -TW * k, TH * k, ox, oy]));
+  return p;
+}
+
+function textureFor(t) {
+  return t === TERRAIN.wasser.id ? 'wasser' : t === TERRAIN.sand.id ? 'sand' : 'wiese';
+}
+
 function renderChunk(cx, cy) {
   const c = typeof document !== 'undefined' ? document.createElement('canvas') : null;
   if (!c || !c.getContext) return null;
@@ -180,25 +204,42 @@ function renderChunk(cx, cy) {
   c.height = CHUNK * TH + 2;
   const g = c.getContext('2d');
   const toPoint = (x, y) => ({ x: (x - y) * TW / 2 - left, y: (x + y) * TH / 2 - top });
+  const patterns = {};
+  for (const name of ['wiese', 'wasser', 'sand']) patterns[name] = groundPattern(g, name, -left, -top);
+  const decor = [];
   for (let y = y0; y < y0 + CHUNK; y++)
     for (let x = x0; x < x0 + CHUNK; x++) {
-      g.fillStyle = groundColor(x, y);
+      const t = terrain[y * N + x];
+      g.fillStyle = patterns[textureFor(t)] || groundColor(x, y);
       diamondPath(g, x, y, 1, 1, toPoint, 0.6);
       g.fill();
-      // helle Uferkante am Wasser
-      if (terrain[y * N + x] === TERRAIN.wasser.id && hash(x + 7, y) > 0.7) {
+      // Wald- und Felsboden etwas dunkler
+      if (patterns.wiese && (t === TERRAIN.wald.id || t === TERRAIN.fels.id)) {
+        g.fillStyle = t === TERRAIN.wald.id ? 'rgba(20,70,10,0.16)' : 'rgba(90,90,70,0.14)';
+        g.fill();
+      }
+      // helle Uferkante am Wasser (nur ohne Wasser-Bild)
+      if (!patterns.wasser && t === TERRAIN.wasser.id && hash(x + 7, y) > 0.7) {
         const p = toPoint(x + 0.5, y + 0.5);
         g.strokeStyle = 'rgba(255,255,255,0.35)';
         g.lineWidth = 1.5;
         g.beginPath(); g.moveTo(p.x - 8, p.y); g.lineTo(p.x + 6, p.y); g.stroke();
       }
-      // kleine Blumen auf der Wiese
-      if (terrain[y * N + x] === TERRAIN.gras.id && hash(x, y + 3) > 0.92) {
-        const p = toPoint(x + 0.5, y + 0.5);
-        g.fillStyle = hash(x + 1, y) > 0.5 ? '#ffe36b' : '#ff9ec7';
-        g.beginPath(); g.arc(p.x, p.y, 2.2, 0, 7); g.fill();
-      }
+      // Blumen und Büsche auf der Wiese (nur Schmuck – darauf bauen geht trotzdem)
+      if (t === TERRAIN.gras.id && hash(x, y + 3) > 0.92) decor.push([x, y, hash(x + 1, y) > 0.8 ? 'busch' : 'blumen']);
     }
+  for (const [x, y, name] of decor) {
+    const p = toPoint(x + 0.5, y + 0.5);
+    const img = images[name];
+    if (!img) {   // ohne Bilder: kleiner Farbtupfer
+      g.fillStyle = hash(x + 1, y) > 0.5 ? '#ffe36b' : '#ff9ec7';
+      g.beginPath(); g.arc(p.x, p.y, 2.2, 0, 7); g.fill();
+      continue;
+    }
+    const w = TW * (name === 'busch' ? 0.5 : 0.42), h = w * img.height / img.width;
+    const ox = (hash(y, x + 5) - 0.5) * TW * 0.25;
+    g.drawImage(img, p.x - w / 2 + ox, p.y - h * 0.8, w, h);
+  }
   return { canvas: c, left, top };
 }
 
@@ -296,7 +337,7 @@ function drawTerrainObject(x, y, kind) {
   const v = hash(x, y);
   let name, s;
   if (kind === 'wald') {
-    name = v > 0.7 ? 'baum-tanne' : 'baum-laub';
+    name = v > 0.7 ? 'baum-tanne' : v < 0.2 ? 'baum-birke' : 'baum-laub';
     s = (0.95 + v * 0.3) * cam.zoom;
   } else {
     name = v > 0.5 ? 'fels-gross' : 'fels-klein';
@@ -390,7 +431,13 @@ function drawBuildingSprite(type, x, y, rot, lift = 0, alpha = 1) {
   const s = def.size;
   ctx.globalAlpha = alpha;
   if (def.isPath) {
-    drawPlot(x, y, 1, '#c9a874', '#a88a58');
+    const o = worldToScreen(0, 0);
+    const pattern = groundPattern(ctx, 'pfad', o.x, o.y, cam.zoom);
+    if (pattern) {
+      diamondPath(ctx, x, y, 1, 1, tileToScreen, 0.6);
+      ctx.fillStyle = pattern;
+      ctx.fill();
+    } else drawPlot(x, y, 1, '#c9a874', '#a88a58');
     ctx.globalAlpha = 1;
     return;
   }

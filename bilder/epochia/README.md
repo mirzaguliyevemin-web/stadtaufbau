@@ -212,19 +212,19 @@ Stone age, prehistoric, everything made of wood, stone, bones, leather and furs,
 
 ## Gruppe G – Gelände, Tiere
 
-- [ ] **Wiese (nahtlos)** → `wiese.png`
+- [x] ~~**Wiese (nahtlos)**~~ → `wiese.png`
 
 ```
 Seamless tileable texture of short bright green grass seen from directly above, a few tiny lighter and darker patches, soft cheerful colors, flat cartoon game texture, no objects, no flowers, even lighting, square
 ```
 
-- [ ] **Wasser (nahtlos)** → `wasser.png`
+- [x] ~~**Wasser (nahtlos)**~~ → `wasser.png`
 
 ```
 Seamless tileable texture of calm clear turquoise-blue water seen from directly above, small gentle cartoon wave lines and sparkles, soft cheerful colors, flat game texture, no objects, no shore, even lighting, square
 ```
 
-- [ ] **Sand/Ufer (nahtlos)** → `sand.png`
+- [x] ~~**Sand/Ufer (nahtlos)**~~ → `sand.png`
 
 ```
 Seamless tileable texture of light warm sand seen from directly above, a few tiny pebbles, soft cheerful colors, flat cartoon game texture, no objects, even lighting, square
@@ -242,13 +242,13 @@ A single round leafy tree with a full bright green crown and short brown trunk. 
 A single tall pine tree, fresh green, cone shaped. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 ```
 
-- [ ] **Birke** → `baum-birke.png`
+- [x] ~~**Birke**~~ → `baum-birke.png`
 
 ```
 A single small birch tree, white trunk with black marks, light green leaves. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 ```
 
-- [ ] **Busch** → `busch.png`
+- [x] ~~**Busch**~~ → `busch.png`
 
 ```
 A small round green bush with a few tiny pink and yellow flowers. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
@@ -266,7 +266,7 @@ A big friendly grey rocky hill with moss and a few small plants, wide base. Styl
 A small cluster of grey boulders with moss. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 ```
 
-- [ ] **Blumen** → `blumen.png`
+- [x] ~~**Blumen**~~ → `blumen.png`
 
 ```
 A small patch of colorful wild flowers in grass. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format

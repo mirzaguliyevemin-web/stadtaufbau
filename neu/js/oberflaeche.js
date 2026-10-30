@@ -182,7 +182,10 @@ function infoText(i) {
 function showInfo(i) {
   infoFor = { kind: 'b', i };
   const el = $('info-pop');
-  el.innerHTML = `${esc(infoText(i))}<small>Antippen für mehr</small>`;
+  const b = state.buildings[i];
+  const pause = BUILDINGS[b.type].workers && !b.build
+    ? `<button class="btn small pop-pause" onclick="event.stopPropagation(); togglePause(${i}); showInfo(${i})">${b.paused ? '▶ Weiter' : '⏸ Pause'}</button>` : '';
+  el.innerHTML = `${esc(infoText(i))}${pause}<small>Antippen für mehr</small>`;
   el.onclick = () => { const k = infoFor; closeInfo(); if (k && k.kind === 'b') showBuildingWindow(k.i); };
   show(el, true);
   positionInfo();
@@ -401,11 +404,11 @@ function treeNodeHtml(id) {
   const t = TECHS[id];
   const status = techStatus(id);
   const x = TREE_PAD + t.col * TREE_COL_W, y = TREE_PAD + t.row * TREE_ROW_H;
-  const sub = status === 'done' ? '✔ erforscht'
-    : status === 'running' ? `⏳ ${formatTime(state.research.left)}`
+  const sub = status === 'done' ? 'erforscht'
+    : status === 'running' ? `<span class="nbar"><i style="width:${Math.round((1 - state.research.left / t.time) * 100)}%"></i></span>⏳ ${formatTime(state.research.left)}`
     : `${costHtml(t.cost)} · ⏱ ${formatTime(t.time)}`;
   return `<button class="node ${status}${t.transition ? ' transition' : ''}${researchSelected === id ? ' sel' : ''}" style="left:${x}px;top:${y}px" onclick="selectTech('${id}')">
-    ${iconHtml(t.bild, status === 'locked' ? '🔒' : t.icon)}<span class="nname">${esc(t.name)}</span><span class="nsub">${sub}</span></button>`;
+    <span class="medal">${iconHtml(t.bild, t.icon)}${status === 'locked' ? '<i class="lock">🔒</i>' : ''}</span><span class="nname">${esc(t.name)}</span><span class="nsub">${sub}</span>${status === 'done' ? '<i class="check">✔</i>' : ''}</button>`;
 }
 
 function treeLines() {
@@ -417,7 +420,7 @@ function treeLines() {
     for (const r of t.requires) {
       const a = pos(r), b = pos(id);
       const done = state.techs[r];
-      svg += `<path d="M${a.x + W} ${a.y + H / 2} C${a.x + W + 30} ${a.y + H / 2}, ${b.x - 30} ${b.y + H / 2}, ${b.x} ${b.y + H / 2}" class="${done ? 'done' : ''}"/>`;
+      svg += `<path d="M${a.x + W} ${a.y + H / 2} C${a.x + W + 30} ${a.y + H / 2}, ${b.x - 30} ${b.y + H / 2}, ${b.x} ${b.y + H / 2}" class="${done ? 'done' : techStatus(id) === 'available' ? 'open' : ''}"/>`;
     }
   }
   const last = Object.keys(TECHS).find(id => id === 'kupferfund');
@@ -429,10 +432,12 @@ function treeLines() {
 function researchPageHtml() {
   const cols = NEXT_EPOCH.col + 1, rows = 5;
   const width = TREE_PAD * 2 + cols * TREE_COL_W, height = TREE_PAD + rows * TREE_ROW_H;
-  const headers = STAGES.map(st => {
+  const headers = STAGES.map((st, k) => {
     const cs = Object.values(TECHS).filter(t => t.stage === st.id).map(t => t.col);
     const x0 = TREE_PAD + Math.min(...cs) * TREE_COL_W, x1 = TREE_PAD + Math.max(...cs) * TREE_COL_W + 150;
-    return `<div class="stage-head${stageReached(st.id) ? ' reached' : ''}" style="left:${x0}px;width:${x1 - x0}px">${esc(st.name)}</div>`;
+    const cls = stageReached(st.id) ? ' reached' : '';
+    return `<div class="stage-band s${k}${cls}" style="left:${x0 - 16}px;width:${x1 - x0 + 32}px;height:${height - 8}px"></div>
+      <div class="stage-head${cls}" style="left:${x0}px;width:${x1 - x0}px"><span>${stageReached(st.id) ? '' : '🔒 '}${esc(st.name)}</span></div>`;
   }).join('');
   const nx = TREE_PAD + NEXT_EPOCH.col * TREE_COL_W, ny = TREE_PAD + NEXT_EPOCH.row * TREE_ROW_H;
   const next = `<button class="node locked transition epoch" style="left:${nx}px;top:${ny}px" onclick="selectTech('__next')">
@@ -448,9 +453,9 @@ function researchPageHtml() {
 function researchTopHtml() {
   const r = state.research;
   const running = r
-    ? `${TECHS[r.id].icon} <b>${esc(TECHS[r.id].name)}</b> <span class="mini-bar wide"><i style="width:${Math.round((1 - r.left / TECHS[r.id].time) * 100)}%"></i></span> noch ${formatTime(r.left)}`
-    : 'Gerade wird nichts erforscht – wähle eine helle Karte.';
-  return `<span>💡 Wissen: <b>${Math.floor(state.res.wissen)}</b></span><span>${running}</span>`;
+    ? `<span class="rt-chip run">${TECHS[r.id].icon} <b>${esc(TECHS[r.id].name)}</b> <span class="mini-bar wide"><i style="width:${Math.round((1 - r.left / TECHS[r.id].time) * 100)}%"></i></span> noch ${formatTime(r.left)}</span>`
+    : '<span class="rt-chip idle">Gerade wird nichts erforscht – tippe eine leuchtende Karte an.</span>';
+  return `<span class="rt-chip">💡 Wissen <b>${Math.floor(state.res.wissen)}</b></span>${running}`;
 }
 
 function techDetailHtml() {
@@ -465,12 +470,16 @@ function techDetailHtml() {
   const problem = researchProblem(id);
   const status = techStatus(id);
   const req = t.requires.length ? t.requires.map(r => `${state.techs[r] ? '✔' : '✖'} ${TECHS[r].name}`).join(', ') : 'nichts';
-  return `<h3>${t.icon} ${esc(t.name)}</h3>
-    <p><b>Bringt:</b> ${esc(techEffectText(id))}</p>
-    <p><b>Kosten:</b> ${costHtml(t.cost)} · ⏱ ${formatTime(t.time)}${t.population ? ` · 👥 ${t.population} Einwohner` : ''}</p>
-    <p><b>Vorher nötig:</b> ${esc(req)}</p>
-    ${status === 'done' ? '<p class="good">✔ Schon erforscht</p>'
-      : `<button class="btn primary" ${problem ? 'disabled' : ''} onclick="doResearch('${id}')">📜 Erforschen</button>${problem ? ` <small class="bad">${esc(problem)}</small>` : ''}`}`;
+  const effects = techEffectText(id).split(' · ').map(e => `<span class="chip">${esc(e)}</span>`).join('');
+  return `<div class="td-medal ${status}">${iconHtml(t.bild, t.icon, 'big')}</div>
+    <div class="td-main">
+      <h3>${esc(t.name)}</h3>
+      <div class="td-chips">${effects}</div>
+      <p><b>Kosten:</b> ${costHtml(t.cost)} · ⏱ ${formatTime(t.time)}${t.population ? ` · 👥 ${t.population} Einwohner` : ''} · <b>Vorher:</b> ${esc(req)}</p>
+    </div>
+    <div class="td-action">${status === 'done' ? '<span class="chip good">✔ Erforscht</span>'
+      : status === 'running' ? '<span class="chip">⏳ Läuft …</span>'
+      : `<button class="btn primary" ${problem ? 'disabled' : ''} onclick="doResearch('${id}')">📜 Erforschen</button>${problem ? `<small class="bad">${esc(problem)}</small>` : ''}`}</div>`;
 }
 
 function openResearch() {
@@ -510,17 +519,38 @@ function doResearch(id) {
 // Aufträge
 // ---------------------------------------------------------------------
 
+function questIcon(q) {
+  const g = q.goal;
+  if (g.build) return iconHtml(BUILDINGS[g.build].bild, BUILDINGS[g.build].icon, 'big');
+  if (g.resource) return iconHtml(RESOURCES[g.resource].bild, RESOURCES[g.resource].icon, 'big');
+  if (g.population) return '<span class="ic emoji big">👥</span>';
+  return '<span class="ic emoji big">📜</span>';
+}
+
+function rewardChips(reward) {
+  return Object.entries(reward).map(([id, n]) => `<span class="chip">${RESOURCES[id].icon} ${n}</span>`).join('');
+}
+
 function questsHtml() {
+  const doneCount = Object.keys(state.quests).length;
+  const head = `<div class="quest-sum"><span>🏆 Erledigt <b>${doneCount}</b> von ${QUESTS.length}</span>
+    <span class="q-bar thin"><i style="width:${Math.round(100 * doneCount / QUESTS.length)}%"></i></span></div>`;
   const list = activeQuests();
-  if (!list.length) return '<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p>';
-  return list.map(q => {
+  if (!list.length) return `<div class="quests">${head}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p></div>`;
+  return `<div class="quests">${head}` + list.map(q => {
     const p = questProgress(q);
     const done = p.have >= p.need;
-    return `<div class="quest${done ? ' done' : ''}">
-      <div class="qtext"><b>${esc(q.text)}</b><span class="mini-bar wide"><i style="width:${Math.round(100 * p.have / p.need)}%"></i></span><small>${p.have} / ${p.need} · Belohnung: ${formatAmounts(q.reward)}</small></div>
-      <button class="btn ${done ? 'primary' : ''}" ${done ? '' : 'disabled'} onclick="doClaim('${q.id}')">${done ? '🎁 Abholen' : '…'}</button>
+    const pct = Math.round(100 * p.have / p.need);
+    return `<div class="quest-card${done ? ' done' : ''}">
+      <div class="q-medal">${questIcon(q)}</div>
+      <div class="q-main">
+        <b>${esc(q.text)}</b>
+        <span class="q-bar"><i style="width:${pct}%"></i><em>${p.have} / ${p.need}</em></span>
+        <span class="q-reward">Belohnung ${rewardChips(q.reward)}</span>
+      </div>
+      ${done ? `<button class="btn primary" onclick="doClaim('${q.id}')">🎁 Abholen</button>` : `<span class="q-pct">${pct}%</span>`}
     </div>`;
-  }).join('') + `<p class="empty-note">Erledigt: ${Object.keys(state.quests).length} von ${QUESTS.length}</p>`;
+  }).join('') + '</div>';
 }
 
 function openQuests() {
@@ -570,18 +600,34 @@ function showOfflineSummary(result) {
 // ---------------------------------------------------------------------
 
 function menuHtml() {
+  const stat = (value, label) => `<div class="stat"><b>${value}</b><small>${label}</small></div>`;
+  const tile = (icon, label, action) => `<button class="tile" onclick="${action}"><span class="emoji">${icon}</span>${label}</button>`;
+  const sw = (key, icon, label, note) => `<label class="switch-row"><span>${icon} ${label}<small>${note}</small></span>
+    <input type="checkbox" class="switch" ${settings[key] ? 'checked' : ''} onchange="settings.${key}=this.checked; saveSettings()"></label>`;
   return `<div class="menu">
-    <h3>Einstellungen</h3>
-    <label class="toggle"><input type="checkbox" ${settings.sound ? 'checked' : ''} onchange="settings.sound=this.checked; saveSettings()"> 🔊 Geräusche <small>(kommen später)</small></label>
-    <label class="toggle"><input type="checkbox" ${settings.music ? 'checked' : ''} onchange="settings.music=this.checked; saveSettings()"> 🎵 Musik <small>(kommt später)</small></label>
-    <button class="btn" onclick="closePage(); restartTutorial()">👴 Einstieg neu starten</button>
-    <h3>Spielstand</h3>
-    <p>Platz ${currentSlot} · ${Math.floor(state.pop)} Einwohner · ${STAGES[stageIndex()].name} · gespielt ${formatTime(state.playTime)}</p>
-    <button class="btn" onclick="saveGame(); toast('Gespeichert')">💾 Jetzt speichern</button>
-    <button class="btn" onclick="openSlots(true)">🗂 Spielstände</button>
-    <button class="btn" onclick="showExport()">📤 Exportieren</button>
-    <button class="btn" onclick="showImport()">📥 Importieren</button>
-    <button class="btn" onclick="saveGame(); closePage(); showStartScreen()">🏠 Zur Startseite</button>
+    <section class="card wide">
+      <h3>🏕️ Dein Stamm</h3>
+      <div class="stats">
+        ${stat(Math.floor(state.pop), 'Einwohner')}${stat(esc(STAGES[stageIndex()].name), 'Epoche')}
+        ${stat(Object.keys(state.techs).length, 'Forschungen')}${stat(formatTime(state.playTime), 'gespielt')}
+      </div>
+    </section>
+    <section class="card">
+      <h3>⚙️ Einstellungen</h3>
+      ${sw('sound', '🔊', 'Geräusche', 'kommen später')}
+      ${sw('music', '🎵', 'Musik', 'kommt später')}
+      <div class="tiles">${tile('👴', 'Einstieg neu starten', 'closePage(); restartTutorial()')}</div>
+    </section>
+    <section class="card">
+      <h3>💾 Spielstand <small>Platz ${currentSlot}</small></h3>
+      <div class="tiles">
+        ${tile('💾', 'Speichern', "saveGame(); toast('Gespeichert')")}
+        ${tile('🗂', 'Spielstände', 'openSlots(true)')}
+        ${tile('📤', 'Exportieren', 'showExport()')}
+        ${tile('📥', 'Importieren', 'showImport()')}
+        ${tile('🏠', 'Startseite', 'saveGame(); closePage(); showStartScreen()')}
+      </div>
+    </section>
     <p class="version">Epochia · Version ${APP_VERSION}</p>
   </div>`;
 }

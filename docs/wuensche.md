@@ -20,6 +20,9 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 10 – Forschung, Aufträge und Menü neu gestaltet (Epochen-Streifen und Banner, leuchtende
+  Karten, Detailkarte; Auftragskarten mit Bild, Balken und Belohnung; Menü mit Kacheln und Schaltern);
+  ⏸ Pause direkt in der kleinen Gebäude-Info.
 - 2026-10-30, Epochia Version 9 – Sackgasse „Steinsammler ohne Personal, kein Stein für eine Wohnhöhle“: Gebäude lassen sich
   pausieren (⏸ im Gebäudefenster, die Leute arbeiten dann anderswo); der Stammesälteste erklärt, was hilft, wenn ein Gebäude
   ohne Arbeiter dasteht (auch: Felsen antippen gibt Stein).

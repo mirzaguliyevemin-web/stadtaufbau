@@ -122,6 +122,8 @@ export function loadGame({ storage = {}, seed } = {}) {
     Date,
     setTimeout: () => 0,
     clearTimeout() {},
+    setInterval: () => 0,
+    clearInterval() {},
     requestAnimationFrame: () => 0,
     devicePixelRatio: 1,
     addEventListener() {},

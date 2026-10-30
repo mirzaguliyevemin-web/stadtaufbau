@@ -66,7 +66,18 @@ function setCssVar(name, value) {
   if (root && root.style) root.style.setProperty(name, value);
 }
 
+// Leisten oben und unten im Stil des Zeitalters (Bilder leiste-holz-<epoche>.webp und leiste-leder-<epoche>.webp)
+let themeEpoch = '';
+function applyEpochTheme() {
+  const key = STAGES[stageIndex()].epoch.toLowerCase();
+  if (key === themeEpoch) return;
+  themeEpoch = key;
+  setCssVar('--bar-wood', `url(${IMAGE_DIR}leiste-holz-${key}.webp)`);
+  setCssVar('--bar-leather', `url(${IMAGE_DIR}leiste-leder-${key}.webp)`);
+}
+
 function renderTopbar() {
+  applyEpochTheme();
   const cap = storageCap();
   const chips = visibleResources().map(id => {
     const n = Math.floor(state.res[id] || 0);
@@ -472,9 +483,8 @@ function doBuyPlot(p) {
 // Forschungsbaum
 // ---------------------------------------------------------------------
 
-const TREE_COL_W = 190, TREE_ROW_H = 108, TREE_PAD = 46;
 let researchSelected = null;
-
+let researchStage = null;   // welches Zeitalter im Forschungsfenster gezeigt wird ('__next' = Bronzezeit)
 function techEffectText(id) {
   const t = TECHS[id];
   const e = t.effect || {};
@@ -492,54 +502,140 @@ function techEffectText(id) {
   return out.join(' · ') || '–';
 }
 
-function treeNodeHtml(id) {
+// Kartengröße im Forschungsbaum: am Handy (niedriger Bildschirm) kleiner
+function treeMetrics() {
+  const small = viewH < 520 || viewW < 700;
+  return small ? { w: 138, h: 56, colGap: 44, rowGap: 10, pad: 14 } : { w: 168, h: 66, colGap: 64, rowGap: 14, pad: 22 };
+}
+
+// Spalte einer Forschung innerhalb ihres Zeitalters: 0 = braucht nichts aus diesem Zeitalter, sonst eins mehr als die Voraussetzung
+function techDepth(id, memo = {}) {
+  if (id in memo) return memo[id];
+  const t = TECHS[id];
+  const inStage = t.requires.filter(r => TECHS[r].stage === t.stage && !TECHS[r].transition);
+  return (memo[id] = inStage.length ? 1 + Math.max(...inStage.map(r => techDepth(r, memo))) : 0);
+}
+
+// Aufbau eines Zeitalters: Karten in Spalten (nach Reihenfolge), Übergang ganz rechts
+function stageLayout(stage) {
+  const m = treeMetrics();
+  const ids = Object.keys(TECHS).filter(id => TECHS[id].stage === stage);
+  const normal = ids.filter(id => !TECHS[id].transition), trans = ids.find(id => TECHS[id].transition);
+  const memo = {};
+  const cols = [];
+  for (const id of normal) (cols[techDepth(id, memo)] ||= []).push(id);
+  cols.forEach(c => c.sort((a, b) => TECHS[a].row - TECHS[b].row));
+  const rows = Math.max(...cols.map(c => c.length));
+  const height = m.pad * 2 + rows * m.h + (rows - 1) * m.rowGap;
+  const pos = {};
+  cols.forEach((c, k) => {
+    // Karten einer Spalte möglichst an ihrer Reihe ausrichten, aber ohne Lücken zu groß zu machen
+    const colH = c.length * m.h + (c.length - 1) * m.rowGap;
+    const top = (height - colH) / 2;
+    c.forEach((id, i) => { pos[id] = { x: m.pad + k * (m.w + m.colGap), y: top + i * (m.h + m.rowGap) }; });
+  });
+  if (trans) pos[trans] = { x: m.pad + cols.length * (m.w + m.colGap), y: (height - m.h) / 2 };
+  const width = m.pad * 2 + (cols.length + (trans ? 1 : 0)) * (m.w + m.colGap) - m.colGap;
+  return { ids, normal, trans, pos, width, height, m };
+}
+
+function treeNodeHtml(id, p, m) {
   const t = TECHS[id];
   const status = techStatus(id);
-  const x = TREE_PAD + t.col * TREE_COL_W, y = TREE_PAD + t.row * TREE_ROW_H;
   const sub = status === 'done' ? 'erforscht'
     : status === 'running' ? `<span class="nbar"><i style="width:${Math.round((1 - state.research.left / t.time) * 100)}%"></i></span>⏳ ${formatTime(state.research.left)}`
     : `${costHtml(t.cost)} · ⏱ ${formatTime(t.time)}`;
-  return `<button class="node ${status}${t.transition ? ' transition' : ''}${researchSelected === id ? ' sel' : ''}" style="left:${x}px;top:${y}px" onclick="selectTech('${id}')">
-    <span class="medal">${iconHtml(t.bild, t.icon)}${status === 'locked' ? '<i class="lock">🔒</i>' : ''}</span><span class="nname">${esc(t.name)}</span><span class="nsub">${sub}</span>${status === 'done' ? '<i class="check">✔</i>' : ''}</button>`;
+  // Voraussetzungen aus einem früheren Zeitalter (ohne Übergänge) stehen als Hinweis auf der Karte
+  const outside = t.transition ? [] : t.requires.filter(r => TECHS[r].stage !== t.stage && !TECHS[r].transition);
+  let extra = outside.length ? `<span class="nreq">+ ${outside.map(r => `${state.techs[r] ? '✔' : '✖'} ${esc(TECHS[r].name)}`).join(', ')}</span>` : '';
+  if (t.transition) {
+    const have = t.requires.filter(r => state.techs[r]).length;
+    extra = `<span class="nreq">braucht alle Forschungen (${have}/${t.requires.length})</span>`;
+  }
+  return `<button class="node ${status}${t.transition ? ' transition' : ''}${researchSelected === id ? ' sel' : ''}" style="left:${p.x}px;top:${p.y}px;width:${m.w}px;height:${m.h}px" onclick="selectTech('${id}')">
+    <span class="medal">${iconHtml(t.bild, t.icon)}${status === 'locked' ? '<i class="lock">🔒</i>' : ''}</span><span class="nname">${esc(t.name)}</span><span class="nsub">${sub}</span>${extra}${status === 'done' ? '<i class="check">✔</i>' : ''}</button>`;
 }
 
-function treeLines() {
-  const pos = id => ({ x: TREE_PAD + TECHS[id].col * TREE_COL_W, y: TREE_PAD + TECHS[id].row * TREE_ROW_H });
-  const W = 150, H = 70;
+// Pfeile nur zwischen benachbarten Spalten – sie laufen durch die Lücke zwischen den Spalten, nie hinter Karten
+function treeLines(L) {
+  const { pos, m } = L;
   let svg = '';
-  for (const [id, t] of Object.entries(TECHS)) {
-    // Übergangs-Knoten bekommen nur Linien von den Forschungen der eigenen Stufe, die nichts Weiteres öffnen
-    for (const r of t.requires) {
-      const a = pos(r), b = pos(id);
-      const done = state.techs[r];
-      svg += `<path d="M${a.x + W} ${a.y + H / 2} C${a.x + W + 30} ${a.y + H / 2}, ${b.x - 30} ${b.y + H / 2}, ${b.x} ${b.y + H / 2}" class="${done ? 'done' : techStatus(id) === 'available' ? 'open' : ''}"/>`;
+  for (const id of L.normal) {
+    for (const r of TECHS[id].requires) {
+      if (!pos[r] || TECHS[r].transition) continue;
+      const a = pos[r], b = pos[id];
+      const x1 = a.x + m.w, y1 = a.y + m.h / 2, x2 = b.x - 6, y2 = b.y + m.h / 2, mx = (x1 + x2) / 2;
+      const cls = state.techs[r] ? 'done' : techStatus(id) === 'available' ? 'open' : '';
+      svg += `<path d="M${x1} ${y1} C${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}" class="${cls}"/>`;
+      svg += `<path d="M${x2 - 7} ${y2 - 6} L${x2} ${y2} L${x2 - 7} ${y2 + 6}" class="head ${cls}"/>`;
     }
   }
-  const last = Object.keys(TECHS).find(id => id === 'kupferfund');
-  const a = pos(last), b = { x: TREE_PAD + NEXT_EPOCH.col * TREE_COL_W, y: TREE_PAD + NEXT_EPOCH.row * TREE_ROW_H };
-  svg += `<path d="M${a.x + W} ${a.y + H / 2} L${b.x} ${b.y + H / 2}" class="${state.techs[last] ? 'done' : ''}"/>`;
+  // zum Übergang: eine Klammer aus der letzten Spalte statt vieler Linien
+  if (L.trans) {
+    const b = L.pos[L.trans], have = TECHS[L.trans].requires.every(r => state.techs[r]);
+    const x = b.x - m.colGap / 2, y1 = m.pad + m.h / 2, y2 = L.height - m.pad - m.h / 2, yc = b.y + m.h / 2;
+    svg += `<path d="M${x - 10} ${y1} Q${x} ${y1} ${x} ${y1 + 12} L${x} ${y2 - 12} Q${x} ${y2} ${x - 10} ${y2}" class="${have ? 'done' : ''}"/>`;
+    svg += `<path d="M${x} ${yc} L${b.x - 6} ${yc}" class="${have ? 'done' : ''}"/><path d="M${b.x - 13} ${yc - 6} L${b.x - 6} ${yc} L${b.x - 13} ${yc + 6}" class="head ${have ? 'done' : ''}"/>`;
+  }
   return svg;
 }
 
+function stageTabsHtml() {
+  const tabs = STAGES.map(st => {
+    const ids = Object.keys(TECHS).filter(id => TECHS[id].stage === st.id);
+    const done = ids.filter(id => state.techs[id]).length;
+    const cls = (researchStage === st.id ? ' active' : '') + (done === ids.length ? ' complete' : '') + (stageReached(st.id) ? '' : ' locked');
+    const pct = Math.round(done / ids.length * 100);
+    return `<button class="st-tab${cls}" onclick="showResearchStage('${st.id}')">
+      <b>${stageReached(st.id) ? (done === ids.length ? '✔ ' : '') : '🔒 '}${esc(st.name)} <small>${done}/${ids.length}</small></b>
+      <span class="st-bar" style="--p:${pct}%"></span></button>`;
+  });
+  tabs.push(`<button class="st-tab locked${researchStage === '__next' ? ' active' : ''}" onclick="showResearchStage('__next')"><b>${NEXT_EPOCH.icon} Bronzezeit <small>bald</small></b><span class="st-bar" style="--p:0%"></span></button>`);
+  return tabs.join('');
+}
+
+function researchBoardHtml() {
+  if (researchStage === '__next') {
+    return `<div class="tree-next"><span class="ic emoji big">${NEXT_EPOCH.icon}</span><h3>${esc(NEXT_EPOCH.name)}</h3>
+      <p>Braucht alle Forschungen der Steinzeit, einen Steinkreis und ${NEXT_EPOCH.population} Einwohner.</p>
+      <p>Waren: ${costHtml(NEXT_EPOCH.cost)}</p><p><i>Die Bronzezeit wird als Nächstes gebaut.</i></p></div>`;
+  }
+  const L = stageLayout(researchStage);
+  return `<div class="tree-fit"><div class="tree" style="width:${L.width}px;height:${L.height}px">
+      <svg class="tree-lines" width="${L.width}" height="${L.height}">${treeLines(L)}</svg>
+      ${L.ids.map(id => treeNodeHtml(id, L.pos[id], L.m)).join('')}
+    </div></div>`;
+}
+
+// Baum so verkleinern, dass das ganze Zeitalter auf einmal zu sehen ist (nicht kleiner als 60 %, sonst scrollen)
+function fitTree() {
+  const sc = typeof document !== 'undefined' && $('tree-scroll');
+  const fit = sc && sc.querySelector && sc.querySelector('.tree-fit');
+  if (!fit) return;
+  const tree = fit.firstElementChild;
+  const w = parseFloat(tree.style.width), h = parseFloat(tree.style.height);
+  const k = Math.max(0.6, Math.min(1, (sc.clientWidth - 6) / w, (sc.clientHeight - 6) / h));
+  tree.style.transform = `scale(${k})`;
+  fit.style.width = Math.ceil(w * k) + 'px';
+  fit.style.height = Math.ceil(h * k) + 'px';
+}
+
 function researchPageHtml() {
-  const cols = NEXT_EPOCH.col + 1, rows = 5;
-  const width = TREE_PAD * 2 + cols * TREE_COL_W, height = TREE_PAD + rows * TREE_ROW_H;
-  const headers = STAGES.map((st, k) => {
-    const cs = Object.values(TECHS).filter(t => t.stage === st.id).map(t => t.col);
-    const x0 = TREE_PAD + Math.min(...cs) * TREE_COL_W, x1 = TREE_PAD + Math.max(...cs) * TREE_COL_W + 150;
-    const cls = stageReached(st.id) ? ' reached' : '';
-    return `<div class="stage-band s${k}${cls}" style="left:${x0 - 16}px;width:${x1 - x0 + 32}px;height:${height - 8}px"></div>
-      <div class="stage-head${cls}" style="left:${x0}px;width:${x1 - x0}px"><span>${stageReached(st.id) ? '' : '🔒 '}${esc(st.name)}</span></div>`;
-  }).join('');
-  const nx = TREE_PAD + NEXT_EPOCH.col * TREE_COL_W, ny = TREE_PAD + NEXT_EPOCH.row * TREE_ROW_H;
-  const next = `<button class="node locked transition epoch" style="left:${nx}px;top:${ny}px" onclick="selectTech('__next')">
-    <span class="ic emoji">${NEXT_EPOCH.icon}</span><span class="nname">${esc(NEXT_EPOCH.name)}</span><span class="nsub">kommt bald</span></button>`;
+  if (!researchStage) researchStage = state.stage;
   return `<div class="research-top" id="research-top">${researchTopHtml()}</div>
-    <div class="tree-scroll" id="tree-scroll"><div class="tree" style="width:${width}px;height:${height}px">
-      <svg class="tree-lines" width="${width}" height="${height}">${treeLines()}</svg>
-      ${headers}${Object.keys(TECHS).map(treeNodeHtml).join('')}${next}
-    </div></div>
-    <div class="tech-detail" id="tech-detail">${techDetailHtml()}</div>`;
+    <div class="stage-tabs">${stageTabsHtml()}</div>
+    <div class="research-main">
+      <div class="tree-scroll" id="tree-scroll">${researchBoardHtml()}</div>
+      <div class="tech-detail${researchSelected ? '' : ' empty'}" id="tech-detail">${techDetailHtml()}</div>
+    </div>`;
+}
+
+function showResearchStage(stage) {
+  researchStage = stage;
+  researchSelected = stage === '__next' ? '__next' : (researchSelected && TECHS[researchSelected] && TECHS[researchSelected].stage === stage ? researchSelected : null);
+  refreshResearchPage();
+  const sc = $('tree-scroll');
+  if (sc) sc.scrollLeft = 0;
 }
 
 function researchTopHtml() {
@@ -577,11 +673,9 @@ function techDetailHtml() {
 function openResearch() {
   closeInfo();
   if (!researchSelected) researchSelected = state.research ? state.research.id : Object.keys(TECHS).find(id => techStatus(id) === 'available') || null;
+  researchStage = researchSelected && TECHS[researchSelected] ? TECHS[researchSelected].stage : state.stage;
   openPage('📜 Forschung', researchPageHtml(), 'research');
-  // zur aktuellen Stufe scrollen
-  const sc = $('tree-scroll');
-  const col = Math.min(...Object.values(TECHS).filter(t => t.stage === state.stage).map(t => t.col));
-  if (sc) sc.scrollLeft = Math.max(0, TREE_PAD + col * TREE_COL_W - 20);
+  fitTree();
   emit('researchOpened');
 }
 
@@ -590,12 +684,15 @@ function refreshResearchPage() {
   const sc = $('tree-scroll');
   const left = sc ? sc.scrollLeft : 0, top = sc ? sc.scrollTop : 0;
   $('page-body').innerHTML = researchPageHtml();
+  fitTree();
   const sc2 = $('tree-scroll');
   if (sc2) { sc2.scrollLeft = left; sc2.scrollTop = top; }
 }
 
 function selectTech(id) {
   researchSelected = id;
+  if (id === '__next') researchStage = '__next';
+  else if (TECHS[id]) researchStage = TECHS[id].stage;
   refreshResearchPage();
 }
 
@@ -719,6 +816,7 @@ function menuHtml() {
         ${tile('📤', 'Exportieren', 'showExport()')}
         ${tile('📥', 'Importieren', 'showImport()')}
         ${tile('🏠', 'Startseite', 'saveGame(); closePage(); showStartScreen()')}
+        ${tile('🔄', 'Nach Updates suchen', 'checkForUpdate(true)')}
       </div>
     </section>
     <p class="version">Epochia · Version ${APP_VERSION}</p>

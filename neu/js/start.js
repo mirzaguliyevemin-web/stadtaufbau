@@ -19,9 +19,12 @@ function showLogo() {
 
 async function preloadImages() {
   if (await loadImage('logo')) showLogo();   // Logo zuerst, damit es schon im Ladefenster steht
-  const names = imageNames().filter(n => n !== 'logo');
+  // Bilder für andere Jahreszeiten (verschneit, Herbstlaub, Blüten) kommen erst nach dem Start – nicht warten
+  const seasonal = n => /-(winter|herbst|fruehling)$/.test(n);
+  const names = imageNames().filter(n => n !== 'logo' && !seasonal(n));
   let done = 0;
   await Promise.all(names.map(n => loadImage(n).then(() => setLoading(++done / names.length))));
+  setTimeout(() => imageNames().filter(seasonal).forEach(n => loadImage(n)), 1500);
 }
 
 function showStartScreen() {
@@ -116,6 +119,40 @@ on('researchDone', id => {
 on('huntDone', reward => { if (gameRunning) toast(`🦣 Die Jäger sind zurück: +${formatAmounts(reward)}`); });
 on('placed', b => { (state.seen ||= {})[b.type] = true; });
 
+// ---------------------------------------------------------------------
+// Neue Version online? Dann oben einen Knopf zum Aktualisieren zeigen
+// ---------------------------------------------------------------------
+
+let updateCheckAt = 0;
+async function checkForUpdate(force = false) {
+  if (typeof fetch === 'undefined' || typeof location === 'undefined' || !/^https?:/.test(location.protocol)) return;
+  const now = Date.now();
+  if (!force && now - updateCheckAt < 60000) return;   // höchstens einmal pro Minute
+  updateCheckAt = now;
+  try {
+    const res = await fetch('index.html?pruefen=' + now, { cache: 'no-store' });
+    const m = (await res.text()).match(/name="app-version" content="(\d+)"/);
+    const online = m ? Number(m[1]) : 0;
+    if (online > APP_VERSION) showUpdateBanner(online);
+    else if (force) toast('✔ Du hast schon die neueste Version (' + APP_VERSION + ')');
+  } catch (e) {
+    if (force) toast('Keine Verbindung – später noch einmal versuchen');
+  }
+}
+
+function showUpdateBanner(version) {
+  const el = $('update-banner');
+  el.innerHTML = `<span>✨ Neue Version ${version} ist da!</span>
+    <button class="btn primary" onclick="applyUpdate()">🔄 Jetzt aktualisieren</button>
+    <button class="btn" onclick="show($('update-banner'), false)">Später</button>`;
+  show(el, true);
+}
+
+function applyUpdate() {
+  if (gameRunning) saveGame();
+  location.reload();
+}
+
 function boot() {
   canvas = $('map');
   ctx = canvas.getContext('2d');
@@ -128,6 +165,7 @@ function boot() {
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden' && gameRunning) saveGame();
+    if (document.visibilityState === 'visible') checkForUpdate();
     if (document.visibilityState === 'visible' && gameRunning) {
       // Zeit im Hintergrund nachholen
       const r = applyOfflineProgress(state.savedAt);
@@ -147,6 +185,8 @@ function boot() {
     navigator.serviceWorker.register('service-worker.js').catch(err => console.warn('Service Worker', err));
   }
   requestAnimationFrame(loop);
+  setTimeout(() => checkForUpdate(), 4000);
+  setInterval(() => checkForUpdate(), 5 * 60 * 1000);
 }
 
 boot();

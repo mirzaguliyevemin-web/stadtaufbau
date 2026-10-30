@@ -115,8 +115,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
   display: flex;
   justify-content: space-between;
   gap: 6px;
-  padding: 5px calc(6px + var(--safe-r)) 5px calc(6px + var(--safe-l));
+  padding: 5px calc(6px + var(--safe-r)) 9px calc(6px + var(--safe-l));
   pointer-events: none;
+  /* Leder mit Ziernaht unten (Bild aus Canva, je Zeitalter) */
+  background: var(--bar-leather, none) bottom left / auto 100% repeat-x, #c97a35;
+  box-shadow: 0 3px 8px rgba(40, 25, 10, 0.35);
 }
 .chips { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px; pointer-events: auto; flex: 1 1 auto; min-width: 0; }
 .chips.right { flex: none; flex-wrap: nowrap; }
@@ -205,7 +208,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
   overflow-x: auto;
   overflow-y: hidden;
   padding: 6px calc(8px + var(--safe-r)) calc(6px + var(--safe-b)) calc(72px + var(--safe-l));
-  background: linear-gradient(rgba(122, 78, 42, 0), rgba(79, 48, 24, 0.55) 30%);
+  /* Holzstämme mit Seilbindung (Bild aus Canva, je Zeitalter) */
+  background: var(--bar-wood, none) top left / auto 100% repeat-x, #b8692c;
+  border-top: 3px solid #6b3f1c;
+  box-shadow: 0 -3px 8px rgba(40, 25, 10, 0.35), inset 0 3px 0 rgba(255, 220, 160, 0.35);
   touch-action: pan-x;
   scrollbar-width: none;
 }
@@ -298,6 +304,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 
 /* Meldung */
+#update-banner {
+  position: fixed; left: 50%; top: calc(8px + var(--safe-t, 0px)); transform: translateX(-50%); z-index: 200;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+  background: #fffaf0; border: 3px solid var(--gold); border-radius: 18px; padding: 8px 14px;
+  box-shadow: 0 6px 18px rgba(40, 25, 10, 0.35); font-weight: 700; color: var(--ink);
+  animation: pop-in 0.25s ease-out; max-width: calc(100vw - 24px);
+}
+#update-banner .btn { padding: 6px 14px; }
 #toast {
   position: fixed;
   left: 50%; top: 50px;
@@ -410,7 +424,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: #f3e2bd; border-radius: 18px;
   border: 3px solid #d9bd86; box-shadow: inset 0 2px 10px rgba(120, 80, 30, 0.2);
 }
-.tree { position: relative; }
 .stage-band { position: absolute; top: 4px; border-radius: 16px; opacity: 0.55; }
 .stage-band.s0 { background: linear-gradient(#f9d9a8, #f3e2bd 70%); }
 .stage-band.s1 { background: linear-gradient(#cfe7b4, #f3e2bd 70%); }
@@ -420,6 +433,48 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .tree-lines path { fill: none; stroke: #cdb68a; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 2 8; }
 .tree-lines path.open { stroke: #e9b949; stroke-dasharray: none; }
 .tree-lines path.done { stroke: var(--gold); stroke-width: 5; stroke-dasharray: none; }
+.tree-lines path.head { stroke-dasharray: none; stroke-width: 4; stroke-linejoin: round; }
+.tree-fit { position: relative; margin: 0 auto; }
+.tree { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.tree-scroll { display: flex; align-items: flex-start; }
+.research-main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* flacher Bildschirm (Handy quer): Infos rechts neben dem Baum */
+@media (max-height: 520px) {
+  .research-main { flex-direction: row; gap: 8px; }
+  .research-top { position: fixed; top: 3px; right: calc(12px + var(--safe-r)); z-index: 61; padding: 0; flex-wrap: nowrap; }
+  .research-top .rt-chip.idle { display: none; }
+  .research-main .tree-scroll { min-height: 0; }
+  .research-main .tech-detail {
+    flex: none; width: 230px; margin-top: 0; overflow-y: auto;
+    flex-direction: column; align-items: stretch; text-align: left; gap: 4px; flex-wrap: nowrap;
+  }
+  .research-main .tech-detail .td-medal { align-self: center; }
+  .research-main .tech-detail h3 { margin: 0; font-size: 15px; text-align: center; }
+  .research-main .tech-detail .td-action { display: flex; flex-direction: column; align-items: stretch; gap: 3px; }
+  .research-main .tech-detail.empty { justify-content: center; text-align: center; }
+}
+/* Reiter je Zeitalter mit Fortschritt */
+.stage-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 0 2px 8px; }
+.stage-tabs::-webkit-scrollbar { display: none; }
+.st-tab {
+  flex: 1 0 auto; min-width: 128px; display: flex; flex-direction: column; align-items: stretch; gap: 3px;
+  font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+  background: #fffaf0; border: 2px solid #ead3a3; border-radius: 14px; padding: 5px 12px 6px;
+  box-shadow: 0 3px 0 rgba(120, 80, 30, 0.15);
+}
+.st-tab b { font-size: 14px; white-space: nowrap; }
+.st-tab small { font-size: 11px; color: #8a6a44; }
+.st-tab .st-bar { display: block; height: 6px; border-radius: 3px; background: linear-gradient(to right, #e7a92e var(--p), rgba(0, 0, 0, 0.1) var(--p)); }
+.st-tab.complete .st-bar { background: #5cb84e; }
+.st-tab b small { font-weight: 600; color: #8a6a44; margin-left: 4px; }
+.st-tab.active { background: linear-gradient(#fff3c4, #ffe08a); border-color: #e0a52a; box-shadow: 0 0 0 2px rgba(255, 210, 90, 0.55), 0 3px 0 rgba(120, 80, 30, 0.2); }
+.st-tab.locked:not(.active) { opacity: 0.6; }
+.tree-next { text-align: center; padding: 24px 16px; }
+.tree-next .ic.big { font-size: 48px; width: 64px; height: 64px; line-height: 64px; }
+.node .nreq { grid-column: 2; font-size: 10px; font-weight: 700; color: #a0662a; line-height: 1.1; }
+.node.transition .nreq { color: #6b5a3a; }
+.tech-detail.empty { min-height: 0; padding: 6px 14px; color: #8a6a44; }
+.tech-detail.empty p { margin: 0; }
 .stage-head { position: absolute; top: 8px; text-align: center; }
 .stage-head span {
   display: inline-block; padding: 3px 22px; border-radius: 8px;
@@ -431,7 +486,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .node {
   position: absolute; width: 150px; height: 70px;
   border: 2px solid #d8c6a3; border-radius: 16px;
-  display: grid; grid-template-columns: 40px 1fr; grid-template-rows: auto auto; align-items: center;
+  display: grid; grid-template-columns: 40px 1fr; grid-template-rows: auto auto auto; align-items: center; align-content: center;
   column-gap: 6px; padding: 4px 8px 4px 6px; text-align: left;
   background: #ece0c7; color: #8a7a62;
   box-shadow: 0 3px 0 rgba(90, 60, 20, 0.18);
@@ -439,7 +494,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .node:active { transform: translateY(2px); }
 .node .medal {
-  grid-row: span 2; position: relative; width: 38px; height: 38px; border-radius: 50%;
+  grid-row: span 3; position: relative; width: 38px; height: 38px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: #f7efdc; border: 2px solid #d2bf98;
 }
@@ -561,5 +616,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
   #tutorial .elder { width: 80px; height: 80px; }
   #tutorial .elder .emoji { font-size: 40px; }
   #tutorial .speech { font-size: 13px; }
-  .node { height: 64px; }
+  .node { padding: 3px 6px 3px 4px; column-gap: 4px; grid-template-columns: 34px 1fr; }
+  .node .medal { width: 32px; height: 32px; }
+  .node .medal .ic { width: 22px; height: 22px; line-height: 22px; font-size: 17px; }
+  .node .nname { font-size: 12px; }
+  .node .nsub { font-size: 9px; }
+  .st-tab { min-width: 110px; padding: 3px 9px 4px; gap: 2px; }
+  .page-head { padding-top: 2px; padding-bottom: 2px; }
+  .page-head .btn { padding: 4px 12px; font-size: 13px; }
+  .page-head h2 { font-size: 16px; padding: 6px 36px 8px; }
+  .rt-chip { padding: 2px 10px; font-size: 12px; }
+  .st-tab b { font-size: 12px; }
+  .stage-tabs { padding-bottom: 5px; }
+  .research-top { padding: 2px 2px 5px; }
+  .tech-detail { margin-top: 5px; padding: 5px 10px; min-height: 0; }
+  .td-medal { width: 46px; height: 46px; }
+  .tech-detail p { margin: 2px 0; }
 }

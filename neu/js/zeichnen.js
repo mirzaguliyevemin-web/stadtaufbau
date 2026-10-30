@@ -99,7 +99,7 @@ function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
     'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'truhe', 'band', 'logo-rund',
     ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, ...LIFE_NAMES]);
-  for (const b of Object.values(BUILDINGS)) if (b.bild) names.add(b.bild);
+  for (const b of Object.values(BUILDINGS)) if (b.bild) { names.add(b.bild); names.add(b.bild + '-winter'); }
   for (const r of Object.values(RESOURCES)) if (r.bild) names.add(r.bild);
   for (const t of Object.values(TECHS)) if (t.bild) names.add(t.bild);
   for (const s of [2, 3, 4]) names.add('1-baustelle-' + s);
@@ -363,13 +363,16 @@ const TREE_SEASONS = {
   'baum-birke': ['baum-birke-fruehling', null, 'baum-birke-herbst', 'baum-birke-winter'],
   'baum-tanne': [null, null, null, 'baum-tanne-winter'],
 };
+function staggeredSeason(v) {
+  const q = CONFIG.yearSeconds / 4, t = (state.yearTime + CONFIG.yearSeconds - v * 15) % CONFIG.yearSeconds;
+  const si = Math.floor(t / q);
+  return si === 0 && snowCover() > 0.5 ? 3 : si;   // Schnee taut noch: alles bleibt verschneit
+}
+
 function treeSeasonName(name, v) {
   const list = TREE_SEASONS[name];
   if (!list || !state) return name;
-  const q = CONFIG.yearSeconds / 4, t = (state.yearTime + CONFIG.yearSeconds - v * 15) % CONFIG.yearSeconds;
-  let si = Math.floor(t / q);
-  if (si === 0 && snowCover() > 0.5) si = 3;   // Schnee taut noch: Bäume bleiben verschneit
-  const seasonal = list[si];
+  const seasonal = list[staggeredSeason(v)];
   return seasonal && images[seasonal] ? seasonal : name;
 }
 
@@ -664,7 +667,9 @@ function drawBuildingSprite(type, x, y, rot, lift = 0, alpha = 1) {
     ctx.globalAlpha = 1;
     return;
   }
-  const img = def.bild && images[def.bild];
+  // Im Winter das verschneite Bild (aus Canva), falls es eins gibt
+  const winter = def.bild && images[def.bild + '-winter'] && state && staggeredSeason(hash(x, y)) === 3;
+  const img = def.bild && (winter ? images[def.bild + '-winter'] : images[def.bild]);
   if (img) {
     drawImageOnTiles(img, x, y, s, rot, lift);
     if (alpha === 1 && !lift) drawBuildingEffects(img, def.bild, hash(x, y));

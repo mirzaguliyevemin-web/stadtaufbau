@@ -20,6 +20,15 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 18 – Update-Meldung: Ist eine neue Version online, erscheint oben „✨ Neue Version … ist da!“ mit
+  Knopf „🔄 Jetzt aktualisieren“ (speichert und lädt neu); im Menü „🔄 Nach Updates suchen“.
+- 2026-10-30, Epochia Version 18 – Forschungsfenster neu: Reiter je Zeitalter mit Fortschritt (z. B. 3/7), Karten in Spalten,
+  Pfeile nur zwischen Nachbarspalten (nichts läuft mehr hinter Karten), Übergang als eigene Karte „braucht alle Forschungen“,
+  Baum passt sich dem Bildschirm an; am Handy stehen die Infos rechts neben dem Baum.
+- 2026-10-30, Epochia Version 18 – Leisten im Stil des Zeitalters (Canva): unten Holzstämme mit Seilbindung, oben Leder mit Naht.
+- 2026-10-30, Epochia Version 18 – Winterbilder für alle 23 Gebäude aus Canva (Schnee auf Dächern und Platte, Eiszapfen,
+  Feuer brennen weiter, Wasser am Rand gefroren); im Winter wechseln die Gebäude versetzt aufs verschneite Bild.
+  Jahreszeiten-Bilder laden im Hintergrund nach, damit der Start nicht länger dauert.
 - 2026-10-30, Epochia Version 17 – Tag und Nacht, Wetter und Jahreszeiten: Abendrot, dunkle Nacht mit leuchtenden Feuern;
   Sonne, Wolken (ziehende Schatten), Regen mit Spritzern, Hagel, Schnee – je nach Jahreszeit; Schneedecke im Winter,
   Herbstfarben und fallendes Laub, Blütenblätter im Frühling; Bäume aus Canva je Jahreszeit (Blüten, buntes Laub, kahl

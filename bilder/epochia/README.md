@@ -294,55 +294,55 @@ Herbst- und Winterbäume folgen, wenn die Sommerbäume passen. Der Trampelpfad w
 
 ## Gruppe H – Waren-Symbole (rund, klein)
 
-- [ ] **Nahrung** → `ware-nahrung.png`
+- [x] ~~**Nahrung**~~ → `ware-nahrung.png`
 
 ```
 A bundle of food: roasted meat on a bone, red berries and a mushroom. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Holz** → `ware-holz.png`
+- [x] ~~**Holz**~~ → `ware-holz.png`
 
 ```
 Three stacked wooden logs. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Stein** → `ware-stein.png`
+- [x] ~~**Stein**~~ → `ware-stein.png`
 
 ```
 A small pile of grey stones. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Wissen** → `ware-wissen.png`
+- [x] ~~**Wissen**~~ → `ware-wissen.png`
 
 ```
 A glowing light bulb made of a small flame in a stone lamp. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Felle** → `ware-felle.png`
+- [x] ~~**Felle**~~ → `ware-felle.png`
 
 ```
 A folded brown animal fur. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Kleidung** → `ware-kleidung.png`
+- [x] ~~**Kleidung**~~ → `ware-kleidung.png`
 
 ```
 A simple stone age fur tunic. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Werkzeug** → `ware-werkzeug.png`
+- [x] ~~**Werkzeug**~~ → `ware-werkzeug.png`
 
 ```
 A stone axe and a flint knife crossed. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Ton** → `ware-ton.png`
+- [x] ~~**Ton**~~ → `ware-ton.png`
 
 ```
 A lump of brown wet clay. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 ```
 
-- [ ] **Töpferwaren** → `ware-toepferwaren.png`
+- [x] ~~**Töpferwaren**~~ → `ware-toepferwaren.png`
 
 ```
 A clay pot with a simple painted pattern. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format

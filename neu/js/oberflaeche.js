@@ -19,7 +19,7 @@ function iconHtml(bild, icon, cls = '') {
 function costHtml(cost) {
   return Object.entries(cost || {}).map(([id, n]) => {
     const short = (state.res[id] || 0) < n;
-    return `<span class="cost${short ? ' short' : ''}">${RESOURCES[id].icon} ${n}</span>`;
+    return `<span class="cost${short ? ' short' : ''}">${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')}${n}</span>`;
   }).join(' ');
 }
 
@@ -217,13 +217,18 @@ function infoText(i) {
   return parts.join(' · ');
 }
 
-function showInfo(i) {
-  infoFor = { kind: 'b', i };
-  const el = $('info-pop');
+function infoPopHtml(i) {
   const b = state.buildings[i];
   const pause = BUILDINGS[b.type].workers && !b.build
     ? `<button class="btn small pop-pause" onclick="event.stopPropagation(); togglePause(${i}); showInfo(${i})">${b.paused ? '▶ Weiter' : '⏸ Pause'}</button>` : '';
-  el.innerHTML = `${esc(infoText(i))}${pause}<small>Antippen für mehr</small>`;
+  return `${esc(infoText(i))}${pause}<small>Antippen für mehr</small>`;
+}
+
+function showInfo(i) {
+  infoFor = { kind: 'b', i };
+  const el = $('info-pop');
+  el.classList.remove('tool');
+  el.innerHTML = infoPopHtml(i);
   el.onclick = () => { const k = infoFor; closeInfo(); if (k && k.kind === 'b') showBuildingWindow(k.i); };
   show(el, true);
   positionInfo();
@@ -235,9 +240,16 @@ function showTerrainInfo(x, y) {
   const t = terrainAt(x, y);
   infoFor = { kind: 'tile', x, y };
   const el = $('info-pop');
-  el.innerHTML = `${t.name} · <b>${t.clearName}</b> (+${formatAmounts(t.clear)})<small>Antippen zum Räumen</small>`;
+  // Baum: Axt, Felsen: Spitzhacke – antippen, und schon wird gefällt bzw. abgetragen
+  const tool = t === TERRAIN.wald ? iconHtml('axt', '🪓', 'big') : iconHtml('hacke', '⛏️', 'big');
+  el.classList.add('tool');
+  el.innerHTML = `<span class="tool-ic">${tool}</span><span>${esc(t.clearName)}<small>+${formatAmounts(t.clear)}</small></span>`;
   el.onclick = () => {
-    if (clearTile(x, y)) toast(`+${formatAmounts(t.clear)}`);
+    const kind = t === TERRAIN.wald ? 'wald' : 'fels';
+    if (clearTile(x, y)) {
+      if (typeof addFelled === 'function') addFelled(x, y, kind);
+      toast(`+${formatAmounts(t.clear)}`);
+    }
     closeInfo();
   };
   show(el, true);
@@ -255,8 +267,16 @@ function positionInfo() {
     if (!b) { closeInfo(); return; }
     const s = BUILDINGS[b.type].size;
     p = tileToScreen(b.x + s, b.y + s);
-    el.innerHTML = `${esc(infoText(infoFor.i))}<small>Antippen für mehr</small>`;
-  } else p = tileToScreen(infoFor.x + 1, infoFor.y + 1);
+    const html = infoPopHtml(infoFor.i);
+    if (el.innerHTML !== html) el.innerHTML = html;
+  } else {
+    // Werkzeug schwebt über dem Baum bzw. Felsen
+    const c = tileToScreen(infoFor.x + 0.5, infoFor.y + 0.5);
+    const w = el.offsetWidth || 120, h = el.offsetHeight || 60;
+    el.style.left = Math.max(8, Math.min(viewW - w - 8, c.x - w / 2)) + 'px';
+    el.style.top = Math.max(50, Math.min(viewH - h - 120, c.y - TW * 1.3 * cam.zoom - h)) + 'px';
+    return;
+  }
   const w = el.offsetWidth || 200;
   el.style.left = Math.max(8, Math.min(viewW - w - 8, p.x - w / 2)) + 'px';
   el.style.top = Math.max(50, Math.min(viewH - 140, p.y + 6)) + 'px';
@@ -566,7 +586,7 @@ function questIcon(q) {
 }
 
 function rewardChips(reward) {
-  return Object.entries(reward).map(([id, n]) => `<span class="tag">${RESOURCES[id].icon} ${n}</span>`).join('');
+  return Object.entries(reward).map(([id, n]) => `<span class="tag">${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')} ${n}</span>`).join('');
 }
 
 function questsHtml() {

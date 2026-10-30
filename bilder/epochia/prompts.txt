@@ -127,31 +127,31 @@ A cute deer walking to the left. Style: bright cheerful cartoon mobile game asse
 ✅ ERLEDIGT – 4̶3̶.̶ ̶Z̶i̶e̶g̶e̶  →  Datei: ziege.png
 A cute goat standing. Style: bright cheerful cartoon mobile game asset, soft warm sunny colors, clean dark brown outlines, gentle shading, isometric view from the front-right, sunlight from top left, single object fully visible and centered, plain pure white background, no ground, no shadow, no text, no border, consistent style, square 1:1 format
 
-44. Nahrung  →  Datei: ware-nahrung.png
+✅ ERLEDIGT – 4̶4̶.̶ ̶N̶a̶h̶r̶u̶n̶g̶  →  Datei: ware-nahrung.png
 A bundle of food: roasted meat on a bone, red berries and a mushroom. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-45. Holz  →  Datei: ware-holz.png
+✅ ERLEDIGT – 4̶5̶.̶ ̶H̶o̶l̶z̶  →  Datei: ware-holz.png
 Three stacked wooden logs. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-46. Stein  →  Datei: ware-stein.png
+✅ ERLEDIGT – 4̶6̶.̶ ̶S̶t̶e̶i̶n̶  →  Datei: ware-stein.png
 A small pile of grey stones. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-47. Wissen  →  Datei: ware-wissen.png
+✅ ERLEDIGT – 4̶7̶.̶ ̶W̶i̶s̶s̶e̶n̶  →  Datei: ware-wissen.png
 A glowing light bulb made of a small flame in a stone lamp. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-48. Felle  →  Datei: ware-felle.png
+✅ ERLEDIGT – 4̶8̶.̶ ̶F̶e̶l̶l̶e̶  →  Datei: ware-felle.png
 A folded brown animal fur. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-49. Kleidung  →  Datei: ware-kleidung.png
+✅ ERLEDIGT – 4̶9̶.̶ ̶K̶l̶e̶i̶d̶u̶n̶g̶  →  Datei: ware-kleidung.png
 A simple stone age fur tunic. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-50. Werkzeug  →  Datei: ware-werkzeug.png
+✅ ERLEDIGT – 5̶0̶.̶ ̶W̶e̶r̶k̶z̶e̶u̶g̶  →  Datei: ware-werkzeug.png
 A stone axe and a flint knife crossed. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-51. Ton  →  Datei: ware-ton.png
+✅ ERLEDIGT – 5̶1̶.̶ ̶T̶o̶n̶  →  Datei: ware-ton.png
 A lump of brown wet clay. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
-52. Töpferwaren  →  Datei: ware-toepferwaren.png
+✅ ERLEDIGT – 5̶2̶.̶ ̶T̶ö̶p̶f̶e̶r̶w̶a̶r̶e̶n̶  →  Datei: ware-toepferwaren.png
 A clay pot with a simple painted pattern. Style: round game icon, bright cheerful cartoon style, soft warm colors, clean dark brown outline, gentle shading, object centered and large, plain pure white background, no text, no letters, no border, square 1:1 format
 
 53. Truhe (tägliche Belohnung)  →  Datei: truhe.png

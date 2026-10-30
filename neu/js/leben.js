@@ -4,7 +4,7 @@
 
 const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mammut', 'hirsch', 'ziege'];
 
-const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
+const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
 function lifeRandom() { return Math.random(); }
 
@@ -159,11 +159,34 @@ function drawCreature(name, x, y, height, face, bob, fallback, step = null) {
   ctx.restore();
 }
 
+// Gefällter Baum kippt um, abgetragener Felsen zerbröselt (das Feld ist schon frei, nur noch die Bewegung)
+function addFelled(x, y, kind) {
+  life.felled.push({ x, y, kind, k: 0, dir: hash(x + 9, y) < 0.5 ? -1 : 1 });
+}
+
+function felledObjects(dt) {
+  for (const f of life.felled) f.k += dt / 0.9;
+  life.felled = life.felled.filter(f => f.k < 1);
+  return life.felled.map(f => ({ d: f.x + f.y + 1, kind: 'leben', draw: () => {
+    const e = f.k * f.k;   // erst langsam, dann schneller
+    drawTerrainObject(f.x, f.y, f.kind, { k: f.k, rot: f.dir * e * 1.45, alpha: f.k < 0.7 ? 1 : 1 - (f.k - 0.7) / 0.3 });
+    // Staubwölkchen beim Aufschlag
+    if (f.k > 0.55) {
+      const p = tileToScreen(f.x + 0.5, f.y + 0.5), q = (f.k - 0.55) / 0.45;
+      ctx.fillStyle = `rgba(200,180,140,${0.5 * (1 - q)})`;
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath(); ctx.arc(p.x + (i - 2) * 9 * cam.zoom * (0.5 + q), p.y - q * 8 * cam.zoom, (3 + q * 6) * cam.zoom, 0, 7); ctx.fill();
+      }
+    }
+  } }));
+}
+
 // Alles, was auf dem Boden läuft, für die Tiefensortierung in drawScene
 function lifeObjects(range) {
   const out = [];
   const inView = (x, y) => x >= range.x0 - 1 && x <= range.x1 + 1 && y >= range.y0 - 1 && y <= range.y1 + 1;
   const t = frameTime;
+  out.push(...felledObjects(lifeDt));
   for (const w of life.walkers) {
     if (!inView(w.x, w.y)) continue;
     const moving = w.wait <= 0;
@@ -276,7 +299,9 @@ function drawSky() {
   ctx.lineCap = 'butt';
 }
 
+let lifeDt = 0;
 function updateLife(dt, range) {
+  lifeDt = dt;
   if (!state || !occ) return;
   updateWalkers(dt);
   updateAnimals(dt);
@@ -285,5 +310,5 @@ function updateLife(dt, range) {
 
 // Neues Spiel oder anderer Spielstand: alles Lebendige neu verteilen
 function resetLife() {
-  life.walkers = []; life.animals = []; life.birds = []; life.jumps = []; life.butterflies = [];
+  life.walkers = []; life.animals = []; life.birds = []; life.jumps = []; life.butterflies = []; life.felled = [];
 }

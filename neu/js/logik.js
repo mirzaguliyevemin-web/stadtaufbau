@@ -437,6 +437,31 @@ function updateResearch(dt) {
   const e = TECHS[id].effect || {};
   if (e.stage && stageIndex(e.stage) > stageIndex()) state.stage = e.stage;
   emit('researchDone', id);
+  const changed = evolveBuildings();
+  if (changed.length) emit('evolved', changed);
+}
+
+// Mit dem Zeitalter wachsen die Gebäude mit: Ist die nächste Stufe einer Linie freigeschaltet und gleich groß,
+// werden alle Gebäude der alten Stufe kostenlos umgebaut (z. B. Wohnhöhle → Fellzelt, Jägerlager → Mammutjägerlager).
+// Größere Stufen (Grubenhaus → Langhaus) brauchen mehr Platz und bleiben ein Umbau per Knopf.
+// Gibt zurück, was umgebaut wurde: [{ from, to, count }]
+function evolveBuildings() {
+  const changed = [];
+  let again = true;
+  while (again) {   // mehrere Stufen auf einmal möglich (z. B. alter Spielstand)
+    again = false;
+    for (const b of state.buildings) {
+      const to = BUILDINGS[b.type].upgradeTo;
+      if (!to || !BUILDINGS[to] || !isUnlocked(to) || BUILDINGS[to].size !== BUILDINGS[b.type].size) continue;
+      const entry = changed.find(c => c.from === b.type && c.to === to) || (changed.push({ from: b.type, to, count: 0 }), changed[changed.length - 1]);
+      entry.count++;
+      if (!b.build) state.built[to] = (state.built[to] || 0) + 1;
+      b.type = to;
+      again = true;
+    }
+  }
+  if (changed.length) { rebuildOccupancy(); recalcStats(); }
+  return changed;
 }
 
 // ---------------------------------------------------------------------

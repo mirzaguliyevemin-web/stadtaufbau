@@ -97,8 +97,10 @@ function median(list) {
 
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
-    'fels-gross', 'fels-klein', 'busch', 'blumen', ...GROUND_TEXTURES, ...LIFE_NAMES]);
+    'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', ...GROUND_TEXTURES, ...LIFE_NAMES]);
   for (const b of Object.values(BUILDINGS)) if (b.bild) names.add(b.bild);
+  for (const r of Object.values(RESOURCES)) if (r.bild) names.add(r.bild);
+  for (const t of Object.values(TECHS)) if (t.bild) names.add(t.bild);
   for (const s of [2, 3, 4]) names.add('1-baustelle-' + s);
   return [...names];
 }
@@ -354,7 +356,7 @@ function rockSprite(variant) {
   });
 }
 
-function drawTerrainObject(x, y, kind) {
+function drawTerrainObject(x, y, kind, anim = null) {
   const p = tileToScreen(x + 0.5, y + 0.5);
   const v = hash(x, y);
   let name, s;
@@ -374,15 +376,29 @@ function drawTerrainObject(x, y, kind) {
   else { w = (photo ? TW * 0.95 : img.width) * s; h = w * img.height / img.width; }
   const ox = (hash(y, x) - 0.5) * 10 * cam.zoom;
   const foot = photo ? h * 0.08 : 10 * s;
-  if (kind !== 'wald') { ctx.drawImage(img, p.x - w / 2 + ox, p.y - h + foot, w, h); return; }
+  if (anim) ctx.globalAlpha = anim.alpha;
+  if (kind !== 'wald') {
+    if (anim) {   // Felsen zerbröselt: sinkt zusammen
+      ctx.save();
+      ctx.translate(p.x + ox, p.y + foot);
+      ctx.scale(1 + anim.k * 0.2, 1 - anim.k * 0.7);
+      ctx.drawImage(img, -w / 2, -h, w, h);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+      return;
+    }
+    ctx.drawImage(img, p.x - w / 2 + ox, p.y - h + foot, w, h);
+    return;
+  }
   // Wind: jeder Baum wiegt sich etwas anders, dazu laufen sanfte Böen über die Karte
   const t = frameTime;
   const sway = Math.sin(t * 1.4 + v * 40) * 0.03 + Math.sin(t * 0.6 - (x + y) * 0.25) * 0.025;
   ctx.save();
   ctx.translate(p.x + ox, p.y + foot);
-  ctx.transform(1, 0, -sway, 1, 0, 0);
+  if (anim) ctx.rotate(anim.rot); else ctx.transform(1, 0, -sway, 1, 0, 0);
   ctx.drawImage(img, -w / 2, -h, w, h);
   ctx.restore();
+  ctx.globalAlpha = 1;
 }
 
 // ---------------------------------------------------------------------
@@ -439,6 +455,16 @@ function drawPlaceholder(def, x, y, s, lift) {
 // zu bzw. ergänzen ihn in seiner Farbe, wenn er im Bild dünner ist.
 const SOCKEL_HOEHE = 0.05;   // Anteil der Grundstücksbreite
 
+// Erd-Textur für die Sockel, wandert mit der Karte mit
+function earthPattern() {
+  const img = images.erdsockel;
+  if (!img || !ctx.createPattern || typeof DOMMatrix === 'undefined') return null;
+  const p = ctx.createPattern(img, 'repeat');
+  const o = worldToScreen(0, 0), k = 0.35 * cam.zoom;
+  p.setTransform(new DOMMatrix([k, 0, 0, k, o.x, o.y]));
+  return p;
+}
+
 function drawImageOnTiles(img, x, y, s, rot, lift = 0) {
   const iw = img.width, ih = img.height, p = img.sockel;
   const up = p.dicke * ih;
@@ -448,16 +474,20 @@ function drawImageOnTiles(img, x, y, s, rot, lift = 0) {
   bl.y -= lift; br.y -= lift; bf.y -= lift;
   const H = SOCKEL_HOEHE * (br.x - bl.x);
   const left = { x: bl.x, y: bl.y - H }, right = { x: br.x, y: br.y - H }, front = { x: bf.x, y: bf.y - H };
-  // eigener Sockel (sichtbar nur dort, wo der gezeichnete zu dünn ist)
-  ctx.fillStyle = p.farbe;
+  // Einheitlicher Erdsockel für alle Gebäude (der gezeichnete Sockel im Bild wird an der Graskante abgeschnitten)
+  const earth = earthPattern();
+  ctx.fillStyle = earth || p.farbe;
   ctx.beginPath();
   ctx.moveTo(left.x, left.y); ctx.lineTo(front.x, front.y); ctx.lineTo(right.x, right.y);
   ctx.lineTo(br.x, br.y); ctx.lineTo(bf.x, bf.y); ctx.lineTo(bl.x, bl.y); ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = 'rgba(0,0,0,0.18)';   // rechte Seite liegt im Schatten
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';   // rechte Seite liegt im Schatten
   ctx.beginPath();
   ctx.moveTo(front.x, front.y); ctx.lineTo(right.x, right.y); ctx.lineTo(br.x, br.y); ctx.lineTo(bf.x, bf.y); ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = 'rgba(60,35,15,0.55)';   // dunkle Unterkante wie bei den Bildern
+  ctx.lineWidth = Math.max(1, 1.2 * cam.zoom);
+  ctx.beginPath(); ctx.moveTo(bl.x, bl.y); ctx.lineTo(bf.x, bf.y); ctx.lineTo(br.x, br.y); ctx.stroke();
   // Abbildung Bild → Bildschirm aus drei Punktpaaren
   const det = (R[0] - L[0]) * (F[1] - L[1]) - (F[0] - L[0]) * (R[1] - L[1]);
   const map = (tl, tr, tf) => {
@@ -468,11 +498,11 @@ function drawImageOnTiles(img, x, y, s, rot, lift = 0) {
   const [a, c, e] = map(left.x, right.x, front.x);
   const [b, d, f] = map(left.y, right.y, front.y);
   ctx.save();
-  // alles unterhalb der Sockel-Unterkante abschneiden (zu dicke Sockel)
-  const wide = br.x - bl.x;
+  // alles unterhalb der Graskante abschneiden: dort sitzt der einheitliche Sockel
+  const wide = br.x - bl.x, g = Math.max(1, 0.8 * cam.zoom);
   ctx.beginPath();
-  ctx.moveTo(bl.x - wide, -1e5); ctx.lineTo(bl.x - wide, bl.y); ctx.lineTo(bl.x, bl.y); ctx.lineTo(bf.x, bf.y);
-  ctx.lineTo(br.x, br.y); ctx.lineTo(br.x + wide, br.y); ctx.lineTo(br.x + wide, -1e5); ctx.closePath();
+  ctx.moveTo(left.x - wide, -1e5); ctx.lineTo(left.x - wide, left.y + g); ctx.lineTo(left.x, left.y + g); ctx.lineTo(front.x, front.y + g);
+  ctx.lineTo(right.x, right.y + g); ctx.lineTo(right.x + wide, right.y + g); ctx.lineTo(right.x + wide, -1e5); ctx.closePath();
   ctx.clip();
   ctx.transform(a, b, c, d, e, f);
   if (rot) { ctx.translate(iw, 0); ctx.scale(-1, 1); }

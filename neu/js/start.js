@@ -96,6 +96,11 @@ function loop(now) {
 }
 
 on('finished', b => { if (gameRunning && BUILDINGS[b.type].time > 0) toast(`${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name} ist fertig!`); });
+on('evolved', list => {
+  if (!gameRunning) return;
+  for (const c of list) toast(`✨ ${c.count}× ${BUILDINGS[c.from].name} → ${BUILDINGS[c.to].name}`);
+  renderAll();
+});
 on('researchDone', id => {
   if (!gameRunning) return;
   toast(`📜 Erforscht: ${TECHS[id].name}`);

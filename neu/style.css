@@ -66,6 +66,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 .emoji, .ic.emoji { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
 .ic { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; vertical-align: middle; object-fit: contain; }
+.ic.mini { width: 15px; height: 15px; line-height: 15px; font-size: 12px; margin-right: 1px; vertical-align: -3px; }
 .ic.big { width: 46px; height: 46px; line-height: 46px; font-size: 32px; }
 .ic.huge { width: 72px; height: 72px; line-height: 72px; font-size: 52px; flex: none; }
 
@@ -186,6 +187,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border: 2px solid var(--paper-dark);
 }
 #info-pop small { display: block; font-weight: normal; color: #8a6a44; font-size: 11px; margin-top: 2px; }
+#info-pop.tool { display: flex; align-items: center; gap: 8px; border-radius: 40px; padding: 5px 16px 5px 5px; border: 3px solid #e2c88f; animation: pop-in 0.18s ease-out; }
+#info-pop.tool .tool-ic {
+  width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(#fff8e2, #f3dfb0); border: 2px solid #d9b46a; animation: tool-wiggle 0.9s ease-in-out infinite;
+}
+#info-pop.tool .tool-ic .ic { width: 40px; height: 40px; }
+@keyframes tool-wiggle { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(12deg); } }
+@keyframes pop-in { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 /* Bauleiste */
 #buildbar {

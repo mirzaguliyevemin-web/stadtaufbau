@@ -89,6 +89,7 @@ function loadFromText(text) {
     state.buildings.unshift({ type: 'lagerfeuer', x: c, y: c, rot: false, build: 0 });
   }
   rebuildOccupancy();
+  evolveBuildings();   // ältere Stände: schon erforschte Stufen nachholen
   recalcStats();
   return true;
 }

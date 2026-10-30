@@ -20,6 +20,13 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 13 – Gebäude entwickeln sich mit dem Zeitalter weiter (z. B. alle Wohnhöhlen werden Fellzelte),
+  in der Leiste und auf dem Feld; gilt auch für alte Spielstände.
+- 2026-10-30, Epochia Version 13 – Ränder der Gebäude passten nicht zusammen (mal Holz, mal Stein, mal nur Gras): alle haben
+  jetzt denselben Erdsockel (Textur aus Canva).
+- 2026-10-30, Epochia Version 13 – Baum antippen zeigt eine Axt, Felsen eine Spitzhacke; darauf tippen fällt bzw. trägt ab
+  (mit Fallbewegung).
+- 2026-10-30, Epochia Version 13 – Waren-Symbole aus Canva (statt Emojis), auch bei Kosten und Belohnungen.
 - 2026-10-30, Epochia Version 12 – Zeitalter kamen viel zu schnell, man brauchte nur 3 Häuser: Forschungen dauern etwa fünfmal
   so lang, kosten mehr Wissen und Waren und brauchen eine Mindestzahl Einwohner (Steinzeit ≈ 6 Stunden, Bronzezeit-Aufbruch
   mit 120 Einwohnern); Landpreis bleibt unter dem Lagerplatz.

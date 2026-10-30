@@ -397,6 +397,18 @@ test('Pause: Arbeiter wechseln zu einem anderen Gebäude, Pause wird gespeichert
   noErrors(g);
 });
 
+test('Zeitalter: erforschte Stufe baut alte Gebäude gleicher Größe um, auch beim Laden', () => {
+  const g = fresh();
+  ok(g.run(`state.buildings.filter(b => b.type === 'wohnhoehle').length`) === 2, 'Start ohne 2 Wohnhöhlen');
+  g.run(`state.res.wissen = 150; state.res.felle = 150; state.pop = 20; state.techs.faustkeil = true; startResearch('fellzelte'); for (let i = 0; i <= TECHS.fellzelte.time; i++) update(1);`);
+  ok(g.run(`state.buildings.filter(b => b.type === 'fellzelt').length`) === 2, 'Wohnhöhlen wurden keine Fellzelte');
+  ok(g.run(`barEntries().some(e => e.type === 'fellzelt') && !barEntries().some(e => e.type === 'wohnhoehle')`), 'Leiste zeigt nicht die neue Stufe');
+  // alter Spielstand: Forschung erledigt, Gebäude noch alt
+  const text = g.run(`state.buildings.forEach(b => { if (b.type === 'fellzelt') b.type = 'wohnhoehle'; }); serialize()`);
+  ok(g.run(`loadFromText(${JSON.stringify(text)}) && state.buildings.filter(b => b.type === 'wohnhoehle').length === 0`), 'Beim Laden nicht umgebaut');
+  noErrors(g);
+});
+
 test('Abreißen gibt die Hälfte zurück, Lagerfeuer bleibt', () => {
   const g = fresh();
   ok(!g.run('demolish(0)'), 'Lagerfeuer abgerissen');

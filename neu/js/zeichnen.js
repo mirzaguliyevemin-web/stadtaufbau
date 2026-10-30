@@ -97,7 +97,7 @@ function median(list) {
 
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
-    'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'truhe', 'band', 'logo-rund',
+    'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'truhe', 'band', 'logo-rund', 'berg-gross', 'berg-klein',
     ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, ...LIFE_NAMES]);
   for (const b of Object.values(BUILDINGS)) if (b.bild) { names.add(b.bild); names.add(b.bild + '-winter'); }
   for (const r of Object.values(RESOURCES)) if (r.bild) names.add(r.bild);
@@ -205,7 +205,7 @@ function groundColor(x, y) {
 // Boden-Texturen (Draufsicht, nahtlos): eine Textur deckt TEXTURE_TILES × TEXTURE_TILES Felder und wird
 // schräg aufs Raster gelegt. ox/oy = wo die obere Ecke von Feld (0, 0) liegt – so passen alle Stücke aneinander.
 const TEXTURE_TILES = 4;
-const GROUND_TEXTURES = ['wiese', 'wasser', 'sand', 'pfad'];
+const GROUND_TEXTURES = ['wiese', 'wasser', 'sand', 'pfad', 'berg-boden'];
 
 function groundPattern(g, name, ox, oy, zoom = 1) {
   const img = images[name];
@@ -279,6 +279,7 @@ function tilePattern(g, name, fx = 0, fy = 0) {
 }
 
 const isWaterAt = (x, y) => terrain[y * N + x] === TERRAIN.wasser.id;
+const isMountainAt = (x, y) => terrain[y * N + x] === TERRAIN.berg.id;
 const isShoreAt = (x, y) => terrain[y * N + x] === TERRAIN.wasser.id || terrain[y * N + x] === TERRAIN.sand.id;
 
 function renderChunk(cx, cy) {
@@ -326,6 +327,11 @@ function renderChunk(cx, cy) {
     paintRegion(g, box, isWaterAt, 'rgba(120, 88, 48, 0.32)', 1.42, 2);   // nasser Sand
     paintRegion(g, box, isWaterAt, 'rgba(105, 78, 44, 0.28)', 1.2, 2);
     if (patterns.wasser) paintRegion(g, box, isWaterAt, tilePattern(g, 'wasser'), 1.0, 2);
+    // Gebirge: felsiger Boden mit dunklem Rand
+    if (images['berg-boden']) {
+      paintRegion(g, box, isMountainAt, 'rgba(70, 60, 45, 0.35)', 1.25, 3);
+      paintRegion(g, box, isMountainAt, tilePattern(g, 'berg-boden'), 1.08, 3);
+    }
     g.restore();
   }
   for (const [x, y, name] of decor) {
@@ -449,6 +455,41 @@ function treeSeasonName(name, v) {
   if (!list || !state) return name;
   const seasonal = list[staggeredSeason(v)];
   return seasonal && images[seasonal] ? seasonal : name;
+}
+
+// Gebirge: im Inneren große Gipfel (mit Schnee), zum Rand hin kleinere Felsberge, dazwischen nur Felsboden
+function mountainAt(x, y) {
+  const v = hash(x * 3 + 1, y * 7 + 2);
+  let inner = 0;
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]])
+    if (inMap(x + dx, y + dy) && isMountainAt(x + dx, y + dy)) inner++;
+  // große Gipfel nur alle paar Felder (sonst stehen sie ineinander)
+  if (inner === 8 && v > 0.62 && (x + 2 * y) % 3 === 0) return { name: 'berg-gross', size: 2.6 + v * 0.6 };
+  if (v > 0.45) return { name: 'berg-klein', size: 1.25 + v * 0.45 };
+  return null;
+}
+
+function drawMountain(x, y, m) {
+  const img = images[m.name];
+  const p = tileToScreen(x + 0.5, y + 0.5), z = cam.zoom;
+  if (!img) {   // ohne Bild: grauer Kegel
+    ctx.fillStyle = '#8f8a80';
+    ctx.beginPath(); ctx.moveTo(p.x - TW * 0.5 * z, p.y); ctx.lineTo(p.x, p.y - TW * 0.8 * z * m.size / 1.5); ctx.lineTo(p.x + TW * 0.5 * z, p.y); ctx.fill();
+    return;
+  }
+  const w = TW * m.size * z, h = w * img.height / img.width;
+  const flip = hash(x + 5, y + 9) < 0.5;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  if (flip) ctx.scale(-1, 1);
+  ctx.drawImage(img, -w / 2, -h * 0.8, w, h);
+  const snow = typeof snowCover === 'function' ? snowCover() : 0;
+  if (snow > 0.3 && m.name === 'berg-klein') {   // im Winter liegt Schnee auch auf den kleinen Bergen
+    ctx.globalAlpha = 0.35 * snow;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(img, -w / 2, -h * 0.8, w, h);
+  }
+  ctx.restore();
 }
 
 function drawTerrainObject(x, y, kind, anim = null) {
@@ -1088,6 +1129,7 @@ function drawScene(dt) {
       const t = terrain[y * N + x];
       if (t === TERRAIN.wald.id) objects.push({ d: x + y + 1, kind: 'wald', x, y });
       else if (t === TERRAIN.fels.id) objects.push({ d: x + y + 1, kind: 'fels', x, y });
+      else if (t === TERRAIN.berg.id) { const m = mountainAt(x, y); if (m) objects.push({ d: x + y + 1, kind: 'berg', x, y, m }); }
     }
   state.buildings.forEach((b, i) => {
     const s = BUILDINGS[b.type].size;
@@ -1104,6 +1146,7 @@ function drawScene(dt) {
       if (b.build > 0) drawConstruction(b);
       else drawBuildingSprite(b.type, b.x, b.y, b.rot);
     } else if (o.kind === 'leben') o.draw();
+    else if (o.kind === 'berg') drawMountain(o.x, o.y, o.m);
     else drawTerrainObject(o.x, o.y, o.kind);
   }
   drawSmoke();

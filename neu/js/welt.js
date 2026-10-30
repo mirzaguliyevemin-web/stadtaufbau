@@ -35,6 +35,7 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     seen: {},                // Typ → in der Bauleiste schon angesehen (sonst „Neu“)
     daily: { last: '', streak: 0, pending: 0 },   // pending = Tag (1–7), dessen Belohnung noch wartet
     tutorial: 0,             // Schritt im Einstieg, -1 = fertig/übersprungen
+    mapSize: N,              // Kartengröße beim Speichern (alte Stände: 64, werden beim Laden in die Mitte gelegt)
     savedAt: Date.now(),
   };
 }
@@ -68,8 +69,8 @@ function seededRng(seed) {
 }
 
 // Weiches Rauschen: Zufallswerte auf einem groben Gitter, dazwischen weich überblendet
-function makeNoise(rng, cell) {
-  const g = Math.ceil(N / cell) + 2;
+function makeNoise(rng, cell, n = N) {
+  const g = Math.ceil(n / cell) + 2;
   const grid = Array.from({ length: g * g }, rng);
   const smooth = t => t * t * (3 - 2 * t);
   return (x, y) => {
@@ -81,18 +82,19 @@ function makeNoise(rng, cell) {
   };
 }
 
-function generateTerrain(seed) {
+// Kern der Karte (64 × 64 um das Lager): genau wie bis Version 21 erzeugt, damit alte Spielstände Feld für Feld passen.
+const CORE = 64;
+function generateCore(seed) {
+  const n = CORE;
   const rng = seededRng(seed);
-  const t = new Uint8Array(N * N);
-  const forest = makeNoise(rng, 9), forest2 = makeNoise(rng, 4), rocks = makeNoise(rng, 7);
+  const t = new Uint8Array(n * n);
+  const forest = makeNoise(rng, 9, n), forest2 = makeNoise(rng, 4, n), rocks = makeNoise(rng, 7, n);
   const phase = rng() * 6.28, phase2 = rng() * 6.28;
-  const mid = N / 2;
-  for (let y = 0; y < N; y++) {
-    // Fluss: schlängelt sich von oben nach unten, rechts neben dem Lager
-    const rx = mid + 9 + Math.sin(y * 0.11 + phase) * 4 + Math.sin(y * 0.29 + phase2) * 1.5;
-    const width = 1.3 + Math.sin(y * 0.07 + phase2) * 0.4;
-    for (let x = 0; x < N; x++) {
-      const i = y * N + x;
+  const mid = n / 2;
+  for (let y = 0; y < n; y++) {
+    const { rx, width } = riverAt(y, phase, phase2, mid);
+    for (let x = 0; x < n; x++) {
+      const i = y * n + x;
       const d = Math.abs(x - rx);
       const nearCamp = Math.hypot(x - mid, y - mid) < 7;
       if (d < width) t[i] = TERRAIN.wasser.id;
@@ -107,12 +109,53 @@ function generateTerrain(seed) {
   const fx = mid - 10 + Math.floor(rng() * 4), fy = mid - 9 + Math.floor(rng() * 4);
   for (let y = fy - 2; y <= fy + 2; y++)
     for (let x = fx - 2; x <= fx + 2; x++)
-      if (Math.hypot(x - fx, y - fy) < 2.3 && rng() < 0.7 && t[y * N + x] !== TERRAIN.wasser.id) t[y * N + x] = TERRAIN.fels.id;
+      if (Math.hypot(x - fx, y - fy) < 2.3 && rng() < 0.7 && t[y * n + x] !== TERRAIN.wasser.id) t[y * n + x] = TERRAIN.fels.id;
   // Ein paar einzelne Bäume auf der Wiese, damit es nicht leer aussieht
-  for (let k = 0; k < N * 2; k++) {
-    const x = Math.floor(rng() * N), y = Math.floor(rng() * N);
-    if (Math.hypot(x - mid, y - mid) > 6 && t[y * N + x] === TERRAIN.gras.id) t[y * N + x] = TERRAIN.wald.id;
+  for (let k = 0; k < n * 2; k++) {
+    const x = Math.floor(rng() * n), y = Math.floor(rng() * n);
+    if (Math.hypot(x - mid, y - mid) > 6 && t[y * n + x] === TERRAIN.gras.id) t[y * n + x] = TERRAIN.wald.id;
   }
+  return { t, phase, phase2 };
+}
+
+// Fluss: schlängelt sich von oben nach unten, rechts neben dem Lager (y in Kern-Koordinaten)
+function riverAt(y, phase, phase2, mid) {
+  return { rx: mid + 9 + Math.sin(y * 0.11 + phase) * 4 + Math.sin(y * 0.29 + phase2) * 1.5, width: 1.3 + Math.sin(y * 0.07 + phase2) * 0.4 };
+}
+
+// Ganze Karte: außen neues Land (Wälder, Wiesen, Felsen, zwei Gebirge in den Ecken), in der Mitte der alte Kern
+function generateTerrain(seed) {
+  const core = generateCore(seed);
+  const off = (N - CORE) / 2;
+  const rng = seededRng((seed ^ 0x5bd1e995) >>> 0);
+  const t = new Uint8Array(N * N);
+  const forest = makeNoise(rng, 11), forest2 = makeNoise(rng, 5), rocks = makeNoise(rng, 8), ridge = makeNoise(rng, 10);
+  const mountains = [   // Kammlinie x + y = L (oben links bzw. unten rechts), Breite schwankt
+    { L: 34 + Math.floor(rng() * 10), w: 4 + rng() * 2 },
+    { L: 2 * N - 40 - Math.floor(rng() * 10), w: 3.5 + rng() * 2 },
+  ];
+  for (let y = 0; y < N; y++) {
+    const { rx, width } = riverAt(y - off, core.phase, core.phase2, CORE / 2);
+    for (let x = 0; x < N; x++) {
+      const i = y * N + x;
+      const d = Math.abs(x - (rx + off));
+      let berg = 0;
+      for (const m of mountains) {
+        const dist = Math.abs(x + y - m.L + (ridge(x, y) - 0.5) * 18) / Math.SQRT2;
+        berg = Math.max(berg, m.w - dist);
+      }
+      if (d < width) t[i] = TERRAIN.wasser.id;
+      else if (d < width + 1.2) t[i] = TERRAIN.sand.id;
+      else if (berg > 0) t[i] = TERRAIN.berg.id;
+      else if (berg > -2.5 && rng() < 0.45 + berg * 0.15) t[i] = TERRAIN.fels.id;   // Vorberge: Felsen am Gebirgsrand
+      else if (forest(x, y) * 0.75 + forest2(x, y) * 0.25 > 0.6) t[i] = TERRAIN.wald.id;
+      else if (rocks(x, y) > 0.8 && rng() < 0.55) t[i] = TERRAIN.fels.id;
+      else if (rng() < 0.03) t[i] = TERRAIN.wald.id;   // einzelne Bäume
+      else t[i] = TERRAIN.gras.id;
+    }
+  }
+  for (let y = 0; y < CORE; y++)
+    for (let x = 0; x < CORE; x++) t[(y + off) * N + x + off] = core.t[y * CORE + x];
   return t;
 }
 

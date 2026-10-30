@@ -43,8 +43,9 @@ function botTryBuild(type) {
   if (!canAfford(BUILDINGS[type].cost)) { botReport.blocked[type] = (botReport.blocked[type] || 0) + 1; return false; }
   const spot = botSpot(type);
   if (!spot) {
-    // kein Platz: Land dazukaufen
+    // kein Platz: Land dazukaufen – und wenn das zu teuer ist, wie ein Spieler Bäume fällen, um Platz zu schaffen
     for (let p = 0; p < state.plots.length; p++) if (canBuyPlot(p) && buyPlot(p)) return false;
+    for (let k = 0; k < 4; k++) botClear('wald');
     return false;
   }
   if (placeBuilding(type, spot.x, spot.y)) return false;

@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 19;
+const APP_VERSION = 20;
 
 const CONFIG = {
   mapSize: 64,            // Felder je Seite
@@ -20,7 +20,7 @@ const CONFIG = {
   growthMinHappy: 50,     // ab dieser Zufriedenheit ziehen Leute zu
   baseStorage: 150,       // Lagerplatz je Ware am Lagerfeuer
   bonusRadius: 3,         // Umkreis für Geländebonus (Wald, Felsen)
-  maxOfflineHours: 8,     // so lange läuft das Spiel offline weiter
+  maxOfflineHours: 2,     // so lange läuft das Spiel offline weiter (Emin: höchstens 2 Stunden)
   refundShare: 0.5,       // beim Abreißen gibt es die Hälfte zurück
   hunt: {                 // Mammutjagd (nach der Forschung „Mammutjagd“, bis zur Jungsteinzeit)
     seconds: 60,          // so lange sind die Jäger unterwegs
@@ -223,6 +223,11 @@ const BUILDINGS = {
     color: '#b89a6a', cost: { holz: 1 }, time: 0, isPath: true,
     info: 'Verbindet die Gebäude mit dem Lagerfeuer – ohne Weg arbeitet ein Gebäude nicht.',
   },
+  bruecke: {
+    name: 'Brücke', icon: '🌉', size: 1, line: 'bruecke', tier: 0, stage: 'alt', bild: 'bruecke',
+    color: '#8a5a2b', cost: { holz: 8 }, time: 0, isPath: true, onWater: true,
+    info: 'Holzbrücke über den Fluss. Nur so kommt ein Weg ans andere Ufer. Einfach den Pfad übers Wasser malen.',
+  },
 };
 
 // Forschungsbaum. col/row = Platz im Baum (Spalte von links, Reihe: 0–1 Nahrung, 2 Wohnen, 3 Handwerk, 4 Wissen)
@@ -276,7 +281,7 @@ const BAR_CATEGORIES = [
   { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'stein', 'ton'] },
   { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['kleidung', 'werkzeug', 'toepfern', 'lager'] },
   { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['waerme', 'glaube', 'wissen', 'wahrzeichen'] },
-  { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg'] },
+  { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg', 'bruecke'] },
 ];
 
 // Aufträge (der Reihe nach, höchstens 3 gleichzeitig sichtbar)

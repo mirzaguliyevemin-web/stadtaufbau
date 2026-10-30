@@ -171,9 +171,9 @@ function buildRoute(i) {
   const route = pathRoute(i);
   if (route === null) return 'Kein Weg möglich – Bäume, Felsen oder Wasser im Weg';
   if (!route.length) return null;
-  const cost = { holz: route.length * BUILDINGS.pfad.cost.holz };
+  const cost = { holz: route.reduce((sum, [x, y]) => sum + BUILDINGS[wayTypeAt(x, y)].cost.holz, 0) };
   if (!canAfford(cost)) return missingText(cost);
-  for (const [x, y] of route) placeBuilding('pfad', x, y);
+  for (const [x, y] of route) placeBuilding(wayTypeAt(x, y), x, y);
   return null;
 }
 

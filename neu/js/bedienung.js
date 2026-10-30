@@ -92,7 +92,7 @@ function cancelGhost() {
 function paintPath(sx, sy) {
   const t = screenToTile(sx, sy);
   if (!inMap(t.x, t.y) || buildingAt(t.x, t.y) >= 0) return;
-  const problem = placeBuilding('pfad', t.x, t.y);
+  const problem = placeBuilding(wayTypeAt(t.x, t.y), t.x, t.y);   // über Wasser entsteht eine Brücke
   if (problem && problem !== gesture.lastProblem) { toast(problem); gesture.lastProblem = problem; }
 }
 

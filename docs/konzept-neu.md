@@ -267,7 +267,7 @@ Gewünscht:
   Trampelpfade malen; Land kaufen (🛒 auf dem dunklen Land).
 - **Ladefenster, Startseite** (Emins Bild), **Forschungsbaum** als eigene Seite (alle 24 Forschungen der Steinzeit
   + „Aufbruch in die Bronzezeit – kommt bald“), **Einstieg mit dem Stammesältesten** (9 Schritte), Aufträge,
-  tägliche Belohnung (7-Tage-Reihe), Offline-Fortschritt (bis 8 h), Export/Import.
+  tägliche Belohnung (7-Tage-Reihe), Offline-Fortschritt (bis 2 h, seit Version 20), Export/Import.
 - Alle Gebäude, Waren, Bedürfnisse und Forschungen der Steinzeit sind schon drin (Zahlen aus `epoche-1-steinzeit.md`,
   kleine Abweichungen dort vermerkt). Bilder: **alle Gebäude der Steinzeit**, Baustelle (2×2, auch für größere), Stammesältester, Logo, Startseite, Ladebild, App-Icon – fehlen noch Gelände, Tiere, Waren- und Forschungs-Bildchen.
 - **Tests**: `node neu/tools/test.mjs` (24 Tests + Bot), läuft auch in `node tools/test.mjs` mit.

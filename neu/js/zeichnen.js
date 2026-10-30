@@ -220,6 +220,67 @@ function textureFor(t) {
   return t === TERRAIN.wasser.id ? 'wasser' : t === TERRAIN.sand.id ? 'sand' : 'wiese';
 }
 
+// Sand und Wasser als zusammenhängende, runde Flächen (statt eckiger Rauten): dicke Linien mit runden Enden
+// zwischen den Mitten benachbarter Felder, gezeichnet in Feld-Koordinaten (g ist schon passend transformiert).
+function regionStroke(g, x0, y0, x1, y1, inRegion) {
+  g.beginPath();
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++) {
+      if (!inMap(x, y) || !inRegion(x, y)) continue;
+      const cx = x + 0.5, cy = y + 0.5;
+      g.moveTo(cx, cy); g.lineTo(cx + 0.001, cy);
+      for (const [dx, dy] of [[1, 0], [0, 1], [1, 1], [1, -1]]) {
+        if (!inMap(x + dx, y + dy) || !inRegion(x + dx, y + dy)) continue;
+        g.moveTo(cx, cy); g.lineTo(cx + dx, cy + dy);
+      }
+    }
+}
+
+// Uferlinie natürlicher machen: an Rändern einer Fläche zufällige kleine Ausbuchtungen (immer gleich je Feld)
+function regionWobble(g, x0, y0, x1, y1, inRegion, grow, seed) {
+  g.beginPath();
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++) {
+      if (!inMap(x, y) || !inRegion(x, y)) continue;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        if (!inMap(x + dx, y + dy) || inRegion(x + dx, y + dy)) continue;
+        for (let k = 0; k < 2; k++) {
+          const h = hash(x * 3 + dx + k * 17 + seed, y * 5 + dy - k * 11);
+          if (h < 0.45) continue;
+          const along = (hash(x + k * 7 + seed, y + dx * 3 + dy * 5) - 0.5) * 0.9;
+          const out = 0.38 + 0.18 * hash(y + k + seed, x - dy);
+          const r = 0.14 + 0.15 * h + grow;
+          const cx = x + 0.5 + dx * out + dy * along, cy = y + 0.5 + dy * out + dx * along;
+          g.moveTo(cx + r, cy);
+          g.arc(cx, cy, r, 0, Math.PI * 2);
+        }
+      }
+    }
+}
+
+// Fläche malen: runde Linien plus Ausbuchtungen, alles mit einem Stil (width = Linienbreite in Feldern)
+function paintRegion(g, box, inRegion, style, width, seed) {
+  const [x0, y0, x1, y1] = box;
+  g.strokeStyle = style; g.fillStyle = style;
+  regionStroke(g, x0, y0, x1, y1, inRegion);
+  g.lineWidth = width; g.stroke();
+  regionWobble(g, x0, y0, x1, y1, inRegion, (width - 1) / 2, seed);
+  g.fill();
+}
+
+// Textur in Feld-Koordinaten (eine Textur deckt TEXTURE_TILES × TEXTURE_TILES Felder), verschiebbar für fließendes Wasser
+function tilePattern(g, name, fx = 0, fy = 0) {
+  const img = images[name];
+  if (!img || !g.createPattern || typeof DOMMatrix === 'undefined') return null;
+  const p = g.createPattern(img, 'repeat');
+  const k = TEXTURE_TILES / img.width;
+  p.setTransform(new DOMMatrix([k, 0, 0, k, fx, fy]));
+  return p;
+}
+
+const isWaterAt = (x, y) => terrain[y * N + x] === TERRAIN.wasser.id;
+const isShoreAt = (x, y) => terrain[y * N + x] === TERRAIN.wasser.id || terrain[y * N + x] === TERRAIN.sand.id;
+
 function renderChunk(cx, cy) {
   const c = typeof document !== 'undefined' ? document.createElement('canvas') : null;
   if (!c || !c.getContext) return null;
@@ -235,7 +296,8 @@ function renderChunk(cx, cy) {
   for (let y = y0; y < y0 + CHUNK; y++)
     for (let x = x0; x < x0 + CHUNK; x++) {
       const t = terrain[y * N + x];
-      g.fillStyle = patterns[textureFor(t)] || groundColor(x, y);
+      // Mit Bildern: überall erst Wiese, Sand und Wasser kommen danach als runde Flächen darüber
+      g.fillStyle = patterns.wiese && patterns.sand ? patterns.wiese : patterns[textureFor(t)] || groundColor(x, y);
       diamondPath(g, x, y, 1, 1, toPoint, 0.6);
       g.fill();
       // Wald- und Felsboden etwas dunkler
@@ -253,6 +315,19 @@ function renderChunk(cx, cy) {
       // Blumen und Büsche auf der Wiese (nur Schmuck – darauf bauen geht trotzdem)
       if (t === TERRAIN.gras.id && hash(x, y + 3) > 0.92) decor.push([x, y, hash(x + 1, y) > 0.8 ? 'busch' : 'blumen']);
     }
+  // Ufer: Sand mit weichem Rand zur Wiese, dunkler nasser Sand am Wasser, darauf das Wasser (alles rund)
+  if (patterns.wiese && patterns.sand) {
+    g.save();
+    g.transform(TW / 2, TH / 2, -TW / 2, TH / 2, -left, -top);
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    const box = [x0 - 2, y0 - 2, x0 + CHUNK + 1, y0 + CHUNK + 1];   // Rand mitnehmen: keine Kanten an Stückgrenzen
+    paintRegion(g, box, isShoreAt, 'rgba(96, 120, 40, 0.3)', 1.22, 1);   // grünlich-dunkler Saum ins Gras
+    paintRegion(g, box, isShoreAt, tilePattern(g, 'sand'), 1.06, 1);
+    paintRegion(g, box, isWaterAt, 'rgba(120, 88, 48, 0.32)', 1.42, 2);   // nasser Sand
+    paintRegion(g, box, isWaterAt, 'rgba(105, 78, 44, 0.28)', 1.2, 2);
+    if (patterns.wasser) paintRegion(g, box, isWaterAt, tilePattern(g, 'wasser'), 1.0, 2);
+    g.restore();
+  }
   for (const [x, y, name] of decor) {
     const p = toPoint(x + 0.5, y + 0.5);
     const img = images[name];
@@ -614,41 +689,39 @@ function drawSmoke() {
 // Fließendes Wasser: über das vorgezeichnete Wasser zwei langsam wandernde Lagen der Wasser-Textur legen
 function drawWater(range) {
   if (!images.wasser) return;
-  const tiles = [];
-  for (let y = range.y0; y <= range.y1; y++)
-    for (let x = range.x0; x <= range.x1; x++) if (terrain[y * N + x] === TERRAIN.wasser.id) tiles.push([x, y]);
-  if (!tiles.length) return;
-  const g = 0.6;
-  ctx.beginPath();
-  for (const [x, y] of tiles) {
-    const a = tileToScreen(x, y), b = tileToScreen(x + 1, y), c = tileToScreen(x + 1, y + 1), d = tileToScreen(x, y + 1);
-    ctx.moveTo(a.x, a.y - g); ctx.lineTo(b.x + g * 2, b.y); ctx.lineTo(c.x, c.y + g); ctx.lineTo(d.x - g * 2, d.y); ctx.closePath();
-  }
+  const x0 = range.x0 - 1, y0 = range.y0 - 1, x1 = range.x1 + 1, y1 = range.y1 + 1;
+  let any = false;
+  for (let y = Math.max(0, y0); y <= Math.min(N - 1, y1) && !any; y++)
+    for (let x = Math.max(0, x0); x <= Math.min(N - 1, x1); x++) if (isWaterAt(x, y)) { any = true; break; }
+  if (!any) return;
   const t = frameTime;
-  const layer = (fx, fy, alpha) => {
-    const ox = fx * TW / 2 - fy * TW / 2, oy = fx * TH / 2 + fy * TH / 2;
-    const o = worldToScreen(ox, oy);
-    const pattern = groundPattern(ctx, 'wasser', o.x, o.y, cam.zoom);
-    if (!pattern) return;
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = pattern;
-    ctx.fill();
-  };
-  layer((t * 0.18) % TEXTURE_TILES, (t * 0.05) % TEXTURE_TILES, 1);
-  layer((t * 0.07) % TEXTURE_TILES, (t * 0.15) % TEXTURE_TILES, 0.35);
+  const o = tileToScreen(0, 0), ex = tileToScreen(1, 0), ey = tileToScreen(0, 1);
+  ctx.save();
+  ctx.transform(ex.x - o.x, ex.y - o.y, ey.x - o.x, ey.y - o.y, o.x, o.y);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const box = [x0, y0, x1, y1];
+  // Schaumsaum am Ufer (atmet leicht)
+  paintRegion(ctx, box, isWaterAt, `rgba(255,255,255,${0.32 + 0.12 * Math.sin(t * 1.3)})`, 1.1 + 0.03 * Math.sin(t * 1.3), 2);
+  // zwei langsam wandernde Lagen der Wasser-Textur
+  paintRegion(ctx, box, isWaterAt, tilePattern(ctx, 'wasser', (t * 0.18) % TEXTURE_TILES, (t * 0.05) % TEXTURE_TILES), 1.0, 2);
+  ctx.globalAlpha = 0.35;
+  paintRegion(ctx, box, isWaterAt, tilePattern(ctx, 'wasser', (t * 0.07) % TEXTURE_TILES, (t * 0.15) % TEXTURE_TILES), 1.0, 2);
+  ctx.restore();
   ctx.globalAlpha = 1;
   // Glitzern
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = Math.max(1, 1.5 * cam.zoom);
-  for (const [x, y] of tiles) {
-    const h = hash(x + 3, y + 11);
-    if (h < 0.75) continue;
-    const a = Math.pow(Math.max(0, Math.sin(t * 1.7 + h * 40)), 6);
-    if (a < 0.05) continue;
-    const p = tileToScreen(x + 0.5, y + 0.5);
-    ctx.globalAlpha = a * 0.8;
-    ctx.beginPath(); ctx.moveTo(p.x - 5 * cam.zoom, p.y); ctx.lineTo(p.x + 5 * cam.zoom, p.y); ctx.stroke();
-  }
+  for (let y = Math.max(0, range.y0); y <= range.y1; y++)
+    for (let x = Math.max(0, range.x0); x <= range.x1; x++) {
+      if (!isWaterAt(x, y)) continue;
+      const h = hash(x + 3, y + 11);
+      if (h < 0.75) continue;
+      const a = Math.pow(Math.max(0, Math.sin(t * 1.7 + h * 40)), 6);
+      if (a < 0.05) continue;
+      const p = tileToScreen(x + 0.5, y + 0.5);
+      ctx.globalAlpha = a * 0.8;
+      ctx.beginPath(); ctx.moveTo(p.x - 5 * cam.zoom, p.y); ctx.lineTo(p.x + 5 * cam.zoom, p.y); ctx.stroke();
+    }
   ctx.globalAlpha = 1;
 }
 
@@ -849,30 +922,46 @@ function drawGhost(g) {
 const PATH_WIDTH = 0.56;   // Breite des Weges (Anteil eines Feldes)
 
 function drawPaths(range) {
-  const tiles = [];
+  const tiles = [], bridges = [];
   for (const b of state.buildings) {
     if (!BUILDINGS[b.type].isPath) continue;
     if (b.x < range.x0 - 1 || b.x > range.x1 + 1 || b.y < range.y0 - 1 || b.y > range.y1 + 1) continue;
-    tiles.push(b);
+    (BUILDINGS[b.type].onWater ? bridges : tiles).push(b);
   }
-  if (!tiles.length) return;
+  if (!tiles.length && !bridges.length) return;
   const o = tileToScreen(0, 0), ex = tileToScreen(1, 0), ey = tileToScreen(0, 1);
   ctx.save();
   ctx.transform(ex.x - o.x, ex.y - o.y, ey.x - o.x, ey.y - o.y, o.x, o.y);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  // Weg-Stücke: von der Feldmitte zu jedem Nachbarn mit Weg oder Gebäude (so führt der Pfad bis an die Tür)
+  // Zu jedem Gebäude führt nur EIN Weg hinein: das Wegfeld an der Vorderseite (unten links/rechts im Bild),
+  // möglichst mittig. Sonst hätte jedes Wegfeld entlang der Hauswand einen eigenen Stummel zum Haus.
+  const door = {};   // Gebäude-Index → { b: Wegfeld, dx, dy, score }
+  for (const b of tiles) {
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const i = buildingAt(b.x + dx, b.y + dy);
+      if (i < 0) continue;
+      const h = state.buildings[i], def = BUILDINGS[h.type];
+      if (def.isPath) continue;
+      const sz = def.size, front = dx === -1 || dy === -1;   // Weg liegt rechts unten oder links unten vor dem Haus
+      const mid = dx !== 0 ? Math.abs(b.y + 0.5 - (h.y + sz / 2)) : Math.abs(b.x + 0.5 - (h.x + sz / 2));
+      const score = (front ? 0 : 100) + mid;
+      if (!door[i] || score < door[i].score) door[i] = { b, dx, dy, score };
+    }
+  }
   const shape = () => {
     ctx.beginPath();
     for (const b of tiles) {
       const cx = b.x + 0.5, cy = b.y + 0.5;
       ctx.moveTo(cx, cy); ctx.lineTo(cx + 0.001, cy);
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const i = buildingAt(b.x + dx, b.y + dy);
-        if (i < 0) continue;
-        const reach = BUILDINGS[state.buildings[i].type].isPath ? 0.5 : 0.62;
-        ctx.moveTo(cx, cy); ctx.lineTo(cx + dx * reach, cy + dy * reach);
+        if (!isPathAt(b.x + dx, b.y + dy)) continue;
+        ctx.moveTo(cx, cy); ctx.lineTo(cx + dx * 0.5, cy + dy * 0.5);
       }
+    }
+    for (const d of Object.values(door)) {
+      const cx = d.b.x + 0.5, cy = d.b.y + 0.5;
+      ctx.moveTo(cx, cy); ctx.lineTo(cx + d.dx * 0.62, cy + d.dy * 0.62);
     }
   };
   // Rand: etwas dunklere, festgetretene Erde am Grasrand
@@ -895,7 +984,79 @@ function drawPaths(range) {
   // im Winter liegt etwas Schnee auf dem Weg
   const snow = typeof snowCover === 'function' ? snowCover() : 0;
   if (snow > 0) { ctx.strokeStyle = `rgba(245,250,255,${0.35 * snow})`; ctx.stroke(); }
+  const sprite = images.bruecke;
+  if (!sprite) for (const b of bridges) drawBridge(b, snow);
   ctx.restore();
+  for (const b of bridges) {
+    if (sprite) drawBridgeSprite(sprite, b, snow);
+    else drawBridgeRails(b);
+  }
+}
+
+// Brückenstück aus Canva: läuft im Bild von unten links nach oben rechts (= entlang y); entlang x gespiegelt
+function drawBridgeSprite(img, b, snow) {
+  const p = tileToScreen(b.x + 0.5, b.y + 0.5), z = cam.zoom;
+  const w = TW * 1.0 * z, h = w * img.height / img.width;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  if (bridgeAlongX(b)) ctx.scale(-1, 1);
+  ctx.fillStyle = 'rgba(20, 40, 60, 0.25)';   // Schatten im Wasser
+  ctx.beginPath(); ctx.ellipse(3 * z, 5 * z, w * 0.42, h * 0.2, 0, 0, 7); ctx.fill();
+  ctx.drawImage(img, -w / 2, -h * 0.58, w, h);
+  if (snow > 0.3) {   // ein Hauch Schnee auf den Stämmen
+    ctx.globalAlpha = 0.3 * snow;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(img, -w / 2, -h * 0.58, w, h);
+  }
+  ctx.restore();
+}
+
+// Laufrichtung einer Brücke: entlang x, wenn links oder rechts Weg/Brücke/Ufer anschließt, sonst entlang y
+function bridgeAlongX(b) {
+  const way = (x, y) => isPathAt(x, y);
+  if (way(b.x - 1, b.y) || way(b.x + 1, b.y)) return true;
+  if (way(b.x, b.y - 1) || way(b.x, b.y + 1)) return false;
+  return !isWaterAt(b.x - 1, b.y) || !isWaterAt(b.x + 1, b.y);
+}
+
+// Brückenbelag (in Feld-Koordinaten, ctx ist schon transformiert): Schatten, Rand, quer liegende Stämme
+const BRIDGE_W = 0.7;
+function drawBridge(b, snow) {
+  const ax = bridgeAlongX(b), h = BRIDGE_W / 2;
+  const [x0, y0, w, hh] = ax ? [b.x - 0.04, b.y + 0.5 - h, 1.08, BRIDGE_W] : [b.x + 0.5 - h, b.y - 0.04, BRIDGE_W, 1.08];
+  ctx.fillStyle = 'rgba(20, 40, 60, 0.28)';   // Schatten im Wasser
+  ctx.fillRect(x0 + 0.12, y0 + 0.12, w, hh);
+  ctx.fillStyle = '#5c3a1a';
+  ctx.fillRect(x0 - 0.03, y0 - 0.03, w + 0.06, hh + 0.06);
+  const img = images['leiste-holz-steinzeit'];
+  let fill = '#9a6332';
+  if (img && ctx.createPattern && typeof DOMMatrix !== 'undefined') {
+    fill = ctx.createPattern(img, 'repeat');
+    const k = 0.16 / 36;   // ein Stamm im Bild ≈ 36 Bildpunkte → 0,16 Felder dick
+    // Stämme liegen quer zur Laufrichtung
+    fill.setTransform(ax ? new DOMMatrix([0, k, -k, 0, x0, y0]) : new DOMMatrix([k, 0, 0, k, x0, y0]));
+  }
+  ctx.fillStyle = fill;
+  ctx.fillRect(x0, y0, w, hh);
+  if (snow > 0) { ctx.fillStyle = `rgba(245,250,255,${0.45 * snow})`; ctx.fillRect(x0, y0, w, hh); }
+}
+
+// Geländer: zwei Seile auf Pfosten an den Brückenseiten (im Bild etwas angehoben)
+function drawBridgeRails(b) {
+  const ax = bridgeAlongX(b), h = BRIDGE_W / 2 + 0.02, z = cam.zoom, lift = 7 * z;
+  const sides = ax ? [[[b.x, b.y + 0.5 - h], [b.x + 1, b.y + 0.5 - h]], [[b.x, b.y + 0.5 + h], [b.x + 1, b.y + 0.5 + h]]]
+    : [[[b.x + 0.5 - h, b.y], [b.x + 0.5 - h, b.y + 1]], [[b.x + 0.5 + h, b.y], [b.x + 0.5 + h, b.y + 1]]];
+  ctx.lineCap = 'round';
+  for (const [a, c] of sides) {
+    const p = tileToScreen(a[0], a[1]), q = tileToScreen(c[0], c[1]);
+    ctx.strokeStyle = '#4a2c12'; ctx.lineWidth = Math.max(1.5, 2.6 * z);
+    ctx.beginPath();
+    for (const r of [p, q]) { ctx.moveTo(r.x, r.y); ctx.lineTo(r.x, r.y - lift); }   // Pfosten
+    ctx.stroke();
+    ctx.strokeStyle = '#c9a46a'; ctx.lineWidth = Math.max(1, 1.6 * z);
+    ctx.beginPath(); ctx.moveTo(p.x, p.y - lift * 0.85); ctx.quadraticCurveTo((p.x + q.x) / 2, (p.y + q.y) / 2 - lift * 0.5, q.x, q.y - lift * 0.85); ctx.stroke();   // Seil
+  }
+  ctx.lineCap = 'butt';
 }
 
 function drawScene(dt) {

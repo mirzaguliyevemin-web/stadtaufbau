@@ -20,6 +20,14 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-30, Epochia Version 20 – Brücke: Pfade gehen nicht mehr aufs Wasser; malt man einen Pfad über den Fluss, entsteht dort
+  automatisch eine Holzbrücke (8 Holz je Feld, Bild aus Canva, auch in der Bauleiste unter Wege). Auch „Weg bauen“ nutzt Brücken.
+- 2026-10-30, Epochia Version 20 – Forschungsleiste mitten auf der Karte entfernt: Restzeit und Balken stehen am Forschung-Knopf.
+- 2026-10-30, Epochia Version 20 – Flussufer schöner: runde, geschwungene Uferlinie statt Rauten, neue Ufer-Textur mit Kieseln
+  und Strandgras (Canva), dunkler nasser Sand am Wasser, heller Schaumsaum, weicher Übergang zur Wiese.
+- 2026-10-30, Epochia Version 20 – Offline werden höchstens 2 Stunden nachgerechnet (vorher 8).
+- 2026-10-30, Epochia Version 20 – Wege zu Gebäuden: nur noch ein Zugang je Gebäude (an der Vorderseite, möglichst mittig)
+  statt mehrerer Stummel.
 - 2026-10-30, Epochia Version 19 – Trampelpfade schöner: neue Erd-Textur mit Steinchen (Canva), Pfade sind zusammenhängende,
   runde Wege mit dunklerem Rand und führen bis an die Gebäude (statt einzelner Sand-Rauten); im Winter leicht verschneit.
 - 2026-10-30, Epochia Version 19 – Untere Leiste am Handy war zu hoch: Karten liegen quer, Kategorien als kleine Symbole links

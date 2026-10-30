@@ -253,7 +253,7 @@ test('Export und Import', () => {
   noErrors(g);
 });
 
-test('Offline-Fortschritt: läuft weiter, höchstens 8 Stunden, verstellte Uhr schadet nicht', () => {
+test('Offline-Fortschritt: läuft weiter, höchstens 2 Stunden, verstellte Uhr schadet nicht', () => {
   const g = fresh();
   g.run(`state.res.holz = 100; const sp = findFreeSpot('holzsammler', 26, 26); placeBuilding('holzsammler', sp.x, sp.y); buildRoute(5); for (let i = 0; i < 40; i++) update(1);`);
   const holz = g.run('state.res.holz');
@@ -261,7 +261,7 @@ test('Offline-Fortschritt: läuft weiter, höchstens 8 Stunden, verstellte Uhr s
   ok(r && Math.abs(JSON.parse(r).seconds - 3600) < 1, 'Offline nicht gelaufen');
   ok(g.run('state.res.holz') > holz, 'kein Holz offline');
   const r2 = g.run('JSON.stringify(applyOfflineProgress(Date.now() - 100 * 3600 * 1000))');
-  ok(Math.abs(JSON.parse(r2).seconds - 8 * 3600) < 1, 'nicht auf 8 h begrenzt');
+  ok(Math.abs(JSON.parse(r2).seconds - 2 * 3600) < 1, 'nicht auf 2 h begrenzt');
   ok(g.run('applyOfflineProgress(Date.now() + 3600 * 1000)') === null, 'Zukunft gezählt');
   g.run('update(-50); update(NaN); update(Infinity)');
   ok(g.run('Number.isFinite(state.res.holz) && Number.isFinite(state.playTime)'), 'Kaputte Zeit macht Werte kaputt');
@@ -487,6 +487,20 @@ test('Bauleiste einklappen bleibt gespeichert, Pfade zeichnen ohne Fehler', () =
   g.run(`toggleBuildBar();`);
   ok(g.run('settings.barHidden') === false, 'Leiste geht nicht wieder auf');
   g.run(`state.res.holz = 50; for (let x = 20; x < 26; x++) placeBuilding('pfad', x, 30); drawPaths(visibleRange()); drawScene(0.1);`);
+  noErrors(g);
+});
+
+test('Brücke: Pfad nie aufs Wasser, Brücke nur aufs Wasser, über Brücken ist man verbunden', () => {
+  const g = fresh();
+  const w = g.run(`(() => { for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (isOwned(x, y) && terrain[y * N + x] === TERRAIN.wasser.id) return [x, y]; return null; })()`);
+  ok(w, 'kein Wasser im eigenen Land – Test sinnlos');
+  g.run(`state.res.holz = 500`);
+  ok(/Brücke/.test(g.run(`placeProblem('pfad', ${w[0]}, ${w[1]})`) || ''), 'Pfad im Wasser möglich');
+  const land = g.run(`(() => { for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (isOwned(x, y) && !placeProblem('pfad', x, y)) return [x, y]; })()`);
+  ok(g.run(`placeProblem('bruecke', ${land[0]}, ${land[1]})`), 'Brücke an Land möglich');
+  ok(g.run(`wayTypeAt(${w[0]}, ${w[1]})`) === 'bruecke' && g.run(`wayTypeAt(${land[0]}, ${land[1]})`) === 'pfad', 'Weg-Art falsch');
+  ok(g.run(`placeBuilding('bruecke', ${w[0]}, ${w[1]})`) === null && g.run(`isPathAt(${w[0]}, ${w[1]})`), 'Brücke lässt sich nicht bauen');
+  g.run(`drawScene(0.1)`);
   noErrors(g);
 });
 

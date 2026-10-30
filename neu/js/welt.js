@@ -257,6 +257,9 @@ function isConnected(i) {
   return connected[i] !== false;
 }
 
+// Auf Wasser wird aus einem Weg eine Brücke
+function wayTypeAt(x, y) { return inMap(x, y) && terrain[y * N + x] === TERRAIN.wasser.id ? 'bruecke' : 'pfad'; }
+
 // Kürzester Weg (neue Pfadfelder) von einem Gebäude zum Wegenetz; null = kein Weg möglich
 function pathRoute(i) {
   const b = state.buildings[i];
@@ -264,7 +267,7 @@ function pathRoute(i) {
   const s = BUILDINGS[b.type].size;
   const prev = new Int32Array(N * N).fill(-2);
   const queue = [];
-  const passable = (x, y) => isPathAt(x, y) || !placeProblem('pfad', x, y);
+  const passable = (x, y) => isPathAt(x, y) || !placeProblem(wayTypeAt(x, y), x, y);
   for (const [x, y] of perimeter(b.x, b.y, s))
     if (passable(x, y)) { prev[y * N + x] = -1; queue.push(y * N + x); }
   for (let q = 0; q < queue.length; q++) {
@@ -312,7 +315,8 @@ function placeProblem(type, x, y, ignore = -1) {
       const o = occ[yy * N + xx] - 1;
       if (o >= 0 && o !== ignore) return 'Hier steht schon etwas';
       const t = terrainAt(xx, yy);
-      if (t.blocks) return t === TERRAIN.wasser ? 'Nicht im Wasser' : `${t.name} im Weg – antippen zum Räumen`;
+      if (def.onWater) { if (t !== TERRAIN.wasser) return 'Brücken gehen nur über Wasser'; continue; }
+      if (t.blocks) return t === TERRAIN.wasser ? 'Nicht im Wasser – über den Fluss braucht es eine Brücke' : `${t.name} im Weg – antippen zum Räumen`;
     }
   if (def.needsWater && !touchesWater(x, y, s)) return 'Muss am Wasser stehen';
   return null;

@@ -123,13 +123,14 @@ function happyTip() {
 
 function renderSideButtons() {
   const r = state.research;
-  const pill = $('research-pill');
-  if (r) {
-    const t = TECHS[r.id];
-    const done = 1 - r.left / t.time;
-    pill.innerHTML = `${t.icon} ${esc(t.name)} <span class="mini-bar"><i style="width:${Math.round(done * 100)}%"></i></span> ${formatTime(r.left)}`;
-    show(pill, true);
-  } else show(pill, false);
+  // Laufende Forschung: Balken und Restzeit direkt am Forschung-Knopf (nicht mitten auf der Karte)
+  show($('research-pill'), false);
+  const rb = $('btn-research');
+  if (rb && rb.querySelector) {
+    const label = rb.querySelector('span'), bar = $('research-prog');
+    if (label) label.textContent = r ? formatTime(r.left) : 'Forschung';
+    if (bar) { bar.style.width = r ? Math.round((1 - r.left / TECHS[r.id].time) * 100) + '%' : '0'; show(bar.parentNode, !!r); }
+  }
   const ready = activeQuests().filter(questDone).length;
   $('quest-badge').textContent = ready || '';
   show($('quest-badge'), ready > 0);

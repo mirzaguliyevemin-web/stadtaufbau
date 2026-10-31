@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 34;
+const APP_VERSION = 35;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -165,22 +165,22 @@ const BUILDINGS = {
     info: 'Mittelpunkt des Lagers: Hier liegen alle Vorräte, das Feuer wärmt die Wohnungen im Umkreis.',
   },
   wohnhoehle: {
-    name: 'Wohnhöhle', icon: '🪨', size: 2, line: 'wohnen', tier: 0, stage: 'alt', bild: '1-wohnhoehle',
+    name: 'Wohnhöhle', icon: '🪨', size: 2, line: 'wohnen', tier: 0, stage: 'alt', bild: '1-wohnhoehle', views: ['r2'],
     color: '#9a9184', cost: { stein: 10 }, time: 20, housing: 3, upgradeTo: 'fellzelt',
     info: 'Ein Felsüberhang mit Fellvorhang – Platz für 3 Menschen.',
   },
   fellzelt: {
-    name: 'Fellzelt', icon: '⛺', size: 2, line: 'wohnen', tier: 1, stage: 'alt', bild: '1-fellzelt',
+    name: 'Fellzelt', icon: '⛺', size: 2, line: 'wohnen', tier: 1, stage: 'alt', bild: '1-fellzelt', views: ['r2'],
     color: '#b88a57', cost: { holz: 15, felle: 2 }, time: 30, housing: 4, requires: 'fellzelte', upgradeTo: 'grubenhaus',
     info: 'Zelt aus Stangen und Fellen – Platz für 4 Menschen.',
   },
   grubenhaus: {
-    name: 'Grubenhaus', icon: '🏠', size: 2, line: 'wohnen', tier: 2, stage: 'mittel', bild: '1-grubenhaus',
+    name: 'Grubenhaus', icon: '🏠', size: 2, line: 'wohnen', tier: 2, stage: 'mittel', bild: '1-grubenhaus', views: ['r2'],
     color: '#a07040', cost: { holz: 30, stein: 20 }, time: 60, housing: 6, requires: 'grubenhaus', upgradeTo: 'langhaus',
     info: 'Halb in den Boden gegraben, mit Schilfdach – Platz für 6 Menschen.',
   },
   langhaus: {
-    name: 'Langhaus', icon: '🏡', size: 3, line: 'wohnen', tier: 3, stage: 'jung', bild: '1-langhaus',
+    name: 'Langhaus', icon: '🏡', size: 3, line: 'wohnen', tier: 3, stage: 'jung', bild: '1-langhaus', views: ['r2'],
     color: '#8d5a32', cost: { holz: 100, stein: 50, werkzeug: 10 }, time: 180, housing: 14, requires: 'langhausbau',
     info: 'Großes Haus aus Holz und Lehm – Platz für 14 Menschen.',
   },
@@ -191,19 +191,19 @@ const BUILDINGS = {
     info: 'Häuser auf Pfählen am Wasser – Platz für 12 Menschen, dazu etwas Fisch.',
   },
   sammlerin: {
-    name: 'Sammlerin', icon: '🫐', size: 2, line: 'sammeln', tier: 0, stage: 'alt', bild: '1-sammlerin',
+    name: 'Sammlerin', icon: '🫐', size: 2, line: 'sammeln', tier: 0, stage: 'alt', bild: '1-sammlerin', views: ['r2'],
     color: '#9c5ab8', cost: { holz: 10 }, time: 30, workers: 2, produces: { nahrung: 8 },
     bonus: { terrain: 'wald', perTile: 0.04, max: 0.5 },
     info: 'Sammelt Beeren, Pilze und Wurzeln. Am Wald mehr, im Winter wenig.',
   },
   jaegerlager: {
-    name: 'Jägerlager', icon: '🏹', size: 3, line: 'jagen', tier: 0, stage: 'alt', bild: '1-jaegerlager',
+    name: 'Jägerlager', icon: '🏹', size: 3, line: 'jagen', tier: 0, stage: 'alt', bild: '1-jaegerlager', views: ['r2'],
     color: '#8a6a3a', cost: { holz: 20, stein: 10 }, time: 60, workers: 3, produces: { nahrung: 10, felle: 1 },
     bonus: { terrain: 'wald', perTile: 0.03, max: 0.5 }, upgradeTo: 'mammutjaegerlager',
     info: 'Jäger bringen Fleisch und ein paar Felle. Am Wald mehr.',
   },
   mammutjaegerlager: {
-    name: 'Mammutjägerlager', icon: '🦣', size: 3, line: 'jagen', tier: 1, stage: 'alt', bild: '1-mammutjaegerlager',
+    name: 'Mammutjägerlager', icon: '🦣', size: 3, line: 'jagen', tier: 1, stage: 'alt', bild: '1-mammutjaegerlager', views: ['r2'],
     color: '#6f5030', cost: { holz: 60, stein: 40 }, time: 120, workers: 4, produces: { nahrung: 20, felle: 2 },
     bonus: { terrain: 'wald', perTile: 0.03, max: 0.5 }, requires: 'mammutjagd', upgradeOnly: true,
     info: 'Doppelt so viel Nahrung und Felle wie das Jägerlager.',
@@ -224,7 +224,7 @@ const BUILDINGS = {
     requires: 'viehzucht', info: 'Ziegen geben Milch, Fleisch und Felle – das ganze Jahr.',
   },
   holzsammler: {
-    name: 'Holzsammler', icon: '🪓', size: 2, line: 'holz', tier: 0, stage: 'alt', bild: '1-holzsammler',
+    name: 'Holzsammler', icon: '🪓', size: 2, line: 'holz', tier: 0, stage: 'alt', bild: '1-holzsammler', views: ['r2'],
     color: '#7a5230', cost: { stein: 5 }, time: 30, workers: 2, produces: { holz: 8 },
     bonus: { terrain: 'wald', perTile: 0.04, max: 0.6 }, fellsTrees: true,
     info: 'Fällt Bäume und sammelt Holz. Am Wald viel mehr – aber die Bäume werden weniger. Eine Pflanzerin setzt neue.',
@@ -235,12 +235,12 @@ const BUILDINGS = {
     info: 'Sammelt Samen und pflanzt Setzlinge im Umkreis. Nach 10 Minuten ist daraus ein Baum gewachsen.',
   },
   steinsammler: {
-    name: 'Steinsammler', icon: '⛏️', size: 2, line: 'stein', tier: 0, stage: 'alt', bild: '1-steinsammler',
+    name: 'Steinsammler', icon: '⛏️', size: 2, line: 'stein', tier: 0, stage: 'alt', bild: '1-steinsammler', views: ['r2'],
     color: '#8a8a8a', cost: { holz: 15 }, time: 30, workers: 2, produces: { stein: 6 },
     bonus: { terrain: 'fels', perTile: 0.06, max: 0.6 }, info: 'Sammelt Steine. An Felsen viel mehr.',
   },
   hoehlenmaler: {
-    name: 'Höhlenmaler', icon: '🎨', size: 2, line: 'wissen', tier: 0, stage: 'alt', bild: '1-hoehlenmaler',
+    name: 'Höhlenmaler', icon: '🎨', size: 2, line: 'wissen', tier: 0, stage: 'alt', bild: '1-hoehlenmaler', views: ['r2'],
     color: '#c05a3a', cost: { holz: 15, stein: 15 }, time: 45, workers: 1, produces: { wissen: 4 },
     bonus: { terrain: 'fels', perTile: 0.05, max: 0.5 }, info: 'Malt Geschichten an Felswände – bringt Wissen für die Forschung.',
   },

@@ -21,6 +21,9 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 35 – Rückansichten (Canva) für Wohnhöhle, Fellzelt, Grubenhaus, Langhaus, Sammlerin, Jägerlager,
+  Mammutjägerlager, Holzsammler, Steinsammler, Höhlenmaler: Mit ↻ gibt es jetzt vier Richtungen (vorne, gespiegelt, Rückseite,
+  Rückseite gespiegelt).
 - 2026-10-31, Epochia Version 34 – Sammlerin bückt sich beim Pflücken zum Busch (Canva-Bild mit Korb).
 - 2026-10-31, Epochia Version 33 – Steinsammler und Tongrube halten die Spitzhacke richtig in den Händen (ausholen und zuschlagen, Canva).
 - 2026-10-31, Epochia Version 32 – Fehler: Arbeiter liefen übers Wasser – jetzt suchen sie sich einen Fußweg über Land, Pfade und

@@ -22,6 +22,10 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 30 – Fehlt einem Gebäude eine Ware, zeigt die Blase das Warenbild mit rotem „!“ (statt eines
+  Emojis), und die Info sagt, was fehlt und woher es kommt (z. B. „Es fehlt Felle – kommt von: Jägerlager, Mammutjagd“).
+- 2026-10-31, Epochia Version 30 – Menschenbilder (Canva): Jäger laufen mit Speer, Steinsammler tragen den Stein nur auf dem Rückweg,
+  am Ahnenplatz/Steinkreis kniet man zum Beten.
 - 2026-10-31, Epochia Version 29 – Kleine Gebäude-Info: „Antippen für mehr“ war schwer zu treffen (man traf Pause) – jetzt zwei
   gleich große Knöpfe mit Abstand: „⏸ Pause“ und „ℹ️ Mehr“.
 - 2026-10-31, Epochia Version 28 – Ruckeln am iPhone: Läuft das Spiel unter etwa 45 Bildern pro Sekunde, zeichnet es automatisch mit

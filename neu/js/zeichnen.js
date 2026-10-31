@@ -980,14 +980,14 @@ function drawBubble(i) {
   const b = state.buildings[i];
   const def = BUILDINGS[b.type];
   if (b.build || def.isPath || b.type === 'lagerfeuer' || cam.zoom < 0.45) return;
-  let icon, pic = null;
+  let icon, pic = null, warn = false;
   const road = isConnected(i);
   if (road && !def.produces) return;
   const lacking = def.consumes && Object.keys(def.consumes).find(id => (state.res[id] || 0) < 0.5);
   if (!road) icon = '🛤️❗';
   else if (b.paused) icon = '⏸';
   else if (def.workers && !(stats.staff[i] > 0)) icon = '👤❗';
-  else if (lacking) icon = RESOURCES[lacking].icon + '❗';
+  else if (lacking) { icon = RESOURCES[lacking].icon + '❗'; pic = images[RESOURCES[lacking].bild]; warn = true; }
   else {
     // Blasen kommen und gehen, damit nicht alles gleichzeitig blinkt
     const phase = (frameTime / 4 + hash(b.x, b.y)) % 1;
@@ -1001,11 +1001,20 @@ function drawBubble(i) {
   const size = Math.max(14, 18 * cam.zoom);
   const y = top.y - (0.55 + s * 0.22) * TH * cam.zoom - size * 1.6 + bob - (images[def.bild] ? s * TH * 0.5 * cam.zoom : 0);
   ctx.font = `${Math.round(size)}px sans-serif`;
-  const w = (pic ? size * 1.15 : ctx.measureText(icon).width) + size * 0.8;
+  const w = (pic ? size * 1.15 + (warn ? size * 0.7 : 0) : ctx.measureText(icon).width) + size * 0.8;
   ctx.fillStyle = 'rgba(255,255,255,0.95)';
   roundRect(top.x - w / 2, y - size * 0.75, w, size * 1.5, size * 0.6); ctx.fill();
   ctx.beginPath(); ctx.moveTo(top.x - 5, y + size * 0.7); ctx.lineTo(top.x + 5, y + size * 0.7); ctx.lineTo(top.x, y + size * 1.1); ctx.fill();
-  if (pic) { const q = size * 1.25; ctx.drawImage(pic, top.x - q / 2, y - q / 2, q, q); return; }
+  if (pic) {
+    const q = size * 1.25, ox = warn ? -size * 0.35 : 0;
+    ctx.drawImage(pic, top.x - q / 2 + ox, y - q / 2, q, q);
+    if (warn) {   // rotes Ausrufezeichen: diese Ware fehlt
+      ctx.fillStyle = '#d6332a'; ctx.font = `900 ${Math.round(size * 1.1)}px ${FONT}`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('!', top.x + q / 2 + ox + size * 0.25, y);
+    }
+    return;
+  }
   ctx.fillStyle = '#000';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

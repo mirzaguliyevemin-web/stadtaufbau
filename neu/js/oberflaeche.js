@@ -319,10 +319,18 @@ function infoText(i) {
     parts.push(Object.entries(out).map(([id, n]) => `+${n.toFixed(1)} ${RESOURCES[id].icon}/min`).join(' '));
   }
   if (def.workers) parts.push(`👤 ${stats.staff[i] || 0}/${def.workers}`);
+  const lacking = def.consumes && Object.keys(def.consumes).find(id => (state.res[id] || 0) < 0.5);
+  if (lacking) parts.push(`❗ Es fehlt ${RESOURCES[lacking].name}${sourceText(lacking)}`);
   if (def.warmth) parts.push(`🔥 Umkreis ${warmthRadius(def)}`);
   if (def.belief) parts.push(`🗿 Umkreis ${def.belief}`);
   if (def.storage) parts.push(`📦 +${def.storage}`);
   return parts.join(' · ');
+}
+
+// Woher kommt eine Ware? (für Hinweise wie „Es fehlt Felle – kommt vom Jägerlager“)
+function sourceText(id) {
+  const from = Object.keys(BUILDINGS).filter(t => BUILDINGS[t].produces && BUILDINGS[t].produces[id] && (isUnlocked(t) || stageReached(BUILDINGS[t].stage)));
+  return from.length ? ' – kommt von: ' + from.map(t => BUILDINGS[t].name).join(', ') + (id === 'felle' && !mammothsExtinct() && state.techs.mammutjagd ? ', Mammutjagd' : '') : '';
 }
 
 function infoPopHtml(i) {
@@ -567,6 +575,7 @@ function showBuildingWindow(i) {
     const out = outputPerMinute(i);
     lines.push('Stellt her: ' + Object.entries(out).map(([id, n]) => `${RESOURCES[id].icon} ${n.toFixed(1)}/min`).join(', '));
     if (def.consumes) lines.push('Braucht: ' + Object.entries(def.consumes).map(([id, n]) => `${RESOURCES[id].icon} ${n}/min`).join(', '));
+    for (const id of Object.keys(def.consumes || {})) if ((state.res[id] || 0) < 0.5) lines.push(`❗ Es fehlt ${RESOURCES[id].name} – darum steht es still${sourceText(id)}`);
     const tb = terrainBonus(b);
     if (def.bonus) lines.push(`🌲 Geländebonus (${TERRAIN[def.bonus.terrain].name}): +${Math.round(tb * 100)} %`);
     if (SEASON_FACTORS[b.type]) lines.push(`${season().icon} ${season().name}: ${Math.round(SEASON_FACTORS[b.type][seasonIndex()] * 100)} %`);

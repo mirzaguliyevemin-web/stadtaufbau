@@ -94,7 +94,9 @@ function updateAnimals(dt) {
   life.herdTimer -= dt;
   const hunt = state.hunt, phase = hunt ? huntPhase() : 0;
   if (herdPresent() && !life.animals.some(a => a.kind === 'mammut') && life.herdTimer <= 0) {
-    const p = randomFreeTile(cx, cy, 26, 14);
+    // nur dort, wo die Jäger zu Fuß hinkommen (nicht auf der anderen Flussseite ohne Brücke)
+    let p = null;
+    for (let i = 0; i < 6 && !p; i++) { const q = randomFreeTile(cx, cy, 26, 14); if (q && walkRoute(cx, cy, q[0] + 0.5, q[1] + 0.5)) p = q; }
     if (p) for (let i = 0; i < 3; i++) spawnAnimal('mammut', p[0] + (i % 2), p[1] + Math.floor(i / 2), { home: p, herd: i });
     life.herdTimer = 20;
   }
@@ -138,7 +140,7 @@ function updateAnimals(dt) {
     }
     const step = Math.min(dist, speed * dt);
     const nx = a.x + dx / dist * step, ny = a.y + dy / dist * step;
-    if (!a.flee && !animalFree(Math.floor(nx), Math.floor(ny))) { a.tx = a.x; a.ty = a.y; continue; }   // Hindernis: stehen bleiben
+    if (!animalFree(Math.floor(nx), Math.floor(ny))) { a.tx = a.x; a.ty = a.y; continue; }   // Hindernis (auch auf der Flucht, z. B. Wasser): stehen bleiben
     a.x = nx; a.y = ny;
     const sx = dx - dy;
     if (Math.abs(sx) > 0.01) a.face = sx > 0 ? -1 : 1;
@@ -154,17 +156,41 @@ function huntPhase() {
   return state.hunt ? Math.min(1, Math.max(0, 1 - state.hunt.left / CONFIG.hunt.seconds)) : 0;
 }
 
+// Weg der Jäger vom Lager zur Herde – um Wasser und Gebirge herum (einmal je Jagd berechnet).
+// Gibt es keinen Fußweg, gehen sie wie früher geradeaus.
+function huntRoute(h) {
+  const id = `${h.cx},${h.cy},${h.x},${h.y}`;
+  if (life.huntRoute && life.huntRoute.id === id) return life.huntRoute;
+  const pts = [[h.cx, h.cy], ...(walkRoute(h.cx, h.cy, h.x, h.y) || [[h.x, h.y]])];
+  const len = [0];
+  for (let i = 1; i < pts.length; i++) len.push(len[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  life.huntRoute = { id, pts, len };
+  return life.huntRoute;
+}
+
+// Punkt auf dem Weg bei Anteil k (0 = Lager, 1 = Herde) und die Laufrichtung dort
+function routePoint(r, k) {
+  const total = r.len[r.len.length - 1], d = total * k;
+  let i = 1;
+  while (i < r.pts.length - 1 && r.len[i] < d) i++;
+  const [ax, ay] = r.pts[i - 1], [bx, by] = r.pts[Math.min(i, r.pts.length - 1)];
+  const seg = (r.len[i] - r.len[i - 1]) || 1, f = Math.min(1, Math.max(0, (d - r.len[i - 1]) / seg));
+  return { x: ax + (bx - ax) * f, y: ay + (by - ay) * f, dx: bx - ax, dy: by - ay };
+}
+
 function hunterObjects(inView, t) {
   const h = state.hunt;
   if (!h) return [];
   const phase = huntPhase(), back = phase >= 0.5;
   const k = back ? 2 - phase * 2 : phase * 2;     // 0 = am Lager, 1 = bei der Herde
+  const route = huntRoute(h);
   const out = [];
   for (let i = 0; i < 3; i++) {
-    const ox = (i - 1) * 0.55, oy = (i % 2) * 0.5;   // nebeneinander, leicht versetzt
-    const x = h.cx + (h.x - h.cx) * k + ox, y = h.cy + (h.y - h.cy) * k + oy;
+    const p0 = routePoint(route, Math.max(0, k - i * 0.02));   // hintereinander auf dem Weg, leicht versetzt
+    const ox = (i - 1) * 0.25, oy = (i % 2) * 0.2;
+    const x = p0.x + ox, y = p0.y + oy;
     if (!inView(x, y)) continue;
-    const dx = (h.x - h.cx) * (back ? -1 : 1), dy = (h.y - h.cy) * (back ? -1 : 1);
+    const dx = p0.dx * (back ? -1 : 1), dy = p0.dy * (back ? -1 : 1);
     const face = dx - dy > 0 ? -1 : 1;
     const step = t * 10 + i * 2;
     out.push({ d: x + y - 0.5, kind: 'leben', draw: () => {
@@ -251,6 +277,8 @@ function walkRoute(fx, fy, tx, ty) {
   const x0 = Math.min(ax, bx) - 8, y0 = Math.min(ay, by) - 8, W = Math.max(ax, bx) + 9 - x0, H = Math.max(ay, by) + 9 - y0;
   const prev = new Int32Array(W * H).fill(-1), key = (x, y) => (y - y0) * W + (x - x0);
   const start = key(ax, ay), goal = key(bx, by);
+  const home = inMap(ax, ay) ? buildingAt(ax, ay) : -1;   // aus dem eigenen Gebäude darf man hinausgehen
+  const ok = (x, y) => walkable(x, y) || (home >= 0 && inMap(x, y) && buildingAt(x, y) === home);
   prev[start] = start;
   const queue = [start];
   for (let qi = 0; qi < queue.length && prev[goal] < 0; qi++) {
@@ -261,8 +289,8 @@ function walkRoute(fx, fy, tx, ty) {
       const nk = key(nx, ny);
       if (prev[nk] >= 0) continue;
       const isGoal = nk === goal;
-      if (!isGoal && !walkable(nx, ny)) continue;
-      if (dx && dy && (!walkable(x + dx, y) || !walkable(x, y + dy))) continue;   // nicht über Wasserecken springen
+      if (!isGoal && !ok(nx, ny)) continue;
+      if (dx && dy && (!ok(x + dx, y) || !ok(x, y + dy))) continue;   // nicht über Wasserecken springen
       prev[nk] = k;
       queue.push(nk);
     }
@@ -503,6 +531,23 @@ function gatherWant(b) {
   return Math.max(0, Math.min(most, Math.floor(state.pop / 3)));
 }
 
+// Woher ein Besucher kommt: 3 Felder außerhalb, aber nur über begehbares Land (kein Wasser, kein Gebirge).
+// Klappt keine Richtung, erscheint er direkt an seinem Platz.
+function gatherFrom(spot, a, r, cx, cy) {
+  for (const turn of [0, 1, -1, 2, -2, 3, -3, 4]) {   // erst die eigene Richtung, dann immer weiter daneben
+    const b = a + turn * Math.PI / 4;
+    const from = { x: cx + Math.cos(b) * (r + 3), y: cy + Math.sin(b) * (r + 3) };
+    let ok = true;
+    for (let s = 0.25; s <= 1 && ok; s += 0.25) {
+      const x = Math.floor(spot.x + (from.x - spot.x) * s), y = Math.floor(spot.y + (from.y - spot.y) * s);
+      const t = inMap(x, y) ? terrain[y * N + x] : -1;
+      if (t < 0 || t === TERRAIN.wasser.id || t === TERRAIN.berg.id) ok = false;
+    }
+    if (ok) return from;
+  }
+  return { x: spot.x, y: spot.y };
+}
+
 function updateVisitors(dt) {
   life.visitTimer -= dt;
   if (life.visitTimer <= 0) {
@@ -517,7 +562,7 @@ function updateVisitors(dt) {
       const s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
       const a = slot * 2.4 + hash(b.x, b.y) * 6, r = GATHER[b.type] === 'feuer' ? s * 0.34 + 0.1 : s / 2 + 0.3;   // am Feuer auf die Bänke
       const spot = { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r * 0.9 };
-      const from = { x: cx + Math.cos(a) * (r + 3), y: cy + Math.sin(a) * (r + 3) };
+      const from = gatherFrom(spot, a, r, cx, cy);
       life.visitors.push({ b, slot, kind: GATHER[b.type], x: from.x, y: from.y, from, spot, cx, cy, phase: 'go', t: 25 + lifeRandom() * 35,
         img: lifeRandom() < 0.5 ? 'mensch-mann' : 'mensch-frau', face: 1, ph: lifeRandom() * 9, alpha: 0 });
     });

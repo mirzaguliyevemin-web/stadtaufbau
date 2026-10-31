@@ -138,6 +138,10 @@ test('Forschung: kostet Wissen, nur eine gleichzeitig, Übergang öffnet die nä
   ok(g.run(`startResearch('mittelsteinzeit')`).includes(need + ' Einwohner'), 'Einwohner-Bedingung fehlt');
   g.run(`state.pop = ${need}; startResearch('mittelsteinzeit'); for (let i = 0; i <= TECHS.mittelsteinzeit.time; i++) update(1);`);
   ok(g.run('state.stage') === 'mittel', 'Stufe nicht gewechselt');
+  ok(g.run(`activeNeeds().map(n => n.id).join()`) === 'nahrung,waerme', 'Kleidung/Glaube zählen schon vor ihren Gebäuden');
+  g.run(`state.techs.ahnenkult = true; recalcStats();`);
+  ok(g.run(`activeNeeds().map(n => n.id).join()`) === 'nahrung,waerme,glaube', 'Glaube zählt nach Ahnenkult nicht');
+  g.run(`state.techs.fellbearbeitung = true; recalcStats();`);
   ok(g.run(`activeNeeds().map(n => n.id).join()`) === 'nahrung,waerme,kleidung,glaube', 'Bedürfnisse der Mittelsteinzeit fehlen');
   noErrors(g);
 });
@@ -785,12 +789,12 @@ test('Alte Spielstände (kleine Karte bis Version 21) landen in der Mitte der gr
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 22 (Emin: doppelt so langsam, Jahreszeit 30 min) dauert die Altsteinzeit gut 2 Stunden
-  test('Bot: Altsteinzeit dauert über 90 Minuten, Mittelsteinzeit ist in 4 Spielstunden erreichbar', () => {
+  test('Bot: Altsteinzeit dauert über 75 Minuten, Mittelsteinzeit ist in 4 Spielstunden erreichbar', () => {
     const { report, errors } = runBot(240, 1);
     ok(!errors.length, errors.join('\n'));
     console.log(`   Mittelsteinzeit ${report.mittelsteinzeit} min · Jungsteinzeit ${report.jungsteinzeit} min · Kupferfund ${report.kupferfund} min · ${report.final.pop} Einwohner · Hunger ${report.hungerMin} min`);
     ok(report.mittelsteinzeit !== null, 'Bot kommt nicht bis zur Mittelsteinzeit');
-    ok(report.mittelsteinzeit >= 90, 'Altsteinzeit ist zu schnell vorbei: ' + report.mittelsteinzeit + ' min');
+    ok(report.mittelsteinzeit >= 75, 'Altsteinzeit ist zu schnell vorbei: ' + report.mittelsteinzeit + ' min');
     ok(report.hungerMin <= 20, 'Zu viel Hunger: ' + report.hungerMin + ' min');
   });
 }

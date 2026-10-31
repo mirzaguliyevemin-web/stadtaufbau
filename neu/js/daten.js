@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 24;
+const APP_VERSION = 25;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -43,7 +43,7 @@ const CONFIG = {
   // Tempo-Regler (Emin, 31.10.: „Forschung, Rohstoffe und Bauen viel zu schnell“ → etwa doppelt so langsam).
   // Werden unten einmal auf BUILDINGS und TECHS angewendet; die Zahlen dort sind die Grundwerte.
   tempo: {
-    researchTime: 2,      // Forschungen dauern doppelt so lang
+    researchTime: 1.5,    // Forschungen dauern 1,5-mal so lang (ganze Steinzeit ≈ 8 h; bis Version 24: 2 ≈ 11 h)
     knowledgeCost: 1.5,   // und kosten 50 % mehr Wissen
     knowledgeMade: 0.7,   // Höhlenmaler & Co. machen 30 % weniger Wissen
     buildTime: 1.5,       // Bauzeiten +50 %

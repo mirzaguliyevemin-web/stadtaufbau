@@ -262,8 +262,17 @@ function housingTotal() {
   return n;
 }
 
+// Ein Bedürfnis zählt erst, wenn sein Zeitalter erreicht UND ein Gebäude dafür freigeschaltet ist (Emin, 31.10.:
+// sonst sinkt die Laune in der Mittelsteinzeit, lange bevor man Kleidung oder Glaube überhaupt herstellen kann)
+function needProviders(n) {
+  return Object.keys(BUILDINGS).filter(t => {
+    const d = BUILDINGS[t];
+    return n.kind === 'stock' ? !!(d.produces && d.produces[n.id]) : n.id === 'waerme' ? !!d.warmth : !!d.belief;
+  });
+}
+
 function activeNeeds() {
-  return NEEDS.filter(n => stageReached(n.from));
+  return NEEDS.filter(n => stageReached(n.from) && (n.id === 'nahrung' || needProviders(n).some(isUnlocked)));
 }
 
 // Anteil der Wohnplätze, die eine Quelle (Wärme oder Glaube) im Umkreis haben

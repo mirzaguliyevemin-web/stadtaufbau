@@ -1061,7 +1061,7 @@ function menuHtml() {
   const stat = (value, label) => `<div class="stat"><b>${value}</b><small>${label}</small></div>`;
   const tile = (icon, label, action) => `<button class="tile" onclick="${action}"><span class="emoji">${icon}</span>${label}</button>`;
   const sw = (key, icon, label, note) => `<label class="switch-row"><span>${icon} ${label}<small>${note}</small></span>
-    <input type="checkbox" class="switch" ${settings[key] ? 'checked' : ''} onchange="settings.${key}=this.checked; saveSettings()"></label>`;
+    <input type="checkbox" class="switch" ${settings[key] ? 'checked' : ''} onchange="settings.${key}=this.checked; saveSettings(); updateMusic()"></label>`;
   return `<div class="menu">
     ${images['logo-rund'] ? `<img class="menu-logo" src="${IMAGE_DIR}logo-rund.webp" alt="Epochia">` : ''}
     <section class="card wide">
@@ -1074,7 +1074,7 @@ function menuHtml() {
     <section class="card">
       <h3>⚙️ Einstellungen</h3>
       ${sw('sound', '🔊', 'Geräusche', 'jedes Gebäude klingt anders')}
-      ${sw('music', '🎵', 'Musik', 'kommt später')}
+      ${sw('music', '🎵', 'Musik', 'Flöten und Trommeln')}
       <div class="tiles">${tile('👴', 'Einstieg neu starten', 'closeAllPages(); restartTutorial()')}</div>
     </section>
     <section class="card">

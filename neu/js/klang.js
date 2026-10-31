@@ -19,7 +19,82 @@ function unlockAudio() {
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
-  if (audio.state === 'suspended' && audio.resume) audio.resume();
+  // „interrupted“: iPhone nach Anruf oder Siri – sonst bliebe das Spiel stumm bis zum Neuladen
+  if (audio.state !== 'running' && audio.resume) audio.resume();
+  updateMusic();
+}
+
+// Hintergrundmusik (von Emin mit Mureka erzeugt): tagsüber die Hauptmelodie, abends/nachts am Lagerfeuer,
+// im Winter das Winterlied, bei einem neuen Zeitalter einmal das Festlied. Wechsel mit sanfter Überblendung.
+// Nur im Spiel und nur wenn die Seite sichtbar ist (Schalter im Menü). Über Web Audio geleitet, weil das iPhone
+// die Lautstärke eines <audio> sonst nicht verändern lässt.
+const MUSIC_DIR = '../bilder/epochia/musik/', MUSIC_VOLUME = 0.35, MUSIC_FADE = 3;
+const MUSIC_TRACKS = { tag: 'hauptmelodie', nacht: 'nacht', winter: 'winter', fest: 'zeitalter' };
+const tracks = {};       // je Lied: { el: <audio>, gain }
+let musicNow = null;     // welches Lied gerade läuft
+let festUntil = 0;       // Festlied bis zu dieser Zeit (audio.currentTime)
+
+function musicTrack() {
+  if (festUntil && audio.currentTime < festUntil) return 'fest';
+  festUntil = 0;
+  if (seasonIndex() === 3) return 'winter';
+  const n = timeOfDay().name;
+  return n === 'Abend' || n === 'Nacht' ? 'nacht' : 'tag';
+}
+
+function musicEl(key) {
+  if (tracks[key]) return tracks[key];
+  const el = new Audio(MUSIC_DIR + MUSIC_TRACKS[key] + '.mp3');
+  el.loop = key !== 'fest';
+  let gain = null;
+  try {
+    gain = audio.createGain();
+    gain.gain.value = 0.0001;
+    audio.createMediaElementSource(el).connect(gain);
+    gain.connect(audio.destination);
+  } catch (e) { gain = null; }
+  return (tracks[key] = { el, gain });
+}
+
+function fadeTo(t, vol) {
+  const now = audio.currentTime;
+  if (t.gain) {
+    t.gain.gain.cancelScheduledValues(now);
+    t.gain.gain.setValueAtTime(Math.max(0.0001, t.gain.gain.value), now);
+    t.gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, vol), now + MUSIC_FADE);
+  } else t.el.volume = vol;
+}
+
+function updateMusic() {
+  if (typeof document === 'undefined' || typeof Audio === 'undefined' || !audio) return;
+  const on = settings.music && typeof gameRunning !== 'undefined' && gameRunning && document.visibilityState === 'visible';
+  if (!on) {   // alles anhalten
+    for (const t of Object.values(tracks)) if (!t.el.paused) t.el.pause();
+    musicNow = null;
+    return;
+  }
+  const want = musicTrack();
+  if (want === musicNow) { const t = tracks[want]; if (t && t.el.paused && want !== 'fest') t.el.play().catch(() => {}); return; }
+  if (musicNow && tracks[musicNow]) {   // altes Lied ausblenden, danach anhalten
+    const old = tracks[musicNow], key = musicNow;
+    fadeTo(old, 0);
+    setTimeout(() => { if (musicNow !== key) old.el.pause(); }, MUSIC_FADE * 1000 + 100);
+  }
+  const t = musicEl(want);
+  if (want === 'fest') t.el.currentTime = 0;
+  t.el.play().catch(() => {});
+  fadeTo(t, MUSIC_VOLUME);
+  musicNow = want;
+}
+
+// Neues Zeitalter: einmal das Festlied, danach geht es mit der passenden Musik weiter
+function playFestMusic() {
+  if (!audio || !settings.music) return;
+  const t = musicEl('fest');
+  festUntil = audio.currentTime + (t.el.duration || 120);
+  t.el.onloadedmetadata = () => { festUntil = audio.currentTime + t.el.duration; };
+  t.el.onended = () => { festUntil = 0; updateMusic(); };
+  updateMusic();
 }
 
 // Ton: Form (sine, triangle, square, sawtooth), Frequenz (auch gleitend), Lautstärke mit kurzem Anstieg und Abklingen

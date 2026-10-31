@@ -29,6 +29,7 @@ async function preloadImages() {
 
 function showStartScreen() {
   gameRunning = false;
+  updateMusic();
   show($('game'), false);
   show($('loading'), false);
   const info = slotInfo(currentSlot);
@@ -121,6 +122,7 @@ function loop(now) {
     uiTimer = 0;
     renderTopbar();
     renderBuildBar();
+    updateMusic();   // z. B. nach Startseite → Spiel
     renderSideButtons();
     if (ghost) renderActionBar();
     if (infoFor) positionInfo();
@@ -143,6 +145,7 @@ on('researchDone', id => {
   toast(`📜 Erforscht: ${TECHS[id].name}`);
   refreshResearchPage();
   if (TECHS[id].effect && TECHS[id].effect.stage) {
+    playFestMusic();
     openDialog(`<h2>${TECHS[id].icon} ${esc(STAGES[stageIndex()].name)}!</h2>
       <p>Der Stamm ist in eine neue Zeit aufgebrochen. Im Forschungsbaum gibt es neue Forschungen und bald neue Gebäude.</p>
       <div class="buttons"><button class="btn primary" onclick="closeDialog()">Weiter</button></div>`);
@@ -207,6 +210,7 @@ function boot() {
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden' && gameRunning) saveGame();
+    updateMusic();
     if (document.visibilityState === 'visible') checkForUpdate();
     if (document.visibilityState === 'visible' && gameRunning) {
       // Zeit im Hintergrund nachholen

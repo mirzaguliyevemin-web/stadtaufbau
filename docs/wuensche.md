@@ -22,6 +22,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 41 – Hintergrundmusik von Emin (Mureka/AIMusicAI): Hauptmelodie am Tag, Lagerfeuer abends/nachts, Winterlied, Festlied beim neuen Zeitalter, sanft überblendet, Schalter im Menü; Ton nach Anruf/Siri auf dem iPhone wieder an.
 - 2026-10-31, Epochia Version 40 – Arbeiter auch bei Acker (graben auf dem Feld), Ziegengehege (Hirte am Zaun) und Pflanzerin (kniet am Setzling); Bild Bäuerin „Grabstock oben“ (Canva). Es fehlen noch: Grabstock unten, Hirte, Pflanzerin kniend – bis dahin normale Figuren.
 - 2026-10-31, Epochia Version 39 – Forschung: Restzeit auf der Karte im Baum läuft jetzt mit (auch „Läuft … noch“ rechts), doppelte Zeitanzeige oben entfernt.
 - 2026-10-31, Epochia Version 38 – Übers-Wasser-Laufen auch bei Mammutjägern (Wegsuche, Herde nur zu Fuß erreichbar), Besuchern am Feuer/Ahnenplatz und fliehenden Mammuts behoben.

@@ -5,6 +5,39 @@ const $ = id => document.getElementById(id);
 
 function show(el, on = true) { if (el) el.classList.toggle('hidden', !on); }
 
+// Inhalt nur dort ändern, wo er sich unterscheidet (Zahlen, Breiten), statt alles neu zu bauen.
+// Grund: iPhone-Safari lädt bei innerHTML die <img>-Bilder neu und lässt sie kurz verschwinden – die Leiste „flattert“.
+// Ändert sich der Aufbau (andere Knoten), wird wie bisher alles ersetzt.
+function patchHtml(el, html) {
+  if (!el) return;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html;
+  const next = tpl.content;
+  if (!next || !el.childNodes || !sameShape(el, next)) { el.innerHTML = html; return; }
+  syncNodes(el, next);
+}
+
+function sameShape(a, b) {
+  const x = a.childNodes, y = b.childNodes;
+  if (x.length !== y.length) return false;
+  for (let i = 0; i < x.length; i++) {
+    if (x[i].nodeType !== y[i].nodeType || x[i].nodeName !== y[i].nodeName) return false;
+    if (x[i].nodeType === 1 && !sameShape(x[i], y[i])) return false;
+  }
+  return true;
+}
+
+function syncNodes(a, b) {
+  for (let i = 0; i < a.childNodes.length; i++) {
+    const x = a.childNodes[i], y = b.childNodes[i];
+    if (x.nodeType === 3) { if (x.nodeValue !== y.nodeValue) x.nodeValue = y.nodeValue; continue; }
+    if (x.nodeType !== 1) continue;
+    for (const { name, value } of [...y.attributes]) if (x.getAttribute(name) !== value) x.setAttribute(name, value);
+    for (const { name } of [...x.attributes]) if (!y.hasAttribute(name)) x.removeAttribute(name);
+    syncNodes(x, y);
+  }
+}
+
 function esc(text) {
   return String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
@@ -47,7 +80,7 @@ function visibleResources() {
   return Object.keys(RESOURCES).filter(id => !RESOURCES[id].from || stageReached(RESOURCES[id].from) || (state.res[id] || 0) >= 1);
 }
 
-let lastTopbar = '';
+let lastTopbar = '', topbarHeight = 0;
 
 // Wetter-Symbol oben: nachts der Mond, sonst das Wetter (sobald es richtig da ist)
 function weatherIcon() {
@@ -110,11 +143,12 @@ function renderTopbar() {
       <button class="chip" onclick="weatherTip()">${season().icon}${weatherIcon()}</button>
     </div>`;
   if (html !== lastTopbar) {
-    $('topbar').innerHTML = html;
+    patchHtml($('topbar'), html);
     lastTopbar = html;
-    // Seitenknöpfe unter die (evtl. zweizeilige) obere Leiste schieben
+    // Seitenknöpfe unter die (evtl. zweizeilige) obere Leiste schieben – nur bei echter Änderung,
+    // sonst rechnet das iPhone das Layout ständig neu
     const h = $('topbar').offsetHeight;
-    if (h) setCssVar('--top-h', h + 'px');
+    if (h && h !== topbarHeight) { topbarHeight = h; setCssVar('--top-h', h + 'px'); }
   }
 }
 
@@ -267,7 +301,7 @@ function renderBuildBar() {
   }).join('');
   applyBarHidden();
   if (items !== lastBar) {
-    $('buildbar').innerHTML = items;
+    patchHtml($('buildbar'), items);
     lastBar = items;
     const h = $('buildbar').offsetHeight;
     if (h) setCssVar('--bar-h', h + 'px');

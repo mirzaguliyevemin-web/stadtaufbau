@@ -22,6 +22,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 37 – iPhone: Ressourcen-Leiste und Wissen-Anzeige flattern nicht mehr (nur Zahlen werden getauscht, Bilder bleiben stehen; auch Bauleiste).
 - 2026-10-31, Epochia Version 36 – Rückansicht Feuerplatz (Canva).
 - 2026-10-31, Epochia Version 35 – Rückansichten (Canva) für Wohnhöhle, Fellzelt, Grubenhaus, Langhaus, Sammlerin, Jägerlager,
   Mammutjägerlager, Holzsammler, Steinsammler, Höhlenmaler: Mit ↻ gibt es jetzt vier Richtungen (vorne, gespiegelt, Rückseite,

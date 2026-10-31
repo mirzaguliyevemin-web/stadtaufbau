@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 35;
+const APP_VERSION = 36;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -245,7 +245,7 @@ const BUILDINGS = {
     bonus: { terrain: 'fels', perTile: 0.05, max: 0.5 }, info: 'Malt Geschichten an Felswände – bringt Wissen für die Forschung.',
   },
   feuerplatz: {
-    name: 'Feuerplatz', icon: '🔥', size: 2, line: 'waerme', tier: 0, stage: 'alt', bild: '1-feuerplatz',
+    name: 'Feuerplatz', icon: '🔥', size: 2, line: 'waerme', tier: 0, stage: 'alt', bild: '1-feuerplatz', views: ['r2'],
     color: '#d0603a', cost: { holz: 15, stein: 10 }, time: 30, warmth: 5,
     info: 'Wärme und Gemeinschaft für Wohnungen im Umkreis.',
   },

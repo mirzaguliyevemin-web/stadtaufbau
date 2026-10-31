@@ -16,11 +16,13 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Gebäude 4× drehen: Dreh-Ansichten für die übrigen Gebäude (Canva, nach und nach). Wasser-Gebäude sind fertig (Emin, 31.10.).
+- Gebäude 4× drehen (Emin, 31.10.): noch offen Rückansichten für Acker, Ziegengehege, Fellmacherin, Steinschläger, Ahnenplatz,
+  Töpferei, Vorratsspeicher, Steinkreis, Lagerfeuer, Pflanzerin – danach Winterbilder aller Rückansichten (Canva-Pause auf Emins Wunsch).
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 36 – Rückansicht Feuerplatz (Canva).
 - 2026-10-31, Epochia Version 35 – Rückansichten (Canva) für Wohnhöhle, Fellzelt, Grubenhaus, Langhaus, Sammlerin, Jägerlager,
   Mammutjägerlager, Holzsammler, Steinsammler, Höhlenmaler: Mit ↻ gibt es jetzt vier Richtungen (vorne, gespiegelt, Rückseite,
   Rückseite gespiegelt).

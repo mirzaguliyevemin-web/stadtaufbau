@@ -8,7 +8,7 @@ Stand: 31.10.2026, nur geplant, noch nichts gebaut. Wird in Sitzungen mit Emin u
 - **Anmeldung:** E-Mail (Anmelde-Link) reicht zuerst, Google-Anmeldung später. **Kein Apple.**
 - **Geschenke:** **Schmuck** (Deko-Gebäude, Profilbilder, Rahmen, Titel), keine Spielhilfen.
 - **Freunde:** Liste **und Siedlung besuchen** (ansehen).
-- **Zeitpunkt:** noch offen (vor oder nach der Bronzezeit).
+- **Zeitpunkt:** erst nach der Bronzezeit, eventuell auch erst nach weiteren Zeitaltern. Keine Eile.
 
 ## Technik
 

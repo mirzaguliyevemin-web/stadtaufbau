@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-mann-stein', 'mensch-mann-betend', 'mammut', 'hirsch', 'ziege', 'einbaum'];
+const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mammut', 'hirsch', 'ziege', 'einbaum'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -236,6 +236,46 @@ function workSpot(b, kind, far, k = 0) {
   return best;
 }
 
+// Fußweg von Feld zu Feld (8 Richtungen, keine Ecken abschneiden): über Land, Pfade und Brücken – nie übers Wasser,
+// nicht durchs Gebirge und nicht quer über Gebäude. Ergebnis: Liste von Punkten bis zum Ziel, oder null.
+function walkable(x, y) {
+  if (!inMap(x, y)) return false;
+  const i = buildingAt(x, y);
+  if (i >= 0) return !!BUILDINGS[state.buildings[i].type].isPath;   // Pfade und Brücken ja, Gebäude nein
+  const t = terrain[y * N + x];
+  return t !== TERRAIN.wasser.id && t !== TERRAIN.berg.id;
+}
+
+function walkRoute(fx, fy, tx, ty) {
+  const ax = Math.floor(fx), ay = Math.floor(fy), bx = Math.floor(tx), by = Math.floor(ty);
+  const x0 = Math.min(ax, bx) - 8, y0 = Math.min(ay, by) - 8, W = Math.max(ax, bx) + 9 - x0, H = Math.max(ay, by) + 9 - y0;
+  const prev = new Int32Array(W * H).fill(-1), key = (x, y) => (y - y0) * W + (x - x0);
+  const start = key(ax, ay), goal = key(bx, by);
+  prev[start] = start;
+  const queue = [start];
+  for (let qi = 0; qi < queue.length && prev[goal] < 0; qi++) {
+    const k = queue[qi], x = k % W + x0, y = Math.floor(k / W) + y0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < x0 || ny < y0 || nx >= x0 + W || ny >= y0 + H) continue;
+      const nk = key(nx, ny);
+      if (prev[nk] >= 0) continue;
+      const isGoal = nk === goal;
+      if (!isGoal && !walkable(nx, ny)) continue;
+      if (dx && dy && (!walkable(x + dx, y) || !walkable(x, y + dy))) continue;   // nicht über Wasserecken springen
+      prev[nk] = k;
+      queue.push(nk);
+    }
+  }
+  if (prev[goal] < 0) return null;
+  const pts = [];
+  for (let k = goal; k !== start; k = prev[k]) pts.push([k % W + x0 + 0.5, Math.floor(k / W) + y0 + 0.5]);
+  pts.reverse();
+  if (pts.length) pts.pop();
+  pts.push([tx, ty]);   // letzter Punkt: genau der Standplatz
+  return pts;
+}
+
 function updateWorkers(dt) {
   life.workTimer -= dt;
   if (life.workTimer <= 0) {   // einmal pro Sekunde: wer soll draußen arbeiten?
@@ -268,11 +308,16 @@ function updateWorkers(dt) {
           if (inMap(x, y) && terrain[y * N + x] === TERRAIN.wasser.id && buildingAt(x, y) < 0) { spot.tx = x + 0.5; spot.ty = y + 0.5; break; }
         }
       }
-      Object.assign(w, spot, { phase: 'go' });
+      const route = walkRoute(w.x, w.y, spot.sx, spot.sy);
+      if (!route) { w.t = 8; continue; }   // nur übers Wasser erreichbar: später nochmal (anderer Baum)
+      Object.assign(w, spot, { phase: 'go', route });
     } else if (w.phase === 'go' || w.phase === 'back') {
-      const [gx, gy] = w.phase === 'go' ? [w.sx, w.sy] : [w.home.x, w.home.y];
+      if (!w.route || !w.route.length) w.route = [w.phase === 'go' ? [w.sx, w.sy] : [w.home.x, w.home.y]];
+      const [gx, gy] = w.route[0];
       const dx = gx - w.x, dy = gy - w.y, d = Math.hypot(dx, dy);
       if (d < 0.05) {
+        w.route.shift();
+        if (w.route.length) continue;
         if (w.phase === 'go') { w.phase = 'work'; w.t = WORK_SECONDS * (0.8 + lifeRandom() * 0.4); }
         else { w.phase = 'rest'; w.t = 3 + lifeRandom() * 3; }
         continue;
@@ -288,12 +333,12 @@ function updateWorkers(dt) {
         const bx = w.tx + ox, by = w.ty + oy;
         w.face = Math.cos(w.bt * 0.35 + w.ph) * 0.35 + Math.sin(w.bt * 0.27 + w.ph) * 0.27 > 0 ? -1 : 1;   // in Fahrtrichtung schauen
         w.x = w.sx + (bx - w.sx) * r; w.y = w.sy + (by - w.sy) * r;
-        if (w.t <= 0) { w.bt = 0; w.x = w.sx; w.y = w.sy; w.phase = 'back'; }   // am Ufer wieder aussteigen
+        if (w.t <= 0) { w.bt = 0; w.x = w.sx; w.y = w.sy; w.phase = 'back'; w.route = walkRoute(w.x, w.y, w.home.x, w.home.y); }   // am Ufer wieder aussteigen
         continue;
       }
       const sxd = w.tx - w.x - (w.ty - w.y);
       if (Math.abs(sxd) > 0.01) w.face = sxd > 0 ? -1 : 1;   // zum Baum/Felsen schauen
-      if (w.t <= 0) w.phase = 'back';
+      if (w.t <= 0) { w.phase = 'back'; w.route = walkRoute(w.x, w.y, w.home.x, w.home.y) || [[w.home.x, w.home.y]]; }
     }
   }
 }
@@ -322,11 +367,22 @@ function drawWorker(w, t) {
   // mit Last nur auf dem Rückweg (carryLook: das Grundbild zeigt schon Holz bzw. Korb), sonst leere Hände
   const look = w.kind.look && images[w.kind.look] ? w.kind.look   // Jäger immer mit Speer
     : w.phase === 'back' && w.kind.carryLook && images[w.kind.carryLook] ? w.kind.carryLook : personImg(w.kind.img, 'leer');
-  drawCreature(look, w.x, w.y, 32, w.face, bob, '🧍', walking ? step : null);
   const p = tileToScreen(w.x, w.y);
+  const pose = !walking && w.kind.tool && TOOL_POSES[w.kind.tool];
+  const posed = pose && images[pose[0][0]] && images[pose[1][0]];
+  if (posed) {   // Arbeitshaltung aus Canva: ausholen (lang) – zuschlagen (kurz), das Werkzeug ist in der Hand
+    const cyc = (t * 1.6 + w.ph) % 1, [name, h, shift] = pose[cyc < 0.7 ? 0 : 1], img = images[name];
+    const hh = h * z, ww = hh * img.width / img.height;
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y, 10 * z, 3.2 * z, 0, 0, 7); ctx.fill();
+    ctx.save(); ctx.translate(p.x, p.y); if (w.face < 0) ctx.scale(-1, 1);
+    ctx.drawImage(img, -ww / 2 - ww * shift, -hh, ww, hh);
+    ctx.restore();
+  } else drawCreature(look, w.x, w.y, 32, w.face, bob, '🧍', walking ? step : null);
   // Werkzeug schwingen (hoch – runter – Schlag)
-  if (!walking && w.kind.tool && images[w.kind.tool]) {
+  if (!walking && w.kind.tool && (posed || images[w.kind.tool])) {
     const cyc = (t * 1.6 + w.ph) % 1;
+    if (!posed) {
     const ang = cyc < 0.7 ? -1.6 * (cyc / 0.7) : -1.6 + 2.2 * ((cyc - 0.7) / 0.3);   // langsam ausholen, schnell zuschlagen
     const s = 24 * z;
     ctx.save();
@@ -335,6 +391,7 @@ function drawWorker(w, t) {
     ctx.rotate(ang);
     ctx.drawImage(images[w.kind.tool], -s * 0.2, -s, s, s);
     ctx.restore();
+    }
     // Späne bzw. Splitter beim Aufschlag
     if (cyc > 0.85 && w.kind.chips) {
       const q = (cyc - 0.85) / 0.15;
@@ -533,6 +590,12 @@ function drawSitting(v, t) {
   }
   ctx.restore();
 }
+
+// Arbeitshaltungen je Werkzeug: [Bild, Höhe in Bildpunkten bei Zoom 1, Versatz nach links (Anteil der Breite)]
+const TOOL_POSES = {
+  axt:   [['mensch-axt-oben', 38, 0], ['mensch-axt-unten', 34, 0.12]],
+  hacke: [['mensch-hacke-oben', 38, 0], ['mensch-hacke-unten', 34, 0.12]],
+};
 
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
 const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, 'mensch-mann-leer': 0.62, 'mensch-frau-leer': 0.62, 'mensch-jaeger': 0.62, 'mensch-mann-stein': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };

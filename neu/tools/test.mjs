@@ -774,6 +774,20 @@ test('Wissen: eigener Speicher (2 × teuerste Forschung des Zeitalters), jede Fo
   noErrors(g);
 });
 
+test('Arbeiter laufen nie übers Wasser (Wegsuche über Land und Brücken)', () => {
+  const g = fresh();
+  const r = g.run(`(() => { state.res.holz = 999; state.res.stein = 999; state.pop = 30;
+    for (const t of ['holzsammler', 'steinsammler', 'sammlerin', 'holzsammler']) { const sp = findFreeSpot(t, 70, 62); placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
+    recalcStats(); let wet = 0, moves = 0;
+    for (let i = 0; i < 3000; i++) { updateLife(0.05, {x0:0,y0:0,x1:N-1,y1:N-1});
+      for (const w of life.workers) if (w.phase === 'go' || w.phase === 'back') { moves++; const x = Math.floor(w.x), y = Math.floor(w.y);
+        if (terrain[y * N + x] === TERRAIN.wasser.id && !isPathAt(x, y)) wet++; } }
+    return [wet, moves]; })()`);
+  ok(r[1] > 100, 'niemand ist gelaufen');
+  ok(r[0] === 0, 'Arbeiter liefen ' + r[0] + '-mal übers Wasser');
+  noErrors(g);
+});
+
 test('Alte Spielstände (kleine Karte bis Version 21) landen in der Mitte der großen Karte', () => {
   const fixture = JSON.parse(fs.readFileSync(new URL('./alter-stand-v21.json', import.meta.url), 'utf8'));
   const old = fixture.save, oldN = 64, off = 32;

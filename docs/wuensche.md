@@ -22,6 +22,9 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 32 – Fehler: Arbeiter liefen übers Wasser – jetzt suchen sie sich einen Fußweg über Land, Pfade und
+  Brücken (nie durchs Wasser oder Gebirge); ist ein Baum nur übers Wasser erreichbar, nehmen sie einen anderen.
+- 2026-10-31, Epochia Version 32 – Holzfäller halten die Axt richtig in den Händen (zwei Canva-Haltungen: ausholen und zuschlagen).
 - 2026-10-31, Epochia Version 31 – Fehler: Frauen liefen rückwärts (Bild beim Einbauen falsch gespiegelt) – behoben.
 - 2026-10-31, Epochia Version 30 – Fehlt einem Gebäude eine Ware, zeigt die Blase das Warenbild mit rotem „!“ (statt eines
   Emojis), und die Info sagt, was fehlt und woher es kommt (z. B. „Es fehlt Felle – kommt von: Jägerlager, Mammutjagd“).

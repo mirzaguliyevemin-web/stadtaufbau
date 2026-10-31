@@ -70,7 +70,18 @@ function enterGame() {
   gameRunning = true;
   if (offline) showOfflineSummary(offline);
   else afterWelcome();
+  checkTurnHint();
 }
+
+// Hochkant auf dem Handy: einmal je Start darauf hinweisen, dass quer schöner ist (verschwindet beim Drehen)
+let turnHintDone = false;
+function checkTurnHint() {
+  if (typeof window === 'undefined' || !window.innerWidth) return;
+  const portrait = window.innerHeight > window.innerWidth && window.innerWidth < 700;
+  if (!portrait) turnHintDone = true;   // einmal quer gehalten: nicht mehr erinnern
+  show($('turn-hint'), portrait && !turnHintDone);
+}
+function hideTurnHint() { turnHintDone = true; show($('turn-hint'), false); }
 
 // Nach „Willkommen zurück“: tägliche Belohnung zeigen (nicht mitten im Einstieg)
 function afterWelcome() {
@@ -82,6 +93,9 @@ function loop(now) {
   const dt = lastFrame ? Math.min(0.25, (now - lastFrame) / 1000) : 0;
   lastFrame = now;
   if (!gameRunning) return;
+  // Größe geändert (Handy gedreht)? iPhones melden die neue Größe oft erst etwas später als „resize“ –
+  // darum hier jedes Bild nachsehen, sonst wird das Bild verzerrt gestreckt
+  if (canvas && (Math.abs(canvas.clientWidth - viewW) > 0.5 || Math.abs(canvas.clientHeight - viewH) > 0.5 || (window.devicePixelRatio && Math.min(2, window.devicePixelRatio) !== dpr))) { resizeCanvas(); renderAll(); }
   update(dt);
   drawScene(dt);
   uiTimer += dt;
@@ -118,6 +132,15 @@ on('researchDone', id => {
 });
 on('huntDone', reward => { if (gameRunning) toast(`🦣 Die Jäger sind zurück: +${formatAmounts(reward)}`); });
 on('placed', b => { (state.seen ||= {})[b.type] = true; });
+on('disaster', id => {
+  if (!gameRunning) return;
+  const d = DISASTERS[id];
+  openDialog(`<div class="disaster-ic">${d.icon}</div><h2>${esc(d.name)}!</h2><p>${esc(d.text)}</p>
+    <p class="hint">Das dauert etwa ${formatTime(d.minutes * 60)}. Oben beim Wetter siehst du, wie lange noch.</p>
+    <div class="buttons"><button class="btn primary" onclick="closeDialog()">Wir halten durch!</button></div>`);
+  if (typeof playSound === 'function') playSound('katastrophe');
+});
+on('disasterEnded', id => { if (gameRunning) toast(`${DISASTERS[id].icon} ${DISASTERS[id].name} ist vorbei – aufatmen!`); });
 
 // ---------------------------------------------------------------------
 // Neue Version online? Dann oben einen Knopf zum Aktualisieren zeigen
@@ -160,8 +183,9 @@ function boot() {
   setupInput();
   $('loading-text').textContent = LOADING_SAYINGS[Math.floor(Math.random() * LOADING_SAYINGS.length)];
   if (typeof window !== 'undefined') {
-    window.addEventListener('resize', () => { resizeCanvas(); });
-    window.addEventListener('popstate', () => { if (pageOpen) closePage(true); });
+    window.addEventListener('resize', () => { resizeCanvas(); if (gameRunning) checkTurnHint(); });
+    window.addEventListener('orientationchange', () => { for (const ms of [50, 300, 800]) setTimeout(resizeCanvas, ms); });
+    window.addEventListener('popstate', onHistoryBack);
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden' && gameRunning) saveGame();

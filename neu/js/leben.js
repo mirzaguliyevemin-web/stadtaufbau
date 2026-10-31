@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mammut', 'hirsch', 'ziege'];
+const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mammut', 'hirsch', 'ziege', 'einbaum'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -192,6 +192,13 @@ const WORK = {
   sammlerin:         { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-frau', chips: '#d8344a', swing: 'pick' },
   jaegerlager:       { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true },
   mammutjaegerlager: { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true },
+  // Teil 2: am Ufer und im Einbaum fischen, an der Felswand malen, vor dem Haus arbeiten (target 'self')
+  fischerplatz:      { target: 'wasser', tool: null,  carry: 'ware-nahrung', img: 'mensch-mann', chips: '#cfe9f7', swing: 'spear', boat: true },
+  hoehlenmaler:      { target: 'fels',  tool: null,   carry: 'ware-wissen',  img: 'mensch-mann', chips: null,      swing: 'paint' },
+  tongrube:          { target: 'wasser', tool: 'hacke', carry: 'ware-ton',   img: 'mensch-mann', chips: '#9a5a32', swing: 'hack' },
+  fellmacherin:      { target: 'self',  tool: null,   carry: null, img: 'mensch-frau', chips: null,      swing: 'scrape', thing: 'ware-felle' },
+  steinschlaeger:    { target: 'self',  tool: null,   carry: null, img: 'mensch-mann', chips: '#b9b4a8', swing: 'knap',   thing: 'ware-stein' },
+  toepferei:         { target: 'self',  tool: null,   carry: null, img: 'mensch-frau', chips: null,      swing: 'pot',    thing: 'ware-toepferwaren' },
 };
 const WORK_SECONDS = 7, WORK_WALK = 0.75;   // so lange wird gearbeitet, so schnell gelaufen (Felder je Sekunde)
 
@@ -201,6 +208,10 @@ life.workTimer = 0;
 // Nächstes passendes Geländefeld in der Nähe eines Gebäudes, dazu ein freier Standplatz daneben
 function workSpot(b, kind, far, k = 0) {
   const s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
+  if (kind === 'self') {   // arbeitet direkt vor dem Haus, das Werkstück liegt daneben
+    const sx = b.x + s + 0.55, sy = b.y + s / 2 + (k ? 0.55 : -0.55);
+    return { tx: sx + 0.45, ty: sy + 0.1, sx, sy };
+  }
   const id = TERRAIN[kind].id, max = far ? 10 : 7;
   let best = null, bestD = Infinity;
   for (let y = Math.floor(cy - max); y <= cy + max; y++)
@@ -241,6 +252,13 @@ function updateWorkers(dt) {
       if (w.t > 0) continue;
       const spot = workSpot(w.b, w.kind.target, w.kind.far, w.k);
       if (!spot) { w.t = 5; continue; }
+      if (w.kind.boat && w.k === 1) {   // mit dem Einbaum ein Stück hinaus aufs Wasser
+        const dx = (spot.tx - spot.sx) / 0.7, dy = (spot.ty - spot.sy) / 0.7;
+        for (const n of [3, 2, 1]) {
+          const x = Math.floor(spot.tx + dx * n), y = Math.floor(spot.ty + dy * n);
+          if (inMap(x, y) && terrain[y * N + x] === TERRAIN.wasser.id && buildingAt(x, y) < 0) { spot.tx = x + 0.5; spot.ty = y + 0.5; break; }
+        }
+      }
       Object.assign(w, spot, { phase: 'go' });
     } else if (w.phase === 'go' || w.phase === 'back') {
       const [gx, gy] = w.phase === 'go' ? [w.sx, w.sy] : [w.home.x, w.home.y];
@@ -254,6 +272,16 @@ function updateWorkers(dt) {
       w.x += dx / d * step; w.y += dy / d * step;
       if (Math.abs(dx - dy) > 0.01) w.face = dx - dy > 0 ? -1 : 1;
     } else if (w.phase === 'work') {
+      if (w.kind.boat && w.k === 1) {   // im Einbaum: langsam auf dem Wasser hin und her treiben
+        w.bt = (w.bt || 0) + dt;
+        const r = Math.min(1, w.bt / 4);   // erst vom Ufer aufs Wasser hinaus paddeln
+        const ox = Math.sin(w.bt * 0.35 + w.ph) * 0.35, oy = Math.cos(w.bt * 0.27 + w.ph) * 0.35;
+        const bx = w.tx + ox, by = w.ty + oy;
+        w.face = Math.cos(w.bt * 0.35 + w.ph) * 0.35 + Math.sin(w.bt * 0.27 + w.ph) * 0.27 > 0 ? -1 : 1;   // in Fahrtrichtung schauen
+        w.x = w.sx + (bx - w.sx) * r; w.y = w.sy + (by - w.sy) * r;
+        if (w.t <= 0) { w.bt = 0; w.x = w.sx; w.y = w.sy; w.phase = 'back'; }   // am Ufer wieder aussteigen
+        continue;
+      }
       const sxd = w.tx - w.x - (w.ty - w.y);
       if (Math.abs(sxd) > 0.01) w.face = sxd > 0 ? -1 : 1;   // zum Baum/Felsen schauen
       if (w.t <= 0) w.phase = 'back';
@@ -272,6 +300,13 @@ function workerObjects(inView, t) {
 
 function drawWorker(w, t) {
   const z = cam.zoom, walking = w.phase !== 'work', step = t * 10 + w.ph;
+  if (!walking && w.kind.boat && w.k === 1 && images.einbaum) return drawBoat(w, t);
+  // Werkstück vor dem Haus (Fell, Steinknolle, Topf) – liegt hinter der Figur
+  if (!walking && w.kind.thing && images[w.kind.thing]) {
+    const q = tileToScreen(w.tx, w.ty), s = 15 * z;
+    const grow = w.kind.swing === 'pot' ? 0.6 + 0.4 * Math.min(1, (WORK_SECONDS - w.t) / WORK_SECONDS) : 1;   // der Topf wächst
+    ctx.drawImage(images[w.kind.thing], q.x - s * grow / 2, q.y - s * grow * 0.8, s * grow, s * grow);
+  }
   let bob = walking ? Math.abs(Math.sin(step)) * 1.2 * z : 0;
   const swing = w.kind.swing;
   if (!walking && swing === 'pick') bob = -Math.max(0, Math.sin(t * 3 + w.ph)) * 3 * z;   // bückt sich zum Busch
@@ -301,6 +336,37 @@ function drawWorker(w, t) {
       ctx.globalAlpha = 1;
     }
   }
+  const hand = { x: p.x - 8 * z * w.face, y: p.y - 15 * z };
+  if (!walking && swing === 'spear') {   // mit dem Speer ins Wasser stechen, es spritzt
+    const cyc = (t * 0.8 + w.ph) % 1, thrust = cyc > 0.75 ? Math.sin((cyc - 0.75) / 0.25 * Math.PI) : 0;
+    const q = tileToScreen(w.tx, w.ty);
+    const ex = hand.x + (q.x - hand.x) * (0.55 + 0.3 * thrust), ey = hand.y + (q.y - 4 * z - hand.y) * (0.55 + 0.3 * thrust);
+    ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 1.8 * z; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(hand.x - (ex - hand.x) * 0.5, hand.y - 6 * z - (ey - hand.y) * 0.5); ctx.lineTo(ex, ey); ctx.stroke();
+    if (thrust > 0.6) splash(ex, ey + 2 * z, z, thrust);
+  }
+  if (!walking && swing === 'paint') {   // Pinsel an die Felswand, bunte Tupfen erscheinen nach und nach
+    const q = tileToScreen(w.tx, w.ty), done = Math.min(1, (WORK_SECONDS - w.t) / WORK_SECONDS);
+    const cols = ['#b5462a', '#e0a040', '#3a2a1a', '#f2e6c8'];
+    for (let i = 0; i < Math.floor(done * 7); i++) {
+      ctx.fillStyle = cols[i % 4];
+      ctx.beginPath(); ctx.arc(q.x + (hash(i, w.k + 3) - 0.5) * 16 * z, q.y - 10 * z - hash(w.k, i + 5) * 12 * z, 1.8 * z, 0, 7); ctx.fill();
+    }
+    const dab = Math.sin(t * 5 + w.ph);
+    ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 1.5 * z; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(hand.x, hand.y); ctx.lineTo(hand.x - (6 + dab * 2) * z * w.face, hand.y - (5 + dab * 3) * z); ctx.stroke();
+  }
+  if (!walking && (swing === 'scrape' || swing === 'knap' || swing === 'pot')) {   // Hände über dem Werkstück
+    const q = tileToScreen(w.tx, w.ty);
+    const m = swing === 'knap' ? Math.abs(Math.sin(t * 4 + w.ph)) : (Math.sin(t * 3 + w.ph) + 1) / 2;
+    const hx = q.x + (swing === 'scrape' ? (m - 0.5) * 10 * z : 0), hy = q.y - 8 * z - (swing === 'knap' ? m * 7 * z : 2 * z);
+    ctx.fillStyle = swing === 'knap' ? '#8a8478' : '#c99a6e';
+    ctx.beginPath(); ctx.arc(hx, hy, (swing === 'knap' ? 2.6 : 2) * z, 0, 7); ctx.fill();
+    if (swing === 'knap' && m < 0.15) {   // Splitter beim Schlag
+      ctx.fillStyle = w.kind.chips;
+      for (let i = 0; i < 3; i++) ctx.fillRect(hx + (i - 1) * 4 * z, hy - (2 + i) * z, 2 * z, 2 * z);
+    }
+  }
   // Beeren pflücken: ab und zu hüpft eine Beere in den Korb
   if (!walking && swing === 'pick') {
     const q = (t * 0.9 + w.ph) % 1;
@@ -308,10 +374,138 @@ function drawWorker(w, t) {
     ctx.beginPath(); ctx.arc(p.x - 8 * z * w.face, p.y - 14 * z - Math.sin(q * Math.PI) * 8 * z, 2.2 * z, 0, 7); ctx.fill();
   }
   // Beute auf dem Rückweg tragen
-  if (w.phase === 'back' && images[w.kind.carry]) {
+  if (w.phase === 'back' && w.kind.carry && images[w.kind.carry]) {
     const s = 14 * z;
     ctx.drawImage(images[w.kind.carry], p.x - s / 2, p.y - 32 * z - s * 0.6 - bob, s, s);
   }
+}
+
+// Kleine Wasserspritzer (Speer, Paddel)
+function splash(x, y, z, k) {
+  ctx.fillStyle = 'rgba(225,244,255,0.9)';
+  for (let i = 0; i < 4; i++) {
+    const a = -0.4 - i * 0.75;
+    ctx.beginPath(); ctx.arc(x + Math.cos(a) * 5 * k * z, y + Math.sin(a) * 5 * k * z, 1.4 * z, 0, 7); ctx.fill();
+  }
+}
+
+// Fischer im Einbaum: Boot schaukelt, Figur sitzt (nur Oberkörper), paddelt abwechselnd links und rechts
+function drawBoat(w, t) {
+  const z = cam.zoom, p = tileToScreen(w.x, w.y), img = images.einbaum;
+  const rock = Math.sin(t * 1.8 + w.ph) * 1.2 * z;
+  const bw = 40 * z, bh = bw * img.height / img.width;
+  ctx.fillStyle = 'rgba(20,60,90,0.18)';
+  ctx.beginPath(); ctx.ellipse(p.x, p.y + 1 * z, bw * 0.48, bh * 0.28, 0, 0, 7); ctx.fill();
+  const man = images['mensch-mann'];
+  ctx.save();
+  ctx.translate(p.x, p.y + rock * 0.4);
+  if (w.face < 0) ctx.scale(-1, 1);
+  if (man) {   // Oberkörper sitzt im Boot
+    const h = 30 * z, mw = h * man.width / man.height, cut = 0.55;
+    ctx.drawImage(man, 0, 0, man.width, man.height * cut, -mw / 2, -h * cut - bh * 0.25, mw, h * cut);
+  }
+  ctx.drawImage(img, -bw / 2, -bh * 0.75, bw, bh);
+  // Paddel
+  const pa = Math.sin(t * 2.2 + w.ph);
+  ctx.strokeStyle = '#7a5532'; ctx.lineWidth = 1.8 * z; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-2 * z + pa * 4 * z, -bh * 0.25 - 12 * z); ctx.lineTo(6 * z + pa * 9 * z, bh * 0.1); ctx.stroke();
+  ctx.restore();
+  if (pa > 0.9) splash(p.x + (6 + pa * 9) * z * w.face, p.y + bh * 0.1, z, 0.8);
+}
+
+// ---------------------------------------------------------------------
+// Treffpunkte: Am Feuer sitzen die Leute zusammen (abends tanzen sie), am Ahnenplatz und Steinkreis beten sie
+// ---------------------------------------------------------------------
+
+const GATHER = { lagerfeuer: 'feuer', feuerplatz: 'feuer', ahnenplatz: 'beten', steinkreis: 'beten' };
+life.visitors = [];
+life.visitTimer = 0;
+
+function gatherWant(b) {
+  const evening = darkness() > 0.3 || timeOfDay().name === 'Abend';
+  const most = GATHER[b.type] === 'feuer' ? (evening ? 7 : 3) : (evening ? 2 : 4);
+  return Math.max(0, Math.min(most, Math.floor(state.pop / 3)));
+}
+
+function updateVisitors(dt) {
+  life.visitTimer -= dt;
+  if (life.visitTimer <= 0) {
+    life.visitTimer = 1.5;
+    state.buildings.forEach((b, i) => {
+      if (!GATHER[b.type] || b.build || !isConnected(i)) return;
+      const here = life.visitors.filter(v => v.b === b && v.phase !== 'leave');
+      if (here.length > gatherWant(b)) { here[0].phase = 'leave'; return; }
+      if (here.length >= gatherWant(b) || lifeRandom() < 0.4) return;
+      const used = new Set(here.map(v => v.slot));
+      let slot = 0; while (used.has(slot)) slot++;
+      const s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
+      const a = slot * 2.4 + hash(b.x, b.y) * 6, r = GATHER[b.type] === 'feuer' ? s * 0.34 + 0.1 : s / 2 + 0.3;   // am Feuer auf die Bänke
+      const spot = { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r * 0.9 };
+      const from = { x: cx + Math.cos(a) * (r + 3), y: cy + Math.sin(a) * (r + 3) };
+      life.visitors.push({ b, slot, kind: GATHER[b.type], x: from.x, y: from.y, from, spot, cx, cy, phase: 'go', t: 25 + lifeRandom() * 35,
+        img: lifeRandom() < 0.5 ? 'mensch-mann' : 'mensch-frau', face: 1, ph: lifeRandom() * 9, alpha: 0 });
+    });
+  }
+  for (const v of life.visitors) {
+    const target = v.phase === 'leave' ? v.from : v.spot;
+    const dx = target.x - v.x, dy = target.y - v.y, d = Math.hypot(dx, dy);
+    if (v.phase === 'stay') { v.t -= dt; if (v.t <= 0) v.phase = 'leave'; }
+    else if (d < 0.04) { if (v.phase === 'go') v.phase = 'stay'; else v.gone = true; }
+    else {
+      const step = Math.min(d, 0.7 * dt);
+      v.x += dx / d * step; v.y += dy / d * step;
+      if (Math.abs(dx - dy) > 0.01) v.face = dx - dy > 0 ? -1 : 1;
+    }
+    v.alpha = v.phase === 'leave' ? Math.min(1, d / 1.5) : Math.min(1, v.alpha + dt * 2);
+    if (v.phase === 'stay') { const sx = v.cx - v.x - (v.cy - v.y); v.face = sx > 0 ? -1 : 1; }   // zur Mitte schauen
+  }
+  life.visitors = life.visitors.filter(v => !v.gone && state.buildings.includes(v.b));
+}
+
+function visitorObjects(inView, t) {
+  return life.visitors.filter(v => inView(v.x, v.y)).map(v => {
+    // Auf der Platte des Gebäudes: nach dem Gebäude zeichnen, sonst verdeckt es sie
+    const b = v.b, s = BUILDINGS[b.type].size;
+    const onPlate = v.x > b.x && v.x < b.x + s && v.y > b.y && v.y < b.y + s;
+    return { d: onPlate ? b.x + b.y + s + 0.01 + (v.x + v.y) * 1e-4 : v.x + v.y - 0.5, kind: 'leben', draw: () => drawVisitor(v, t) };
+  });
+}
+
+function drawVisitor(v, t) {
+  ctx.globalAlpha = v.alpha;
+  const z = cam.zoom, step = t * 9 + v.ph;
+  if (v.phase !== 'stay') drawCreature(v.img, v.x, v.y, 32, v.face, Math.abs(Math.sin(step)) * 1.2 * z, '🧍', step);
+  else if (v.kind === 'feuer' && darkness() > 0.3) {   // abends: Tanz ums Feuer – hüpfen und drehen
+    const hop = Math.abs(Math.sin(t * 4 + v.ph)) * 6 * z;
+    drawCreature(v.img, v.x, v.y, 32, Math.sin(t * 1.3 + v.ph) > 0 ? 1 : -1, hop, '💃', t * 8 + v.ph);
+  } else if (v.kind === 'feuer') drawSitting(v, t);
+  else {   // beten: verbeugen sich langsam
+    const p = tileToScreen(v.x, v.y), img = images[v.img];
+    if (!img) { drawCreature(v.img, v.x, v.y, 32, v.face, 0, '🙏'); ctx.globalAlpha = 1; return; }
+    const h = 32 * z, w = h * img.width / img.height, bow = Math.max(0, Math.sin(t * 0.8 + v.ph)) * 0.35;
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y, h * 0.32, h * 0.1, 0, 0, 7); ctx.fill();
+    ctx.save(); ctx.translate(p.x, p.y); if (v.face < 0) ctx.scale(-1, 1);
+    ctx.transform(1, 0, bow, 1 - bow * 0.25, 0, 0);
+    ctx.drawImage(img, -w / 2, -h, w, h);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Am Feuer sitzen: nur der Oberkörper über dem Boden, die Hände ab und zu zum Feuer
+function drawSitting(v, t) {
+  const p = tileToScreen(v.x, v.y), img = images[v.img], z = cam.zoom;
+  if (!img) { drawCreature(v.img, v.x, v.y, 26, v.face, 0, '🧍'); return; }
+  const h = 32 * z, w = h * img.width / img.height, cut = LEGS[v.img] || 0.6;
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath(); ctx.ellipse(p.x, p.y, h * 0.36, h * 0.11, 0, 0, 7); ctx.fill();
+  ctx.save(); ctx.translate(p.x, p.y + Math.sin(t * 1.5 + v.ph) * 0.6 * z); if (v.face < 0) ctx.scale(-1, 1);
+  ctx.drawImage(img, 0, 0, img.width, img.height * cut, -w / 2, -h * cut - 1 * z, w, h * cut);
+  // gekreuzte Beine als Fell-Polster
+  ctx.fillStyle = '#7a5532';
+  ctx.beginPath(); ctx.ellipse(0, -1 * z, w * 0.42, 3.2 * z, 0, 0, 7); ctx.fill();
+  ctx.restore();
 }
 
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
@@ -381,6 +575,7 @@ function lifeObjects(range) {
   out.push(...felledObjects(lifeDt));
   out.push(...hunterObjects(inView, t));
   out.push(...workerObjects(inView, t));
+  out.push(...visitorObjects(inView, t));
   for (const w of life.walkers) {
     if (!inView(w.x, w.y)) continue;
     const moving = w.wait <= 0;
@@ -499,11 +694,12 @@ function updateLife(dt, range) {
   if (!state || !occ) return;
   updateWalkers(dt);
   updateWorkers(dt);
+  updateVisitors(dt);
   updateAnimals(dt);
   updateSky(dt, range);
 }
 
 // Neues Spiel oder anderer Spielstand: alles Lebendige neu verteilen
 function resetLife() {
-  life.walkers = []; life.workers = []; life.animals = []; life.birds = []; life.jumps = []; life.butterflies = []; life.felled = [];
+  life.walkers = []; life.workers = []; life.animals = []; life.birds = []; life.jumps = []; life.butterflies = []; life.felled = []; life.visitors = [];
 }

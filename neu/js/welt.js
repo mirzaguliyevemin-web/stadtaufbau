@@ -25,6 +25,8 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     techs: {},
     research: null,          // { id, left }
     hunt: null,              // Mammutjagd unterwegs: { left, cx, cy, x, y }
+    disaster: null,          // Naturkatastrophe gerade: { id, left } (Sekunden)
+    disasterCalm: 0,         // Sekunden seit der letzten Katastrophe (bzw. seit Spielbeginn)
     herdWait: 0,             // Sekunden, bis wieder eine Mammutherde vorbeizieht
     stage: 'alt',
     pop: CONFIG.start.population,
@@ -183,13 +185,14 @@ function touchesWater(ax, ay, size) {
   return false;
 }
 
-// Baum fällen / Felsen abtragen (macht Platz und bringt ein wenig Holz bzw. Stein)
-function clearTile(x, y) {
+// Baum fällen / Felsen abtragen (macht Platz und bringt ein wenig Holz bzw. Stein).
+// free = auch fremdes Land und ohne Ertrag (Waldbrand, Holzsammler, die den Baum schon als Holz verbucht haben)
+function clearTile(x, y, free = false) {
   const t = terrainAt(x, y);
-  if (!t || !t.clear || !isOwned(x, y) || occ[y * N + x]) return false;
+  if (!t || !t.clear || (!free && !isOwned(x, y)) || occ[y * N + x]) return false;
   terrain[y * N + x] = TERRAIN.gras.id;
   state.cleared.push(y * N + x);
-  addResources(t.clear);
+  if (!free) addResources(t.clear);
   if (typeof onTerrainChanged === 'function') onTerrainChanged();
   return true;
 }

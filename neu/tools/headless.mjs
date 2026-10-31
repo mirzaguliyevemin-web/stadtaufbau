@@ -117,7 +117,7 @@ export function loadGame({ storage = {}, seed } = {}) {
     document,
     localStorage: local,
     navigator: {},
-    history: { pushState() {}, back() {}, state: null },
+    history: { pushState() {}, replaceState() {}, back() {}, go() {}, state: null },
     Math: math,
     Date,
     setTimeout: () => 0,

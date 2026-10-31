@@ -315,6 +315,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
   animation: pop-in 0.25s ease-out; max-width: calc(100vw - 24px);
 }
 #update-banner .btn { padding: 6px 14px; }
+#turn-hint {
+  position: fixed; left: 50%; bottom: calc(var(--bar-h, 90px) + 14px); transform: translateX(-50%); z-index: 150;
+  display: flex; align-items: center; gap: 10px; background: #fffaf0; border: 3px solid var(--gold); border-radius: 18px;
+  padding: 8px 12px; box-shadow: 0 6px 18px rgba(40, 25, 10, 0.35); font-weight: 600; color: var(--ink); font-size: 14px;
+  width: max-content; max-width: calc(100vw - 24px); animation: pop-in 0.25s ease-out;
+}
+#turn-hint .emoji { font-size: 24px; }
+#turn-hint .btn { padding: 6px 14px; }
 #toast {
   position: fixed;
   left: 50%; top: 50px;
@@ -665,3 +673,18 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .bar-tab .emoji { font-size: 15px; }
   #bar-toggle { right: calc(8px + var(--safe-r)); bottom: calc(var(--bar-h, 60px) / 2 - 15px); }
 }
+
+/* Info-Fenster (Waren, Einwohner, Zufriedenheit, Wetter, Gebäude) */
+.info-list { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 8px; text-align: left; }
+.info-list > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; background: rgba(120, 80, 40, 0.08); border-radius: 10px; padding: 5px 10px; }
+.info-list > div > span { flex: 1 1 auto; }
+.info-list > div > small { flex: 1 0 100%; opacity: 0.75; }
+.info-list > div.bad { background: rgba(200, 60, 40, 0.14); }
+#dialog-box h3 { margin: 8px 0 2px; font-size: 14px; text-align: left; }
+#dialog-box .hint { font-size: 12px; opacity: 0.8; }
+.disaster-ic { font-size: 56px; line-height: 1; text-align: center; animation: pop-in 0.3s ease-out; }
+details.more { margin: 6px 0; text-align: left; }
+details.more summary { cursor: pointer; font-weight: 700; padding: 6px 10px; border-radius: 10px; background: rgba(120, 80, 40, 0.12); list-style: none; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more[open] summary { margin-bottom: 4px; }
+.side-btn.on { outline: 3px solid var(--gold); background-color: #ffe7a8; }

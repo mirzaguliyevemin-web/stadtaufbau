@@ -69,7 +69,7 @@ test('Bauen: Baustelle, höchstens 2 gleichzeitig, wird fertig und produziert', 
   const r3 = g.run(`const s3 = findFreeSpot('steinsammler', 70, 58); placeBuilding('steinsammler', s3.x, s3.y)`);
   ok(r3 && r3.includes('Baustellen'), 'Dritte Baustelle müsste warten: ' + r3);
   ok(g.run(`state.res.holz`) === 90, 'Kosten nicht abgezogen');
-  g.run('for (let i = 0; i < 31; i++) update(1)');
+  g.run('for (let i = 0; i < 46; i++) update(1)');
   ok(g.run('constructionCount()') === 0, 'Baustellen nicht fertig');
   ok(g.run('state.built.sammlerin') === 1, 'Fertig-Zähler');
   const food = g.run('state.res.nahrung');
@@ -111,7 +111,11 @@ test('Bauleiste: je Linie nur die neueste Stufe, Gesperrtes mit Schloss', () => 
   const g = fresh();
   const bar = () => g.run(`barEntries().map(e => e.type + (e.locked ? '🔒' : '')).join()`);
   ok(bar().includes('wohnhoehle') && !bar().includes('fellzelt'), 'Anfangs Wohnhöhle erwartet: ' + bar());
-  ok(bar().includes('fischerplatz🔒'), 'Gesperrtes der nächsten Stufe fehlt: ' + bar());
+  ok(bar().includes('jaegerlager') && !bar().includes('fischerplatz'), 'Gebäude der nächsten Stufe schon sichtbar: ' + bar());
+  g.run(`state.stage = 'mittel';`);
+  ok(bar().includes('fischerplatz🔒') && bar().includes('ahnenplatz🔒'), 'Gesperrtes dieser Stufe fehlt: ' + bar());
+  ok(g.run(`lockText('ahnenplatz')`).includes('Ahnenkult') && g.run(`lockText('acker')`).includes('Jungsteinzeit'), 'Sperrtext falsch');
+  g.run(`state.stage = 'alt';`);
   ok(!bar().includes('acker'), 'Jungsteinzeit-Gebäude zu früh sichtbar');
   ok(!bar().includes('lagerfeuer') && !bar().includes('mammutjaegerlager'), 'Nicht baubares in der Leiste');
   g.run(`state.techs.faustkeil = true; state.techs.fellzelte = true;`);
@@ -169,7 +173,7 @@ test('Weiterentwickeln: Wohnhöhle → Fellzelt; größeres Langhaus braucht Pla
   g.run(`state.techs.faustkeil = state.techs.fellzelte = true; state.res.holz = 500; state.res.felle = 50; state.res.stein = 500; state.res.werkzeug = 50;`);
   ok(g.run(`upgradeBuilding(1)`) === null, 'Weiterentwickeln ging nicht');
   ok(g.run(`state.buildings[1].type === 'fellzelt' && state.buildings[1].build > 0`), 'keine Baustelle');
-  g.run('for (let i = 0; i < 31; i++) update(1)');
+  g.run('for (let i = 0; i < 46; i++) update(1)');
   ok(g.run('housingOf("fellzelt")') === 5 && g.run('stats.housing') === 8, 'Wohnplätze falsch: ' + g.run('stats.housing'));
   // Grubenhaus (2×2) → Langhaus (3×3) neben einem Hindernis
   g.run(`state.techs.grubenhaus = state.techs.langhausbau = true; state.buildings[1].type = 'grubenhaus'; rebuildOccupancy();`);
@@ -315,12 +319,12 @@ test('Einstieg: Schritte folgen den Handlungen, überspringen geht', () => {
     g.run(`buildRoute(state.buildings.findIndex(b => b.type === 'sammlerin'))`);
   }
   ok(g.run('tutorialStep().id') === 'antippen', 'Nach Sammlerin und Weg: antippen, ist ' + g.run('tutorialStep().id'));
-  g.run('for (let i = 0; i < 31; i++) update(1); emit("tapped", state.buildings[5]);');
+  g.run('for (let i = 0; i < 46; i++) update(1); emit("tapped", state.buildings[5]);');
   ok(g.run('tutorialStep().id') === 'holzsammler', 'Nach Antippen: Holzsammler');
   g.run(`beginBuild('holzsammler'); confirmGhost();`);
   g.run('liftBuilding(5); cancelGhost();');
   ok(g.run('tutorialStep().id') === 'wohnhoehle', 'Nach Hochheben: Wohnhöhle, ist ' + g.run('tutorialStep().id'));
-  g.run('for (let i = 0; i < 31; i++) update(1);');
+  g.run('for (let i = 0; i < 46; i++) update(1);');
   g.run(`beginBuild('wohnhoehle'); confirmGhost();`);
   ok(g.run('tutorialStep().id') === 'forschung', 'Forschung erwartet');
   g.run(`startResearch('feuer_hueten')`);
@@ -352,7 +356,7 @@ test('Trampelpfad: ohne Weg kein Wohnen und keine Arbeit, Weg bauen verbindet, A
   // Gebäude weiter weg ohne Weg
   const placed = g.run(`const far = findFreeSpot('holzsammler', 53, 74); placeBuilding('holzsammler', far.x, far.y)`);
   ok(placed === null, 'Holzsammler nicht gebaut: ' + placed);
-  g.run('for (let i = 0; i < 31; i++) update(1);');
+  g.run('for (let i = 0; i < 46; i++) update(1);');
   const i = g.run(`state.buildings.findIndex(b => b.type === 'holzsammler')`);
   ok(g.run(`isConnected(${i})`) === false, 'ohne Weg verbunden');
   ok(g.run(`outputFactor(${i})`) === 0 && !(g.run(`stats.staff[${i}]`) > 0), 'arbeitet ohne Weg');
@@ -519,6 +523,135 @@ test('Arbeitende Menschen: gehen zum Baum, arbeiten und kommen zurück', () => {
   noErrors(g);
 });
 
+test('Arbeitende Menschen Teil 2: Fischer (auch im Einbaum), Höhlenmaler, Werkstätten vor dem Haus', () => {
+  const g = fresh();
+  g.run(`for (const k in state.res) state.res[k] = 999; state.pop = 30; state.stage = 'jung'; for (const id in TECHS) state.techs[id] = true;
+    for (const t of ['fischerplatz', 'hoehlenmaler', 'fellmacherin', 'steinschlaeger', 'toepferei', 'tongrube']) {
+      const sp = findFreeSpot(t, 62, 62); if (!sp) continue; placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
+    recalcStats();`);
+  const all = '{x0:0,y0:0,x1:N-1,y1:N-1}';
+  const seen = g.run(`(() => { const ph = {}; for (let i = 0; i < 1600; i++) { updateLife(0.05, ${all}); for (const w of life.workers) ph[w.b.type + ':' + w.phase + (w.kind.boat && w.k === 1 ? ':boot' : '')] = true; if (i % 40 === 0) drawScene(0.05); } return Object.keys(ph).join(','); })()`);
+  for (const p of ['fischerplatz:work', 'fischerplatz:work:boot', 'hoehlenmaler:work', 'fellmacherin:work', 'steinschlaeger:work', 'toepferei:work'])
+    ok(seen.includes(p), 'nie gesehen: ' + p + ' (' + seen + ')');
+  ok(g.run(`life.workers.every(w => !(w.kind.boat && w.k === 1 && w.phase === 'work') || terrainAt(Math.floor(w.tx), Math.floor(w.ty)) === TERRAIN.wasser)`), 'Einbaum nicht auf dem Wasser');
+  noErrors(g);
+});
+
+test('Antippen: Baum direkt vor einem Gebäude lässt sich fällen, Gebäude selbst bleibt antippbar', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    state.res.holz = 999; state.res.stein = 999;
+    const sp = findFreeSpot('steinsammler', 53, 53); placeBuilding('steinsammler', sp.x, sp.y);
+    const b = state.buildings[state.buildings.length - 1], s = BUILDINGS[b.type].size;
+    const tx = b.x + s, ty = b.y;   // rechts neben dem Haus (steht im Bild davor)
+    for (let y = ty - 3; y <= ty + 4; y++) for (let x = tx - 3; x <= tx + 4; x++) if (buildingAt(x, y) < 0) terrain[y * N + x] = TERRAIN.gras.id;
+    terrain[ty * N + tx] = TERRAIN.wald.id;
+    cam.zoom = 1.5; centerOnTile(b.x, b.y);
+    const p = tileToScreen(tx + 0.5, ty + 0.5);
+    handleTap(p.x, p.y - 20);   // auf den Stamm/die Krone
+    const first = infoFor && infoFor.kind === 'tile' && infoFor.x === tx && infoFor.y === ty;
+    closeInfo();
+    const c = tileToScreen(b.x + s / 2, b.y + s / 2);
+    handleTap(c.x, c.y - 10);
+    return [first, selected === state.buildings.indexOf(b)];
+  })()`);
+  ok(r[0], 'Baum vor dem Gebäude nicht getroffen');
+  ok(r[1], 'Gebäude nicht mehr antippbar');
+  noErrors(g);
+});
+
+test('Zurück: Menü → Spielstände → Zurück landet im Menü; Zurück-Taste schließt erst Dialog, dann Seite', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    // Verlauf wie im Browser: Einträge zählen, go(-k) geht k zurück und meldet einmal „popstate“
+    const entries = [null];
+    history = { get state() { return entries[entries.length - 1]; }, pushState(s) { entries.push(s); }, replaceState(s) { entries[entries.length - 1] = s; },
+      go(d) { entries.length = Math.max(1, entries.length + d); onHistoryBack(); }, back() { this.go(-1); } };
+    setTimeout = fn => fn();
+    const out = [];
+    openMenu(); openSlots(true); out.push(pageOpen);
+    closePage(); out.push(pageOpen, entries.length);         // Knopf „Zurück“ → Menü
+    closePage(); out.push(pageOpen, entries.length);         // → Spielfeld
+    openMenu(); openSlots(true); history.go(-1); out.push(pageOpen);   // Zurück-Taste → Menü
+    showExport(); history.go(-1); out.push(dialogOpen, pageOpen);      // Dialog zu, Menü bleibt
+    history.go(-1); out.push(pageOpen, entries.length);
+    return out;
+  })()`);
+  ok(r[0] === 'slots', 'Spielstände nicht offen');
+  ok(r[1] === 'menu' && r[2] === 2, 'Zurück führt nicht ins Menü: ' + r);
+  ok(r[3] === null && r[4] === 1, 'Zweites Zurück schließt nicht: ' + r);
+  ok(r[5] === 'menu', 'Zurück-Taste führt nicht ins Menü: ' + r);
+  ok(r[6] === false && r[7] === 'menu', 'Zurück-Taste schließt nicht zuerst den Dialog: ' + r);
+  ok(r[8] === null && r[9] === 1, 'Verlauf durcheinander: ' + r);
+  noErrors(g);
+});
+
+test('Wetter wirkt: Hagel zerschlägt die Ernte, Gewitter bremst draußen, Schnee macht hungrig; Zeiten 30 min', () => {
+  const g = fresh();
+  ok(g.run('CONFIG.daySeconds') === 1800 && g.run('CONFIG.yearSeconds / 4') === 1800, 'Tag bzw. Jahreszeit nicht 30 Minuten');
+  for (let si = 0; si < 4; si++) {
+    const sum = g.run(`Object.values(WEATHERS).reduce((a, w) => a + w.chance[${si}], 0)`);
+    ok(Math.abs(sum - 1) < 1e-9, `Wetter-Wahrscheinlichkeiten in Jahreszeit ${si} ergeben ${sum}`);
+  }
+  const f = w => g.run(`(() => { currentWeather = () => ({ id: '${w}', k: 1, ...WEATHERS['${w}'] }); return [effectFactor('acker'), effectFactor('holzsammler'), effectFactor('hoehlenmaler'), effectFood(), effectHappy(), effectGrowthStopped()]; })()`);
+  const hagel = f('hagel'), gew = f('gewitter'), schnee = f('schnee'), klar = f('klar');
+  ok(hagel[0] === 0.5 && hagel[4] < 0, 'Hagel: ' + hagel);
+  ok(gew[1] < 1 && gew[2] === 1 && gew[5] === true, 'Gewitter: ' + gew);
+  ok(schnee[3] > 1, 'Schnee: ' + schnee);
+  ok(klar[0] > 1 && klar[4] > 0, 'Sonne: ' + klar);
+  noErrors(g);
+});
+
+test('Naturkatastrophen: selten, nie am Anfang, wirken und enden; Waldbrand verbrennt Bäume; Spielstand behält sie', () => {
+  const g = fresh();
+  // in der ersten Dreiviertelstunde nie, auch wenn der Zufall es will
+  ok(g.run(`disasterRandom = () => 0; for (let i = 0; i < 600; i++) update(1); state.disaster`) === null, 'Katastrophe zu früh');
+  // danach: im Schnitt etwa 0,35 je Stunde
+  const n = g.run(`(() => { disasterRandom = Math.random; let n = 0; state.playTime = 3600; state.disasterCalm = 1e9;
+    for (let i = 0; i < 200 * 3600; i += 5) { updateDisaster(5); if (state.disaster) { n++; state.disaster = null; state.disasterCalm = 1e9; } } return n; })()`);
+  ok(n > 40 && n < 110, 'Häufigkeit unpassend: ' + n + ' in 200 Stunden');
+  const r = g.run(`(() => {
+    const trees = () => { let k = 0; for (let i = 0; i < N * N; i++) if (terrain[i] === TERRAIN.wald.id) k++; return k; };
+    const before = trees(); state.res.holz = 100; startDisaster('waldbrand');
+    const after = trees(); recalcStats();
+    const f = effectFactor('holzsammler');
+    const saved = JSON.parse(serialize()); loadFromText(JSON.stringify(saved));
+    const kept = state.disaster && state.disaster.id;
+    for (let i = 0; i < 13 * 60; i++) update(1);
+    return [before - after, f, kept, state.disaster, trees() === after];
+  })()`);
+  ok(r[0] === 30, 'Waldbrand hat ' + r[0] + ' Bäume verbrannt');
+  ok(r[1] < 0.5, 'Waldbrand bremst Holzsammler nicht: ' + r[1]);
+  ok(r[2] === 'waldbrand', 'Katastrophe nicht gespeichert');
+  ok(r[3] === null, 'Katastrophe endet nicht');
+  ok(r[4], 'verbrannte Bäume kommen nach dem Laden zurück');
+  const flood = g.run(`state.res.nahrung = 100; startDisaster('hochwasser'); [state.res.nahrung, effectFactor('fischerplatz')]`);
+  ok(flood[0] === 70 && flood[1] === 0, 'Hochwasser: ' + flood);
+  noErrors(g);
+});
+
+test('Treffpunkte: Leute sitzen am Feuer, tanzen abends, beten am Ahnenplatz', () => {
+  const g = fresh();
+  const all = '{x0:0,y0:0,x1:N-1,y1:N-1}';
+  const r = g.run(`(() => { state.pop = 30; recalcStats(); const seen = {};
+    for (let i = 0; i < 1200; i++) { updateLife(0.05, ${all}); for (const v of life.visitors) seen[v.kind + ':' + v.phase] = true; if (i % 60 === 0) drawScene(0.05); }
+    const day = life.visitors.filter(v => v.phase !== 'leave').length;
+    state.playTime = CONFIG.daySeconds * 0.8;   // Nacht
+    for (let i = 0; i < 1200; i++) { updateLife(0.05, ${all}); if (i % 60 === 0) drawScene(0.05); }
+    const night = life.visitors.filter(v => v.phase !== 'leave').length;
+    return [Object.keys(seen).join(), day, night]; })()`);
+  ok(r[0].includes('feuer:stay'), 'niemand sitzt am Feuer: ' + r[0]);
+  ok(r[2] > r[1], 'abends nicht mehr Leute am Feuer: ' + r);
+  noErrors(g);
+});
+
+test('Geräusche: jedes Gebäude hat ein eigenes, ohne Ton läuft alles ohne Fehler', () => {
+  const g = fresh();
+  ok(g.run(`Object.keys(BUILDINGS).filter(t => !SOUNDS[BUILDING_SOUNDS[t]]).join()`) === '', 'Gebäude ohne Geräusch');
+  g.run(`playSound('lagerfeuer'); emit('tapped', state.buildings[0]); playSound('donner');`);
+  noErrors(g);
+});
+
 test('Alte Spielstände (kleine Karte bis Version 21) landen in der Mitte der großen Karte', () => {
   const fixture = JSON.parse(fs.readFileSync(new URL('./alter-stand-v21.json', import.meta.url), 'utf8'));
   const old = fixture.save, oldN = 64, off = 32;
@@ -544,13 +677,14 @@ test('Alte Spielstände (kleine Karte bis Version 21) landen in der Mitte der gr
 
 const quick = process.argv.includes('--quick');
 if (!quick) {
-  test('Bot: Altsteinzeit dauert über 40 Minuten, Mittelsteinzeit ist in 90 Spielminuten erreichbar', () => {
-    const { report, errors } = runBot(90, 1);
+  // Seit Version 22 (Emin: doppelt so langsam, Jahreszeit 30 min) dauert die Altsteinzeit gut 2 Stunden
+  test('Bot: Altsteinzeit dauert über 90 Minuten, Mittelsteinzeit ist in 4 Spielstunden erreichbar', () => {
+    const { report, errors } = runBot(240, 1);
     ok(!errors.length, errors.join('\n'));
     console.log(`   Mittelsteinzeit ${report.mittelsteinzeit} min · Jungsteinzeit ${report.jungsteinzeit} min · Kupferfund ${report.kupferfund} min · ${report.final.pop} Einwohner · Hunger ${report.hungerMin} min`);
     ok(report.mittelsteinzeit !== null, 'Bot kommt nicht bis zur Mittelsteinzeit');
-    ok(report.mittelsteinzeit >= 40, 'Altsteinzeit ist zu schnell vorbei: ' + report.mittelsteinzeit + ' min');
-    ok(report.hungerMin <= 5, 'Zu viel Hunger: ' + report.hungerMin + ' min');
+    ok(report.mittelsteinzeit >= 90, 'Altsteinzeit ist zu schnell vorbei: ' + report.mittelsteinzeit + ' min');
+    ok(report.hungerMin <= 60, 'Zu viel Hunger: ' + report.hungerMin + ' min');
   });
 }
 

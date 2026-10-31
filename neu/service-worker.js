@@ -14,6 +14,7 @@ const ASSETS = [
   'js/zeichnen.js',
   'js/leben.js',
   'js/wetter.js',
+  'js/klang.js',
   'js/bedienung.js',
   'js/oberflaeche.js',
   'js/einstieg.js',

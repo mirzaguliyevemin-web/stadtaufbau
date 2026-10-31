@@ -102,26 +102,40 @@ function erasePath(sx, sy) {
   demolish(buildingAt(t.x, t.y));
 }
 
-// Welches Gebäude liegt unter dem Finger? Erst das Feld, dann (für hohe Bilder) der Umriss von vorne nach hinten.
-function buildingAtScreen(sx, sy) {
+// Was liegt unter dem Finger? Gebäude (pixelgenau am Bild) und Bäume/Felsen werden wie beim Zeichnen nach Tiefe
+// geordnet – das vorderste gewinnt. Ergebnis: { i } für ein Gebäude, { x, y } für Baum/Felsen oder null.
+function objectAtScreen(sx, sy) {
   const t = screenToTile(sx, sy);
-  const direct = buildingAt(t.x, t.y);
-  if (direct >= 0 && !BUILDINGS[state.buildings[direct].type].isPath) return direct;
-  const order = state.buildings.map((b, i) => i)
-    .filter(i => !BUILDINGS[state.buildings[i].type].isPath)
-    .sort((a, b) => {
-      const A = state.buildings[a], B = state.buildings[b];
-      return (B.x + B.y + BUILDINGS[B.type].size) - (A.x + A.y + BUILDINGS[A.type].size);
-    });
-  for (const i of order) {
-    const b = state.buildings[i];
-    const s = BUILDINGS[b.type].size;
-    const left = tileToScreen(b.x, b.y + s).x, right = tileToScreen(b.x + s, b.y).x;
-    const bottom = tileToScreen(b.x + s / 2, b.y + s / 2).y;
-    const top = bottom - s * TW * cam.zoom * 0.55;
-    if (sx >= left + 6 && sx <= right - 6 && sy >= top && sy <= bottom) return i;
-  }
-  return direct >= 0 ? direct : -1;
+  let best = null;
+  const consider = (d, hit) => { if (!best || d > best.d) best = { d, ...hit }; };
+  const direct = inMap(t.x, t.y) ? buildingAt(t.x, t.y) : -1;
+  if (direct >= 0 && !BUILDINGS[state.buildings[direct].type].isPath) { const b = state.buildings[direct]; consider(b.x + b.y + BUILDINGS[b.type].size, { i: direct }); }
+  state.buildings.forEach((b, i) => {
+    const def = BUILDINGS[b.type], s = def.size;
+    if (def.isPath || i === direct) return;
+    if (b.x > t.x + 4 || b.y > t.y + 4 || b.x + s + 6 < t.x || b.y + s + 6 < t.y) return;   // zu weit weg
+    let hit = buildingImageHit(b, sx, sy);
+    if (hit === null) {   // ohne Bild bzw. ohne Pixel: grob über den Umriss
+      const left = tileToScreen(b.x, b.y + s).x, right = tileToScreen(b.x + s, b.y).x;
+      const bottom = tileToScreen(b.x + s / 2, b.y + s / 2).y;
+      hit = sx >= left + 6 && sx <= right - 6 && sy >= bottom - s * TW * cam.zoom * 0.55 && sy <= bottom;
+    }
+    if (hit) consider(b.x + b.y + s, { i });
+  });
+  for (let y = t.y - 1; y <= t.y + 3; y++)
+    for (let x = t.x - 1; x <= t.x + 3; x++) {
+      if (!inMap(x, y) || !terrainAt(x, y).clear || buildingAt(x, y) >= 0) continue;
+      const r = terrainObjectRect(x, y);
+      const onTile = x === t.x && y === t.y;
+      if (onTile || (sx >= r.x0 && sx <= r.x1 && sy >= r.y0 && sy <= r.y1)) consider(x + y + 1 + (onTile ? 0.01 : 0), { x, y });
+    }
+  return best;
+}
+
+// Welches Gebäude liegt unter dem Finger? (-1 = keins oder ein Baum davor)
+function buildingAtScreen(sx, sy) {
+  const o = objectAtScreen(sx, sy);
+  return o && o.i !== undefined ? o.i : -1;
 }
 
 function handleTap(sx, sy) {
@@ -132,7 +146,9 @@ function handleTap(sx, sy) {
   if (pathMode) return;
   const mammoth = typeof mammothAtScreen === 'function' ? mammothAtScreen(sx, sy) : null;
   if (mammoth) { showHuntInfo(mammoth); return; }
-  const i = buildingAtScreen(sx, sy);
+  const hit = objectAtScreen(sx, sy);
+  if (hit && hit.i === undefined && isOwned(hit.x, hit.y)) { showTerrainInfo(hit.x, hit.y, sx, sy); return; }
+  const i = hit && hit.i !== undefined ? hit.i : -1;
   if (i >= 0) {
     selected = i;
     showInfo(i);
@@ -283,7 +299,12 @@ function onBarPointerUp(e) {
   barDrag = null;
   if (d.dragging) return;
   if (e.type === 'pointercancel') return;   // Leiste wurde geblättert
-  if (d.locked) { toast(lockText(d.type) || 'Noch gesperrt'); return; }
+  if (d.locked) {   // gesperrt: Forschungsfenster mit der nötigen Forschung öffnen
+    toast(lockText(d.type) || 'Noch gesperrt');
+    const req = BUILDINGS[d.type].requires;
+    if (req && TECHS[req]) { researchSelected = req; openResearch(); }
+    return;
+  }
   beginBuild(d.type);
 }
 

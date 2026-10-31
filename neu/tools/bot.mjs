@@ -73,12 +73,16 @@ function botResearch() {
 function botWants() {
   const w = [];
   const pop = state.pop, food = stats.rates.nahrung || 0;
-  if (stats.housing - pop < 3) w.push('__house');
-  if (botCount('hoehlenmaler') < 1 + Math.floor(pop / 8)) w.push('hoehlenmaler');
+  const winterSoon = seasonIndex() >= 2;   // im Herbst schon für den langen Winter vorsorgen
+  const hungry = food < 2 + pop * (winterSoon ? 0.2 : 0.1);
+  const hunters0 = botCount('jaegerlager') + botCount('mammutjaegerlager');
+  const foodType = botBest('feld') || botBest('fischen') || (hunters0 < 3 + Math.floor(pop / 40) ? 'jaegerlager' : null) || 'sammlerin';
+  if (hungry && food < 0) w.push(foodType);   // Hunger: Nahrung vor allem anderen
+  if (stats.housing - pop < 3 && !(hungry && food < 0)) w.push('__house');
+  if (botCount('hoehlenmaler') < 1 + Math.floor(pop / 15)) w.push('hoehlenmaler');
   if (botCount('holzsammler') < 2 + Math.floor(pop / 12)) w.push('holzsammler');
   if (botCount('steinsammler') < 1 + Math.floor(pop / 15)) w.push('steinsammler');
-  const hunters = botCount('jaegerlager') + botCount('mammutjaegerlager');
-  if (food < 2 + pop * 0.1) w.push(botBest('feld') || botBest('fischen') || (hunters < 3 ? 'jaegerlager' : null) || 'sammlerin');
+  if (hungry) w.push(foodType);
   if ((stats.needs.waerme ?? 1) < 1) w.push('feuerplatz');
   if (stageReached('mittel') && (stats.needs.glaube ?? 1) < 1) w.push('ahnenplatz');
   if (botCount('jaegerlager') + botCount('mammutjaegerlager') < 1 + Math.floor(pop / 25)) w.push('jaegerlager');
@@ -93,12 +97,21 @@ function botWants() {
 }
 
 // Notfall wie ein Spieler: Baum fällen oder Felsen abtragen
+// (nur auf eigenem Land suchen – die ganze große Karte Ring für Ring abzusuchen, dauerte viel zu lange)
 function botClear(kind) {
-  const c = Math.floor(N / 2);
-  for (let r = 1; r < N; r++)
-    for (let y = c - r; y <= c + r; y++)
-      for (let x = c - r; x <= c + r; x++)
-        if (terrainAt(x, y) === TERRAIN[kind] && clearTile(x, y)) { botReport.cleared = (botReport.cleared || 0) + 1; return; }
+  const c = Math.floor(N / 2), ps = CONFIG.plotSize, id = TERRAIN[kind].id;
+  let best = null, bestD = Infinity;
+  for (let p = 0; p < state.plots.length; p++) {
+    if (state.plots[p] !== 1) continue;
+    const px = (p % PLOTS) * ps, py = Math.floor(p / PLOTS) * ps;
+    for (let y = py; y < py + ps; y++)
+      for (let x = px; x < px + ps; x++) {
+        if (terrain[y * N + x] !== id || occ[y * N + x]) continue;
+        const d = Math.max(Math.abs(x - c), Math.abs(y - c));
+        if (d < bestD) { best = [x, y]; bestD = d; }
+      }
+  }
+  if (best && clearTile(best[0], best[1])) botReport.cleared = (botReport.cleared || 0) + 1;
 }
 
 // Wege zum Lagerfeuer legen, wo sie fehlen

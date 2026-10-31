@@ -8,7 +8,7 @@ const SETTINGS_KEY = 'epochia-settings';
 const SLOTS = [1, 2, 3];
 
 let currentSlot = 1;
-let settings = { sound: true, music: true };
+let settings = { sound: true, music: true, footprint: false };
 
 function storageGet(key) {
   try { return localStorage.getItem(key); } catch (e) { return null; }
@@ -80,7 +80,8 @@ function sanitizeState(data) {
     const h = data.hunt, num = v => (Number.isFinite(Number(v)) ? Number(v) : 0);
     s.hunt = { left: Math.max(0, h.left), cx: num(h.cx), cy: num(h.cy), x: num(h.x), y: num(h.y) };
   }
-  for (const key of ['pop', 'yearTime', 'playTime', 'savedAt', 'herdWait']) if (Number.isFinite(data[key]) && data[key] >= 0) s[key] = data[key];
+  if (data.disaster && DISASTERS[data.disaster.id] && Number.isFinite(data.disaster.left)) s.disaster = { id: data.disaster.id, left: Math.max(0, data.disaster.left) };
+  for (const key of ['pop', 'yearTime', 'playTime', 'savedAt', 'herdWait', 'disasterCalm']) if (Number.isFinite(data[key]) && data[key] >= 0) s[key] = data[key];
   s.pop = Math.floor(s.pop);
   if (data.quests && typeof data.quests === 'object') s.quests = { ...data.quests };
   if (data.built && typeof data.built === 'object') s.built = { ...data.built };

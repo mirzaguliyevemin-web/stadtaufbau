@@ -51,15 +51,31 @@ let lastTopbar = '';
 
 // Wetter-Symbol oben: nachts der Mond, sonst das Wetter (sobald es richtig da ist)
 function weatherIcon() {
+  if (state.disaster && DISASTERS[state.disaster.id]) return DISASTERS[state.disaster.id].icon + '❗';
   const w = currentWeather();
   if (darkness() > 0.5 && (w.id === 'klar' || w.k < 0.5)) return '🌙';
   return w.k >= 0.5 ? w.icon : '';
 }
 
+// Wetter-Fenster: Jahreszeit, Tageszeit, Wetter mit Wirkung, Katastrophe – mit Restzeiten
 function weatherTip() {
-  const w = currentWeather();
-  toast(`${season().icon} ${season().name} · ${w.icon} ${w.name} · ${timeOfDay().icon} ${timeOfDay().name} · ${STAGES[stageIndex()].name}`);
+  const w = currentWeather(), q = CONFIG.yearSeconds / 4;
+  const seasonLeft = q - (state.yearTime % q);
+  const dayLeft = CONFIG.daySeconds - (state.playTime % CONFIG.daySeconds);
+  const weatherLeft = CONFIG.weatherSeconds - (state.playTime % CONFIG.weatherSeconds);
+  const d = state.disaster && DISASTERS[state.disaster.id];
+  openDialog(`<h2>${season().icon} ${esc(season().name)} · ${w.icon} ${esc(w.name)}</h2>
+    <div class="info-list">
+      <div><span>${season().icon} Jahreszeit</span><b>${esc(season().name)}</b><small>noch ${formatTime(seasonLeft)}</small></div>
+      <div><span>${timeOfDay().icon} Tageszeit</span><b>${esc(timeOfDay().name)}</b><small>ganzer Tag ${formatTime(CONFIG.daySeconds)} · neuer Tag in ${formatTime(dayLeft)}</small></div>
+      <div><span>${w.icon} Wetter</span><b>${esc(w.name)}</b><small>${esc((w.effect && w.effect.text) || '')} · wechselt in ${formatTime(weatherLeft)}</small></div>
+      ${d ? `<div class="bad"><span>${d.icon} ${esc(d.name)}</span><b>noch ${formatTime(state.disaster.left)}</b><small>${esc(d.text)}</small></div>` : ''}
+      ${seasonIndex() === 3 || SEASON_FACTORS.sammlerin[seasonIndex()] !== 1 ? `<div><span>🍂 Jahreszeit wirkt</span><small>Sammlerinnen ×${SEASON_FACTORS.sammlerin[seasonIndex()]} · Äcker ×${SEASON_FACTORS.acker[seasonIndex()]}</small></div>` : ''}
+    </div>
+    <p class="hint">Im Jahr: Frühling, Sommer, Herbst, Winter je ${formatTime(q)}. Gewitter und Sturm sind selten, Katastrophen sehr selten.</p>
+    <div class="buttons"><button class="btn" onclick="closeDialog()">Schließen</button></div>`);
 }
+
 // Maß für das Layout merken (z. B. Höhe der oberen Leiste); im Test ohne Browser gibt es kein documentElement
 function setCssVar(name, value) {
   const root = typeof document !== 'undefined' && document.documentElement;
@@ -102,26 +118,72 @@ function renderTopbar() {
   }
 }
 
+const perMin = n => (n >= 10 ? Math.round(n) : n.toFixed(1)).toString().replace('.', ',');
+
+// Ware antippen: Einnahmen und Ausgaben je Gebäude, Saldo, Lager und was gerade wirkt
 function resourceTip(id) {
-  const r = stats.rates[id] || 0;
-  const sign = r >= 0 ? '+' : '';
-  toast(`${RESOURCES[id].icon} ${RESOURCES[id].name}: ${Math.floor(state.res[id] || 0)} von ${storageCap()} · ${sign}${r.toFixed(1)} je Minute`);
+  const r = RESOURCES[id], f = (stats.flows || {})[id] || { in: {}, out: {} };
+  const count = type => state.buildings.filter(b => b.type === type && !b.build).length;
+  const who = k => (k === '__pop' ? `👥 ${Math.floor(state.pop)} Einwohner` : `${BUILDINGS[k].icon} ${esc(BUILDINGS[k].name)} ×${count(k)}`);
+  const rows = (obj, sign) => Object.entries(obj).filter(([, n]) => n > 0.005).sort((a, b) => b[1] - a[1])
+    .map(([k, n]) => `<div><span>${who(k)}</span><b class="${sign === '+' ? 'good' : 'bad'}">${sign}${perMin(n)}</b></div>`).join('') || '<div><small>nichts</small></div>';
+  const net = stats.rates[id] || 0, stock = state.res[id] || 0, cap = storageCap();
+  const when = net < -0.01 ? `leer in ${formatTime(stock / -net * 60)}` : net > 0.01 && stock < cap ? `voll in ${formatTime((cap - stock) / net * 60)}` : '';
+  const eff = activeEffects().filter(e => e.k > 0.3 && e.effect.text && e.effect.text !== 'keine Wirkung').map(e => `${e.icon} ${esc(e.name)}: ${esc(e.effect.text)}`);
+  openDialog(`<h2>${iconHtml(r.bild, r.icon)} ${esc(r.name)}</h2>
+    <p>Im Lager: <b>${Math.floor(stock)}</b> von ${cap}${when ? ` · ${when}` : ''}</p>
+    <h3>Einnahmen je Minute</h3><div class="info-list">${rows(f.in, '+')}</div>
+    <h3>Ausgaben je Minute</h3><div class="info-list">${rows(f.out, '−')}</div>
+    ${id === 'wissen' ? '<p class="hint">Wissen wird beim Start einer Forschung auf einmal bezahlt.</p>' : ''}
+    <p class="net">Zusammen: <b class="${net >= 0 ? 'good' : 'bad'}">${net >= 0 ? '+' : '−'}${perMin(Math.abs(net))} je Minute</b></p>
+    ${eff.length ? `<p class="hint">Wirkt gerade: ${eff.join(' · ')}</p>` : ''}
+    <div class="buttons"><button class="btn" onclick="closeDialog()">Schließen</button></div>`);
 }
 
 function popTip() {
-  toast(`👥 ${Math.floor(state.pop)} Einwohner, Platz für ${stats.housing} · Arbeit: ${stats.workers} von ${stats.jobs} Stellen besetzt`);
+  const homes = {};
+  state.buildings.forEach((b, i) => { const h = !b.build && isConnected(i) ? housingOf(b.type) : 0; if (h) homes[b.type] = (homes[b.type] || 0) + h; });
+  const why = stats.housing <= state.pop ? 'Kein freier Wohnplatz – baue Wohnungen.'
+    : state.res.nahrung <= 1 ? 'Es fehlt Nahrung.'
+    : stats.happiness < CONFIG.growthMinHappy ? `Zu unzufrieden (unter ${CONFIG.growthMinHappy} %).`
+    : effectGrowthStopped() ? 'Bei diesem Wetter zieht niemand zu.'
+    : `Alle ${formatTime(CONFIG.growthSeconds)} zieht jemand ein.`;
+  openDialog(`<h2>👥 Einwohner</h2>
+    <div class="info-list">
+      <div><span>Einwohner</span><b>${Math.floor(state.pop)}</b></div>
+      <div><span>Wohnplätze</span><b>${stats.housing}</b><small>${Object.entries(homes).map(([t, n]) => `${BUILDINGS[t].icon} ${esc(BUILDINGS[t].name)} ${n}`).join(' · ') || '–'}</small></div>
+      <div><span>Arbeit</span><b>${stats.workers} / ${stats.jobs}</b><small>${stats.jobs > stats.workers ? `${stats.jobs - stats.workers} Stellen frei – Gebäude arbeiten langsamer` : 'alle Stellen besetzt'}</small></div>
+      <div><span>Zuzug</span><small>${esc(why)}</small></div>
+      <div><span>🍖 Essen</span><small>Jeder isst ${perMin(CONFIG.foodPerPerson * effectFood())} Nahrung je Minute</small></div>
+    </div>
+    <div class="buttons"><button class="btn" onclick="closeDialog()">Schließen</button></div>`);
 }
 
 function happyTip() {
-  const parts = activeNeeds().map(n => `${n.icon} ${Math.round((stats.needs[n.id] || 0) * 100)}%`);
-  toast(`Zufriedenheit ${stats.happiness}% · ${parts.join(' · ')}`);
+  const needs = activeNeeds().map(n => `<div><span>${n.icon} ${esc(n.name)}</span><b>${Math.round((stats.needs[n.id] || 0) * 100)} %</b><small>${n.kind === 'stock' ? 'genug im Lager?' : 'Anteil der Wohnungen im Umkreis'}</small></div>`).join('');
+  const eff = activeEffects().filter(e => e.effect.happy && e.k > 0.05).map(e => `<div><span>${e.icon} ${esc(e.name)}</span><b class="${e.effect.happy > 0 ? 'good' : 'bad'}">${e.effect.happy > 0 ? '+' : '−'}${Math.round(Math.abs(e.effect.happy * e.k))}</b></div>`).join('');
+  openDialog(`<h2>😊 Zufriedenheit ${stats.happiness} %</h2>
+    <h3>Bedürfnisse (${stats.needsHappy} %)</h3><div class="info-list">${needs}</div>
+    ${eff ? `<h3>Wetter und Ereignisse</h3><div class="info-list">${eff}</div>` : ''}
+    <p class="hint">Zufriedene arbeiten schneller: Gebäude schaffen gerade ${Math.round(happinessFactor() * 100)} %. Ab ${CONFIG.growthMinHappy} % ziehen neue Leute zu.</p>
+    <div class="buttons"><button class="btn" onclick="closeDialog()">Schließen</button></div>`);
 }
 
 // ---------------------------------------------------------------------
 // Knöpfe am Rand
 // ---------------------------------------------------------------------
 
+// Grundriss-Ansicht: Gebäude nur als flache Platten, damit man dahinter Wege bauen und Bäume sehen kann
+function toggleFootprint() {
+  settings.footprint = !settings.footprint;
+  saveSettings();
+  toast(settings.footprint ? '📐 Grundriss: Gebäude flach – Wege dahinter gut sichtbar' : '🏠 Gebäude wieder ganz');
+  renderSideButtons();
+}
+
 function renderSideButtons() {
+  const fb = $('btn-footprint');
+  if (fb && fb.classList) fb.classList.toggle('on', !!settings.footprint);
   const r = state.research;
   // Laufende Forschung: Balken und Restzeit direkt am Forschung-Knopf (nicht mitten auf der Karte)
   show($('research-pill'), false);
@@ -291,6 +353,7 @@ function showTerrainInfo(x, y) {
     const kind = t === TERRAIN.wald ? 'wald' : 'fels';
     if (clearTile(x, y)) {
       if (typeof addFelled === 'function') addFelled(x, y, kind);
+      if (typeof playSound === 'function') playSound(kind === 'wald' ? 'hacken' : 'klirren');
       toast(`+${formatAmounts(t.clear)}`);
     }
     closeInfo();
@@ -354,28 +417,95 @@ function closeInfo() {
 // Fenster (Dialog) und ganze Seiten
 // ---------------------------------------------------------------------
 
+// Verlauf des Browsers: Jede offene Seite und jeder Dialog bekommt einen Eintrag, damit die Zurück-Taste bzw.
+// Wischgeste des Handys genau eine Ebene zurückgeht. Zurückgehen per Knopf wird gesammelt und am Ende in einem
+// Schritt erledigt; wird dazwischen etwas Neues geöffnet, ersetzt es den Eintrag statt einen neuen anzulegen.
+const hasHistory = () => typeof history !== 'undefined' && !!history.pushState;
+let histDepth = 0, pendingBack = 0, skipPop = 0;
+
+function pushEntry(kind) {
+  if (!hasHistory()) return;
+  if (pendingBack > 0) { pendingBack--; history.replaceState({ epochia: kind }, ''); return; }
+  history.pushState({ epochia: kind }, '');
+  histDepth++;
+}
+
+function popEntries(n = 1) {
+  if (!hasHistory()) return;
+  n = Math.min(n, histDepth);
+  if (n <= 0) return;
+  histDepth -= n;
+  const first = pendingBack === 0;
+  pendingBack += n;
+  if (first) setTimeout(() => {
+    const k = pendingBack;
+    pendingBack = 0;
+    if (k > 0) { skipPop++; history.go(-k); }
+  }, 0);
+}
+
+// Zurück-Taste des Handys: erst ein offener Dialog, dann die oberste Seite
+function onHistoryBack() {
+  if (skipPop > 0) { skipPop--; return; }
+  histDepth = Math.max(0, histDepth - 1);
+  if (dialogOpen) closeDialog(true);
+  else if (pageOpen) closePage(true);
+}
+
+let dialogOpen = false;
+
 function openDialog(html) {
   $('dialog-box').innerHTML = html;
   show($('dialog'), true);
+  if (!dialogOpen) pushEntry('dialog');
+  dialogOpen = true;
 }
 
-function closeDialog() { show($('dialog'), false); }
+function closeDialog(fromHistory = false) {
+  if (!dialogOpen) return;
+  dialogOpen = false;
+  show($('dialog'), false);
+  if (!fromHistory) popEntries(1);
+}
 
 let pageOpen = null;
+const pageStack = [];        // darunterliegende Seiten (z. B. Menü unter Spielstände) – „Zurück“ führt dorthin
+let reopening = false;
+const PAGE_OPENERS = { menu: () => openMenu(), slots: () => openSlots(true), research: () => openResearch(), quests: () => openQuests() };
 
 function openPage(title, html, name) {
   $('page-title').textContent = title;
   $('page-body').innerHTML = html;
   show($('page'), true);
-  if (!pageOpen && typeof history !== 'undefined' && history.pushState) history.pushState({ page: name }, '');
+  if (!reopening && pageOpen !== name) {
+    if (pageOpen) pageStack.push(pageOpen);
+    pushEntry('page');
+  }
   pageOpen = name;
 }
 
+// Eine Seite zurück (Knopf „Zurück“ oder Zurück-Taste des Handys)
 function closePage(fromHistory = false) {
   if (!pageOpen) return;
+  const prev = pageStack.pop();
+  pageOpen = null;
+  if (!fromHistory) popEntries(1);
+  if (prev && PAGE_OPENERS[prev]) {
+    reopening = true;
+    try { PAGE_OPENERS[prev](); } finally { reopening = false; }
+    return;
+  }
+  show($('page'), false);
+}
+
+// Alle Seiten schließen, zurück aufs Spielfeld (z. B. nach dem Wechsel des Spielstands)
+function closeAllPages() {
+  if (!pageOpen) return;
+  const n = pageStack.length + 1;
+  pageStack.length = 0;
   pageOpen = null;
   show($('page'), false);
-  if (!fromHistory && typeof history !== 'undefined' && history.state && history.state.page) history.back();
+  popEntries(n);
 }
 
 // ---------------------------------------------------------------------
@@ -440,6 +570,7 @@ function showBuildingWindow(i) {
     <div class="dlg-head">${iconHtml(def.bild, def.icon, 'huge')}<div><h2>${esc(def.name)}</h2><p>${esc(def.info)}</p></div></div>
     ${road}
     <ul class="lines">${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
+    ${b.build ? '' : buildingDetailsHtml(i)}
     ${upgrade}
     <div class="buttons">
       ${def.workers && !b.build ? `<button class="btn" onclick="doTogglePause(${i})">${b.paused ? '▶ Weiter' : '⏸ Pause'}</button>` : ''}
@@ -447,6 +578,51 @@ function showBuildingWindow(i) {
       ${canRemove ? `<button class="btn danger" onclick="askDemolish(${i})">🗑 Abreißen</button>` : ''}
       <button class="btn" onclick="closeDialog()">Schließen</button>
     </div>`);
+}
+
+// „Was bewirkt das genau?“ – zum Aufklappen, damit das Fenster klein bleibt (Emin: Infos selbst abrufen)
+function buildingDetailsHtml(i) {
+  const b = state.buildings[i], def = BUILDINGS[b.type];
+  const rows = [];
+  const row = (label, value, note = '') => rows.push(`<div><span>${label}</span><b>${value}</b>${note ? `<small>${note}</small>` : ''}</div>`);
+  const pct = f => `${Math.round(f * 100)} %`;
+  // Wärme bzw. Glaube: wie viele Wohnungen erreicht dieses Gebäude, was bringt das?
+  for (const [key, need, icon, word] of [['warmth', 'waerme', '🔥', 'Wärme'], ['belief', 'glaube', '🗿', 'Glaube']]) {
+    if (!def[key]) continue;
+    const r = key === 'warmth' ? warmthRadius(def) : def[key];
+    let homes = 0, people = 0;
+    state.buildings.forEach((h, j) => { const cap = !h.build && isConnected(j) ? housingOf(h.type) : 0; if (cap && distance(b, h) <= r + BUILDINGS[h.type].size / 2) { homes++; people += cap; } });
+    const n = NEEDS.find(x => x.id === need), active = activeNeeds().includes(n);
+    row(`${icon} ${word} im Umkreis`, `${r} Felder`, `erreicht ${homes} Wohnungen mit ${people} Plätzen`);
+    row(`${icon} Bedürfnis „${esc(n.name)}“`, active ? pct(stats.needs[need] || 0) : 'ab ' + esc(STAGES[stageIndex(n.from)].name),
+      `Anteil aller Wohnplätze mit ${word}. Jedes Bedürfnis zählt gleich viel für die Zufriedenheit (jetzt ${stats.happiness} %); zufriedene Menschen arbeiten schneller und es ziehen mehr zu.`);
+  }
+  if (def.housing) {
+    row('🏠 Wohnplätze', housingOf(b.type), `Einwohner essen je ${perMin(CONFIG.foodPerPerson)} Nahrung pro Minute. Sie brauchen Wärme${stageReached('mittel') ? ' und Glaube' : ''} in der Nähe.`);
+  }
+  if (def.produces) {
+    const staff = def.workers ? (stats.staff[i] || 0) / def.workers : 1;
+    const seasonF = SEASON_FACTORS[b.type] ? SEASON_FACTORS[b.type][seasonIndex()] : 1;
+    const parts = [
+      ['👤 Arbeiter', staff, `${stats.staff[i] || 0} von ${def.workers || 0}`],
+      [`${season().icon} Jahreszeit`, seasonF, season().name],
+      [`${currentWeather().icon} Wetter${state.disaster ? ' & ' + DISASTERS[state.disaster.id].name : ''}`, effectFactor(b.type), ''],
+      ['😊 Zufriedenheit', happinessFactor(), `${stats.happiness} %`],
+      ...(def.bonus ? [[`🌲 Gelände (${TERRAIN[def.bonus.terrain].name})`, 1 + terrainBonus(b), `höchstens +${Math.round(def.bonus.max * 100)} %`]] : []),
+      ['📜 Forschung', 1 + techSum('bonus', b.type), ''],
+    ];
+    const base = Object.entries(def.produces).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n)}`).join(' ');
+    row('Grundwert je Minute', base, 'bei voller Besetzung, ohne Einflüsse');
+    for (const [label, f, note] of parts) if (Math.abs(f - 1) > 0.005 || label.startsWith('👤')) row(label, '×' + perMin(f), note);
+    const out = outputPerMinute(i);
+    row('= Ergebnis je Minute', Object.entries(out).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n)}`).join(' '));
+    if (def.consumes) row('Verbraucht dafür', Object.entries(def.consumes).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n * outputFactor(i))}`).join(' '), 'fehlt etwas, läuft es nur so weit, wie es reicht');
+  }
+  if (def.storage) row('📦 Lager', `+${def.storage}`, 'mehr Platz für jede Ware');
+  if (def.needsWater) row('🌊 Am Wasser', 'nötig', 'Hochwasser legt Gebäude am Wasser still');
+  if (OUTDOOR_WORK.includes(b.type)) row('🌦️ Arbeitet draußen', '', 'Wetter wirkt stark (Gewitter, Hagel, Sturm …) – Details beim Wetter oben rechts');
+  if (!rows.length) return '';
+  return `<details class="more"><summary>ℹ️ Was bewirkt das genau?</summary><div class="info-list">${rows.join('')}</div></details>`;
 }
 
 function doTogglePause(i) {
@@ -660,7 +836,7 @@ function researchTopHtml() {
   const running = r
     ? `<span class="rt-chip run">${TECHS[r.id].icon} <b>${esc(TECHS[r.id].name)}</b> <span class="mini-bar wide"><i style="width:${Math.round((1 - r.left / TECHS[r.id].time) * 100)}%"></i></span> noch ${formatTime(r.left)}</span>`
     : '<span class="rt-chip idle">Gerade wird nichts erforscht – tippe eine leuchtende Karte an.</span>';
-  return `<span class="rt-chip">💡 Wissen <b>${Math.floor(state.res.wissen)}</b></span>${running}`;
+  return `<span class="rt-chip">${iconHtml(RESOURCES.wissen.bild, RESOURCES.wissen.icon)} Wissen <b>${Math.floor(state.res.wissen)}</b></span>${running}`;
 }
 
 function techDetailHtml() {
@@ -766,7 +942,7 @@ function openQuests() {
 }
 
 function doClaim(id) {
-  if (claimQuest(id)) toast('🎁 ' + formatAmounts(QUESTS.find(q => q.id === id).reward));
+  if (claimQuest(id)) { toast('🎁 ' + formatAmounts(QUESTS.find(q => q.id === id).reward)); playSound('muenze'); }
   if (pageOpen === 'quests') $('page-body').innerHTML = questsHtml();
   renderAll();
 }
@@ -788,7 +964,7 @@ function showDailyReward() {
 function doClaimDaily() {
   const r = claimDailyReward();
   closeDialog();
-  if (r) toast('🎁 ' + formatAmounts(r));
+  if (r) { toast('🎁 ' + formatAmounts(r)); playSound('muenze'); }
   renderAll();
 }
 
@@ -821,9 +997,9 @@ function menuHtml() {
     </section>
     <section class="card">
       <h3>⚙️ Einstellungen</h3>
-      ${sw('sound', '🔊', 'Geräusche', 'kommen später')}
+      ${sw('sound', '🔊', 'Geräusche', 'jedes Gebäude klingt anders')}
       ${sw('music', '🎵', 'Musik', 'kommt später')}
-      <div class="tiles">${tile('👴', 'Einstieg neu starten', 'closePage(); restartTutorial()')}</div>
+      <div class="tiles">${tile('👴', 'Einstieg neu starten', 'closeAllPages(); restartTutorial()')}</div>
     </section>
     <section class="card">
       <h3>💾 Spielstand <small>Platz ${currentSlot}</small></h3>
@@ -832,7 +1008,7 @@ function menuHtml() {
         ${tile('🗂', 'Spielstände', 'openSlots(true)')}
         ${tile('📤', 'Exportieren', 'showExport()')}
         ${tile('📥', 'Importieren', 'showImport()')}
-        ${tile('🏠', 'Startseite', 'saveGame(); closePage(); showStartScreen()')}
+        ${tile('🏠', 'Startseite', 'saveGame(); closeAllPages(); showStartScreen()')}
         ${tile('🔄', 'Nach Updates suchen', 'checkForUpdate(true)')}
       </div>
     </section>
@@ -866,7 +1042,7 @@ function chooseSlot(slot) {
   if (state && gameRunning) saveGame();
   currentSlot = slot;
   saveSettings();
-  closePage();
+  closeAllPages();
   enterGame();
 }
 
@@ -898,7 +1074,7 @@ function doImport() {
   if (importText($('import-text').value)) {
     saveGame();
     closeDialog();
-    closePage();
+    closeAllPages();
     centerOnCamp();
     renderAll();
     toast('Spielstand geladen');

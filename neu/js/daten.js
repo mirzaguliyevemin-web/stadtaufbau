@@ -11,9 +11,9 @@ const CONFIG = {
   tileW: 64,              // Breite einer Raute in Bildpunkten (Zoom 1)
   tileH: 44,              // Höhe einer Raute – so flach wie die Grasplatten auf Emins Bildern (≈ 0,69 × Breite)
   maxConstructions: 2,    // höchstens so viele Baustellen gleichzeitig
-  yearSeconds: 480,       // ein Jahr = 4 Jahreszeiten à 2 Minuten
-  daySeconds: 160,        // ein Tag mit Nacht (Zeiten passen wir später an)
-  weatherSeconds: 75,     // so lange hält ein Wetter an, dann wird neu ausgewürfelt
+  yearSeconds: 7200,      // ein Jahr = 4 Jahreszeiten à 30 Minuten (Emin, 31.10.; bis Version 22: 2 Minuten)
+  daySeconds: 1800,       // ein Tag mit Nacht dauert 30 Minuten (bis Version 22: 160 Sekunden)
+  weatherSeconds: 360,    // so lange hält ein Wetter an (6 Minuten), dann wird neu ausgewürfelt
   foodPerPerson: 0.4,     // Nahrung je Einwohner und Minute
   goodsPerPerson: 0.02,   // Kleidung / Töpferwaren je Einwohner und Minute (wenn das Bedürfnis zählt)
   growthSeconds: 15,      // so oft zieht jemand ein (wenn Platz, Nahrung und Laune passen)
@@ -22,11 +22,26 @@ const CONFIG = {
   bonusRadius: 3,         // Umkreis für Geländebonus (Wald, Felsen)
   maxOfflineHours: 2,     // so lange läuft das Spiel offline weiter (Emin: höchstens 2 Stunden)
   refundShare: 0.5,       // beim Abreißen gibt es die Hälfte zurück
+  disaster: {             // Naturkatastrophen (DISASTERS)
+    perHour: 0.35,        // so oft im Schnitt je Spielstunde (also etwa alle 3 Stunden eine)
+    graceMinutes: 45,     // in den ersten 45 Spielminuten nie
+    pauseMinutes: 60,     // nach einer Katastrophe mindestens 1 Stunde Ruhe
+  },
   hunt: {                 // Mammutjagd (nach der Forschung „Mammutjagd“, bis zur Jungsteinzeit)
     seconds: 60,          // so lange sind die Jäger unterwegs
     herdWait: 240,        // so lange dauert es nach einer Jagd, bis wieder eine Herde vorbeizieht
     reward: { nahrung: 60, felle: 6 },
     bigFactor: 1.5,       // mit einem Mammutjägerlager gibt es mehr
+  },
+  // Tempo-Regler (Emin, 31.10.: „Forschung, Rohstoffe und Bauen viel zu schnell“ → etwa doppelt so langsam).
+  // Werden unten einmal auf BUILDINGS und TECHS angewendet; die Zahlen dort sind die Grundwerte.
+  tempo: {
+    researchTime: 2,      // Forschungen dauern doppelt so lang
+    knowledgeCost: 1.5,   // und kosten 50 % mehr Wissen
+    knowledgeMade: 0.7,   // Höhlenmaler & Co. machen 30 % weniger Wissen
+    buildTime: 1.5,       // Bauzeiten +50 %
+    rawMade: 0.8,         // Holz, Stein, Ton, Felle: 20 % weniger
+    foodMade: 1,          // Nahrung bleibt (der Winter dauert jetzt 30 Minuten – mehr Abzug hieße Hungersnot)
   },
   start: {
     resources: { nahrung: 40, holz: 50, stein: 40 },   // geplant waren 40/20 – reicht nicht für den Einstieg
@@ -70,18 +85,55 @@ const SEASONS = [
   { name: 'Winter',   icon: '❄️' },
 ];
 
-// Wetter je Jahreszeit (Frühling, Sommer, Herbst, Winter): Wahrscheinlichkeiten. Bisher nur fürs Auge.
+// Wetter je Jahreszeit (Frühling, Sommer, Herbst, Winter): Wahrscheinlichkeiten (je Spalte zusammen 1).
+// effect: wirkt, solange das Wetter anhält – Faktor je Gebäude (fehlt es: 1), Zufriedenheit (Punkte),
+// food = Faktor für den Nahrungsverbrauch, grow = ziehen neue Leute zu? Gebäude mit outdoor = arbeiten draußen.
 const WEATHERS = {
-  klar:   { name: 'Sonnig',  icon: '☀️', chance: [0.45, 0.62, 0.30, 0.35] },
-  wolkig: { name: 'Wolkig',  icon: '☁️', chance: [0.20, 0.15, 0.30, 0.20] },
-  regen:  { name: 'Regen',   icon: '🌧️', chance: [0.30, 0.13, 0.40, 0] },
-  hagel:  { name: 'Hagel',   icon: '🌨️', chance: [0.05, 0.10, 0, 0] },
-  schnee: { name: 'Schnee',  icon: '❄️', chance: [0, 0, 0, 0.45] },
+  klar:     { name: 'Sonnig',   icon: '☀️', chance: [0.38, 0.52, 0.24, 0.30],
+              effect: { buildings: { sammlerin: 1.15, acker: 1.15, ziegengehege: 1.1 }, happy: 5, text: 'Sammlerinnen und Äcker +15 %, gute Laune' } },
+  wolkig:   { name: 'Wolkig',   icon: '☁️', chance: [0.20, 0.13, 0.26, 0.20], effect: { text: 'keine Wirkung' } },
+  regen:    { name: 'Regen',    icon: '🌧️', chance: [0.28, 0.12, 0.32, 0],
+              effect: { buildings: { acker: 1.2, sammlerin: 0.9, jaegerlager: 0.8, mammutjaegerlager: 0.8, holzsammler: 0.9, steinsammler: 0.9, tongrube: 1.1 }, happy: -5,
+                        text: 'Äcker +20 %, Jäger −20 %, draußen −10 %, Laune −5' } },
+  hagel:    { name: 'Hagel',    icon: '🌨️', chance: [0.05, 0.07, 0, 0],
+              effect: { buildings: { acker: 0.5, sammlerin: 0.6, ziegengehege: 0.8 }, happy: -10, text: 'Ernte zerschlagen: Äcker −50 %, Sammlerinnen −40 %, Laune −10' } },
+  schnee:   { name: 'Schnee',   icon: '❄️', chance: [0, 0, 0, 0.42],
+              effect: { buildings: { jaegerlager: 0.7, mammutjaegerlager: 0.7, holzsammler: 0.85, fischerplatz: 0.8 }, food: 1.25, happy: -5,
+                        text: 'Kälte: Nahrungsverbrauch +25 %, Jäger −30 %, Laune −5' } },
+  gewitter: { name: 'Gewitter', icon: '⛈️', chance: [0.05, 0.10, 0.06, 0],
+              effect: { outdoor: 0.6, buildings: { fischerplatz: 0.4 }, happy: -10, grow: false,
+                        text: 'Alle draußen −40 %, Fischer −60 %, niemand zieht zu, Laune −10' } },
+  sturm:    { name: 'Sturm',    icon: '🌬️', chance: [0.04, 0.06, 0.12, 0.08],
+              effect: { buildings: { fischerplatz: 0.3, acker: 0.8, holzsammler: 1.2, sammlerin: 0.8 }, happy: -5,
+                        text: 'Fischer bleiben an Land (−70 %), Windbruch: Holz +20 %, Laune −5' } },
+};
+
+// Diese Gebäude arbeiten draußen (Gewitter trifft sie)
+const OUTDOOR_WORK = ['sammlerin', 'jaegerlager', 'mammutjaegerlager', 'fischerplatz', 'acker', 'ziegengehege', 'holzsammler', 'steinsammler', 'tongrube'];
+
+// Naturkatastrophen: sehr selten, aber heftig (Emin, 31.10.). seasons = in welchen Jahreszeiten (0–3) sie kommen können.
+// buildings = Faktor auf die Arbeit, water = Gebäude am Wasser (needsWater) arbeiten mit diesem Faktor,
+// workers = Anteil der Arbeiter, die noch arbeiten können, lose = Anteil der Vorräte, der verdirbt,
+// burnTrees = so viele Bäume brennen ab, food = Nahrungsverbrauch, happy = Zufriedenheit, grow = Zuzug.
+const DISASTERS = {
+  duerre:      { name: 'Dürre',       icon: '🏜️', seasons: [1], minutes: 15,
+                 buildings: { sammlerin: 0.3, acker: 0.2, ziegengehege: 0.5, fischerplatz: 0.6 }, happy: -10,
+                 text: 'Kein Regen seit Wochen: Sammlerinnen −70 %, Äcker −80 %, Ziegen −50 %, Fischer −40 %.' },
+  hochwasser:  { name: 'Hochwasser',  icon: '🌊', seasons: [0, 2], minutes: 10, water: 0, lose: { nahrung: 0.3 }, happy: -10,
+                 text: 'Der Fluss tritt über die Ufer: Gebäude am Wasser stehen still, 30 % der Nahrung ist verdorben.' },
+  waldbrand:   { name: 'Waldbrand',   icon: '🔥', seasons: [1, 2], minutes: 12, burnTrees: 30,
+                 buildings: { holzsammler: 0.3, jaegerlager: 0.4, mammutjaegerlager: 0.4, sammlerin: 0.5 }, happy: -15,
+                 text: 'Ein Blitz hat den Wald entzündet: viele Bäume verbrannt, Holz −70 %, Jäger −60 %, Sammlerinnen −50 %.' },
+  kaeltewelle: { name: 'Kältewelle',  icon: '🥶', seasons: [3], minutes: 12, food: 2,
+                 buildings: { jaegerlager: 0.5, mammutjaegerlager: 0.5, fischerplatz: 0.3, holzsammler: 0.6 }, happy: -20,
+                 text: 'Eisige Kälte: doppelter Nahrungsverbrauch, Jäger −50 %, Fischer −70 %, Laune −20.' },
+  fieber:      { name: 'Fieber',      icon: '🤒', seasons: [0, 1, 2, 3], minutes: 10, workers: 0.5, grow: false, happy: -15,
+                 text: 'Ein Fieber geht um: nur die Hälfte kann arbeiten, niemand zieht zu, Laune −15.' },
 };
 
 // Wie stark die Jahreszeit (Frühling, Sommer, Herbst, Winter) ein Gebäude beeinflusst
 const SEASON_FACTORS = {
-  sammlerin: [1, 1.2, 1, 0.4],
+  sammlerin: [1, 1.2, 1, 0.6],   // Winter 60 % (seit die Jahreszeit 30 min dauert; vorher 40 %)
   acker:     [1, 1.5, 1, 0],
 };
 
@@ -269,6 +321,22 @@ const TECHS = {
 };
 
 // Ganz rechts im Baum: Aufbruch in die nächste Epoche (Bronzezeit wird in einem späteren Schritt gebaut)
+// Tempo-Regler anwenden (siehe CONFIG.tempo)
+(function applyTempo(t) {
+  const raw = ['holz', 'stein', 'ton', 'felle'];
+  for (const def of Object.values(BUILDINGS)) {
+    if (def.time) def.time = Math.round(def.time * t.buildTime);
+    for (const id of Object.keys(def.produces || {})) {
+      const f = id === 'wissen' ? t.knowledgeMade : id === 'nahrung' ? t.foodMade : raw.includes(id) ? t.rawMade : 1;
+      def.produces[id] = Math.round(def.produces[id] * f * 10) / 10;
+    }
+  }
+  for (const tech of Object.values(TECHS)) {
+    tech.time = Math.round(tech.time * t.researchTime);
+    if (tech.cost && tech.cost.wissen) tech.cost.wissen = Math.round(tech.cost.wissen * t.knowledgeCost);
+  }
+})(CONFIG.tempo);
+
 const NEXT_EPOCH = {
   name: 'Aufbruch in die Bronzezeit', icon: '🏺', col: 10, row: 2,
   requires: Object.keys(TECHS), buildings: ['steinkreis'], population: 120,

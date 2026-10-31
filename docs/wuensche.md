@@ -16,11 +16,38 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Arbeitende Menschen Teil 2: Fischer im Einbaum, Höhlenmaler, Fellmacherin, Steinschläger, Töpferei (Emin, 30.10.).
+- Bäume: Holzsammler fällen Bäume nach ein paar Mal, Pflanz-Gebäude für neue Setzlinge, passend zum Zeitalter (Emin, 31.10.) – in Arbeit.
+- Gebäude 4× drehen (Rückseiten-Bilder aus Canva, zuerst Fischerplatz, Tongrube, Pfahlbau) (Emin, 31.10.) – in Arbeit.
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 22 – Emins Liste vom 31.10. (Teil 1):
+  - Wetter wirkt: Sonne +15 % Sammlerinnen/Äcker, Regen hilft Äckern und bremst Jäger, Hagel zerschlägt die Ernte, Schnee
+    macht hungrig; neu **Gewitter** (Blitze, Donner, draußen −40 %, kein Zuzug) und **Sturm** (Bäume biegen sich, Fischer
+    bleiben an Land, Windbruch +20 % Holz). Alles steht im Wetter-Fenster oben rechts.
+  - Tag + Nacht dauern jetzt 30 Minuten, jede Jahreszeit 30 Minuten (Jahr = 2 Stunden), Wetter hält 6 Minuten.
+  - **Naturkatastrophen** (sehr selten, etwa alle 3 Spielstunden, nie in der ersten Dreiviertelstunde): Dürre, Hochwasser,
+    Waldbrand (Bäume verbrennen), Kältewelle, Fieber – mit Meldung, Färbung der Karte und Restzeit.
+  - Wissen hat überall dasselbe Bild (Leiste, Forschungsfenster, Sprechblasen über den Gebäuden).
+  - Fehler: Baum/Felsen direkt neben einem Gebäude ließ sich nicht antippen – jetzt wird pixelgenau am Gebäudebild geprüft.
+  - Bauleiste zeigt nur Gebäude des eigenen Zeitalters; Gesperrtes nennt die nötige Forschung und öffnet sie beim Antippen.
+  - Zurück-Knopf und Zurück-Geste: Menü → Spielstände → Zurück führt ins Menü; Dialoge schließen zuerst.
+  - Langsamer: Forschung doppelt so lang und +50 % Wissenskosten, Höhlenmaler −30 % Wissen, Holz/Stein/Ton/Felle −20 %,
+    Bauzeiten +50 % (Regler `CONFIG.tempo` in `neu/js/daten.js`). Bot: Mittelsteinzeit nach ≈ 2,5–3 Stunden.
+  - Treffpunkte: Leute sitzen am Feuer, tanzen abends ums Feuer, beten am Ahnenplatz/Steinkreis.
+  - Geräusche: jedes Gebäude klingt beim Antippen anders (Feuer knistert, Axt, Ziege, Horn …), dazu Bauen, Fertig,
+    Forschung, Belohnung, Donner (mit Code erzeugt, abschaltbar im Menü).
+  - Infos zum Selbst-Abrufen: Gebäude-Fenster „ℹ️ Was bewirkt das genau?“ (Umkreis, Bedürfnis, Rechnung der Produktion);
+    Waren oben antippen = Einnahmen und Ausgaben je Gebäude; Einwohner, Zufriedenheit und Wetter ebenso.
+  - iPhone: Drehen verzerrt nichts mehr; hochkant kommt ein Hinweis, das Handy quer zu halten.
+  - Knopf 📐 Grundriss: Gebäude nur als flache Platten, um Wege dahinter zu bauen.
+- 2026-10-31, Epochia Version 22 – Bot und Tests: Der Bot hing mit der großen Karte über eine Stunde – jetzt 20 Sekunden.
+- 2026-10-31, Epochia Version 22 – Arbeitende Menschen (Teil 2): Fischer stechen am Ufer mit dem Speer (es spritzt), der
+  zweite paddelt im Einbaum (Bild aus Canva) hinaus; Höhlenmaler tupfen Farbe an die Felsen und bringen Wissen heim; die
+  Tongrube gräbt am Ufer und trägt Ton; Fellmacherin schabt ein Fell, Steinschläger schlägt Splitter, Töpferin formt einen
+  wachsenden Topf – jeweils direkt vor ihrem Haus.
+- 2026-10-31, Epochia Version 22 – Fehler: Bei Spielbeginn im Frühling zeigten manche Gebäude kurz das Winterbild.
 - 2026-10-31, Epochia Version 22 – Karte viermal so groß (128 × 128 Felder); alte Spielstände liegen mit allen Gebäuden, Land
   und Wegen genau in der Mitte, das Gelände dort bleibt Feld für Feld gleich.
 - 2026-10-31, Epochia Version 22 – Gebirge: zwei Bergketten in den Ecken der neuen Karte mit Vorbergen aus Felsen; Bilder aus

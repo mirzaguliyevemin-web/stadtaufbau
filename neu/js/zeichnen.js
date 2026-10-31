@@ -447,6 +447,7 @@ const TREE_SEASONS = {
 function staggeredSeason(v) {
   const q = CONFIG.yearSeconds / 4, t = (state.yearTime + CONFIG.yearSeconds - v * 15) % CONFIG.yearSeconds;
   const si = Math.floor(t / q);
+  if (si === 3 && seasonIndex() === 0 && snowCover() === 0) return 0;   // Spielbeginn im Frühling: kein „Nachwinter“
   return si === 0 && snowCover() > 0.5 ? 3 : si;   // Schnee taut noch: alles bleibt verschneit
 }
 
@@ -492,6 +493,15 @@ function drawMountain(x, y, m) {
   ctx.restore();
 }
 
+// Rechteck des Baum- bzw. Felsbilds auf dem Bildschirm (für das Antippen), etwas schmaler als das Bild
+function terrainObjectRect(x, y) {
+  const t = terrain[y * N + x], p = tileToScreen(x + 0.5, y + 0.5), z = cam.zoom;
+  const ox = (hash(y, x) - 0.5) * 10 * z;
+  if (t === TERRAIN.wald.id) { const h = TW * 1.25 * (0.95 + hash(x, y) * 0.3) * z; return { x0: p.x + ox - h * 0.28, x1: p.x + ox + h * 0.28, y0: p.y - h, y1: p.y + h * 0.1 }; }
+  const w = TW * 0.95 * 0.9 * z;
+  return { x0: p.x + ox - w * 0.4, x1: p.x + ox + w * 0.4, y0: p.y - w * 0.8, y1: p.y + w * 0.1 };
+}
+
 function drawTerrainObject(x, y, kind, anim = null) {
   const p = tileToScreen(x + 0.5, y + 0.5);
   const v = hash(x, y);
@@ -528,7 +538,8 @@ function drawTerrainObject(x, y, kind, anim = null) {
   }
   // Wind: jeder Baum wiegt sich etwas anders, dazu laufen sanfte Böen über die Karte
   const t = frameTime;
-  const sway = Math.sin(t * 1.4 + v * 40) * 0.03 + Math.sin(t * 0.6 - (x + y) * 0.25) * 0.025;
+  const wind = typeof windStrength === 'function' ? windStrength() : 1;   // Sturm: Bäume biegen sich stark
+  const sway = (Math.sin(t * 1.4 * Math.sqrt(wind) + v * 40) * 0.03 + Math.sin(t * 0.6 * wind - (x + y) * 0.25) * 0.025) * wind + (wind - 1) * 0.04;
   ctx.save();
   ctx.translate(p.x + ox, p.y + foot);
   if (anim) ctx.rotate(anim.rot); else ctx.transform(1, 0, -sway, 1, 0, 0);
@@ -601,7 +612,8 @@ function earthPattern() {
   return p;
 }
 
-function drawImageOnTiles(img, x, y, s, rot, lift = 0) {
+// Wo landet das Bild auf dem Bildschirm? Ecken der Raute und die Abbildung Bildpunkt → Bildschirm (a … f)
+function imagePlacement(img, x, y, s, rot, lift = 0) {
   const iw = img.width, ih = img.height, p = img.sockel;
   const up = p.dicke * ih;
   let L = [p.lx * iw, p.ly * ih - up], R = [p.rx * iw, p.ry * ih - up], F = [p.fx * iw, p.fy * ih - up];
@@ -610,6 +622,58 @@ function drawImageOnTiles(img, x, y, s, rot, lift = 0) {
   bl.y -= lift; br.y -= lift; bf.y -= lift;
   const H = SOCKEL_HOEHE * (br.x - bl.x);
   const left = { x: bl.x, y: bl.y - H }, right = { x: br.x, y: br.y - H }, front = { x: bf.x, y: bf.y - H };
+  const det = (R[0] - L[0]) * (F[1] - L[1]) - (F[0] - L[0]) * (R[1] - L[1]);
+  const map = (tl, tr, tf) => {
+    const a = ((tr - tl) * (F[1] - L[1]) - (tf - tl) * (R[1] - L[1])) / det;
+    const c = ((tf - tl) * (R[0] - L[0]) - (tr - tl) * (F[0] - L[0])) / det;
+    return [a, c, tl - a * L[0] - c * L[1]];
+  };
+  const [a, c, e] = map(left.x, right.x, front.x);
+  const [b, d, f] = map(left.y, right.y, front.y);
+  return { bl, br, bf, left, right, front, m: [a, b, c, d, e, f] };
+}
+
+// Durchsichtigkeit der Bilder (verkleinert, einmal ausgelesen) – damit man durch leere Bildecken hindurchtippen kann
+const alphaCache = new Map();
+function alphaAt(img, u, v) {   // u, v = Anteile 0–1; null = unbekannt
+  let a = alphaCache.get(img);
+  if (a === undefined) {
+    a = null;
+    try {
+      const w = 96, h = Math.max(1, Math.round(96 * img.height / img.width));
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const g = c.getContext('2d'); g.drawImage(img, 0, 0, w, h);
+      const data = g.getImageData(0, 0, w, h).data;
+      if (data && data.length === w * h * 4) { a = { w, h, data }; }
+    } catch (e) { a = null; }
+    alphaCache.set(img, a);
+  }
+  if (!a) return null;
+  const px = Math.min(a.w - 1, Math.max(0, Math.floor(u * a.w))), py = Math.min(a.h - 1, Math.max(0, Math.floor(v * a.h)));
+  return a.data[(py * a.w + px) * 4 + 3];
+}
+
+// Liegt der Bildschirmpunkt auf einem sichtbaren Teil des Gebäudebilds? null = kein Bild (dann grob prüfen)
+function buildingImageHit(b, sx, sy) {
+  const def = BUILDINGS[b.type];
+  if (settings.footprint) return false;   // Grundriss: nur die Platte selbst zählt
+  const img = b.build > 0 ? (images['1-baustelle-' + def.size] || images['1-baustelle-2']) : def.bild && images[def.bild];
+  if (!img || !img.sockel) return null;
+  const pl = imagePlacement(img, b.x, b.y, def.size, b.rot);
+  if (sy > pl.left.y && sy > pl.right.y && sy > pl.front.y) return null;
+  const [a, bb, c, d, e, f] = pl.m, det = a * d - c * bb;
+  if (!det) return null;
+  const X = sx - e, Y = sy - f;
+  let u = (d * X - c * Y) / det, v = (a * Y - bb * X) / det;
+  if (b.rot) u = img.width - u;
+  if (u < 0 || v < 0 || u >= img.width || v >= img.height) return false;
+  const al = alphaAt(img, u / img.width, v / img.height);
+  return al === null ? null : al > 40;
+}
+
+function drawImageOnTiles(img, x, y, s, rot, lift = 0) {
+  const iw = img.width, ih = img.height, p = img.sockel;
+  const { bl, br, bf, left, right, front, m } = imagePlacement(img, x, y, s, rot, lift);
   // Einheitlicher Erdsockel für alle Gebäude (der gezeichnete Sockel im Bild wird an der Graskante abgeschnitten)
   const earth = earthPattern();
   ctx.fillStyle = earth || p.farbe;
@@ -625,14 +689,7 @@ function drawImageOnTiles(img, x, y, s, rot, lift = 0) {
   ctx.lineWidth = Math.max(1, 1.2 * cam.zoom);
   ctx.beginPath(); ctx.moveTo(bl.x, bl.y); ctx.lineTo(bf.x, bf.y); ctx.lineTo(br.x, br.y); ctx.stroke();
   // Abbildung Bild → Bildschirm aus drei Punktpaaren
-  const det = (R[0] - L[0]) * (F[1] - L[1]) - (F[0] - L[0]) * (R[1] - L[1]);
-  const map = (tl, tr, tf) => {
-    const a = ((tr - tl) * (F[1] - L[1]) - (tf - tl) * (R[1] - L[1])) / det;
-    const c = ((tf - tl) * (R[0] - L[0]) - (tr - tl) * (F[0] - L[0])) / det;
-    return [a, c, tl - a * L[0] - c * L[1]];
-  };
-  const [a, c, e] = map(left.x, right.x, front.x);
-  const [b, d, f] = map(left.y, right.y, front.y);
+  const [a, b, c, d, e, f] = m;
   ctx.save();
   // alles unterhalb der Graskante abschneiden: dort sitzt der einheitliche Sockel
   const wide = br.x - bl.x, g = Math.max(1, 0.8 * cam.zoom);
@@ -781,6 +838,7 @@ function drawBuildingSprite(type, x, y, rot, lift = 0, alpha = 1) {
     ctx.globalAlpha = 1;
     return;
   }
+  if (settings.footprint && !lift && alpha === 1) { drawFootprint(def, x, y, s); ctx.globalAlpha = 1; return; }
   // Im Winter das verschneite Bild (aus Canva), falls es eins gibt
   const winter = def.bild && images[def.bild + '-winter'] && state && staggeredSeason(hash(x, y)) === 3;
   const img = def.bild && (winter ? images[def.bild + '-winter'] : images[def.bild]);
@@ -794,9 +852,37 @@ function drawBuildingSprite(type, x, y, rot, lift = 0, alpha = 1) {
   ctx.globalAlpha = 1;
 }
 
+// Grundriss: Platte in der Farbe des Gebäudes mit Zeichen (und Name, wenn groß genug)
+function drawFootprint(def, x, y, s, building = true) {
+  diamondPath(ctx, x, y, s, s, tileToScreen, 0.08 * s);
+  ctx.fillStyle = building ? hexAlpha(def.color || '#a08060', 0.55) : 'rgba(200,170,110,0.45)';
+  ctx.fill();
+  ctx.strokeStyle = shade(def.color || '#a08060', -0.35);
+  ctx.lineWidth = Math.max(1.5, 2.5 * cam.zoom);
+  ctx.setLineDash([6 * cam.zoom, 4 * cam.zoom]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  const c = tileToScreen(x + s / 2, y + s / 2), z = cam.zoom;
+  const img = def.bild && images[def.bild];
+  const size = Math.max(14, 20 * z * Math.min(1.6, s / 2 + 0.4));
+  if (img) ctx.drawImage(img, c.x - size * 0.7, c.y - size * 0.95, size * 1.4, size * 1.4 * img.height / img.width);
+  else { ctx.font = `${Math.round(size)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(def.icon, c.x, c.y); }
+  if (z >= 0.8) {
+    ctx.font = `600 ${Math.round(10 * z)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillStyle = 'rgba(40,25,10,0.85)';
+    ctx.fillText(def.name, c.x, c.y + size * 0.45);
+  }
+}
+
+function hexAlpha(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
 function drawConstruction(b) {
   const def = BUILDINGS[b.type];
   const s = def.size;
+  if (settings.footprint) { drawFootprint(def, b.x, b.y, s, false); drawProgress(b, s, 10 * cam.zoom); return; }
   // Baustellen-Bild in passender Größe (fehlt es, das 2×2-Bild vergrößert, sonst ein gezeichnetes Gerüst)
   const img = images['1-baustelle-' + s] || images['1-baustelle-2'];
   let height = (0.55 + s * 0.22) * TH * cam.zoom;
@@ -854,7 +940,7 @@ function drawBubble(i) {
   const b = state.buildings[i];
   const def = BUILDINGS[b.type];
   if (b.build || def.isPath || b.type === 'lagerfeuer' || cam.zoom < 0.45) return;
-  let icon;
+  let icon, pic = null;
   const road = isConnected(i);
   if (road && !def.produces) return;
   const lacking = def.consumes && Object.keys(def.consumes).find(id => (state.res[id] || 0) < 0.5);
@@ -867,6 +953,7 @@ function drawBubble(i) {
     const phase = (frameTime / 4 + hash(b.x, b.y)) % 1;
     if (phase > 0.55) return;
     icon = RESOURCES[Object.keys(def.produces)[0]].icon;
+    pic = images[RESOURCES[Object.keys(def.produces)[0]].bild];   // Warenbild statt Emoji (wie oben in der Leiste)
   }
   const s = def.size;
   const top = tileToScreen(b.x + s / 2, b.y + s / 2);
@@ -874,10 +961,11 @@ function drawBubble(i) {
   const size = Math.max(14, 18 * cam.zoom);
   const y = top.y - (0.55 + s * 0.22) * TH * cam.zoom - size * 1.6 + bob - (images[def.bild] ? s * TH * 0.5 * cam.zoom : 0);
   ctx.font = `${Math.round(size)}px sans-serif`;
-  const w = ctx.measureText(icon).width + size * 0.8;
+  const w = (pic ? size * 1.15 : ctx.measureText(icon).width) + size * 0.8;
   ctx.fillStyle = 'rgba(255,255,255,0.95)';
   roundRect(top.x - w / 2, y - size * 0.75, w, size * 1.5, size * 0.6); ctx.fill();
   ctx.beginPath(); ctx.moveTo(top.x - 5, y + size * 0.7); ctx.lineTo(top.x + 5, y + size * 0.7); ctx.lineTo(top.x, y + size * 1.1); ctx.fill();
+  if (pic) { const q = size * 1.25; ctx.drawImage(pic, top.x - q / 2, y - q / 2, q, q); return; }
   ctx.fillStyle = '#000';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

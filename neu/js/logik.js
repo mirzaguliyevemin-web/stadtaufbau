@@ -102,9 +102,11 @@ function barEntries() {
     if (unlocked.length) {
       result.push({ type: unlocked.sort((a, b) => BUILDINGS[b].tier - BUILDINGS[a].tier)[0], locked: false });
     } else {
-      // noch nichts freigeschaltet: die erste Stufe gesperrt zeigen, wenn sie in der nächsten Stufe kommt
+      // noch nichts freigeschaltet: die erste Stufe gesperrt zeigen – aber nur, wenn ihre Forschung schon in diesem
+      // Zeitalter zu haben ist (Gebäude späterer Zeitalter erscheinen erst mit dem Aufbruch dorthin)
       const first = list.sort((a, b) => BUILDINGS[a].tier - BUILDINGS[b].tier)[0];
-      if (stageIndex(BUILDINGS[first].stage) <= stageIndex() + 1) result.push({ type: first, locked: true });
+      const req = BUILDINGS[first].requires;
+      if (!req || stageReached(TECHS[req].stage)) result.push({ type: first, locked: true });
     }
   }
   return result;
@@ -112,7 +114,9 @@ function barEntries() {
 
 function lockText(type) {
   const req = BUILDINGS[type].requires;
-  return req && !state.techs[req] ? `🔒 Forschung „${TECHS[req].name}“` : '';
+  if (!req || state.techs[req]) return '';
+  if (!stageReached(TECHS[req].stage)) return `🔒 Kommt in der ${STAGES[stageIndex(TECHS[req].stage)].name}`;
+  return `🔒 Erst „${TECHS[req].name}“ erforschen`;
 }
 
 // ---------------------------------------------------------------------
@@ -305,7 +309,9 @@ function recalcStats() {
     s.needs[n.id] = met;
     sum += met;
   }
-  s.happiness = needs.length ? Math.round(100 * sum / needs.length) : 100;
+  s.needsHappy = needs.length ? Math.round(100 * sum / needs.length) : 100;
+  s.weatherHappy = Math.round(effectHappy());
+  s.happiness = Math.max(0, Math.min(100, s.needsHappy + s.weatherHappy));
   stats = s;
   return s;
 }
@@ -376,6 +382,80 @@ function snowCover() {
 function seasonIndex() { return Math.floor((state.yearTime % CONFIG.yearSeconds) / (CONFIG.yearSeconds / 4)); }
 function season() { return SEASONS[seasonIndex()]; }
 
+// ---------------------------------------------------------------------
+// Wirkung von Wetter und Naturkatastrophen
+// ---------------------------------------------------------------------
+
+// Aktuelle Wirkungen als Liste { name, icon, effect, k } (k = Stärke 0–1, Wetter zieht langsam auf und ab)
+function activeEffects() {
+  const list = [];
+  const w = currentWeather();
+  if (w.effect) list.push({ name: w.name, icon: w.icon, effect: w.effect, k: w.k });
+  if (state.disaster && DISASTERS[state.disaster.id]) { const d = DISASTERS[state.disaster.id]; list.push({ name: d.name, icon: d.icon, effect: d, k: 1, disaster: true }); }
+  return list;
+}
+
+// Faktor für ein Gebäude durch Wetter und Katastrophe (1 = keine Wirkung)
+function effectFactor(type) {
+  let f = 1;
+  for (const { effect: e, k } of activeEffects()) {
+    let g = 1;
+    if (e.buildings && e.buildings[type] !== undefined) g = e.buildings[type];
+    else if (e.outdoor !== undefined && OUTDOOR_WORK.includes(type)) g = e.outdoor;
+    if (e.water !== undefined && BUILDINGS[type].needsWater) g = Math.min(g, e.water);
+    if (e.workers !== undefined && BUILDINGS[type].workers) g *= e.workers;
+    f *= 1 + (g - 1) * k;
+  }
+  return f;
+}
+
+function effectHappy() { return activeEffects().reduce((sum, { effect: e, k }) => sum + (e.happy || 0) * k, 0); }
+function effectFood() { return activeEffects().reduce((m, { effect: e, k }) => m * (1 + ((e.food || 1) - 1) * k), 1); }
+function effectGrowthStopped() { return activeEffects().some(({ effect: e, k }) => e.grow === false && k > 0.5); }
+
+// Naturkatastrophen: sehr selten, dafür heftig
+function disasterRandom() { return Math.random(); }
+
+function updateDisaster(dt) {
+  const c = CONFIG.disaster;
+  if (state.disaster) {
+    state.disaster.left -= dt;
+    if (state.disaster.left <= 0) { const id = state.disaster.id; state.disaster = null; state.disasterCalm = 0; emit('disasterEnded', id); }
+    return;
+  }
+  state.disasterCalm = (state.disasterCalm || 0) + dt;
+  if (state.playTime < c.graceMinutes * 60 || state.disasterCalm < c.pauseMinutes * 60 || state.tutorial >= 0) return;
+  if (disasterRandom() >= c.perHour * dt / 3600) return;
+  const si = seasonIndex();
+  const ids = Object.keys(DISASTERS).filter(id => DISASTERS[id].seasons.includes(si));
+  if (ids.length) startDisaster(ids[Math.floor(disasterRandom() * ids.length)]);
+}
+
+function startDisaster(id) {
+  const d = DISASTERS[id];
+  state.disaster = { id, left: d.minutes * 60 };
+  for (const [res, share] of Object.entries(d.lose || {})) state.res[res] = (state.res[res] || 0) * (1 - share);
+  if (d.burnTrees) burnForest(d.burnTrees);
+  emit('disaster', id);
+}
+
+let lastBurnt = [];
+
+// Waldbrand: ein zusammenhängendes Waldstück nahe der Siedlung brennt ab
+function burnForest(count) {
+  const c = Math.floor(N / 2);
+  const trees = [];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (terrain[y * N + x] === TERRAIN.wald.id && !occ[y * N + x]) trees.push([x, y]);
+  if (!trees.length) return [];
+  trees.sort((a, b) => Math.hypot(a[0] - c, a[1] - c) - Math.hypot(b[0] - c, b[1] - c));
+  const [sx, sy] = trees[Math.floor(disasterRandom() * Math.min(trees.length, 40))];
+  trees.sort((a, b) => Math.hypot(a[0] - sx, a[1] - sy) - Math.hypot(b[0] - sx, b[1] - sy));
+  const burnt = trees.slice(0, count);
+  for (const [x, y] of burnt) clearTile(x, y, true);
+  lastBurnt = burnt;   // nur fürs Bild (Rauch über der Brandstelle)
+  return burnt;
+}
+
 function terrainBonus(b) {
   const bonus = BUILDINGS[b.type].bonus;
   if (!bonus) return 0;
@@ -390,7 +470,7 @@ function outputFactor(i) {
   if (b.build || !isConnected(i)) return 0;
   const staffShare = def.workers ? (stats.staff[i] || 0) / def.workers : 1;
   const seasonF = SEASON_FACTORS[b.type] ? SEASON_FACTORS[b.type][seasonIndex()] : 1;
-  return staffShare * seasonF * happinessFactor() * (1 + terrainBonus(b)) * (1 + techSum('bonus', b.type));
+  return staffShare * seasonF * effectFactor(b.type) * happinessFactor() * (1 + terrainBonus(b)) * (1 + techSum('bonus', b.type));
 }
 
 // Was ein Gebäude je Minute herstellt (für Anzeige und Logik)
@@ -404,6 +484,9 @@ function outputPerMinute(i) {
 
 function updateProduction(dt) {
   const rates = {};
+  // flows[Ware] = { in: { Gebäudetyp: je Minute }, out: { Verbraucher: je Minute } } – für das Info-Fenster
+  const flows = {};
+  const flow = (id, dir, who, n) => { const f = (flows[id] ||= { in: {}, out: {} }); f[dir][who] = (f[dir][who] || 0) + n; };
   state.buildings.forEach((b, i) => {
     const def = BUILDINGS[b.type];
     if (b.build || !def.produces) return;
@@ -418,22 +501,26 @@ function updateProduction(dt) {
       for (const [id, n] of Object.entries(def.consumes)) {
         state.res[id] = Math.max(0, (state.res[id] || 0) - n * f * dt / 60);
         rates[id] = (rates[id] || 0) - n * f;
+        flow(id, 'out', b.type, n * f);
       }
     }
-    for (const [id, n] of Object.entries(def.produces)) rates[id] = (rates[id] || 0) + n * f;
+    for (const [id, n] of Object.entries(def.produces)) { rates[id] = (rates[id] || 0) + n * f; flow(id, 'in', b.type, n * f); }
     addResources(def.produces, f * dt / 60);
   });
   // Einwohner essen und verbrauchen Waren
-  const eat = state.pop * CONFIG.foodPerPerson;
+  const eat = state.pop * CONFIG.foodPerPerson * effectFood();
   state.res.nahrung = Math.max(0, state.res.nahrung - eat * dt / 60);
   rates.nahrung = (rates.nahrung || 0) - eat;
+  flow('nahrung', 'out', '__pop', eat);
   for (const n of activeNeeds()) {
     if (n.kind !== 'stock' || n.id === 'nahrung') continue;
     const use = state.pop * CONFIG.goodsPerPerson;
     state.res[n.id] = Math.max(0, (state.res[n.id] || 0) - use * dt / 60);
     rates[n.id] = (rates[n.id] || 0) - use;
+    flow(n.id, 'out', '__pop', use);
   }
   stats.rates = rates;
+  stats.flows = flows;
 }
 
 let growthTimer = 0;
@@ -441,7 +528,7 @@ let growthTimer = 0;
 function updatePopulation(dt) {
   const room = stats.housing - state.pop;
   if (room < 0) state.pop = stats.housing;
-  if (room > 0 && state.res.nahrung > 1 && stats.happiness >= CONFIG.growthMinHappy) {
+  if (room > 0 && state.res.nahrung > 1 && stats.happiness >= CONFIG.growthMinHappy && !effectGrowthStopped()) {
     growthTimer += dt;
     while (growthTimer >= CONFIG.growthSeconds && state.pop < stats.housing) {
       growthTimer -= CONFIG.growthSeconds;
@@ -647,6 +734,7 @@ function update(dt) {
   updatePopulation(dt);
   updateResearch(dt);
   updateHunt(dt);
+  updateDisaster(dt);
 }
 
 // Läuft die Zeit nach, in der das Spiel zu war. Gibt zurück, was dazugekommen ist.

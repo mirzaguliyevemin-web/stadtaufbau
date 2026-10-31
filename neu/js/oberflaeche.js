@@ -897,12 +897,21 @@ function showResearchStage(stage) {
   if (sc) sc.scrollLeft = 0;
 }
 
+// Oben auf der Forschungsseite nur noch das Wissen – die laufende Forschung zeigt ihre Restzeit auf ihrer Karte
 function researchTopHtml() {
-  const r = state.research;
-  const running = r
-    ? `<span class="rt-chip run">${TECHS[r.id].icon} <b>${esc(TECHS[r.id].name)}</b> <span class="mini-bar wide"><i style="width:${Math.round((1 - r.left / TECHS[r.id].time) * 100)}%"></i></span> noch ${formatTime(r.left)}</span>`
-    : '<span class="rt-chip idle">Gerade wird nichts erforscht – tippe eine leuchtende Karte an.</span>';
-  return `<span class="rt-chip">${iconHtml(RESOURCES.wissen.bild, RESOURCES.wissen.icon)} Wissen <b>${Math.floor(state.res.wissen)}</b></span>${running}`;
+  const idle = state.research ? '' : '<span class="rt-chip idle">Gerade wird nichts erforscht – tippe eine leuchtende Karte an.</span>';
+  return `<span class="rt-chip">${iconHtml(RESOURCES.wissen.bild, RESOURCES.wissen.icon)} Wissen <b>${Math.floor(state.res.wissen)}</b></span>${idle}`;
+}
+
+// Forschungsseite laufend auffrischen (Wissen, Restzeit und Balken der laufenden Forschung, Kosten rot/schwarz),
+// ohne Scrollstellung und Bilder anzutasten
+function tickResearchPage() {
+  if (pageOpen !== 'research') return;
+  patchHtml($('research-top'), researchTopHtml());
+  if (researchStage === '__next') return;
+  const sc = $('tree-scroll');
+  if (sc) { patchHtml(sc, researchBoardHtml()); fitTree(); }
+  patchHtml($('tech-detail'), techDetailHtml());
 }
 
 function techDetailHtml() {
@@ -925,7 +934,7 @@ function techDetailHtml() {
       <p><b>Kosten:</b> ${costHtml(t.cost)} · ⏱ ${formatTime(t.time)}${t.population ? ` · 👥 ${t.population} Einwohner` : ''} · <b>Vorher:</b> ${esc(req)}</p>
     </div>
     <div class="td-action">${status === 'done' ? '<span class="tag good">✔ Erforscht</span>'
-      : status === 'running' ? '<span class="tag">⏳ Läuft …</span>'
+      : status === 'running' ? `<span class="tag">⏳ Läuft … noch ${formatTime(state.research.left)}</span>`
       : `<button class="btn primary" ${problem ? 'disabled' : ''} onclick="doResearch('${id}')">📜 Erforschen</button>${problem ? `<small class="bad">${esc(problem)}</small>` : ''}`}</div>`;
 }
 

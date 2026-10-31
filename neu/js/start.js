@@ -124,7 +124,7 @@ function loop(now) {
     renderSideButtons();
     if (ghost) renderActionBar();
     if (infoFor) positionInfo();
-    if (pageOpen === 'research') patchHtml($('research-top'), researchTopHtml());
+    tickResearchPage();
     checkStaffHint();
     checkHerdHint();
   }

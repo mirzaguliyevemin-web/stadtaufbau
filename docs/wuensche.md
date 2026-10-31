@@ -22,6 +22,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 39 – Forschung: Restzeit auf der Karte im Baum läuft jetzt mit (auch „Läuft … noch“ rechts), doppelte Zeitanzeige oben entfernt.
 - 2026-10-31, Epochia Version 38 – Übers-Wasser-Laufen auch bei Mammutjägern (Wegsuche, Herde nur zu Fuß erreichbar), Besuchern am Feuer/Ahnenplatz und fliehenden Mammuts behoben.
 - 2026-10-31, Epochia Version 37 – iPhone: Ressourcen-Leiste und Wissen-Anzeige flattern nicht mehr (nur Zahlen werden getauscht, Bilder bleiben stehen; auch Bauleiste).
 - 2026-10-31, Epochia Version 36 – Rückansicht Feuerplatz (Canva).

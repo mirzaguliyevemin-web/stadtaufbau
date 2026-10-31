@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mammut', 'hirsch', 'ziege', 'einbaum'];
+const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -234,7 +234,13 @@ const WORK = {
   fellmacherin:      { target: 'self',  tool: null,   carry: null, img: 'mensch-frau', chips: null,      swing: 'scrape', thing: 'ware-felle' },
   steinschlaeger:    { target: 'self',  tool: null,   carry: null, img: 'mensch-mann', chips: '#b9b4a8', swing: 'knap',   thing: 'ware-stein' },
   toepferei:         { target: 'self',  tool: null,   carry: null, img: 'mensch-frau', chips: null,      swing: 'pot',    thing: 'ware-toepferwaren' },
+  // Teil 3: auf dem Acker graben, am Ziegengehege hüten, Setzlinge pflanzen
+  acker:             { target: 'field',  tool: 'grabstock', carry: null, img: 'mensch-frau', chips: '#7a5230', swing: 'hack' },
+  ziegengehege:      { target: 'pen',    tool: null,  carry: null, img: 'mensch-mann', chips: null,      swing: 'herd', look: 'mensch-hirte' },
+  pflanzerin:        { target: 'sapling', tool: null, carry: null, img: 'mensch-frau', chips: '#7a5230', swing: 'plant' },
 };
+// Gebückte/kniende Arbeitshaltungen (Canva) je Bewegung
+const BEND_POSES = { pick: 'mensch-frau-pflueckt', plant: 'mensch-frau-pflanzt' };
 const WORK_SECONDS = 7, WORK_WALK = 0.75;   // so lange wird gearbeitet, so schnell gelaufen (Felder je Sekunde)
 
 life.workers = [];
@@ -246,6 +252,27 @@ function workSpot(b, kind, far, k = 0) {
   if (kind === 'self') {   // arbeitet direkt vor dem Haus, das Werkstück liegt daneben
     const sx = b.x + s + 0.55, sy = b.y + s / 2 + (k ? 0.55 : -0.55);
     return { tx: sx + 0.45, ty: sy + 0.1, sx, sy };
+  }
+  const r = (a, c) => hash(b.x + a + Math.floor(lifeRandom() * 50), b.y + c);
+  if (kind === 'field') {   // irgendwo auf dem eigenen Acker, jedes Mal ein anderes Stück
+    const sx = b.x + 0.6 + r(k, 1) * (s - 1.2), sy = b.y + 0.6 + r(2, k + 5) * (s - 1.2);
+    return { tx: sx - 0.5, ty: sy, sx, sy };
+  }
+  if (kind === 'pen') {   // am Zaun entlang, Blick ins Gehege
+    const a = r(k * 3, 9) * Math.PI * 2, rr = s / 2 + 0.45;
+    const sx = cx + Math.cos(a) * rr, sy = cy + Math.sin(a) * rr;
+    if (!walkable(Math.floor(sx), Math.floor(sy))) return null;
+    return { tx: cx, ty: cy, sx, sy };
+  }
+  if (kind === 'sapling') {   // zum nächsten Setzling, sonst auf die Wiese daneben (gleich wird dort gepflanzt)
+    let best = null, bestD = Infinity;
+    for (const [i] of state.saplings) {
+      const x = i % N, y = Math.floor(i / N), d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + hash(x + k * 7, y) * 3;
+      if (d < bestD && d < CONFIG.trees.plantRadius + 2 && walkable(x + 1, y)) { bestD = d; best = { tx: x + 0.5, ty: y + 0.5, sx: x + 1.15, sy: y + 0.5 }; }
+    }
+    if (best) return best;
+    const sx = b.x + s + 0.6 + r(k, 3) * 1.5, sy = b.y + r(4, k) * s;
+    return walkable(Math.floor(sx), Math.floor(sy)) ? { tx: sx - 0.6, ty: sy, sx, sy } : null;
   }
   const id = TERRAIN[kind].id, max = far ? 10 : 7;
   let best = null, bestD = Infinity;
@@ -319,7 +346,9 @@ function updateWorkers(dt) {
     for (const o of want) {
       if (life.workers.some(w => w.b === o.b && w.k === o.k)) continue;
       const s = BUILDINGS[o.b.type].size;
-      const home = { x: o.b.x + s + 0.3, y: o.b.y + s / 2 + (o.k ? 0.5 : -0.5) };   // vor dem Haus (rechts unten im Bild)
+      const home = WORK[o.b.type].target === 'field'
+        ? { x: o.b.x + s - 0.5, y: o.b.y + s / 2 + (o.k ? 0.6 : -0.6) }      // auf dem Acker bleiben, am vorderen Feldrand
+        : { x: o.b.x + s + 0.3, y: o.b.y + s / 2 + (o.k ? 0.5 : -0.5) };   // vor dem Haus (rechts unten im Bild)
       life.workers.push({ b: o.b, k: o.k, kind: WORK[o.b.type], home, x: home.x, y: home.y, phase: 'rest', t: 1 + o.k * 2.5 + lifeRandom() * 2, face: 1, ph: lifeRandom() * 9 });
     }
   }
@@ -375,7 +404,9 @@ function workerObjects(inView, t) {
   const out = [];
   for (const w of life.workers) {
     if (w.phase === 'rest' || !inView(w.x, w.y)) continue;
-    out.push({ d: w.x + w.y - 0.5, kind: 'leben', draw: () => drawWorker(w, t) });
+    const b = w.b, s = BUILDINGS[b.type].size;
+    const onPlate = w.x > b.x && w.x < b.x + s && w.y > b.y && w.y < b.y + s;   // auf dem Acker: nicht vom Feld verdecken
+    out.push({ d: onPlate ? b.x + b.y + s + 0.01 + (w.x + w.y) * 1e-4 : w.x + w.y - 0.5, kind: 'leben', draw: () => drawWorker(w, t) });
   }
   return out;
 }
@@ -406,8 +437,8 @@ function drawWorker(w, t) {
     ctx.save(); ctx.translate(p.x, p.y); if (w.face < 0) ctx.scale(-1, 1);
     ctx.drawImage(img, -ww / 2 - ww * shift, -hh, ww, hh);
     ctx.restore();
-  } else if (!walking && swing === 'pick' && images['mensch-frau-pflueckt']) {   // Sammlerin bückt sich zum Busch (Canva)
-    const img = images['mensch-frau-pflueckt'], hh = 30 * z, ww = hh * img.width / img.height, dip = Math.max(0, Math.sin(t * 3 + w.ph)) * 1.5 * z;
+  } else if (!walking && BEND_POSES[swing] && images[BEND_POSES[swing]]) {   // bückt sich zum Busch / kniet am Setzling (Canva)
+    const img = images[BEND_POSES[swing]], hh = 30 * z, ww = hh * img.width / img.height, dip = Math.max(0, Math.sin(t * 3 + w.ph)) * 1.5 * z;
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.beginPath(); ctx.ellipse(p.x, p.y, 10 * z, 3.2 * z, 0, 0, 7); ctx.fill();
     ctx.save(); ctx.translate(p.x, p.y + dip); if (w.face < 0) ctx.scale(-1, 1);
@@ -476,6 +507,13 @@ function drawWorker(w, t) {
     const q = (t * 0.9 + w.ph) % 1;
     ctx.fillStyle = '#d8344a';
     ctx.beginPath(); ctx.arc(p.x - 8 * z * w.face, p.y - 14 * z - Math.sin(q * Math.PI) * 8 * z, 2.2 * z, 0, 7); ctx.fill();
+  }
+  // Pflanzen: Erde krümelt neben den Händen
+  if (!walking && swing === 'plant') {
+    const q = (t * 1.3 + w.ph) % 1, g = tileToScreen(w.tx, w.ty);
+    ctx.fillStyle = '#7a5230'; ctx.globalAlpha = 1 - q;
+    for (let i = 0; i < 3; i++) ctx.fillRect(g.x + (i - 1) * 4 * z + (p.x - g.x) * 0.4, g.y - 3 * z - q * (4 + i * 2) * z, 2 * z, 2 * z);
+    ctx.globalAlpha = 1;
   }
   // Beute auf dem Rückweg tragen
   if (w.phase === 'back' && w.kind.carry && images[w.kind.carry] && look !== w.kind.carryLook) {
@@ -647,6 +685,7 @@ function drawSitting(v, t) {
 const TOOL_POSES = {
   axt:   [['mensch-axt-oben', 38, 0], ['mensch-axt-unten', 34, 0.12]],
   hacke: [['mensch-hacke-oben', 38, 0], ['mensch-hacke-unten', 34, 0.12]],
+  grabstock: [['mensch-frau-grabstock-oben', 36, 0], ['mensch-frau-grabstock-unten', 33, 0.1]],
 };
 
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.

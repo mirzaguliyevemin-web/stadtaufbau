@@ -78,6 +78,7 @@ let turnHintDone = false;
 function checkTurnHint() {
   if (typeof window === 'undefined' || !window.innerWidth) return;
   const portrait = window.innerHeight > window.innerWidth && window.innerWidth < 700;
+  if (portrait && (state.tutorial >= 0 || dialogOpen)) { show($('turn-hint'), false); return; }   // nicht über dem Ältesten oder einem Fenster
   if (!portrait) turnHintDone = true;   // einmal quer gehalten: nicht mehr erinnern
   show($('turn-hint'), portrait && !turnHintDone);
 }
@@ -114,14 +115,14 @@ function loop(now) {
   if (saveTimer > 10) { saveTimer = 0; saveGame(); }
 }
 
-on('finished', b => { if (gameRunning && BUILDINGS[b.type].time > 0) toast(`${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name} ist fertig!`); });
+on('finished', b => { if (gameRunning && !offlineRunning && BUILDINGS[b.type].time > 0) toast(`${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name} ist fertig!`); });
 on('evolved', list => {
   if (!gameRunning) return;
   for (const c of list) toast(`✨ ${c.count}× ${BUILDINGS[c.from].name} → ${BUILDINGS[c.to].name}`);
   renderAll();
 });
 on('researchDone', id => {
-  if (!gameRunning) return;
+  if (!gameRunning || offlineRunning) return;
   toast(`📜 Erforscht: ${TECHS[id].name}`);
   refreshResearchPage();
   if (TECHS[id].effect && TECHS[id].effect.stage) {
@@ -133,7 +134,7 @@ on('researchDone', id => {
 on('huntDone', reward => { if (gameRunning) toast(`🦣 Die Jäger sind zurück: +${formatAmounts(reward)}`); });
 on('placed', b => { (state.seen ||= {})[b.type] = true; });
 on('disaster', id => {
-  if (!gameRunning) return;
+  if (!gameRunning || offlineRunning) return;
   const d = DISASTERS[id];
   openDialog(`<div class="disaster-ic">${d.icon}</div><h2>${esc(d.name)}!</h2><p>${esc(d.text)}</p>
     <p class="hint">Das dauert etwa ${formatTime(d.minutes * 60)}. Oben beim Wetter siehst du, wie lange noch.</p>

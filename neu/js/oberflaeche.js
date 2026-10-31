@@ -54,7 +54,7 @@ function weatherIcon() {
   if (state.disaster && DISASTERS[state.disaster.id]) return DISASTERS[state.disaster.id].icon + '❗';
   const w = currentWeather();
   if (darkness() > 0.5 && (w.id === 'klar' || w.k < 0.5)) return '🌙';
-  return w.k >= 0.5 ? w.icon : '';
+  return w.k >= 0.15 ? w.icon : '';
 }
 
 // Wetter-Fenster: Jahreszeit, Tageszeit, Wetter mit Wirkung, Katastrophe – mit Restzeiten
@@ -97,7 +97,7 @@ function renderTopbar() {
   const cap = storageCap();
   const chips = visibleResources().map(id => {
     const n = Math.floor(state.res[id] || 0);
-    const cls = n <= 0 ? ' empty' : n >= cap ? ' full' : '';
+    const cls = n <= 0 ? ' empty' : n >= cap && !RESOURCES[id].noCap ? ' full' : '';
     return `<button class="chip${cls}" onclick="resourceTip('${id}')">${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon)}<b>${n}</b></button>`;
   }).join('');
   const happy = stats.happiness;
@@ -128,10 +128,13 @@ function resourceTip(id) {
   const rows = (obj, sign) => Object.entries(obj).filter(([, n]) => n > 0.005).sort((a, b) => b[1] - a[1])
     .map(([k, n]) => `<div><span>${who(k)}</span><b class="${sign === '+' ? 'good' : 'bad'}">${sign}${perMin(n)}</b></div>`).join('') || '<div><small>nichts</small></div>';
   const net = stats.rates[id] || 0, stock = state.res[id] || 0, cap = storageCap();
-  const when = net < -0.01 ? `leer in ${formatTime(stock / -net * 60)}` : net > 0.01 && stock < cap ? `voll in ${formatTime((cap - stock) / net * 60)}` : '';
-  const eff = activeEffects().filter(e => e.k > 0.3 && e.effect.text && e.effect.text !== 'keine Wirkung').map(e => `${e.icon} ${esc(e.name)}: ${esc(e.effect.text)}`);
+  const when = net < -0.01 ? `leer in ${formatTime(stock / -net * 60)}` : net > 0.01 && stock < cap && !r.noCap ? `voll in ${formatTime((cap - stock) / net * 60)}` : '';
+  const makers = Object.keys(BUILDINGS).filter(t => (BUILDINGS[t].produces || {})[id] !== undefined);
+  const touches = e => makers.some(t => { const b = e.effect.buildings || {}; return b[t] !== undefined || (e.effect.outdoor !== undefined && OUTDOOR_WORK.includes(t)) || (e.effect.water !== undefined && BUILDINGS[t].needsWater) || e.effect.workers !== undefined; })
+    || (id === 'nahrung' && e.effect.food);
+  const eff = activeEffects().filter(e => e.k > 0.3 && e.effect.text && touches(e)).map(e => `${e.icon} ${esc(e.name)}: ${esc(e.effect.text)}`);
   openDialog(`<h2>${iconHtml(r.bild, r.icon)} ${esc(r.name)}</h2>
-    <p>Im Lager: <b>${Math.floor(stock)}</b> von ${cap}${when ? ` · ${when}` : ''}</p>
+    <p>Im Lager: <b>${Math.floor(stock)}</b>${r.noCap ? ' (kein Limit)' : ` von ${cap}`}${when ? ` · ${when}` : ''}</p>
     <h3>Einnahmen je Minute</h3><div class="info-list">${rows(f.in, '+')}</div>
     <h3>Ausgaben je Minute</h3><div class="info-list">${rows(f.out, '−')}</div>
     ${id === 'wissen' ? '<p class="hint">Wissen wird beim Start einer Forschung auf einmal bezahlt.</p>' : ''}
@@ -341,6 +344,18 @@ function showInfo(i) {
   infoTimer = setTimeout(closeInfo, 5000);
 }
 
+// Setzling antippen: ausreißen (macht den Platz wieder frei)
+function showSaplingInfo(x, y) {
+  infoFor = { kind: 'tile', x, y };
+  const el = $('info-pop');
+  el.classList.add('tool');
+  el.innerHTML = `<span class="tool-ic">${iconHtml('setzling', '🌱', 'big')}</span><span>Setzling ausreißen<small>macht den Platz frei</small></span>`;
+  el.onclick = () => { removeSapling(x, y); toast('🌱 Setzling ausgerissen'); closeInfo(); };
+  show(el, true);
+  positionInfo();
+  clearTimeout(infoTimer);
+}
+
 function showTerrainInfo(x, y) {
   const t = terrainAt(x, y);
   infoFor = { kind: 'tile', x, y };
@@ -423,11 +438,14 @@ function closeInfo() {
 const hasHistory = () => typeof history !== 'undefined' && !!history.pushState;
 let histDepth = 0, pendingBack = 0, skipPop = 0;
 
+let waitingPushes = 0;   // während der Browser noch zurückspringt, neue Einträge erst danach anlegen
+
 function pushEntry(kind) {
   if (!hasHistory()) return;
-  if (pendingBack > 0) { pendingBack--; history.replaceState({ epochia: kind }, ''); return; }
-  history.pushState({ epochia: kind }, '');
+  if (pendingBack > 0) { pendingBack--; histDepth++; history.replaceState({ epochia: kind }, ''); return; }
   histDepth++;
+  if (skipPop > 0) { waitingPushes++; return; }
+  history.pushState({ epochia: kind }, '');
 }
 
 function popEntries(n = 1) {
@@ -446,7 +464,11 @@ function popEntries(n = 1) {
 
 // Zurück-Taste des Handys: erst ein offener Dialog, dann die oberste Seite
 function onHistoryBack() {
-  if (skipPop > 0) { skipPop--; return; }
+  if (skipPop > 0) {
+    skipPop--;
+    if (skipPop === 0) for (; waitingPushes > 0; waitingPushes--) history.pushState({ epochia: 'page' }, '');
+    return;
+  }
   histDepth = Math.max(0, histDepth - 1);
   if (dialogOpen) closeDialog(true);
   else if (pageOpen) closePage(true);
@@ -865,7 +887,7 @@ function techDetailHtml() {
 
 function openResearch() {
   closeInfo();
-  if (!researchSelected) researchSelected = state.research ? state.research.id : Object.keys(TECHS).find(id => techStatus(id) === 'available') || null;
+  if (!researchSelected) researchSelected = state.research ? state.research.id : Object.keys(TECHS).filter(id => techStatus(id) === 'available').sort((a, b) => (TECHS[a].cost.wissen || 0) - (TECHS[b].cost.wissen || 0))[0] || null;
   researchStage = researchSelected && TECHS[researchSelected] ? TECHS[researchSelected].stage : state.stage;
   openPage('📜 Forschung', researchPageHtml(), 'research');
   fitTree();
@@ -974,6 +996,7 @@ function showOfflineSummary(result) {
   openDialog(`<h2>Willkommen zurück!</h2>
     <p>Du warst ${formatTime(result.seconds)} weg. Dein Stamm hat weitergearbeitet:</p>
     <p>${gained.length ? gained.map(([id, n]) => `${RESOURCES[id].icon} +${Math.floor(n)}`).join('  ') : 'nicht viel Neues'}${result.pop > 0 ? `  👥 +${result.pop}` : ''}</p>
+    ${(result.events || []).length ? `<div class="info-list">${result.events.map(e => `<div><small>${esc(e)}</small></div>`).join('')}</div>` : ''}
     <div class="buttons"><button class="btn primary" onclick="closeDialog(); afterWelcome()">Weiter</button></div>`);
 }
 

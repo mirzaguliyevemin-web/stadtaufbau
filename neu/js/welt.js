@@ -163,8 +163,11 @@ function generateTerrain(seed) {
   return t;
 }
 
+let baseTerrain = null;   // Gelände, wie es aus der Spielstand-Zahl entsteht (ohne Fällen und Pflanzen)
+
 function buildTerrain() {
-  terrain = generateTerrain(state.seed);
+  baseTerrain = generateTerrain(state.seed);
+  terrain = baseTerrain.slice();
   for (const i of state.cleared) if (i >= 0 && i < N * N) terrain[i] = TERRAIN.gras.id;
   for (const i of state.planted) if (i >= 0 && i < N * N) terrain[i] = TERRAIN.wald.id;
   if (typeof onTerrainChanged === 'function') onTerrainChanged();
@@ -193,6 +196,12 @@ function saplingAt(x, y) {
   return state.saplings.some(s => s[0] === i);
 }
 
+function removeSapling(x, y) {
+  const i = y * N + x, n = state.saplings.length;
+  state.saplings = state.saplings.filter(s => s[0] !== i);
+  return state.saplings.length < n;
+}
+
 // Baum fällen / Felsen abtragen (macht Platz und bringt ein wenig Holz bzw. Stein).
 // free = auch fremdes Land und ohne Ertrag (Waldbrand, Holzsammler, die den Baum schon als Holz verbucht haben)
 function clearTile(x, y, free = false) {
@@ -218,8 +227,8 @@ function plotPrice() {
   // gleichmäßig teurer, aber nie über den Lagerplatz (150) – sonst könnte man nie mehr Land kaufen.
   // Ab dem 8. Stück kostet Land zusätzlich Stein.
   const n = plotsBought();
-  const price = { holz: Math.min(140, 30 + 15 * n), nahrung: Math.min(140, 30 + 15 * n) };
-  if (n >= 7) price.stein = Math.min(140, 20 * (n - 6));
+  // Seit Version 24 kein Essen mehr: wer hungert, muss trotzdem Land für neue Jäger kaufen können (sonst Sackgasse)
+  const price = { holz: Math.min(140, 30 + 15 * n), stein: Math.min(140, 20 + 10 * n) };
   return price;
 }
 
@@ -249,6 +258,7 @@ function buyPlot(p) {
 function addBuilding(type, x, y, rot = false, finished = false) {
   const def = BUILDINGS[type];
   const b = { type, x, y, rot: (Number(rot) || 0) & 3, build: finished ? 0 : def.time || 0 };
+  if (def.isPath) removeSapling(x, y);   // ein Pfad tritt den Setzling nieder
   state.buildings.push(b);
   return b;
 }
@@ -369,7 +379,7 @@ function placeProblem(type, x, y, ignore = -1) {
       if (!isOwned(xx, yy)) return 'Dieses Land gehört dir noch nicht';
       const o = occ[yy * N + xx] - 1;
       if (o >= 0 && o !== ignore) return 'Hier steht schon etwas';
-      if (saplingAt(xx, yy)) return 'Hier wächst ein Setzling';
+      if (!def.isPath && saplingAt(xx, yy)) return 'Hier wächst ein Setzling – antippen zum Ausreißen';   // Pfade gehen darüber
       const t = terrainAt(xx, yy);
       if (def.onWater) { if (t !== TERRAIN.wasser) return 'Brücken gehen nur über Wasser'; continue; }
       if (t.blocks) return t === TERRAIN.wasser ? 'Nicht im Wasser – über den Fluss braucht es eine Brücke' : `${t.name} im Weg – antippen zum Räumen`;

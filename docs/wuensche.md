@@ -21,6 +21,17 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 24 – Ergebnisse der Test-Agenten behoben:
+  - **Fehler: Jungsteinzeit war nicht erforschbar** (kostete 180 Wissen, Lager fasste nur 150). Wissen hat jetzt kein Lagerlimit.
+  - Zuzug alle 45 statt 15 Sekunden, Lager 200 statt 150, Land kostet Holz + Stein statt Nahrung (keine Hunger-Sackgasse mehr).
+    Bot (5 Läufe): Mittelsteinzeit 126–138 min, Jungsteinzeit 340–352 min, Hunger 0–10 min (vorher bis 264 min).
+  - Beim Bauen den Baum/Felsen unter dem geplanten Gebäude antippen fällt ihn (wie die Meldung sagt).
+  - Pfad schräg ziehen ergibt einen zusammenhängenden Weg; wird nichts gebaut, kommt ein Hinweis.
+  - Setzlinge: Pfade dürfen darüber, antippen = ausreißen; gepflanzter Baum auf altem Felsen bleibt nach dem Laden ein Baum.
+  - Zurück-Taste: keine toten Einträge mehr, kein versehentliches Verlassen der App.
+  - Offline: Katastrophen und neue Zeitalter stehen in „Willkommen zurück“ (statt sofort überdeckt); Nachrechnen schneller.
+  - Einstieg: 10 Wissen zum Start, „Feuer hüten“ (günstigste Forschung) ist vorausgewählt, Hinweis auf den Weg beim Höhlenmaler;
+    Dreh-Hinweis hochkant nicht mehr über dem Ältesten; Waren-Fenster nennt nur Wetter, das diese Ware betrifft.
 - 2026-10-31, Epochia Version 23 – Bäume werden echt gefällt: Hat ein Holzsammler 20 Holz beisammen, kippt der nächste Baum
   im Umkreis um und verschwindet (Krachen). Ohne Wald sammelt er nur noch Fallholz. Neues Gebäude **Pflanzerin** (Altsteinzeit,
   Bild aus Canva) setzt jede Minute einen Setzling, nach 10 Minuten (im Winter langsamer) ist ein Baum daraus gewachsen.

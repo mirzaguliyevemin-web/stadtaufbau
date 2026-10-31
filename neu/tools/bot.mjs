@@ -84,7 +84,7 @@ function botWants() {
   if (botCount('steinsammler') < 1 + Math.floor(pop / 15)) w.push('steinsammler');
   if (botCount('pflanzerin') < Math.floor(botCount('holzsammler') / 3)) w.push('pflanzerin');
   if (hungry) w.push(foodType);
-  if ((stats.needs.waerme ?? 1) < 1) w.push('feuerplatz');
+  if ((stats.needs.waerme ?? 1) < 0.9 && botCount('feuerplatz') < 3 + Math.floor(pop / 12)) w.push('feuerplatz');
   if (stageReached('mittel') && (stats.needs.glaube ?? 1) < 1) w.push('ahnenplatz');
   if (botCount('jaegerlager') + botCount('mammutjaegerlager') < 1 + Math.floor(pop / 25)) w.push('jaegerlager');
   if (isUnlocked('steinschlaeger') && botCount('steinschlaeger') < 1 + Math.floor(pop / 30)) w.push('steinschlaeger');

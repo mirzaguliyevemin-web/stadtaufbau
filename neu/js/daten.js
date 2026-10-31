@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 23;
+const APP_VERSION = 24;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -16,9 +16,9 @@ const CONFIG = {
   weatherSeconds: 360,    // so lange hält ein Wetter an (6 Minuten), dann wird neu ausgewürfelt
   foodPerPerson: 0.4,     // Nahrung je Einwohner und Minute
   goodsPerPerson: 0.02,   // Kleidung / Töpferwaren je Einwohner und Minute (wenn das Bedürfnis zählt)
-  growthSeconds: 15,      // so oft zieht jemand ein (wenn Platz, Nahrung und Laune passen)
+  growthSeconds: 45,      // so oft zieht jemand ein (seit Version 24: 45 s statt 15 s – sonst Hunger und zu große Stämme)
   growthMinHappy: 50,     // ab dieser Zufriedenheit ziehen Leute zu
-  baseStorage: 150,       // Lagerplatz je Ware am Lagerfeuer
+  baseStorage: 200,       // Lagerplatz je Ware am Lagerfeuer (seit Version 24: 200, damit der lange Winter zu überstehen ist)
   bonusRadius: 3,         // Umkreis für Geländebonus (Wald, Felsen)
   maxOfflineHours: 2,     // so lange läuft das Spiel offline weiter (Emin: höchstens 2 Stunden)
   refundShare: 0.5,       // beim Abreißen gibt es die Hälfte zurück
@@ -51,7 +51,7 @@ const CONFIG = {
     foodMade: 1,          // Nahrung bleibt (der Winter dauert jetzt 30 Minuten – mehr Abzug hieße Hungersnot)
   },
   start: {
-    resources: { nahrung: 40, holz: 50, stein: 40 },   // geplant waren 40/20 – reicht nicht für den Einstieg
+    resources: { nahrung: 40, holz: 50, stein: 40, wissen: 10 },   // geplant waren 40/20 – reicht nicht für den Einstieg; Wissen: erste Forschung schneller
     population: 6,
   },
 };
@@ -61,7 +61,7 @@ const RESOURCES = {
   nahrung:      { name: 'Nahrung',     icon: '🍖', bild: 'ware-nahrung' },
   holz:         { name: 'Holz',        icon: '🪵', bild: 'ware-holz' },
   stein:        { name: 'Stein',       icon: '🪨', bild: 'ware-stein' },
-  wissen:       { name: 'Wissen',      icon: '💡', bild: 'ware-wissen' },
+  wissen:       { name: 'Wissen',      icon: '💡', bild: 'ware-wissen', noCap: true },   // kein Lagerlimit (Forschungen kosten mehr als 150)
   felle:        { name: 'Felle',       icon: '🦌', bild: 'ware-felle',        from: 'alt' },
   kleidung:     { name: 'Kleidung',    icon: '🧥', bild: 'ware-kleidung',     from: 'mittel' },
   werkzeug:     { name: 'Werkzeug',    icon: '🗡️', bild: 'ware-werkzeug',     from: 'mittel' },
@@ -404,7 +404,7 @@ const TUTORIAL = [
   { id: 'holzsammler', text: 'Gut gemacht! Nun Holz: Baue einen Holzsammler – am Wald sammelt er viel mehr.', target: 'bar:holzsammler' },
   { id: 'hochheben', text: 'Halte ein fertiges Gebäude gedrückt: Es hebt sich hoch. Dann kannst du es verschieben und mit ↻ drehen.' },
   { id: 'wohnhoehle', text: 'Mehr Menschen brauchen Platz. Baue eine Wohnhöhle mit Weg zum Feuer – nah am Feuer haben sie es warm.', target: 'bar:wohnhoehle' },
-  { id: 'forschung', text: 'Wissen bringt uns weiter. Baue einen Höhlenmaler, öffne dann die Forschung 📜 und starte die erste Forschung.', target: 'bar:hoehlenmaler' },
+  { id: 'forschung', text: 'Wissen bringt uns weiter. Baue einen Höhlenmaler – mit Weg zum Feuer! –, öffne dann die Forschung 📜 und starte „Feuer hüten“, sobald genug Wissen da ist.', target: 'bar:hoehlenmaler' },
   { id: 'auftraege', text: 'Zum Schluss: Unter 📋 Aufträge findest du Aufgaben mit Belohnung. Schau mal hinein!', target: 'btn-quests' },
   { id: 'fertig', text: 'Jetzt gehört das Lager dir! Ich bin da, wenn es Neues gibt.', button: 'Danke!' },
 ];

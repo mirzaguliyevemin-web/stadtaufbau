@@ -116,11 +116,25 @@ function cancelGhost() {
   renderActionBar();
 }
 
+// Pfad malen: auch schräg gezogen entsteht ein zusammenhängender Weg (Zickzack über die Nachbarfelder),
+// Felder unter Gebäuden werden übersprungen
 function paintPath(sx, sy) {
   const t = screenToTile(sx, sy);
-  if (!inMap(t.x, t.y) || buildingAt(t.x, t.y) >= 0) return;
-  const problem = placeBuilding(wayTypeAt(t.x, t.y), t.x, t.y);   // über Wasser entsteht eine Brücke
-  if (problem && problem !== gesture.lastProblem) { toast(problem); gesture.lastProblem = problem; }
+  if (!inMap(t.x, t.y)) return;
+  const from = gesture.lastTile || t;
+  let x = from.x, y = from.y;
+  const steps = [[x, y]];
+  while (x !== t.x || y !== t.y) {
+    if (x !== t.x && (Math.abs(t.x - x) >= Math.abs(t.y - y) || y === t.y)) x += Math.sign(t.x - x); else y += Math.sign(t.y - y);
+    steps.push([x, y]);
+  }
+  gesture.lastTile = t;
+  for (const [px, py] of steps) {
+    if (buildingAt(px, py) >= 0) continue;
+    const problem = placeBuilding(wayTypeAt(px, py), px, py);   // über Wasser entsteht eine Brücke
+    if (problem && problem !== gesture.lastProblem) { toast(problem); gesture.lastProblem = problem; }
+    if (!problem) gesture.painted = (gesture.painted || 0) + 1;
+  }
 }
 
 function erasePath(sx, sy) {
@@ -166,8 +180,20 @@ function buildingAtScreen(sx, sy) {
 }
 
 function handleTap(sx, sy) {
-  if (ghost) {   // anderswo tippen: geplantes Gebäude dorthin setzen
-    ghostToScreen(sx, sy);
+  if (ghost) {
+    // Baum/Felsen unter dem geplanten Gebäude antippen: wird gefällt bzw. abgetragen („antippen zum Räumen“)
+    const t = screenToTile(sx, sy), s = BUILDINGS[ghost.type].size;
+    if (inMap(t.x, t.y) && terrainAt(t.x, t.y).clear && t.x >= ghost.x && t.x < ghost.x + s && t.y >= ghost.y && t.y < ghost.y + s) {
+      const kind = terrainAt(t.x, t.y) === TERRAIN.wald ? 'wald' : 'fels', gain = terrainAt(t.x, t.y).clear;
+      if (clearTile(t.x, t.y)) {
+        if (typeof addFelled === 'function') addFelled(t.x, t.y, kind);
+        playSound(kind === 'wald' ? 'hacken' : 'klirren');
+        toast(`+${formatAmounts(gain)}`);
+        renderActionBar();
+        return;
+      }
+    }
+    ghostToScreen(sx, sy);   // anderswo tippen: geplantes Gebäude dorthin setzen
     return;
   }
   if (pathMode) return;
@@ -189,6 +215,7 @@ function handleTap(sx, sy) {
     showPlotDialog(plotOf(t.x, t.y));
     return;
   }
+  if (saplingAt(t.x, t.y)) { showSaplingInfo(t.x, t.y); return; }
   const ter = terrainAt(t.x, t.y);
   if (ter.clear) { showTerrainInfo(t.x, t.y, sx, sy); return; }
   closeInfo();
@@ -289,6 +316,7 @@ function onPointerUp(e) {
   if (!gesture) return;
   if (gesture.mode === 'press' && e.type === 'pointerup') handleTap(gesture.start.x, gesture.start.y);
   if (gesture.mode === 'ghost') renderActionBar();
+  if (gesture.mode === 'path' && !gesture.painted && !gesture.lastProblem) toast('Kein Pfad gebaut – zieh über freie Felder neben den Gebäuden');
   // nach dem Zoomen mit zwei Fingern nichts mehr tun, bis alle Finger weg sind
   gesture = pointers.size ? { mode: 'done' } : null;
 }

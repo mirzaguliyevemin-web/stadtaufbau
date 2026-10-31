@@ -705,4 +705,4 @@ function resetLife() {
 }
 
 // Holzsammler hat genug Holz für einen Baum beisammen: der Baum kippt sichtbar um
-on('treeFelled', t => { if (typeof gameRunning === 'undefined' || gameRunning) addFelled(t.x, t.y, 'wald'); });
+on('treeFelled', t => { if ((typeof gameRunning === 'undefined' || gameRunning) && !offlineRunning) addFelled(t.x, t.y, 'wald'); });

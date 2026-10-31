@@ -705,6 +705,60 @@ test('Drehen: vier Richtungen, alte Stände (true) werden 1, Fischerplatz dreht 
   noErrors(g);
 });
 
+test('Bäume/Setzlinge: Baum auf früherem Felsen bleibt nach dem Laden; Pfad tritt Setzling nieder; Ausreißen', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    let rock = -1; for (let i = 0; i < N * N && rock < 0; i++) if (terrain[i] === TERRAIN.fels.id && isOwned(i % N, Math.floor(i / N)) && !occ[i]) rock = i;
+    const x = rock % N, y = Math.floor(rock / N);
+    clearTile(x, y); state.saplings.push([rock, 0]); updateTrees(CONFIG.trees.growSeconds + 1);
+    const grown = terrain[rock] === TERRAIN.wald.id;
+    loadFromText(serialize());
+    const kept = terrain[rock] === TERRAIN.wald.id;
+    clearTile(x, y); loadFromText(serialize());
+    const clearedAgain = terrain[rock] === TERRAIN.gras.id;
+    state.saplings.push([rock, 0]);
+    const blocked = !!placeProblem('wohnhoehle', x, y) && !placeProblem('pfad', x, y);
+    state.res.holz = 99; placeBuilding('pfad', x, y);
+    const trodden = !saplingAt(x, y);
+    state.saplings.push([rock + 1, 0]); removeSapling(x + 1, y);
+    return [grown, kept, clearedAgain, blocked, trodden, !saplingAt(x + 1, y)];
+  })()`);
+  ok(JSON.stringify(r) === '[true,true,true,true,true,true]', 'Ergebnis: ' + r);
+  noErrors(g);
+});
+
+test('Offline: Katastrophe und Zeitalter öffnen kein Fenster, sondern stehen in „Willkommen zurück“', () => {
+  const g = fresh();
+  const r = g.run(`(() => { gameRunning = true; state.playTime = 3600; state.disasterCalm = 1e9; disasterRandom = () => 0;
+    const res = applyOfflineProgress(Date.now() - 600 * 1000); gameRunning = false; return [res.events.length > 0, dialogOpen]; })()`);
+  ok(r[0] && !r[1], 'Offline-Ereignis falsch: ' + r);
+  noErrors(g);
+});
+
+test('Bauen: Baum unter dem geplanten Gebäude antippen fällt ihn; schräg gezogener Pfad ist zusammenhängend', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    state.res.holz = 999; cam.zoom = 1; centerOnTile(56, 56);
+    let tree = null; for (let y = 50; y < 78 && !tree; y++) for (let x = 50; x < 78 && !tree; x++) if (terrain[y * N + x] === TERRAIN.wald.id && isOwned(x, y) && !occ[y * N + x]) tree = { x, y };
+    beginBuild('sammlerin'); ghost.x = tree.x; ghost.y = tree.y;
+    const p = tileToScreen(tree.x + 0.5, tree.y + 0.5); handleTap(p.x, p.y);
+    const felled = terrain[tree.y * N + tree.x] === TERRAIN.gras.id && ghost.x === tree.x;
+    cancelGhost();
+    for (let y = 52; y <= 60; y++) for (let x = 52; x <= 60; x++) if (!occ[y * N + x]) terrain[y * N + x] = TERRAIN.gras.id;
+    gesture = { mode: 'path' };
+    const a = tileToScreen(52.5, 52.5), b = tileToScreen(58.5, 57.5);
+    paintPath(a.x, a.y); paintPath(b.x, b.y);
+    // zusammenhängend: vom Start aus über Pfade das Ziel erreichbar
+    const seen = new Set(['52,52']), q = [[52, 52]];
+    while (q.length) { const [x, y] = q.pop(); for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) { const k = (x+dx) + ',' + (y+dy); if (!seen.has(k) && isPathAt(x+dx, y+dy)) { seen.add(k); q.push([x+dx, y+dy]); } } }
+    gesture = null;
+    return [felled, seen.has('58,57')];
+  })()`);
+  ok(r[0], 'Baum unter dem Gebäude nicht gefällt');
+  ok(r[1], 'schräger Pfad nicht zusammenhängend');
+  noErrors(g);
+});
+
 test('Alte Spielstände (kleine Karte bis Version 21) landen in der Mitte der großen Karte', () => {
   const fixture = JSON.parse(fs.readFileSync(new URL('./alter-stand-v21.json', import.meta.url), 'utf8'));
   const old = fixture.save, oldN = 64, off = 32;
@@ -737,7 +791,7 @@ if (!quick) {
     console.log(`   Mittelsteinzeit ${report.mittelsteinzeit} min · Jungsteinzeit ${report.jungsteinzeit} min · Kupferfund ${report.kupferfund} min · ${report.final.pop} Einwohner · Hunger ${report.hungerMin} min`);
     ok(report.mittelsteinzeit !== null, 'Bot kommt nicht bis zur Mittelsteinzeit');
     ok(report.mittelsteinzeit >= 90, 'Altsteinzeit ist zu schnell vorbei: ' + report.mittelsteinzeit + ' min');
-    ok(report.hungerMin <= 60, 'Zu viel Hunger: ' + report.hungerMin + ' min');
+    ok(report.hungerMin <= 20, 'Zu viel Hunger: ' + report.hungerMin + ' min');
   });
 }
 

@@ -27,9 +27,10 @@ function payCost(cost) {
 
 // Waren dazugeben (höchstens bis zum Lagerplatz – was schon darüber liegt, bleibt)
 function addResources(amounts, factor = 1) {
-  const cap = storageCap();
+  const cap = productionCap !== null ? productionCap : storageCap();
   for (const [id, n] of Object.entries(amounts || {})) {
     const have = state.res[id] || 0;
+    if (RESOURCES[id].noCap) { state.res[id] = have + n * factor; continue; }   // Wissen braucht kein Lager
     state.res[id] = have >= cap ? have : Math.min(cap, have + n * factor);
   }
 }
@@ -533,8 +534,9 @@ function updateTrees(dt) {
     if (age < c.growSeconds) return true;
     if (occ[i] || terrain[i] !== TERRAIN.gras.id) return false;
     terrain[i] = TERRAIN.wald.id;
+    // war hier ursprünglich Wald, reicht es, das Fällen zu vergessen; sonst (Wiese, früherer Felsen) als gepflanzt merken
     const k = state.cleared.indexOf(i);
-    if (k >= 0) state.cleared.splice(k, 1); else state.planted.push(i);
+    if (k >= 0 && baseTerrain && baseTerrain[i] === TERRAIN.wald.id) state.cleared.splice(k, 1); else state.planted.push(i);
     changed = true;
     return false;
   });
@@ -556,7 +558,14 @@ function plantSpot(b, radius) {
   return best;
 }
 
+let productionCap = null;   // während eines Produktionsschritts nur einmal ausrechnen (bei vielen Gebäuden spürbar)
+
 function updateProduction(dt) {
+  productionCap = storageCap();
+  try { updateProductionStep(dt); } finally { productionCap = null; }
+}
+
+function updateProductionStep(dt) {
   const rates = {};
   // flows[Ware] = { in: { Gebäudetyp: je Minute }, out: { Verbraucher: je Minute } } – für das Info-Fenster
   const flows = {};
@@ -814,20 +823,29 @@ function update(dt) {
 }
 
 // Läuft die Zeit nach, in der das Spiel zu war. Gibt zurück, was dazugekommen ist.
+// Während offline nachgerechnet wird: keine Fenster öffnen, sondern Wichtiges für „Willkommen zurück“ sammeln
+let offlineRunning = false, offlineEvents = [];
+on('disaster', id => { if (offlineRunning) offlineEvents.push(`${DISASTERS[id].icon} ${DISASTERS[id].name}: ${DISASTERS[id].text}`); });
+on('researchDone', id => { if (offlineRunning) offlineEvents.push(`📜 Erforscht: ${TECHS[id].name}${TECHS[id].effect && TECHS[id].effect.stage ? ' – ein neues Zeitalter beginnt!' : ''}`); });
+
 function applyOfflineProgress(savedAt, now = Date.now()) {
   const secs = Math.min(Math.max(0, (now - savedAt) / 1000), CONFIG.maxOfflineHours * 3600);
   if (!(secs > 30)) return null;
   const before = { ...state.res, pop: state.pop };
   let left = secs;
-  while (left > 0) {
-    const step = Math.min(2, left);
-    update(step);
-    left -= step;
-  }
+  offlineEvents = [];
+  offlineRunning = true;
+  try {
+    while (left > 0) {
+      const step = Math.min(5, left);   // 5-Sekunden-Schritte: 2 Stunden rechnen sich auch auf dem Handy schnell
+      update(step);
+      left -= step;
+    }
+  } finally { offlineRunning = false; }
   const gained = {};
   for (const id of Object.keys(RESOURCES)) {
     const d = (state.res[id] || 0) - (before[id] || 0);
     if (Math.abs(d) >= 1) gained[id] = d;
   }
-  return { seconds: secs, gained, pop: state.pop - before.pop };
+  return { seconds: secs, gained, pop: state.pop - before.pop, events: offlineEvents.slice() };
 }

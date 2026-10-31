@@ -101,7 +101,7 @@ function imageNames() {
     ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, ...LIFE_NAMES]);
   for (const b of Object.values(BUILDINGS)) if (b.bild) {
     names.add(b.bild); names.add(b.bild + '-winter');
-    for (const v of b.views || []) names.add(b.bild + '-' + v);   // weitere Ansichten zum Drehen
+    for (const v of b.views || []) { names.add(b.bild + '-' + v); names.add(b.bild + '-' + v + '-winter'); }   // weitere Ansichten zum Drehen (auch im Winter)
   }
   for (const r of Object.values(RESOURCES)) if (r.bild) names.add(r.bild);
   for (const t of Object.values(TECHS)) if (t.bild) names.add(t.bild);

@@ -21,6 +21,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 26 – Winterbilder (Canva) für alle neuen Dreh-Ansichten von Fischerplatz, Tongrube, Pfahlbau und für
+  die Pflanzerin.
 - 2026-10-31, Epochia Version 25 – Kleidung und Glaube zählen erst als Bedürfnis, wenn ihr Gebäude freigeschaltet ist (keine
   schlechte Laune mehr zu Beginn der Mittelsteinzeit); Forschung 1,5-mal statt doppelt so lang (Steinzeit ≈ 8 h).
   Bot: Mittelsteinzeit ≈ 100 min, Jungsteinzeit ≈ 260–290 min, kein Hunger.

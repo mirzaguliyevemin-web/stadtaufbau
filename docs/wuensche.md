@@ -22,6 +22,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 33 – Steinsammler und Tongrube halten die Spitzhacke richtig in den Händen (ausholen und zuschlagen, Canva).
 - 2026-10-31, Epochia Version 32 – Fehler: Arbeiter liefen übers Wasser – jetzt suchen sie sich einen Fußweg über Land, Pfade und
   Brücken (nie durchs Wasser oder Gebirge); ist ein Baum nur übers Wasser erreichbar, nehmen sie einen anderen.
 - 2026-10-31, Epochia Version 32 – Holzfäller halten die Axt richtig in den Händen (zwei Canva-Haltungen: ausholen und zuschlagen).

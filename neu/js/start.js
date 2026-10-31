@@ -161,6 +161,10 @@ on('researchDone', id => {
 });
 on('huntDone', reward => { if (gameRunning) toast(Object.keys(reward).length ? `🦣 Die Jäger sind zurück: +${formatAmounts(reward)}` : '🦣 Die Jäger fanden ihr Lager nicht mehr – die Beute ist verloren'); });
 on('placed', b => { (state.seen ||= {})[b.type] = true; });
+on('needStarted', id => {
+  if (gameRunning && !offlineRunning) toast(`${RESOURCES[id].icon} Deine Leute brauchen jetzt ${RESOURCES[id].name} – ${CONFIG.needGift} gibt es geschenkt, ${Math.round(CONFIG.needGrace / 60)} Minuten Zeit`);
+});
+on('starved', () => { if (gameRunning && !offlineRunning) toast('🍖 Hunger! Ein Einwohner ist weggezogen – baue mehr Nahrung'); });
 on('disaster', id => {
   if (!gameRunning || offlineRunning) return;
   const d = DISASTERS[id];

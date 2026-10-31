@@ -330,16 +330,31 @@ function recalcStats() {
   const needs = activeNeeds();
   for (const n of needs) {
     let met;
-    if (n.kind === 'stock') met = (state.res[n.id] || 0) > 0.01 ? 1 : 0;
+    // neu dazugekommene Waren-Bedürfnisse: Startvorrat und 10 Minuten Schonfrist (sonst bricht die Laune sofort ein)
+    const since = n.kind === 'stock' && n.id !== 'nahrung' ? needStart(n.id) : -Infinity;
+    if (state.playTime - since < CONFIG.needGrace) met = 1;
+    else if (n.kind === 'stock') met = (state.res[n.id] || 0) > 0.01 ? 1 : 0;
     else met = areaCoverage(n.id === 'waerme' ? 'warmth' : 'belief');
     s.needs[n.id] = met;
     sum += met;
   }
   s.needsHappy = needs.length ? Math.round(100 * sum / needs.length) : 100;
   s.weatherHappy = Math.round(effectHappy());
-  s.happiness = Math.max(0, Math.min(100, s.needsHappy + s.weatherHappy));
+  s.hungry = (state.hunger || 0) > 30;   // eine halbe Minute ohne Nahrung: die Laune sinkt zusätzlich
+  s.happiness = Math.max(0, Math.min(100, s.needsHappy + s.weatherHappy - (s.hungry ? CONFIG.hunger.unhappy : 0)));
   stats = s;
   return s;
+}
+
+// Wann ein Waren-Bedürfnis zum ersten Mal galt; beim ersten Mal gibt es den Startvorrat
+function needStart(id) {
+  const ns = (state.needSince ||= {});
+  if (ns[id] === undefined) {
+    ns[id] = state.playTime;
+    addResources({ [id]: CONFIG.needGift });
+    emit('needStarted', id);
+  }
+  return ns[id];
 }
 
 function foodFirst(b) {
@@ -673,7 +688,7 @@ function updateProductionStep(dt) {
 
 let growthTimer = 0;
 
-let leaveTimer = 0;
+let leaveTimer = 0, hungerTimer = 0;
 function updatePopulation(dt) {
   const room = stats.housing - state.pop;
   // zu wenig Wohnraum (Haus im Umbau, ohne Weg, abgerissen): nicht alle auf einmal, sondern einer nach dem anderen ziehen weg
@@ -682,6 +697,14 @@ function updatePopulation(dt) {
     const step = CONFIG.growthSeconds / 4;
     while (leaveTimer >= step && state.pop > stats.housing) { leaveTimer -= step; state.pop = Math.max(stats.housing, state.pop - 1); }
   } else leaveTimer = 0;
+  // Hunger: kein Essen mehr → nach einer Weile zieht immer wieder jemand weg (nie unter ein paar Leute)
+  const h = CONFIG.hunger;
+  if (state.res.nahrung < 0.5 && state.pop > 0) state.hunger = (state.hunger || 0) + dt;
+  else state.hunger = 0;
+  if (state.hunger > h.after && state.pop > h.minPop) {
+    hungerTimer += dt;
+    if (hungerTimer >= h.every) { hungerTimer = 0; state.pop = Math.max(h.minPop, state.pop - 1); emit('starved', state.pop); }
+  } else hungerTimer = 0;
   // ganz leer (keiner da, nichts zu essen): ein paar Wanderer kommen trotzdem, sonst ginge es nie weiter
   const restart = state.pop < 3;
   if (room > 0 && (state.res.nahrung > 1 || restart) && (stats.happiness >= CONFIG.growthMinHappy || restart) && !effectGrowthStopped()) {

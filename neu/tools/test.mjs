@@ -133,7 +133,7 @@ test('Forschung: kostet Wissen, nur eine gleichzeitig, Übergang öffnet die nä
   g.run('for (let i = 0; i <= TECHS.feuer_hueten.time; i++) update(1)');
   ok(g.run('state.techs.feuer_hueten === true && state.research === null'), 'Forschung nicht fertig');
   g.run(`for (const id of ['flechtkoerbe','speerspitzen','fellzelte','faustkeil','hoehlenmalerei','mammutjagd']) state.techs[id] = true;
-    state.res.nahrung = 150; state.res.wissen = 150; state.res.felle = 150;`);
+    for (const [id, n] of Object.entries(TECHS.mittelsteinzeit.cost)) state.res[id] = n;`);
   const need = g.run('TECHS.mittelsteinzeit.population');
   ok(g.run(`startResearch('mittelsteinzeit')`).includes(need + ' Einwohner'), 'Einwohner-Bedingung fehlt');
   g.run(`state.pop = ${need}; startResearch('mittelsteinzeit'); for (let i = 0; i <= TECHS.mittelsteinzeit.time; i++) update(1);`);

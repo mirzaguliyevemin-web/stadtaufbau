@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 43;
+const APP_VERSION = 44;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -15,6 +15,9 @@ const CONFIG = {
   daySeconds: 1800,       // ein Tag mit Nacht dauert 30 Minuten (bis Version 22: 160 Sekunden)
   weatherSeconds: 360,    // so lange hält ein Wetter an (6 Minuten), dann wird neu ausgewürfelt
   foodPerPerson: 0.4,     // Nahrung je Einwohner und Minute
+  needGrace: 600,         // neues Bedürfnis (Kleidung, Töpferwaren) zählt erst nach 10 Minuten; dazu gibt es einen Startvorrat
+  needGift: 20,
+  hunger: { after: 120, every: 30, minPop: 3, unhappy: 20 },   // ohne Nahrung: Laune −20; nach 2 Min. zieht alle 30 s einer weg (nie unter 3)
   goodsPerPerson: 0.02,   // Kleidung / Töpferwaren je Einwohner und Minute (wenn das Bedürfnis zählt)
   growthSeconds: 45,      // so oft zieht jemand ein (seit Version 24: 45 s statt 15 s – sonst Hunger und zu große Stämme)
   growthMinHappy: 50,     // ab dieser Zufriedenheit ziehen Leute zu
@@ -37,13 +40,14 @@ const CONFIG = {
   hunt: {                 // Mammutjagd (nach der Forschung „Mammutjagd“, bis zur Jungsteinzeit)
     seconds: 60,          // so lange sind die Jäger unterwegs
     herdWait: 240,        // so lange dauert es nach einer Jagd, bis wieder eine Herde vorbeizieht
-    reward: { nahrung: 60, felle: 6 },
+    reward: { nahrung: 150, felle: 15, wissen: 10 },   // seit Version 44 (Emin: Jagd soll sich lohnen; vorher 60 Nahrung, 6 Felle)
     bigFactor: 1.5,       // mit einem Mammutjägerlager gibt es mehr
   },
   // Tempo-Regler (Emin, 31.10.: „Forschung, Rohstoffe und Bauen viel zu schnell“ → etwa doppelt so langsam).
   // Werden unten einmal auf BUILDINGS und TECHS angewendet; die Zahlen dort sind die Grundwerte.
   tempo: {
-    researchTime: 1.5,    // Forschungen dauern 1,5-mal so lang (ganze Steinzeit ≈ 8 h; bis Version 24: 2 ≈ 11 h)
+    researchTime: 0.75,   // Forschungszeiten (seit Version 44, Emin: halbiert – vorher 1,5: Steinzeit ≈ 8,5 h, davon 96 % Warten)
+    researchGoods: 1.5,   // dafür brauchen Forschungen 50 % mehr Waren (außer Wissen), höchstens so viel, wie das Grundlager fasst
     knowledgeCost: 1.5,   // und kosten 50 % mehr Wissen
     knowledgeMade: 0.5,   // Höhlenmaler & Co. machen halb so viel Wissen (seit Version 27; vorher 0,7)
     buildTime: 1.5,       // Bauzeiten +50 %
@@ -251,7 +255,7 @@ const BUILDINGS = {
   },
   fellmacherin: {
     name: 'Fellmacherin', icon: '🧥', size: 2, line: 'kleidung', tier: 0, stage: 'mittel', bild: '1-fellmacherin',
-    color: '#a8784a', cost: { holz: 40, stein: 20 }, time: 90, workers: 2, consumes: { felle: 4 }, produces: { kleidung: 2 },
+    color: '#a8784a', cost: { holz: 40, stein: 20 }, time: 90, workers: 2, consumes: { felle: 4 }, produces: { kleidung: 2.5 },
     requires: 'fellbearbeitung', info: 'Näht aus 2 Fellen 1 Kleidung.',
   },
   steinschlaeger: {
@@ -271,7 +275,7 @@ const BUILDINGS = {
   },
   toepferei: {
     name: 'Töpferei', icon: '🏺', size: 2, line: 'toepfern', tier: 0, stage: 'jung', bild: '1-toepferei',
-    color: '#b8643a', cost: { holz: 50, stein: 40 }, time: 120, workers: 2, consumes: { ton: 2, holz: 1 }, produces: { toepferwaren: 1 },
+    color: '#b8643a', cost: { holz: 50, stein: 40 }, time: 120, workers: 2, consumes: { ton: 2, holz: 1 }, produces: { toepferwaren: 1.25 },
     requires: 'toepfern', info: 'Formt und brennt aus 2 Ton und 1 Holz 1 Töpferware.',
   },
   vorratsspeicher: {
@@ -347,6 +351,8 @@ const TECHS = {
   for (const tech of Object.values(TECHS)) {
     tech.time = Math.round(tech.time * t.researchTime);
     if (tech.cost && tech.cost.wissen) tech.cost.wissen = Math.round(tech.cost.wissen * t.knowledgeCost);
+    for (const id of Object.keys(tech.cost || {}))
+      if (id !== 'wissen') tech.cost[id] = Math.min(CONFIG.baseStorage, Math.round(tech.cost[id] * t.researchGoods / 5) * 5);
   }
 })(CONFIG.tempo);
 
@@ -382,6 +388,14 @@ const QUESTS = [
   { id: 'q_jung',       text: 'Erreiche die Jungsteinzeit', goal: { tech: 'jungsteinzeit' }, reward: { holz: 100, stein: 80 } },
   { id: 'q_acker2',     text: 'Baue 2 Äcker',            goal: { build: 'acker', count: 2 }, reward: { werkzeug: 10 } },
   { id: 'q_pop60',      text: 'Erreiche 60 Einwohner',   goal: { population: 60 }, reward: { toepferwaren: 10 } },
+  { id: 'q_ahnen',      text: 'Baue einen Ahnenplatz',   goal: { build: 'ahnenplatz', count: 1 }, reward: { wissen: 30 } },
+  { id: 'q_pop80',      text: 'Erreiche 80 Einwohner',   goal: { population: 80 }, reward: { holz: 80, stein: 60 } },
+  { id: 'q_vorrat',     text: 'Baue einen Vorratsspeicher', goal: { build: 'vorratsspeicher', count: 1 }, reward: { nahrung: 100 } },
+  { id: 'q_kleidung40', text: 'Habe 40 Kleidung im Lager', goal: { resource: 'kleidung', count: 40 }, reward: { felle: 20 } },
+  { id: 'q_pop100',     text: 'Erreiche 100 Einwohner',  goal: { population: 100 }, reward: { werkzeug: 20 } },
+  { id: 'q_toepfer30',  text: 'Habe 30 Töpferwaren im Lager', goal: { resource: 'toepferwaren', count: 30 }, reward: { wissen: 40 } },
+  { id: 'q_steinkreis', text: 'Baue einen Steinkreis',   goal: { build: 'steinkreis', count: 1 }, reward: { holz: 100, nahrung: 100 } },
+  { id: 'q_pop120',     text: 'Erreiche 120 Einwohner – bereit für den Aufbruch', goal: { population: 120 }, reward: { holz: 150, nahrung: 150 } },
 ];
 
 // Tägliche Belohnung: Tag 1–7 hintereinander (Tag 7 ist die große Truhe)

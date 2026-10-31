@@ -30,6 +30,8 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     disaster: null,          // Naturkatastrophe gerade: { id, left } (Sekunden)
     disasterCalm: 0,         // Sekunden seit der letzten Katastrophe (bzw. seit Spielbeginn)
     herdWait: 0,             // Sekunden, bis wieder eine Mammutherde vorbeizieht
+    needSince: {},           // Waren-Bedürfnis → Spielzeit, ab der es galt (Schonfrist, Startvorrat)
+    hunger: 0,               // Sekunden ohne Nahrung
     stage: 'alt',
     pop: CONFIG.start.population,
     yearTime: 0,

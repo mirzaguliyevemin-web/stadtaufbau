@@ -2,10 +2,10 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 21;
+const APP_VERSION = 22;
 
 const CONFIG = {
-  mapSize: 64,            // Felder je Seite
+  mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
   plotSize: 8,            // Landstück = 8 × 8 Felder
   startPlots: 4,          // in der Mitte gehören 4 × 4 Landstücke (32 × 32 Felder) von Anfang an dazu
   tileW: 64,              // Breite einer Raute in Bildpunkten (Zoom 1)
@@ -92,6 +92,7 @@ const TERRAIN = {
   wasser: { id: 2, name: 'Wasser', color: '#4aa8e0', blocks: true },
   fels:   { id: 3, name: 'Felsen', color: '#8fb56a', blocks: true,  clear: { stein: 3 }, clearName: 'Felsen abtragen' },
   sand:   { id: 4, name: 'Sand',   color: '#e8d48a', blocks: false },
+  berg:   { id: 5, name: 'Gebirge', color: '#9a9488', blocks: true },
 };
 const TERRAIN_BY_ID = Object.values(TERRAIN).sort((a, b) => a.id - b.id);
 

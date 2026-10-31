@@ -17,15 +17,14 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 <!-- Hier Veränderungswünsche eintragen -->
 - Arbeitende Menschen Teil 2: Fischer im Einbaum, Höhlenmaler, Fellmacherin, Steinschläger, Töpferei (Emin, 30.10.).
-  → Frage: braucht neue Figuren-Bilder/Animationen (Canva) und ist ein großer Umbau in `neu/js/leben.js` – wird in einer Sitzung mit Emin gebaut.
-- Karte größer machen (Emin, 30.10.).
-  → Frage: wie groß (jetzt 64 × 64)? Betrifft Zeichnen, Speicher und Leistung (Ruckeln) – wird in einer Sitzung mit Emin geklärt.
-- Mehr Topografie: ein Gebirge auf der Karte, Bilder mit Canva (Emin, 30.10.).
-  → Frage: braucht Canva-Bilder und neue Geländeregeln – wird in einer Sitzung mit Emin gebaut.
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 22 – Karte viermal so groß (128 × 128 Felder); alte Spielstände liegen mit allen Gebäuden, Land
+  und Wegen genau in der Mitte, das Gelände dort bleibt Feld für Feld gleich.
+- 2026-10-31, Epochia Version 22 – Gebirge: zwei Bergketten in den Ecken der neuen Karte mit Vorbergen aus Felsen; Bilder aus
+  Canva (großer Schneegipfel, Felsberg, Gebirgsboden). Gebirge kann man nicht bebauen und nicht abtragen.
 - 2026-10-31, Epochia Version 21 – Arbeitende Menschen (Teil 1): Holzsammler gehen zu Bäumen und hacken mit der Axt (Späne
   fliegen), Steinsammler schlagen mit der Spitzhacke am Felsen (Splitter), Sammlerinnen pflücken Beeren, Jäger ziehen in den
   Wald; alle tragen die Beute (Holz, Stein, Nahrung) zurück. So viele Figuren, wie dort arbeiten (höchstens 2 je Gebäude).

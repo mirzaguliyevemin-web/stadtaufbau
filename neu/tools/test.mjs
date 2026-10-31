@@ -1,5 +1,6 @@
 // Epochia – automatische Tests. Aufruf: node neu/tools/test.mjs   (Code 1 bei Fehlschlag)
 import { loadGame } from './headless.mjs';
+import fs from 'node:fs';
 import { runBot } from './bot.mjs';
 
 let passed = 0, failed = 0;
@@ -30,7 +31,7 @@ test('Start: Lagerfeuer, zwei Wohnhöhlen, 6 Einwohner, Land in der Mitte', () =
   ok(g.run('state.buildings.every((b, i) => isConnected(i))'), 'Start-Wohnhöhlen ohne Weg');
   ok(g.run('state.pop') === 6, 'Einwohner');
   ok(g.run('stats.housing') === 6, 'Wohnplätze');
-  ok(g.run('isOwned(32, 32) && isOwned(16, 16) && isOwned(47, 47) && !isOwned(15, 32)'), 'Start-Land falsch');
+  ok(g.run('isOwned(64, 64) && isOwned(48, 48) && isOwned(79, 79) && !isOwned(47, 64)'), 'Start-Land falsch');
   ok(g.run('state.buildings.every(b => !placeProblem(b.type, b.x, b.y, state.buildings.indexOf(b)))'), 'Startgebäude stehen auf ungültigem Platz');
   noErrors(g);
 });
@@ -61,11 +62,11 @@ test('Zoomen am Finger: der Punkt unter dem Finger bleibt stehen', () => {
 test('Bauen: Baustelle, höchstens 2 gleichzeitig, wird fertig und produziert', () => {
   const g = fresh();
   g.run(`state.res.holz = 100; state.res.stein = 100;`);
-  const spot = g.run(`JSON.stringify(findFreeSpot('sammlerin', 32, 26))`);
-  const r1 = g.run(`const s1 = findFreeSpot('sammlerin', 32, 26); placeBuilding('sammlerin', s1.x, s1.y)`);
+  const spot = g.run(`JSON.stringify(findFreeSpot('sammlerin', 64, 58))`);
+  const r1 = g.run(`const s1 = findFreeSpot('sammlerin', 64, 58); placeBuilding('sammlerin', s1.x, s1.y)`);
   ok(r1 === null, 'Sammlerin nicht gebaut: ' + r1 + ' ' + spot);
-  g.run(`const s2 = findFreeSpot('holzsammler', 26, 26); placeBuilding('holzsammler', s2.x, s2.y)`);
-  const r3 = g.run(`const s3 = findFreeSpot('steinsammler', 38, 26); placeBuilding('steinsammler', s3.x, s3.y)`);
+  g.run(`const s2 = findFreeSpot('holzsammler', 58, 58); placeBuilding('holzsammler', s2.x, s2.y)`);
+  const r3 = g.run(`const s3 = findFreeSpot('steinsammler', 70, 58); placeBuilding('steinsammler', s3.x, s3.y)`);
   ok(r3 && r3.includes('Baustellen'), 'Dritte Baustelle müsste warten: ' + r3);
   ok(g.run(`state.res.holz`) === 90, 'Kosten nicht abgezogen');
   g.run('for (let i = 0; i < 31; i++) update(1)');
@@ -83,18 +84,18 @@ test('Bauen: Baustelle, höchstens 2 gleichzeitig, wird fertig und produziert', 
 
 test('Bauplatz: nicht im Wasser, nicht auf fremdem Land, nicht übereinander; Fischer nur am Wasser', () => {
   const g = fresh();
-  ok(g.run(`placeProblem('sammlerin', 31, 31)`) === 'Hier steht schon etwas', 'Überlappung erlaubt');
+  ok(g.run(`placeProblem('sammlerin', 63, 63)`) === 'Hier steht schon etwas', 'Überlappung erlaubt');
   ok(g.run(`placeProblem('sammlerin', 2, 2)`).includes('gehört dir'), 'fremdes Land erlaubt');
-  const water = g.run(`(() => { for (let y = 16; y < 48; y++) for (let x = 16; x < 48; x++) if (terrain[y * N + x] === TERRAIN.wasser.id) return [x, y]; })()`);
+  const water = g.run(`(() => { for (let y = 48; y < 80; y++) for (let x = 48; x < 80; x++) if (terrain[y * N + x] === TERRAIN.wasser.id) return [x, y]; })()`);
   ok(water, 'Kein Wasser im Startland');
   ok(g.run(`placeProblem('sammlerin', ${water[0]}, ${water[1]})`) !== null, 'Bauen im Wasser erlaubt');
-  ok(g.run(`placeProblem('fischerplatz', 20, 20)`) !== null, 'Fischer fern vom Wasser erlaubt');
-  ok(g.run(`(() => { for (let y = 16; y < 46; y++) for (let x = 16; x < 46; x++) if (!placeProblem('fischerplatz', x, y)) return true; return false; })()`), 'Kein Platz für den Fischer am Fluss');
+  ok(g.run(`placeProblem('fischerplatz', 52, 52)`) !== null, 'Fischer fern vom Wasser erlaubt');
+  ok(g.run(`(() => { for (let y = 48; y < 78; y++) for (let x = 48; x < 78; x++) if (!placeProblem('fischerplatz', x, y)) return true; return false; })()`), 'Kein Platz für den Fischer am Fluss');
 });
 
 test('Baum fällen und Felsen abtragen geben Holz/Stein und machen Platz', () => {
   const g = fresh();
-  const tree = g.run(`(() => { for (let y = 16; y < 48; y++) for (let x = 16; x < 48; x++) if (terrain[y * N + x] === TERRAIN.wald.id) return [x, y]; })()`);
+  const tree = g.run(`(() => { for (let y = 48; y < 80; y++) for (let x = 48; x < 80; x++) if (terrain[y * N + x] === TERRAIN.wald.id) return [x, y]; })()`);
   ok(tree, 'Kein Baum im Startland');
   const holz = g.run('state.res.holz');
   ok(g.run(`clearTile(${tree[0]}, ${tree[1]})`) === true, 'Fällen ging nicht');
@@ -180,7 +181,7 @@ test('Weiterentwickeln: Wohnhöhle → Fellzelt; größeres Langhaus braucht Pla
 
 test('Verschieben und Drehen', () => {
   const g = fresh();
-  const spot = g.run(`JSON.stringify(findFreeSpot('wohnhoehle', 24, 24))`);
+  const spot = g.run(`JSON.stringify(findFreeSpot('wohnhoehle', 56, 56))`);
   const r = g.run(`const sp = ${spot}; moveBuilding(1, sp.x, sp.y, true)`);
   ok(r === null, 'Verschieben ging nicht: ' + r);
   ok(g.run(`state.buildings[1].rot === true && buildingAt(${JSON.parse(spot).x}, ${JSON.parse(spot).y}) === 1`), 'Platz/Drehung falsch');
@@ -188,7 +189,7 @@ test('Verschieben und Drehen', () => {
   ok(g.run(`moveBuilding(1, 31, 31, false)`) !== null, 'Verschieben auf Lagerfeuer erlaubt');
   // über die Bedienung: hochheben, ✔
   g.run(`liftBuilding(2); ghost.x -= 6; confirmGhost();`);
-  ok(g.run('ghost === null && state.buildings[2].x === 25'), 'Hochheben + ✔ ging nicht');
+  ok(g.run('ghost === null && state.buildings[2].x === 57'), 'Hochheben + ✔ ging nicht');
   noErrors(g);
 });
 
@@ -205,7 +206,7 @@ test('Bedienung: aus der Leiste bauen mit ✔, Abbrechen mit ✖', () => {
 test('Wärme: Wohnung fern vom Feuer senkt die Zufriedenheit', () => {
   const g = fresh();
   ok(g.run('stats.needs.waerme') === 1, 'Startwohnungen kalt');
-  g.run(`addBuilding('wohnhoehle', 17, 17, false, true); rebuildOccupancy(); buildRoute(state.buildings.length - 1); recalcStats();`);
+  g.run(`addBuilding('wohnhoehle', 49, 49, false, true); rebuildOccupancy(); buildRoute(state.buildings.length - 1); recalcStats();`);
   ok(g.run('isConnected(5)'), 'ferne Wohnung nicht angeschlossen');
   ok(g.run('stats.needs.waerme') < 1, 'Ferne Wohnung trotzdem warm');
   ok(g.run('stats.happiness') < 100, 'Zufriedenheit unverändert');
@@ -213,7 +214,7 @@ test('Wärme: Wohnung fern vom Feuer senkt die Zufriedenheit', () => {
 
 test('Speichern und Laden ergibt denselben Stand', () => {
   const g = fresh();
-  g.run(`state.res.holz = 77.5; state.techs.faustkeil = true; state.research = { id: 'feuer_hueten', left: 12 }; placeBuilding('sammlerin', findFreeSpot('sammlerin', 30, 24).x, findFreeSpot('sammlerin', 30, 24).y); state.plots[0] = 0; saveGame();`);
+  g.run(`state.res.holz = 77.5; state.techs.faustkeil = true; state.research = { id: 'feuer_hueten', left: 12 }; placeBuilding('sammlerin', findFreeSpot('sammlerin', 62, 56).x, findFreeSpot('sammlerin', 62, 56).y); state.plots[0] = 0; saveGame();`);
   const before = g.run('JSON.stringify({ ...state, savedAt: 0 })');
   g.run('state = null; loadSlot(currentSlot)');
   const after = g.run('JSON.stringify({ ...state, savedAt: 0 })');
@@ -255,7 +256,7 @@ test('Export und Import', () => {
 
 test('Offline-Fortschritt: läuft weiter, höchstens 2 Stunden, verstellte Uhr schadet nicht', () => {
   const g = fresh();
-  g.run(`state.res.holz = 100; const sp = findFreeSpot('holzsammler', 26, 26); placeBuilding('holzsammler', sp.x, sp.y); buildRoute(5); for (let i = 0; i < 40; i++) update(1);`);
+  g.run(`state.res.holz = 100; const sp = findFreeSpot('holzsammler', 58, 58); placeBuilding('holzsammler', sp.x, sp.y); buildRoute(5); for (let i = 0; i < 40; i++) update(1);`);
   const holz = g.run('state.res.holz');
   const r = g.run('JSON.stringify(applyOfflineProgress(Date.now() - 3600 * 1000))');
   ok(r && Math.abs(JSON.parse(r).seconds - 3600) < 1, 'Offline nicht gelaufen');
@@ -296,11 +297,11 @@ test('Aufträge: Fortschritt und Abholen', () => {
 test('Land kaufen: nur neben eigenem Land, Preis steigt', () => {
   const g = fresh();
   ok(!g.run('canBuyPlot(0)'), 'Ecke kaufbar');
-  const p = g.run('plotOf(10, 20)');
+  const p = g.run('plotOf(42, 52)');
   ok(g.run(`canBuyPlot(${p})`), 'Nachbarland nicht kaufbar');
   g.run('state.res.holz = 1000; state.res.nahrung = 1000;');
   const price1 = g.run('JSON.stringify(plotPrice())');
-  ok(g.run(`buyPlot(${p})`) && g.run('isOwned(10, 20)'), 'Kauf ging nicht');
+  ok(g.run(`buyPlot(${p})`) && g.run('isOwned(42, 52)'), 'Kauf ging nicht');
   ok(g.run('JSON.stringify(plotPrice())') !== price1, 'Preis steigt nicht');
 });
 
@@ -340,7 +341,7 @@ test('Zeichnen und Oberfläche laufen ohne Fehler (Baustelle, Geist, Pfadmodus, 
     cancelGhost(); beginBuild('pfad'); drawScene(0.1); cancelGhost();
     for (let i = 0; i < 70; i++) update(1);
     drawScene(0.1); renderAll(); showInfo(5); positionInfo(); showBuildingWindow(5); showBuildingWindow(6); showBuildingWindow(0); askDemolish(5);
-    showPlotDialog(plotOf(10, 20)); openQuests(); openMenu(); openSlots(true); showExport(); showDailyReward();
+    showPlotDialog(plotOf(42, 52)); openQuests(); openMenu(); openSlots(true); showExport(); showDailyReward();
     cam.zoom = ZOOM_MIN; drawScene(0.1); cam.zoom = ZOOM_MAX; drawScene(0.1); handleTap(400, 200);`);
   noErrors(g);
 });
@@ -349,7 +350,7 @@ test('Trampelpfad: ohne Weg kein Wohnen und keine Arbeit, Weg bauen verbindet, A
   const g = fresh();
   g.run('state.res.holz = 200; state.res.stein = 200;');
   // Gebäude weiter weg ohne Weg
-  const placed = g.run(`const far = findFreeSpot('holzsammler', 21, 42); placeBuilding('holzsammler', far.x, far.y)`);
+  const placed = g.run(`const far = findFreeSpot('holzsammler', 53, 74); placeBuilding('holzsammler', far.x, far.y)`);
   ok(placed === null, 'Holzsammler nicht gebaut: ' + placed);
   g.run('for (let i = 0; i < 31; i++) update(1);');
   const i = g.run(`state.buildings.findIndex(b => b.type === 'holzsammler')`);
@@ -373,7 +374,7 @@ test('Pause: Arbeiter wechseln zu einem anderen Gebäude, Pause wird gespeichert
   g.run(`
     state.res.holz = 500; state.res.stein = 500; state.res.nahrung = 500;
     for (const type of ['sammlerin', 'jaegerlager', 'holzsammler', 'steinsammler']) {
-      const sp = findFreeSpot(type, 30, 30);
+      const sp = findFreeSpot(type, 62, 62);
       placeBuilding(type, sp.x, sp.y);
       const k = state.buildings.length - 1;
       finishBuilding(state.buildings[k]);
@@ -425,7 +426,7 @@ test('Mammutjagd: erst nach der Forschung, Jäger bringen Beute, Herde kommt wie
   ok(/Mammutjagd/.test(g.run('huntProblem()')), 'Jagd ohne Forschung möglich');
   g.run('state.techs.mammutjagd = true');
   ok(/Jägerlager/.test(g.run('huntProblem()')), 'Jagd ohne Jägerlager möglich');
-  g.run(`const sp = findFreeSpot('jaegerlager', 30, 30); placeBuilding('jaegerlager', sp.x, sp.y);
+  g.run(`const sp = findFreeSpot('jaegerlager', 62, 62); placeBuilding('jaegerlager', sp.x, sp.y);
     const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); if (!isConnected(k)) buildRoute(k); recalcStats();`);
   ok(g.run('huntProblem()') === null, 'Jagd mit Jägerlager nicht möglich: ' + g.run('huntProblem()'));
   ok(g.run('startHunt(20, 20)') === null && g.run('!!state.hunt'), 'Jagd startet nicht');
@@ -486,7 +487,7 @@ test('Bauleiste einklappen bleibt gespeichert, Pfade zeichnen ohne Fehler', () =
   ok(JSON.parse(g.run(`storageGet(SETTINGS_KEY)`)).barHidden === true, 'Einklappen nicht gespeichert');
   g.run(`toggleBuildBar();`);
   ok(g.run('settings.barHidden') === false, 'Leiste geht nicht wieder auf');
-  g.run(`state.res.holz = 50; for (let x = 20; x < 26; x++) placeBuilding('pfad', x, 30); drawPaths(visibleRange()); drawScene(0.1);`);
+  g.run(`state.res.holz = 50; for (let x = 52; x < 58; x++) placeBuilding('pfad', x, 62); drawPaths(visibleRange()); drawScene(0.1);`);
   noErrors(g);
 });
 
@@ -507,7 +508,7 @@ test('Brücke: Pfad nie aufs Wasser, Brücke nur aufs Wasser, über Brücken ist
 test('Arbeitende Menschen: gehen zum Baum, arbeiten und kommen zurück', () => {
   const g = fresh();
   g.run(`state.res.holz = 999; state.res.stein = 999; state.pop = 12;
-    for (const t of ['holzsammler', 'steinsammler', 'sammlerin']) { const sp = findFreeSpot(t, 30, 30); placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
+    for (const t of ['holzsammler', 'steinsammler', 'sammlerin']) { const sp = findFreeSpot(t, 62, 62); placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
     recalcStats();`);
   const all = '{x0:0,y0:0,x1:N-1,y1:N-1}';
   const seen = g.run(`(() => { const ph = {}; for (let i = 0; i < 1200; i++) { updateLife(0.05, ${all}); for (const w of life.workers) ph[w.b.type + ':' + w.phase] = true; if (i % 50 === 0) drawScene(0.05); } return Object.keys(ph).join(','); })()`);
@@ -515,6 +516,29 @@ test('Arbeitende Menschen: gehen zum Baum, arbeiten und kommen zurück', () => {
   // pausiert: niemand geht mehr raus
   g.run(`state.buildings.forEach((b, i) => { if (b.type === 'holzsammler') togglePause(i); }); for (let i = 0; i < 30; i++) updateLife(0.05, ${all});`);
   ok(!g.run(`life.workers.some(w => w.b.type === 'holzsammler')`), 'pausierter Holzsammler arbeitet weiter');
+  noErrors(g);
+});
+
+test('Alte Spielstände (kleine Karte bis Version 21) landen in der Mitte der großen Karte', () => {
+  const fixture = JSON.parse(fs.readFileSync(new URL('./alter-stand-v21.json', import.meta.url), 'utf8'));
+  const old = fixture.save, oldN = 64, off = 32;
+  const g = fresh();
+  ok(g.run(`loadFromText(${JSON.stringify(JSON.stringify(old))})`), 'alter Stand lädt nicht');
+  ok(g.run('state.mapSize') === g.run('N'), 'Kartengröße nicht übernommen');
+  const nb = g.run('JSON.stringify(state.buildings.map(b => [b.type, b.x, b.y]))');
+  const ob = old.buildings.map(b => [b.type === 'jaegerlager' ? 'mammutjaegerlager' : b.type, b.x + off, b.y + off]);
+  ok(nb === JSON.stringify(ob), 'Gebäude nicht richtig verschoben');
+  // jedes Feld unter einem Gebäude hat dieselbe Geländeart wie vorher
+  const bad = g.run(`(() => { const t = ${JSON.stringify(fixture.terrain)}; let n = 0;
+    for (let y = 0; y < ${oldN}; y++) for (let x = 0; x < ${oldN}; x++) if (Number(t[y * ${oldN} + x]) !== terrain[(y + ${off}) * N + x + ${off}]) n++; return n; })()`);
+  ok(bad === 0, bad + ' Felder haben sich verändert');
+  // gekauftes Land und Jagd mitgewandert
+  ok(g.run('isOwned(42, 52) && isOwned(64, 64)') && !g.run('isOwned(10, 20)'), 'Land nicht mitgewandert');
+  ok(g.run('state.hunt.cx') === 62 && g.run('state.hunt.x') === 72, 'Jagd nicht verschoben');
+  ok(g.run('state.buildings.every((b, i) => !placeProblem(b.type, b.x, b.y, i))'), 'Gebäude stehen nach dem Umzug falsch');
+  ok(g.run('state.buildings.every((b, i) => isConnected(i))'), 'Wege nach dem Umzug unterbrochen');
+  // ein zweites Laden verschiebt nicht noch einmal
+  ok(g.run('loadFromText(serialize()) && state.buildings[0].x') === old.buildings[0].x + off, 'doppelt verschoben');
   noErrors(g);
 });
 

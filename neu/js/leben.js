@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mammut', 'hirsch', 'ziege', 'einbaum'];
+const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mammut', 'hirsch', 'ziege', 'einbaum'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -377,6 +377,13 @@ function drawWorker(w, t) {
     ctx.beginPath(); ctx.ellipse(p.x, p.y, 10 * z, 3.2 * z, 0, 0, 7); ctx.fill();
     ctx.save(); ctx.translate(p.x, p.y); if (w.face < 0) ctx.scale(-1, 1);
     ctx.drawImage(img, -ww / 2 - ww * shift, -hh, ww, hh);
+    ctx.restore();
+  } else if (!walking && swing === 'pick' && images['mensch-frau-pflueckt']) {   // Sammlerin bückt sich zum Busch (Canva)
+    const img = images['mensch-frau-pflueckt'], hh = 30 * z, ww = hh * img.width / img.height, dip = Math.max(0, Math.sin(t * 3 + w.ph)) * 1.5 * z;
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y, 10 * z, 3.2 * z, 0, 0, 7); ctx.fill();
+    ctx.save(); ctx.translate(p.x, p.y + dip); if (w.face < 0) ctx.scale(-1, 1);
+    ctx.drawImage(img, -ww / 2 - ww * 0.1, -hh, ww, hh);
     ctx.restore();
   } else drawCreature(look, w.x, w.y, 32, w.face, bob, '🧍', walking ? step : null);
   // Werkzeug schwingen (hoch – runter – Schlag)

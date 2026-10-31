@@ -16,12 +16,12 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Menschen in allen Lagen eigene Bilder (Emin, 31.10.): Jäger mit Speer, Steinträger, Beten, Arbeitshaltungen mit Axt/Spitzhacke in der Hand – in Arbeit (Canva).
 - Gebäude 4× drehen: Dreh-Ansichten für die übrigen Gebäude (Canva, nach und nach). Wasser-Gebäude sind fertig (Emin, 31.10.).
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 34 – Sammlerin bückt sich beim Pflücken zum Busch (Canva-Bild mit Korb).
 - 2026-10-31, Epochia Version 33 – Steinsammler und Tongrube halten die Spitzhacke richtig in den Händen (ausholen und zuschlagen, Canva).
 - 2026-10-31, Epochia Version 32 – Fehler: Arbeiter liefen übers Wasser – jetzt suchen sie sich einen Fußweg über Land, Pfade und
   Brücken (nie durchs Wasser oder Gebirge); ist ein Baum nur übers Wasser erreichbar, nehmen sie einen anderen.

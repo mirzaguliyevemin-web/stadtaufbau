@@ -763,6 +763,17 @@ test('Bauen: Baum unter dem geplanten Gebäude antippen fällt ihn; schräg gezo
   noErrors(g);
 });
 
+test('Wissen: eigener Speicher (2 × teuerste Forschung des Zeitalters), jede Forschung bezahlbar', () => {
+  const g = fresh();
+  const r = g.run(`(() => { const out = [];
+    for (const st of ['alt', 'mittel', 'jung']) { state.stage = st; state.res.wissen = 0; addResources({ wissen: 1e6 });
+      const most = Math.max(...Object.values(TECHS).filter(t => stageReached(t.stage)).map(t => t.cost.wissen));
+      out.push(state.res.wissen >= most && state.res.wissen <= 2 * most + 1); }
+    return out; })()`);
+  ok(r.every(Boolean), 'Wissensspeicher falsch: ' + r);
+  noErrors(g);
+});
+
 test('Alte Spielstände (kleine Karte bis Version 21) landen in der Mitte der großen Karte', () => {
   const fixture = JSON.parse(fs.readFileSync(new URL('./alter-stand-v21.json', import.meta.url), 'utf8'));
   const old = fixture.save, oldN = 64, off = 32;

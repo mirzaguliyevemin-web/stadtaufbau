@@ -25,12 +25,22 @@ function payCost(cost) {
   for (const [id, n] of Object.entries(cost || {})) state.res[id] = Math.max(0, (state.res[id] || 0) - n);
 }
 
+// Wissen hat einen eigenen Speicher: doppelt so viel wie die teuerste Forschung des erreichten Zeitalters
+// (ohne Grenze häuften sich Tausende an, mit der Lagergrenze 150 war die Jungsteinzeit nicht bezahlbar)
+function knowledgeCap() {
+  let most = 0;
+  for (const t of Object.values(TECHS)) if (stageReached(t.stage) && t.cost.wissen > most) most = t.cost.wissen;
+  return Math.max(CONFIG.baseStorage, 2 * most);
+}
+
 // Waren dazugeben (höchstens bis zum Lagerplatz – was schon darüber liegt, bleibt)
 function addResources(amounts, factor = 1) {
   const cap = productionCap !== null ? productionCap : storageCap();
   for (const [id, n] of Object.entries(amounts || {})) {
     const have = state.res[id] || 0;
-    if (RESOURCES[id].noCap) { state.res[id] = have + n * factor; continue; }   // Wissen braucht kein Lager
+    const c = RESOURCES[id].knowledge ? knowledgeCap() : cap;   // Wissen: eigener Speicher
+    state.res[id] = have >= c ? have : Math.min(c, have + n * factor);
+    continue;
     state.res[id] = have >= cap ? have : Math.min(cap, have + n * factor);
   }
 }

@@ -3,11 +3,20 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mammut', 'hirsch', 'ziege', 'einbaum'];
+const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mammut', 'hirsch', 'ziege', 'einbaum'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
 function lifeRandom() { return Math.random(); }
+
+// Menschenbilder je Lage (aus Canva). Grundbilder: mensch-mann trägt Holz auf der Schulter, mensch-frau einen
+// Beerenkorb – darum gehen Spaziergänger und Leute auf dem Weg zur Arbeit mit leeren Händen (…-leer),
+// und nur wer wirklich Holz bzw. Beeren heimbringt, trägt sie. Fehlt ein Bild noch, nimmt man das Grundbild.
+const PERSON_LOOK = { leer: { 'mensch-mann': 'mensch-mann-leer', 'mensch-frau': 'mensch-frau-leer' } };
+function personImg(base, look) {
+  const n = PERSON_LOOK[look] && PERSON_LOOK[look][base];
+  return n && images[n] ? n : base;
+}
 
 // Wohin darf ein Tier laufen? Wiese oder Sand, kein Gebäude
 function animalFree(x, y) {
@@ -159,7 +168,7 @@ function hunterObjects(inView, t) {
     const face = dx - dy > 0 ? -1 : 1;
     const step = t * 10 + i * 2;
     out.push({ d: x + y - 0.5, kind: 'leben', draw: () => {
-      drawCreature('mensch-mann', x, y, 32, face, Math.abs(Math.sin(step)) * 1.2 * cam.zoom, '🧍', step);
+      drawCreature(personImg('mensch-mann', 'leer'), x, y, 32, face, Math.abs(Math.sin(step)) * 1.2 * cam.zoom, '🧍', step);
       if (back) {   // Beute auf dem Rückweg
         const p = tileToScreen(x, y), z = cam.zoom, img = images['ware-nahrung'];
         if (img) ctx.drawImage(img, p.x - 8 * z, p.y - 44 * z, 16 * z, 16 * z);
@@ -187,9 +196,9 @@ function mammothAtScreen(sx, sy) {
 
 // Wer wohin geht: Gelände-Ziel, Werkzeug, was zurückgetragen wird, Figur, Teilchen beim Arbeiten
 const WORK = {
-  holzsammler:       { target: 'wald', tool: 'axt',   carry: 'ware-holz',    img: 'mensch-mann', chips: '#a8743f', swing: 'hack' },
+  holzsammler:       { target: 'wald', tool: 'axt',   carry: 'ware-holz',    img: 'mensch-mann', chips: '#a8743f', swing: 'hack', carryLook: true },
   steinsammler:      { target: 'fels', tool: 'hacke', carry: 'ware-stein',   img: 'mensch-mann', chips: '#b9b4a8', swing: 'hack' },
-  sammlerin:         { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-frau', chips: '#d8344a', swing: 'pick' },
+  sammlerin:         { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-frau', chips: '#d8344a', swing: 'pick', carryLook: true },
   jaegerlager:       { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true },
   mammutjaegerlager: { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true },
   // Teil 2: am Ufer und im Einbaum fischen, an der Felswand malen, vor dem Haus arbeiten (target 'self')
@@ -310,7 +319,9 @@ function drawWorker(w, t) {
   let bob = walking ? Math.abs(Math.sin(step)) * 1.2 * z : 0;
   const swing = w.kind.swing;
   if (!walking && swing === 'pick') bob = -Math.max(0, Math.sin(t * 3 + w.ph)) * 3 * z;   // bückt sich zum Busch
-  drawCreature(w.kind.img, w.x, w.y, 32, w.face, bob, '🧍', walking ? step : null);
+  // mit Last nur auf dem Rückweg (carryLook: das Grundbild zeigt schon Holz bzw. Korb), sonst leere Hände
+  const look = w.phase === 'back' && w.kind.carryLook ? w.kind.img : personImg(w.kind.img, 'leer');
+  drawCreature(look, w.x, w.y, 32, w.face, bob, '🧍', walking ? step : null);
   const p = tileToScreen(w.x, w.y);
   // Werkzeug schwingen (hoch – runter – Schlag)
   if (!walking && w.kind.tool && images[w.kind.tool]) {
@@ -374,7 +385,7 @@ function drawWorker(w, t) {
     ctx.beginPath(); ctx.arc(p.x - 8 * z * w.face, p.y - 14 * z - Math.sin(q * Math.PI) * 8 * z, 2.2 * z, 0, 7); ctx.fill();
   }
   // Beute auf dem Rückweg tragen
-  if (w.phase === 'back' && w.kind.carry && images[w.kind.carry]) {
+  if (w.phase === 'back' && w.kind.carry && images[w.kind.carry] && !(w.kind.carryLook && look === w.kind.img)) {
     const s = 14 * z;
     ctx.drawImage(images[w.kind.carry], p.x - s / 2, p.y - 32 * z - s * 0.6 - bob, s, s);
   }
@@ -474,13 +485,13 @@ function visitorObjects(inView, t) {
 function drawVisitor(v, t) {
   ctx.globalAlpha = v.alpha;
   const z = cam.zoom, step = t * 9 + v.ph;
-  if (v.phase !== 'stay') drawCreature(v.img, v.x, v.y, 32, v.face, Math.abs(Math.sin(step)) * 1.2 * z, '🧍', step);
+  if (v.phase !== 'stay') drawCreature(personImg(v.img, 'leer'), v.x, v.y, 32, v.face, Math.abs(Math.sin(step)) * 1.2 * z, '🧍', step);
   else if (v.kind === 'feuer' && darkness() > 0.3) {   // abends: Tanz ums Feuer – hüpfen und drehen
     const hop = Math.abs(Math.sin(t * 4 + v.ph)) * 6 * z;
-    drawCreature(v.img, v.x, v.y, 32, Math.sin(t * 1.3 + v.ph) > 0 ? 1 : -1, hop, '💃', t * 8 + v.ph);
+    drawCreature(personImg(v.img, 'leer'), v.x, v.y, 32, Math.sin(t * 1.3 + v.ph) > 0 ? 1 : -1, hop, '💃', t * 8 + v.ph);
   } else if (v.kind === 'feuer') drawSitting(v, t);
   else {   // beten: verbeugen sich langsam
-    const p = tileToScreen(v.x, v.y), img = images[v.img];
+    const p = tileToScreen(v.x, v.y), img = images[personImg(v.img, 'leer')];
     if (!img) { drawCreature(v.img, v.x, v.y, 32, v.face, 0, '🙏'); ctx.globalAlpha = 1; return; }
     const h = 32 * z, w = h * img.width / img.height, bow = Math.max(0, Math.sin(t * 0.8 + v.ph)) * 0.35;
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
@@ -493,23 +504,28 @@ function drawVisitor(v, t) {
   ctx.globalAlpha = 1;
 }
 
-// Am Feuer sitzen: nur der Oberkörper über dem Boden, die Hände ab und zu zum Feuer
+// Am Feuer sitzen: eigenes Bild (mensch-mann-sitzend / mensch-frau-sitzend aus Canva);
+// fehlt es noch, nur der Oberkörper der stehenden Figur, ohne Fleck darunter
 function drawSitting(v, t) {
-  const p = tileToScreen(v.x, v.y), img = images[v.img], z = cam.zoom;
+  const p = tileToScreen(v.x, v.y), z = cam.zoom;
+  const sit = images[v.img + '-sitzend'], img = sit || images[v.img];
   if (!img) { drawCreature(v.img, v.x, v.y, 26, v.face, 0, '🧍'); return; }
-  const h = 32 * z, w = h * img.width / img.height, cut = LEGS[v.img] || 0.6;
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
-  ctx.beginPath(); ctx.ellipse(p.x, p.y, h * 0.36, h * 0.11, 0, 0, 7); ctx.fill();
-  ctx.save(); ctx.translate(p.x, p.y + Math.sin(t * 1.5 + v.ph) * 0.6 * z); if (v.face < 0) ctx.scale(-1, 1);
-  ctx.drawImage(img, 0, 0, img.width, img.height * cut, -w / 2, -h * cut - 1 * z, w, h * cut);
-  // gekreuzte Beine als Fell-Polster
-  ctx.fillStyle = '#7a5532';
-  ctx.beginPath(); ctx.ellipse(0, -1 * z, w * 0.42, 3.2 * z, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  ctx.beginPath(); ctx.ellipse(p.x, p.y, 9 * z, 3 * z, 0, 0, 7); ctx.fill();
+  const facesRight = sit && v.img === 'mensch-mann';   // das Canva-Bild des sitzenden Mannes schaut nach rechts
+  ctx.save(); ctx.translate(p.x, p.y + Math.sin(t * 1.5 + v.ph) * 0.6 * z); if ((v.face < 0) !== facesRight) ctx.scale(-1, 1);
+  if (sit) {
+    const h = 22 * z, w = h * img.width / img.height;
+    ctx.drawImage(img, -w / 2, -h, w, h);
+  } else {
+    const h = 32 * z, w = h * img.width / img.height, cut = LEGS[v.img] || 0.6;
+    ctx.drawImage(img, 0, 0, img.width, img.height * cut, -w / 2, -h * cut, w, h * cut);
+  }
   ctx.restore();
 }
 
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
-const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };
+const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, 'mensch-mann-leer': 0.62, 'mensch-frau-leer': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };
 
 // Figur mit Schatten zeichnen. Bilder schauen nach links; face = -1 spiegelt nach rechts.
 // step = Laufphase (Bogenmaß) oder null im Stehen: Dann schwingen vordere und hintere Beine gegeneinander.
@@ -580,7 +596,7 @@ function lifeObjects(range) {
     if (!inView(w.x, w.y)) continue;
     const moving = w.wait <= 0;
     out.push({ d: w.x + w.y - 0.5, kind: 'leben', draw: () =>
-      drawCreature(w.img, w.x, w.y, 32, w.face, moving ? Math.abs(Math.sin(t * 9 + w.ph)) * 1.2 * cam.zoom : 0, '🧍', moving ? t * 9 + w.ph : null) });
+      drawCreature(personImg(w.img, 'leer'), w.x, w.y, 32, w.face, moving ? Math.abs(Math.sin(t * 9 + w.ph)) * 1.2 * cam.zoom : 0, '🧍', moving ? t * 9 + w.ph : null) });
   }
   for (const a of life.animals) {
     if (!inView(a.x, a.y)) continue;

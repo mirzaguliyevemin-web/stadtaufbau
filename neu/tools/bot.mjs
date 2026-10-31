@@ -79,7 +79,7 @@ function botWants() {
   const foodType = botBest('feld') || botBest('fischen') || (hunters0 < 3 + Math.floor(pop / 40) ? 'jaegerlager' : null) || 'sammlerin';
   if (hungry && food < 0) w.push(foodType);   // Hunger: Nahrung vor allem anderen
   if (stats.housing - pop < 3 && !(hungry && food < 0)) w.push('__house');
-  if (botCount('hoehlenmaler') < 1 + Math.floor(pop / 15)) w.push('hoehlenmaler');
+  if (botCount('hoehlenmaler') < 1 + Math.floor(pop / 25)) w.push('hoehlenmaler');
   if (botCount('holzsammler') < 2 + Math.floor(pop / 12)) w.push('holzsammler');
   if (botCount('steinsammler') < 1 + Math.floor(pop / 15)) w.push('steinsammler');
   if (botCount('pflanzerin') < Math.floor(botCount('holzsammler') / 3)) w.push('pflanzerin');

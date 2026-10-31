@@ -16,11 +16,17 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
+- Menschen in allen Lagen eigene Bilder (Emin, 31.10.): Jäger mit Speer, Steinträger, Beten, Arbeitshaltungen mit Axt/Spitzhacke in der Hand – in Arbeit (Canva).
 - Gebäude 4× drehen: Dreh-Ansichten für die übrigen Gebäude (Canva, nach und nach). Wasser-Gebäude sind fertig (Emin, 31.10.).
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 27 – Wissen gedrosselt: Höhlenmaler machen halb so viel Wissen, Wissen hat einen eigenen Speicher
+  (2 × teuerste Forschung des Zeitalters, z. B. 450 in der Jungsteinzeit) statt sich endlos anzuhäufen. Bot: Wissen am Ende 450
+  statt 15.000–17.000, Zeiten gleich (Mittelsteinzeit ≈ 105 min, Jungsteinzeit ≈ 270 min, kein Hunger).
+- 2026-10-31, Epochia Version 27 – Menschenbilder (Canva): Leute am Feuer sitzen jetzt richtig im Schneidersitz (kein grauer Fleck);
+  Spaziergänger und Arbeiter auf dem Hinweg haben leere Hände – Holz bzw. Beerenkorb trägt nur, wer sie wirklich heimbringt.
 - 2026-10-31, Epochia Version 26 – Winterbilder (Canva) für alle neuen Dreh-Ansichten von Fischerplatz, Tongrube, Pfahlbau und für
   die Pflanzerin.
 - 2026-10-31, Epochia Version 25 – Kleidung und Glaube zählen erst als Bedürfnis, wenn ihr Gebäude freigeschaltet ist (keine

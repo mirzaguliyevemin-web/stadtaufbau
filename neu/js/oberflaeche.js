@@ -97,7 +97,7 @@ function renderTopbar() {
   const cap = storageCap();
   const chips = visibleResources().map(id => {
     const n = Math.floor(state.res[id] || 0);
-    const cls = n <= 0 ? ' empty' : n >= cap && !RESOURCES[id].noCap ? ' full' : '';
+    const cls = n <= 0 ? ' empty' : n >= (RESOURCES[id].knowledge ? knowledgeCap() : cap) ? ' full' : '';
     return `<button class="chip${cls}" onclick="resourceTip('${id}')">${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon)}<b>${n}</b></button>`;
   }).join('');
   const happy = stats.happiness;
@@ -128,13 +128,13 @@ function resourceTip(id) {
   const rows = (obj, sign) => Object.entries(obj).filter(([, n]) => n > 0.005).sort((a, b) => b[1] - a[1])
     .map(([k, n]) => `<div><span>${who(k)}</span><b class="${sign === '+' ? 'good' : 'bad'}">${sign}${perMin(n)}</b></div>`).join('') || '<div><small>nichts</small></div>';
   const net = stats.rates[id] || 0, stock = state.res[id] || 0, cap = storageCap();
-  const when = net < -0.01 ? `leer in ${formatTime(stock / -net * 60)}` : net > 0.01 && stock < cap && !r.noCap ? `voll in ${formatTime((cap - stock) / net * 60)}` : '';
+  const when = net < -0.01 ? `leer in ${formatTime(stock / -net * 60)}` : net > 0.01 && stock < (r.knowledge ? knowledgeCap() : cap) ? `voll in ${formatTime(((r.knowledge ? knowledgeCap() : cap) - stock) / net * 60)}` : '';
   const makers = Object.keys(BUILDINGS).filter(t => (BUILDINGS[t].produces || {})[id] !== undefined);
   const touches = e => makers.some(t => { const b = e.effect.buildings || {}; return b[t] !== undefined || (e.effect.outdoor !== undefined && OUTDOOR_WORK.includes(t)) || (e.effect.water !== undefined && BUILDINGS[t].needsWater) || e.effect.workers !== undefined; })
     || (id === 'nahrung' && e.effect.food);
   const eff = activeEffects().filter(e => e.k > 0.3 && e.effect.text && touches(e)).map(e => `${e.icon} ${esc(e.name)}: ${esc(e.effect.text)}`);
   openDialog(`<h2>${iconHtml(r.bild, r.icon)} ${esc(r.name)}</h2>
-    <p>Im Lager: <b>${Math.floor(stock)}</b>${r.noCap ? ' (kein Limit)' : ` von ${cap}`}${when ? ` · ${when}` : ''}</p>
+    <p>Im Lager: <b>${Math.floor(stock)}</b> von ${r.knowledge ? knowledgeCap() : cap}${when ? ` · ${when}` : ''}</p>
     <h3>Einnahmen je Minute</h3><div class="info-list">${rows(f.in, '+')}</div>
     <h3>Ausgaben je Minute</h3><div class="info-list">${rows(f.out, '−')}</div>
     ${id === 'wissen' ? '<p class="hint">Wissen wird beim Start einer Forschung auf einmal bezahlt.</p>' : ''}

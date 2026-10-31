@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 26;
+const APP_VERSION = 27;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -45,7 +45,7 @@ const CONFIG = {
   tempo: {
     researchTime: 1.5,    // Forschungen dauern 1,5-mal so lang (ganze Steinzeit ≈ 8 h; bis Version 24: 2 ≈ 11 h)
     knowledgeCost: 1.5,   // und kosten 50 % mehr Wissen
-    knowledgeMade: 0.7,   // Höhlenmaler & Co. machen 30 % weniger Wissen
+    knowledgeMade: 0.5,   // Höhlenmaler & Co. machen halb so viel Wissen (seit Version 27; vorher 0,7)
     buildTime: 1.5,       // Bauzeiten +50 %
     rawMade: 0.8,         // Holz, Stein, Ton, Felle: 20 % weniger
     foodMade: 1,          // Nahrung bleibt (der Winter dauert jetzt 30 Minuten – mehr Abzug hieße Hungersnot)
@@ -61,7 +61,7 @@ const RESOURCES = {
   nahrung:      { name: 'Nahrung',     icon: '🍖', bild: 'ware-nahrung' },
   holz:         { name: 'Holz',        icon: '🪵', bild: 'ware-holz' },
   stein:        { name: 'Stein',       icon: '🪨', bild: 'ware-stein' },
-  wissen:       { name: 'Wissen',      icon: '💡', bild: 'ware-wissen', noCap: true },   // kein Lagerlimit (Forschungen kosten mehr als 150)
+  wissen:       { name: 'Wissen',      icon: '💡', bild: 'ware-wissen', knowledge: true },   // eigener Speicher: 2 × teuerste Forschung des Zeitalters
   felle:        { name: 'Felle',       icon: '🦌', bild: 'ware-felle',        from: 'alt' },
   kleidung:     { name: 'Kleidung',    icon: '🧥', bild: 'ware-kleidung',     from: 'mittel' },
   werkzeug:     { name: 'Werkzeug',    icon: '🗡️', bild: 'ware-werkzeug',     from: 'mittel' },

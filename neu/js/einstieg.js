@@ -123,7 +123,7 @@ function checkStaffHint() {
   if (i < 0) return;
   lastHintAt = state.playTime;
   const name = BUILDINGS[state.buildings[i].type].name;
-  let text = `Beim ${name} arbeitet niemand – alle Menschen sind schon beschäftigt. Baue eine Wohnung, dann kommen mehr Menschen. ` +
+  let text = `${name}: Hier arbeitet niemand – alle Menschen sind schon beschäftigt. Baue eine Wohnung, dann kommen mehr Menschen. ` +
     `Oder tippe ein anderes Gebäude an und drücke ⏸ Pause: Dann arbeiten dessen Leute hier.`;
   if ((state.res.stein || 0) < (BUILDINGS.wohnhoehle.cost.stein || 0)) text += ' Fehlt dir Stein? Tippe auf einen Felsen und trage ihn ab.';
   elderHint = text;

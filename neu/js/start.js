@@ -57,12 +57,16 @@ function enterGame() {
   if (loadSlot(currentSlot)) {
     offline = applyOfflineProgress(state.savedAt);
   } else {
+    // Es lag etwas auf dem Platz, ließ sich aber nicht laden: erst beiseitelegen, nicht einfach überschreiben
+    const broken = storageGet(SAVE_PREFIX + currentSlot);
+    if (broken) { storageSet(SAVE_PREFIX + currentSlot + '-kaputt', broken); toast('⚠️ Der Spielstand war beschädigt – er wurde aufgehoben, hier beginnt ein neues Spiel'); }
     startNewGame();
   }
   checkDailyReward();
   saveGame();
   saveSettings();
   ghost = null; pathMode = false; selected = -1;
+  if (typeof elderHint !== 'undefined') { elderHint = null; lastHintAt = -1e9; }   // Hinweise des alten Spielstands vergessen
   centerOnCamp();
   recalcStats();
   lastTopbar = lastBar = lastAction = '';

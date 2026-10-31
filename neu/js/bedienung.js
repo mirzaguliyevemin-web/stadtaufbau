@@ -248,10 +248,8 @@ function onPointerDown(e) {
     }
     return;
   }
-  if (pathMode) {   // auf einem Weg anfangen = Wege wegwischen, sonst Wege malen
-    const t = screenToTile(p.x, p.y);
-    gesture.mode = isPathAt(t.x, t.y) ? 'erase' : 'path';
-    if (gesture.mode === 'erase') erasePath(p.x, p.y); else paintPath(p.x, p.y);
+  if (pathMode) {   // erst abwarten: Ziehen = Wege malen (auch vom Wegende aus), kurzes Tippen auf einen Weg = löschen.
+    gesture.mode = 'pathwait';   // so setzt auch der erste Finger beim Zoomen mit zwei Fingern keinen Weg
     return;
   }
   const i = buildingAtScreen(p.x, p.y);
@@ -302,10 +300,12 @@ function onPointerMove(e) {
     ghost.y = Math.max(0, Math.min(N - s, Math.round(t.y - gesture.offset.y)));
     autoOrient();
     renderActionBar();
+  } else if (gesture.mode === 'pathwait' && Math.hypot(p.x - gesture.start.x, p.y - gesture.start.y) > DRAG_START_PX) {
+    gesture.mode = 'path';
+    paintPath(gesture.start.x, gesture.start.y);
+    paintPath(p.x, p.y);
   } else if (gesture.mode === 'path') {
     paintPath(p.x, p.y);
-  } else if (gesture.mode === 'erase') {
-    erasePath(p.x, p.y);
   }
 }
 
@@ -316,6 +316,11 @@ function onPointerUp(e) {
   if (!gesture) return;
   if (gesture.mode === 'press' && e.type === 'pointerup') handleTap(gesture.start.x, gesture.start.y);
   if (gesture.mode === 'ghost') renderActionBar();
+  if (gesture.mode === 'pathwait' && e.type === 'pointerup') {   // nur getippt: Weg löschen bzw. ein Feld Weg setzen
+    const t = screenToTile(gesture.start.x, gesture.start.y);
+    if (isPathAt(t.x, t.y)) erasePath(gesture.start.x, gesture.start.y);
+    else { gesture.mode = 'path'; paintPath(gesture.start.x, gesture.start.y); }
+  }
   if (gesture.mode === 'path' && !gesture.painted && !gesture.lastProblem) toast('Kein Pfad gebaut – zieh über freie Felder neben den Gebäuden');
   // nach dem Zoomen mit zwei Fingern nichts mehr tun, bis alle Finger weg sind
   gesture = pointers.size ? { mode: 'done' } : null;

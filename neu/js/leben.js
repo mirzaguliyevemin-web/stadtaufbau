@@ -37,7 +37,8 @@ function pathTiles() {
 
 function updateWalkers(dt) {
   const paths = pathTiles();
-  const want = paths.length < 2 ? 0 : Math.min(14, Math.ceil(state.pop / 2), paths.length);
+  const free = Math.max(0, Math.floor(state.pop - (stats.workers || 0)));   // wer arbeitet, ist nicht auf den Pfaden unterwegs
+  const want = paths.length < 2 ? 0 : Math.min(14, Math.ceil(free / 2), paths.length);
   while (life.walkers.length > want) life.walkers.pop();
   while (life.walkers.length < want) {
     const [x, y] = paths[Math.floor(lifeRandom() * paths.length)];
@@ -246,12 +247,29 @@ const WORK_SECONDS = 7, WORK_WALK = 0.75;   // so lange wird gearbeitet, so schn
 life.workers = [];
 life.workTimer = 0;
 
+// Freier Platz direkt am Gebäude (Nummer k): zuerst vorne rechts, dann vorne links, dann die anderen Seiten.
+// Nie in einem anderen Haus, im Wasser oder im Gebirge. Ergebnis: Mitte des Feldes und Blickrichtung nach außen.
+function frontSpot(b, k = 0) {
+  const s = BUILDINGS[b.type].size, out = [];
+  for (let d = 0; d < s; d++) out.push([b.x + s, b.y + d, 1, 0]);    // rechts unten im Bild
+  for (let d = 0; d < s; d++) out.push([b.x + d, b.y + s, 0, 1]);    // links unten im Bild
+  for (let d = 0; d < s; d++) out.push([b.x - 1, b.y + d, -1, 0]);
+  for (let d = 0; d < s; d++) out.push([b.x + d, b.y - 1, 0, -1]);
+  const mid = Math.floor(s / 2);   // in der Mitte der Seite anfangen
+  const order = out.map((c, i) => [c, Math.floor(i / s) * 10 + Math.abs((i % s) - mid)]).sort((a, c) => a[1] - c[1]).map(a => a[0]);
+  const free = order.filter(([x, y]) => walkable(x, y));
+  if (!free.length) return null;
+  const [x, y, dx, dy] = free[k % free.length];
+  return { x: x + 0.5, y: y + 0.5, dx, dy };
+}
+
 // Nächstes passendes Geländefeld in der Nähe eines Gebäudes, dazu ein freier Standplatz daneben
 function workSpot(b, kind, far, k = 0) {
   const s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
-  if (kind === 'self') {   // arbeitet direkt vor dem Haus, das Werkstück liegt daneben
-    const sx = b.x + s + 0.55, sy = b.y + s / 2 + (k ? 0.55 : -0.55);
-    return { tx: sx + 0.45, ty: sy + 0.1, sx, sy };
+  if (kind === 'self') {   // arbeitet direkt vor dem Haus, das Werkstück liegt daneben (nach außen)
+    const f = frontSpot(b, k);
+    if (!f) return null;
+    return { tx: f.x + f.dx * 0.45 + f.dy * 0.1, ty: f.y + f.dy * 0.45 + f.dx * 0.1, sx: f.x - f.dx * 0.1, sy: f.y - f.dy * 0.1 };
   }
   const r = (a, c) => hash(b.x + a + Math.floor(lifeRandom() * 50), b.y + c);
   if (kind === 'field') {   // irgendwo auf dem eigenen Acker, jedes Mal ein anderes Stück
@@ -299,13 +317,14 @@ function walkable(x, y) {
   return t !== TERRAIN.wasser.id && t !== TERRAIN.berg.id;
 }
 
-function walkRoute(fx, fy, tx, ty) {
+// own = Index eines Gebäudes, über dessen Fläche man gehen darf (Platz am Feuer); sonst nur das, in dem man startet
+function walkRoute(fx, fy, tx, ty, own = -1) {
   const ax = Math.floor(fx), ay = Math.floor(fy), bx = Math.floor(tx), by = Math.floor(ty);
   const x0 = Math.min(ax, bx) - 8, y0 = Math.min(ay, by) - 8, W = Math.max(ax, bx) + 9 - x0, H = Math.max(ay, by) + 9 - y0;
   const prev = new Int32Array(W * H).fill(-1), key = (x, y) => (y - y0) * W + (x - x0);
   const start = key(ax, ay), goal = key(bx, by);
   const home = inMap(ax, ay) ? buildingAt(ax, ay) : -1;   // aus dem eigenen Gebäude darf man hinausgehen
-  const ok = (x, y) => walkable(x, y) || (home >= 0 && inMap(x, y) && buildingAt(x, y) === home);
+  const ok = (x, y) => walkable(x, y) || (inMap(x, y) && ((home >= 0 && buildingAt(x, y) === home) || (own >= 0 && buildingAt(x, y) === own)));
   prev[start] = start;
   const queue = [start];
   for (let qi = 0; qi < queue.length && prev[goal] < 0; qi++) {
@@ -342,14 +361,17 @@ function updateWorkers(dt) {
       const n = Math.min(2, stats.staff[i] || 0);
       for (let k = 0; k < n; k++) want.push({ b, k });
     });
-    life.workers = life.workers.filter(w => want.some(o => o.b === w.b && o.k === w.k));
+    // verschobene Gebäude: Arbeiter neu aufstellen (sonst stehen sie am alten Ort)
+    life.workers = life.workers.filter(w => w.bx === w.b.x && w.by === w.b.y && want.some(o => o.b === w.b && o.k === w.k));
     for (const o of want) {
       if (life.workers.some(w => w.b === o.b && w.k === o.k)) continue;
       const s = BUILDINGS[o.b.type].size;
+      const f = WORK[o.b.type].target === 'field' ? null : frontSpot(o.b, o.k);
       const home = WORK[o.b.type].target === 'field'
         ? { x: o.b.x + s - 0.5, y: o.b.y + s / 2 + (o.k ? 0.6 : -0.6) }      // auf dem Acker bleiben, am vorderen Feldrand
-        : { x: o.b.x + s + 0.3, y: o.b.y + s / 2 + (o.k ? 0.5 : -0.5) };   // vor dem Haus (rechts unten im Bild)
-      life.workers.push({ b: o.b, k: o.k, kind: WORK[o.b.type], home, x: home.x, y: home.y, phase: 'rest', t: 1 + o.k * 2.5 + lifeRandom() * 2, face: 1, ph: lifeRandom() * 9 });
+        : f ? { x: f.x, y: f.y } : null;                                     // vor dem Haus, auf freiem Boden
+      if (!home) continue;   // ringsum alles zugebaut: niemand zu sehen
+      life.workers.push({ b: o.b, k: o.k, kind: WORK[o.b.type], home, bx: o.b.x, by: o.b.y, x: home.x, y: home.y, phase: 'rest', t: 1 + o.k * 2.5 + lifeRandom() * 2, face: 1, ph: lifeRandom() * 9 });
     }
   }
   for (const w of life.workers) {
@@ -571,15 +593,16 @@ function gatherWant(b) {
 
 // Woher ein Besucher kommt: 3 Felder außerhalb, aber nur über begehbares Land (kein Wasser, kein Gebirge).
 // Klappt keine Richtung, erscheint er direkt an seinem Platz.
-function gatherFrom(spot, a, r, cx, cy) {
+// Woher ein Besucher kommt: 3 Felder außerhalb, und die gerade Linie dorthin führt nur über begehbaren Boden
+// (kein Wasser, kein Gebirge, kein fremdes Haus; über den eigenen Platz darf er). Sonst erscheint er an seinem Platz.
+function gatherFrom(spot, a, r, cx, cy, own = -1) {
   for (const turn of [0, 1, -1, 2, -2, 3, -3, 4]) {   // erst die eigene Richtung, dann immer weiter daneben
     const b = a + turn * Math.PI / 4;
     const from = { x: cx + Math.cos(b) * (r + 3), y: cy + Math.sin(b) * (r + 3) };
     let ok = true;
     for (let s = 0.25; s <= 1 && ok; s += 0.25) {
       const x = Math.floor(spot.x + (from.x - spot.x) * s), y = Math.floor(spot.y + (from.y - spot.y) * s);
-      const t = inMap(x, y) ? terrain[y * N + x] : -1;
-      if (t < 0 || t === TERRAIN.wasser.id || t === TERRAIN.berg.id) ok = false;
+      if (!walkable(x, y) && !(inMap(x, y) && buildingAt(x, y) === own)) ok = false;
     }
     if (ok) return from;
   }
@@ -590,32 +613,52 @@ function updateVisitors(dt) {
   life.visitTimer -= dt;
   if (life.visitTimer <= 0) {
     life.visitTimer = 1.5;
+    // nur freie Einwohner (nicht bei der Arbeit, nicht schon unterwegs auf den Pfaden) kommen zu Besuch
+    let budget = Math.floor(state.pop - (stats.workers || 0)) - life.walkers.length - life.visitors.filter(v => v.phase !== 'leave').length;
     state.buildings.forEach((b, i) => {
       if (!GATHER[b.type] || b.build || !isConnected(i)) return;
       const here = life.visitors.filter(v => v.b === b && v.phase !== 'leave');
-      if (here.length > gatherWant(b)) { here[0].phase = 'leave'; return; }
-      if (here.length >= gatherWant(b) || lifeRandom() < 0.4) return;
+      if (here.length > gatherWant(b) || (budget < 0 && here.length)) { here[0].phase = 'leave'; budget++; return; }
+      if (here.length >= gatherWant(b) || budget <= 0 || lifeRandom() < 0.4) return;
       const used = new Set(here.map(v => v.slot));
-      let slot = 0; while (used.has(slot)) slot++;
       const s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
-      const a = slot * 2.4 + hash(b.x, b.y) * 6, r = GATHER[b.type] === 'feuer' ? s * 0.34 + 0.1 : s / 2 + 0.3;   // am Feuer auf die Bänke
-      const spot = { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r * 0.9 };
-      const from = gatherFrom(spot, a, r, cx, cy);
-      life.visitors.push({ b, slot, kind: GATHER[b.type], x: from.x, y: from.y, from, spot, cx, cy, phase: 'go', t: 25 + lifeRandom() * 35,
+      const r = GATHER[b.type] === 'feuer' ? s * 0.34 + 0.1 : s / 2 + 0.3;   // am Feuer auf die Bänke
+      // freien Platz suchen: auf dem eigenen Platz oder auf begehbarem Boden – nicht im Acker oder Nachbarhaus
+      let slot = -1, a = 0, spot = null;
+      for (let k = 0; k < 10 && slot < 0; k++) {
+        if (used.has(k)) continue;
+        a = k * 2.4 + hash(b.x, b.y) * 6;
+        const p = { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r * 0.9 };
+        const tx = Math.floor(p.x), ty = Math.floor(p.y);
+        if (buildingAt(tx, ty) === i || walkable(tx, ty)) { slot = k; spot = p; }
+      }
+      if (slot < 0) return;
+      const from = gatherFrom(spot, a, r, cx, cy, i);
+      const route = walkRoute(from.x, from.y, spot.x, spot.y, i);
+      const start = route ? from : spot;   // kein Fußweg: erscheint gleich an seinem Platz
+      life.visitors.push({ b, slot, kind: GATHER[b.type], x: start.x, y: start.y, from: start, spot, route: route || [], cx, cy, phase: 'go', t: 25 + lifeRandom() * 35,
         img: lifeRandom() < 0.5 ? 'mensch-mann' : 'mensch-frau', face: 1, ph: lifeRandom() * 9, alpha: 0 });
+      budget--;
     });
   }
   for (const v of life.visitors) {
-    const target = v.phase === 'leave' ? v.from : v.spot;
+    // unterwegs über feste Wegpunkte: hin route (endet am Platz), zurück dieselben rückwärts bis zum Startpunkt
+    if (v.phase === 'leave' && !v.back) { v.back = v.route.slice(0, -1).reverse().concat([[v.from.x, v.from.y]]); v.i = 0; }
+    const pts = v.phase === 'leave' ? v.back : v.route.length ? v.route : [[v.spot.x, v.spot.y]];
+    v.i ||= 0;
+    let [gx, gy] = pts[Math.min(v.i, pts.length - 1)];
+    if (v.phase !== 'stay' && Math.hypot(gx - v.x, gy - v.y) < 0.05 && v.i < pts.length - 1) { v.i++; [gx, gy] = pts[v.i]; }
+    const target = v.phase === 'stay' ? v.spot : { x: gx, y: gy };
     const dx = target.x - v.x, dy = target.y - v.y, d = Math.hypot(dx, dy);
+    const end = v.phase === 'leave' ? v.from : v.spot, rest = Math.hypot(end.x - v.x, end.y - v.y);
     if (v.phase === 'stay') { v.t -= dt; if (v.t <= 0) v.phase = 'leave'; }
-    else if (d < 0.04) { if (v.phase === 'go') v.phase = 'stay'; else v.gone = true; }
+    else if (rest < 0.04) { if (v.phase === 'go') { v.phase = 'stay'; v.i = 0; } else v.gone = true; }
     else {
       const step = Math.min(d, 0.7 * dt);
-      v.x += dx / d * step; v.y += dy / d * step;
+      if (d > 0) { v.x += dx / d * step; v.y += dy / d * step; }
       if (Math.abs(dx - dy) > 0.01) v.face = dx - dy > 0 ? -1 : 1;
     }
-    v.alpha = v.phase === 'leave' ? Math.min(1, d / 1.5) : Math.min(1, v.alpha + dt * 2);
+    v.alpha = v.phase === 'leave' ? Math.min(1, rest / 1.5) : Math.min(1, v.alpha + dt * 2);
     if (v.phase === 'stay') { const sx = v.cx - v.x - (v.cy - v.y); v.face = sx > 0 ? -1 : 1; }   // zur Mitte schauen
   }
   life.visitors = life.visitors.filter(v => !v.gone && state.buildings.includes(v.b));

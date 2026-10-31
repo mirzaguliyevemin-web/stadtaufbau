@@ -312,6 +312,7 @@ function renderBuildBar() {
 // Feld beim Bauen/Verschieben/Pfade malen: Preis und ✖ ↻ ✔
 let lastAction = '';
 function renderActionBar() {
+  syncToolEntry();
   const el = $('action-bar');
   let html = '';
   if (ghost) {
@@ -350,11 +351,11 @@ function infoText(i) {
   if (def.housing) parts.push(`🏠 ${housingOf(b.type)} Plätze`);
   if (def.produces) {
     const out = outputPerMinute(i);
-    parts.push(Object.entries(out).map(([id, n]) => `+${n.toFixed(1)} ${RESOURCES[id].icon}/min`).join(' '));
+    parts.push(Object.entries(out).map(([id, n]) => `+${perMin(n)} ${RESOURCES[id].icon}/min`).join(' '));
   }
   if (def.workers) parts.push(`👤 ${stats.staff[i] || 0}/${def.workers}`);
   const lacking = def.consumes && Object.keys(def.consumes).find(id => (state.res[id] || 0) < 0.5);
-  if (lacking) parts.push(`❗ Es fehlt ${RESOURCES[lacking].name}${sourceText(lacking)}`);
+  if (lacking) parts.push(`❗ Fehlt: ${RESOURCES[lacking].name}${sourceText(lacking)}`);
   if (def.warmth) parts.push(`🔥 Umkreis ${warmthRadius(def)}`);
   if (def.belief) parts.push(`🗿 Umkreis ${def.belief}`);
   if (def.storage) parts.push(`📦 +${def.storage}`);
@@ -515,6 +516,15 @@ function onHistoryBack() {
   histDepth = Math.max(0, histDepth - 1);
   if (dialogOpen) closeDialog(true);
   else if (pageOpen) closePage(true);
+  else if (toolEntry) { toolEntry = false; cancelGhost(); }   // Bauen bzw. Wege malen abbrechen statt das Spiel zu verlassen
+}
+
+// Bauen, Verschieben und Wege malen bekommen einen Eintrag im Verlauf – so bricht die Zurück-Taste sie ab
+let toolEntry = false;
+function syncToolEntry() {
+  const active = !!(typeof ghost !== 'undefined' && (ghost || pathMode));
+  if (active && !toolEntry) { toolEntry = true; pushEntry('tool'); }
+  else if (!active && toolEntry) { toolEntry = false; popEntries(1); }
 }
 
 let dialogOpen = false;
@@ -606,9 +616,9 @@ function showBuildingWindow(i) {
     : `👤 Arbeiter: ${stats.staff[i] || 0} von ${def.workers}`);
   if (def.produces && !b.build) {
     const out = outputPerMinute(i);
-    lines.push('Stellt her: ' + Object.entries(out).map(([id, n]) => `${RESOURCES[id].icon} ${n.toFixed(1)}/min`).join(', '));
+    lines.push('Stellt her: ' + Object.entries(out).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n)}/min`).join(', '));
     if (def.consumes) lines.push('Braucht: ' + Object.entries(def.consumes).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n * outputFactor(i))}/min`).join(', '));
-    for (const id of Object.keys(def.consumes || {})) if ((state.res[id] || 0) < 0.5) lines.push(`❗ Es fehlt ${RESOURCES[id].name} – darum steht es still${sourceText(id)}`);
+    for (const id of Object.keys(def.consumes || {})) if ((state.res[id] || 0) < 0.5) lines.push(`❗ Fehlt: ${RESOURCES[id].name} – darum steht es still${sourceText(id)}`);
     const tb = terrainBonus(b);
     if (def.bonus) lines.push(`🌲 Geländebonus (${TERRAIN[def.bonus.terrain].name}): +${Math.round(tb * 100)} %`);
     if (SEASON_FACTORS[b.type]) lines.push(`${season().icon} ${season().name}: ${Math.round(SEASON_FACTORS[b.type][seasonIndex()] * 100)} %`);
@@ -1130,7 +1140,7 @@ function askDeleteSlot(slot) {
 function doDeleteSlot(slot) {
   deleteSlot(slot);
   closeDialog();
-  if (slot === currentSlot && gameRunning) { startNewGame(); saveGame(); renderAll(); }
+  if (slot === currentSlot && gameRunning) { closeAllPages(); enterGame(); return; }   // wie ein frisches Spiel: Figuren, Kamera, Einstieg
   if (pageOpen === 'slots') $('page-body').innerHTML = slotsHtml(gameRunning);
 }
 
@@ -1151,8 +1161,7 @@ function doImport() {
     saveGame();
     closeDialog();
     closeAllPages();
-    centerOnCamp();
-    renderAll();
+    enterGame();   // setzt Figuren, Wetter, Kamera und Hinweise zurück
     toast('Spielstand geladen');
   } else toast('Der Text ist kein gültiger Spielstand');
 }

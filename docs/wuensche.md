@@ -16,12 +16,18 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Bäume: Holzsammler fällen Bäume nach ein paar Mal, Pflanz-Gebäude für neue Setzlinge, passend zum Zeitalter (Emin, 31.10.) – in Arbeit.
-- Gebäude 4× drehen (Rückseiten-Bilder aus Canva, zuerst Fischerplatz, Tongrube, Pfahlbau) (Emin, 31.10.) – in Arbeit.
+- Gebäude 4× drehen: Dreh-Ansichten für die übrigen Gebäude (Canva, nach und nach). Wasser-Gebäude sind fertig (Emin, 31.10.).
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 23 – Bäume werden echt gefällt: Hat ein Holzsammler 20 Holz beisammen, kippt der nächste Baum
+  im Umkreis um und verschwindet (Krachen). Ohne Wald sammelt er nur noch Fallholz. Neues Gebäude **Pflanzerin** (Altsteinzeit,
+  Bild aus Canva) setzt jede Minute einen Setzling, nach 10 Minuten (im Winter langsamer) ist ein Baum daraus gewachsen.
+  In späteren Zeitaltern kommt dafür der Förster.
+- 2026-10-31, Epochia Version 23 – Gebäude 4× drehen (↻): Fischerplatz, Tongrube und Pfahlbau haben neue Ansichten aus Canva
+  (Wasser hinten, rechts, vorne, links) und drehen sich beim Platzieren von selbst zum Fluss. Andere Gebäude: vorne,
+  gespiegelt (weitere Ansichten folgen).
 - 2026-10-31, Epochia Version 22 – Emins Liste vom 31.10. (Teil 1):
   - Wetter wirkt: Sonne +15 % Sammlerinnen/Äcker, Regen hilft Äckern und bremst Jäger, Hagel zerschlägt die Ernte, Schnee
     macht hungrig; neu **Gewitter** (Blitze, Donner, draußen −40 %, kein Zuzug) und **Sturm** (Bäume biegen sich, Fischer

@@ -97,9 +97,12 @@ function median(list) {
 
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
-    'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'truhe', 'band', 'logo-rund', 'berg-gross', 'berg-klein',
+    'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'setzling', 'truhe', 'band', 'logo-rund', 'berg-gross', 'berg-klein',
     ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, ...LIFE_NAMES]);
-  for (const b of Object.values(BUILDINGS)) if (b.bild) { names.add(b.bild); names.add(b.bild + '-winter'); }
+  for (const b of Object.values(BUILDINGS)) if (b.bild) {
+    names.add(b.bild); names.add(b.bild + '-winter');
+    for (const v of b.views || []) names.add(b.bild + '-' + v);   // weitere Ansichten zum Drehen
+  }
   for (const r of Object.values(RESOURCES)) if (r.bild) names.add(r.bild);
   for (const t of Object.values(TECHS)) if (t.bild) names.add(t.bild);
   for (const s of [2, 3, 4]) names.add('1-baustelle-' + s);
@@ -502,6 +505,22 @@ function terrainObjectRect(x, y) {
   return { x0: p.x + ox - w * 0.4, x1: p.x + ox + w * 0.4, y0: p.y - w * 0.8, y1: p.y + w * 0.1 };
 }
 
+// Setzling: wächst von klein bis fast Baumgröße (k = 0–1), schwankt leicht im Wind
+function drawSapling(x, y, k) {
+  const p = tileToScreen(x + 0.5, y + 0.5), z = cam.zoom;
+  const ox = (hash(y, x) - 0.5) * 10 * z;
+  ctx.fillStyle = 'rgba(90,60,30,0.45)';   // frisch gelockerte Erde
+  ctx.beginPath(); ctx.ellipse(p.x + ox, p.y, 9 * z, 4 * z, 0, 0, 7); ctx.fill();
+  const img = k < 0.6 ? images.setzling : images[treeSeasonName('baum-laub', hash(x, y))] || images['baum-laub'];
+  const h = (k < 0.6 ? 18 + k * 30 : TW * 1.25 * (0.45 + (k - 0.6) * 1.1)) * z;
+  if (!img) { ctx.font = `${Math.round(h)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('🌱', p.x + ox, p.y); return; }
+  const w = h * img.width / img.height;
+  const sway = Math.sin(frameTime * 1.6 + x + y) * 0.04;
+  ctx.save(); ctx.translate(p.x + ox, p.y + 2 * z); ctx.transform(1, 0, -sway, 1, 0, 0);
+  ctx.drawImage(img, -w / 2, -h, w, h);
+  ctx.restore();
+}
+
 function drawTerrainObject(x, y, kind, anim = null) {
   const p = tileToScreen(x + 0.5, y + 0.5);
   const v = hash(x, y);
@@ -657,15 +676,16 @@ function alphaAt(img, u, v) {   // u, v = Anteile 0–1; null = unbekannt
 function buildingImageHit(b, sx, sy) {
   const def = BUILDINGS[b.type];
   if (settings.footprint) return false;   // Grundriss: nur die Platte selbst zählt
-  const img = b.build > 0 ? (images['1-baustelle-' + def.size] || images['1-baustelle-2']) : def.bild && images[def.bild];
+  const view = b.build > 0 ? { img: images['1-baustelle-' + def.size] || images['1-baustelle-2'], mirror: (Number(b.rot) || 0) % 2 === 1 } : buildingView(def, b.rot, b.x, b.y);
+  const img = view.img;
   if (!img || !img.sockel) return null;
-  const pl = imagePlacement(img, b.x, b.y, def.size, b.rot);
+  const pl = imagePlacement(img, b.x, b.y, def.size, view.mirror);
   if (sy > pl.left.y && sy > pl.right.y && sy > pl.front.y) return null;
   const [a, bb, c, d, e, f] = pl.m, det = a * d - c * bb;
   if (!det) return null;
   const X = sx - e, Y = sy - f;
   let u = (d * X - c * Y) / det, v = (a * Y - bb * X) / det;
-  if (b.rot) u = img.width - u;
+  if (view.mirror) u = img.width - u;
   if (u < 0 || v < 0 || u >= img.width || v >= img.height) return false;
   const al = alphaAt(img, u / img.width, v / img.height);
   return al === null ? null : al > 40;
@@ -839,17 +859,31 @@ function drawBuildingSprite(type, x, y, rot, lift = 0, alpha = 1) {
     return;
   }
   if (settings.footprint && !lift && alpha === 1) { drawFootprint(def, x, y, s); ctx.globalAlpha = 1; return; }
-  // Im Winter das verschneite Bild (aus Canva), falls es eins gibt
-  const winter = def.bild && images[def.bild + '-winter'] && state && staggeredSeason(hash(x, y)) === 3;
-  const img = def.bild && (winter ? images[def.bild + '-winter'] : images[def.bild]);
+  // Ansicht je Drehung, im Winter das verschneite Bild (aus Canva), falls es eins gibt
+  const view = buildingView(def, rot, x, y);
+  const img = view.img;
   if (img) {
-    drawImageOnTiles(img, x, y, s, rot, lift);
-    if (alpha === 1 && !lift) drawBuildingEffects(img, def.bild, hash(x, y));
+    drawImageOnTiles(img, x, y, s, view.mirror, lift);
+    if (alpha === 1 && !lift) drawBuildingEffects(img, view.name, hash(x, y));
   } else {
     drawPlot(x, y, s, lift ? 'rgba(160,220,110,0.9)' : '#93d466', '#6fae48');
     drawPlaceholder(def, x, y, s, lift);
   }
   ctx.globalAlpha = 1;
+}
+
+// Welche Ansicht zeigt ein Gebäude bei Drehung rot (0–3; alte Stände: true = 1)?
+// Mit eigenen Bildern (views: r1 = 90°, r2 = 180°): 0 vorne, 1 = r1, 2 = r2, 3 = r1 gespiegelt.
+// Ohne: 0 vorne, 1 gespiegelt, 2 = r2 (falls da), 3 = r2 gespiegelt.
+function buildingView(def, rot, x = 0, y = 0) {
+  const r = (Number(rot) || 0) & 3;
+  const has = v => !!(def.views && def.views.includes(v) && images[def.bild + '-' + v]);
+  const options = has('r1') ? [['', false], ['r1', false], ['r2', false], ['r1', true]] : [['', false], ['', true], ['r2', false], ['r2', true]];
+  let [v, mirror] = options[r];
+  if (v && !has(v)) { v = ''; mirror = r % 2 === 1; }
+  const name = def.bild ? def.bild + (v ? '-' + v : '') : null;
+  const winter = name && images[name + '-winter'] && state && staggeredSeason(hash(x, y)) === 3;
+  return { name, mirror, img: name && (winter ? images[name + '-winter'] : images[name]) };
 }
 
 // Grundriss: Platte in der Farbe des Gebäudes mit Zeichen (und Name, wenn groß genug)
@@ -887,7 +921,7 @@ function drawConstruction(b) {
   const img = images['1-baustelle-' + s] || images['1-baustelle-2'];
   let height = (0.55 + s * 0.22) * TH * cam.zoom;
   if (img) {
-    height = drawImageOnTiles(img, b.x, b.y, s, b.rot);
+    height = drawImageOnTiles(img, b.x, b.y, s, (Number(b.rot) || 0) % 2 === 1);
     drawProgress(b, s, height);
     return;
   }
@@ -1226,6 +1260,11 @@ function drawScene(dt) {
     if (BUILDINGS[b.type].isPath) return;    // Pfade zeichnet drawPaths vorher am Stück
     objects.push({ d: b.x + b.y + s, kind: 'b', i });
   });
+  for (const [i, age] of state.saplings) {
+    const x = i % N, y = Math.floor(i / N);
+    if (x < range.x0 || x > range.x1 || y < range.y0 || y > range.y1) continue;
+    objects.push({ d: x + y + 1, kind: 'leben', draw: () => drawSapling(x, y, age / CONFIG.trees.growSeconds) });
+  }
   objects.push(...lifeObjects(range));
   objects.sort((a, b) => a.d - b.d || (a.x || 0) - (b.x || 0));
   for (const o of objects) {

@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 22;
+const APP_VERSION = 23;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -22,6 +22,13 @@ const CONFIG = {
   bonusRadius: 3,         // Umkreis für Geländebonus (Wald, Felsen)
   maxOfflineHours: 2,     // so lange läuft das Spiel offline weiter (Emin: höchstens 2 Stunden)
   refundShare: 0.5,       // beim Abreißen gibt es die Hälfte zurück
+  trees: {                // Bäume fällen und nachpflanzen (Emin, 31.10.)
+    woodPerTree: 20,      // so viel Holz bringt ein Baum – dann fällt ihn der Holzsammler (im Umkreis treeRadius)
+    treeRadius: 6,
+    plantSeconds: 60,     // so oft setzt eine Pflanzerin (voll besetzt) einen Setzling
+    plantRadius: 4,       // Umkreis um die Pflanzerin
+    growSeconds: 600,     // nach 10 Minuten ist aus dem Setzling ein Baum geworden
+  },
   disaster: {             // Naturkatastrophen (DISASTERS)
     perHour: 0.35,        // so oft im Schnitt je Spielstunde (also etwa alle 3 Stunden eine)
     graceMinutes: 45,     // in den ersten 45 Spielminuten nie
@@ -178,7 +185,7 @@ const BUILDINGS = {
     info: 'Großes Haus aus Holz und Lehm – Platz für 14 Menschen.',
   },
   pfahlbau: {
-    name: 'Pfahlbau', icon: '🏘️', size: 3, line: 'wasserwohnen', tier: 0, stage: 'jung', bild: '1-pfahlbau',
+    name: 'Pfahlbau', icon: '🏘️', size: 3, line: 'wasserwohnen', tier: 0, stage: 'jung', bild: '1-pfahlbau', views: ['r1', 'r2'],
     color: '#7d6040', cost: { holz: 120, werkzeug: 10 }, time: 180, housing: 12, needsWater: true,
     produces: { nahrung: 2 }, requires: 'pfahlbauten',
     info: 'Häuser auf Pfählen am Wasser – Platz für 12 Menschen, dazu etwas Fisch.',
@@ -202,7 +209,7 @@ const BUILDINGS = {
     info: 'Doppelt so viel Nahrung und Felle wie das Jägerlager.',
   },
   fischerplatz: {
-    name: 'Fischerplatz', icon: '🎣', size: 2, line: 'fischen', tier: 0, stage: 'mittel', bild: '1-fischerplatz',
+    name: 'Fischerplatz', icon: '🎣', size: 2, line: 'fischen', tier: 0, stage: 'mittel', bild: '1-fischerplatz', views: ['r1', 'r2'],
     color: '#4f86b0', cost: { holz: 30 }, time: 60, workers: 2, produces: { nahrung: 14 }, needsWater: true,
     requires: 'einbaum', info: 'Fischer im Einbaum – viel Nahrung. Muss am Wasser stehen.',
   },
@@ -219,7 +226,13 @@ const BUILDINGS = {
   holzsammler: {
     name: 'Holzsammler', icon: '🪓', size: 2, line: 'holz', tier: 0, stage: 'alt', bild: '1-holzsammler',
     color: '#7a5230', cost: { stein: 5 }, time: 30, workers: 2, produces: { holz: 8 },
-    bonus: { terrain: 'wald', perTile: 0.04, max: 0.6 }, info: 'Sammelt Äste und Holz. Am Wald viel mehr.',
+    bonus: { terrain: 'wald', perTile: 0.04, max: 0.6 }, fellsTrees: true,
+    info: 'Fällt Bäume und sammelt Holz. Am Wald viel mehr – aber die Bäume werden weniger. Eine Pflanzerin setzt neue.',
+  },
+  pflanzerin: {
+    name: 'Pflanzerin', icon: '🌱', size: 2, line: 'pflanzen', tier: 0, stage: 'alt', bild: '1-pflanzerin',
+    color: '#6a9a3a', cost: { holz: 20, stein: 5 }, time: 40, workers: 1, plants: true,
+    info: 'Sammelt Samen und pflanzt Setzlinge im Umkreis. Nach 10 Minuten ist daraus ein Baum gewachsen.',
   },
   steinsammler: {
     name: 'Steinsammler', icon: '⛏️', size: 2, line: 'stein', tier: 0, stage: 'alt', bild: '1-steinsammler',
@@ -252,7 +265,7 @@ const BUILDINGS = {
     info: 'Hier ehrt der Stamm die Ahnen – Glaube für Wohnungen im Umkreis.',
   },
   tongrube: {
-    name: 'Tongrube', icon: '🟤', size: 2, line: 'ton', tier: 0, stage: 'jung', bild: '1-tongrube',
+    name: 'Tongrube', icon: '🟤', size: 2, line: 'ton', tier: 0, stage: 'jung', bild: '1-tongrube', views: ['r1', 'r2'],
     color: '#a0603a', cost: { holz: 30, werkzeug: 3 }, time: 60, workers: 2, produces: { ton: 4 }, needsWater: true,
     requires: 'toepfern', info: 'Gräbt Ton am Ufer. Muss am Wasser stehen.',
   },
@@ -347,7 +360,7 @@ const NEXT_EPOCH = {
 const BAR_CATEGORIES = [
   { id: 'wohnen',    name: 'Wohnen',    icon: '🏠', lines: ['wohnen', 'wasserwohnen'] },
   { id: 'nahrung',   name: 'Nahrung',   icon: '🍖', lines: ['sammeln', 'jagen', 'fischen', 'feld', 'tiere'] },
-  { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'stein', 'ton'] },
+  { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton'] },
   { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['kleidung', 'werkzeug', 'toepfern', 'lager'] },
   { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['waerme', 'glaube', 'wissen', 'wahrzeichen'] },
   { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg', 'bruecke'] },

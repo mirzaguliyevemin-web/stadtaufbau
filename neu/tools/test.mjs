@@ -188,7 +188,7 @@ test('Verschieben und Drehen', () => {
   const spot = g.run(`JSON.stringify(findFreeSpot('wohnhoehle', 56, 56))`);
   const r = g.run(`const sp = ${spot}; moveBuilding(1, sp.x, sp.y, true)`);
   ok(r === null, 'Verschieben ging nicht: ' + r);
-  ok(g.run(`state.buildings[1].rot === true && buildingAt(${JSON.parse(spot).x}, ${JSON.parse(spot).y}) === 1`), 'Platz/Drehung falsch');
+  ok(g.run(`state.buildings[1].rot === 1 && buildingAt(${JSON.parse(spot).x}, ${JSON.parse(spot).y}) === 1`), 'Platz/Drehung falsch');
   ok(g.run(`buildingAt(28, 32)`) === -1, 'Alter Platz noch belegt');
   ok(g.run(`moveBuilding(1, 31, 31, false)`) !== null, 'Verschieben auf Lagerfeuer erlaubt');
   // über die Bedienung: hochheben, ✔
@@ -649,6 +649,59 @@ test('Geräusche: jedes Gebäude hat ein eigenes, ohne Ton läuft alles ohne Feh
   const g = fresh();
   ok(g.run(`Object.keys(BUILDINGS).filter(t => !SOUNDS[BUILDING_SOUNDS[t]]).join()`) === '', 'Gebäude ohne Geräusch');
   g.run(`playSound('lagerfeuer'); emit('tapped', state.buildings[0]); playSound('donner');`);
+  noErrors(g);
+});
+
+test('Bäume: Holzsammler fällen sie nach und nach, Pflanzerin setzt Setzlinge, daraus werden Bäume; bleibt gespeichert', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const trees = () => { let k = 0; for (let i = 0; i < N * N; i++) if (terrain[i] === TERRAIN.wald.id) k++; return k; };
+    state.res.holz = 999; state.res.stein = 999; state.pop = 20;
+    const sp = findFreeSpot('holzsammler', 60, 60); placeBuilding('holzsammler', sp.x, sp.y);
+    let k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k);
+    const before = trees();
+    for (let i = 0; i < 20 * 60; i++) update(1);
+    const felled = before - trees();
+    const sp2 = findFreeSpot('pflanzerin', 66, 66); placeBuilding('pflanzerin', sp2.x, sp2.y);
+    k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k);
+    state.buildings.forEach((b, i) => { if (b.type === 'holzsammler') togglePause(i); });
+    for (let i = 0; i < 5 * 60; i++) update(1);
+    const saplings = state.saplings.length;
+    const mid = trees();
+    const saved = serialize(); loadFromText(saved);
+    const keptSaplings = state.saplings.length;
+    for (let i = 0; i < 12 * 60; i++) update(1);
+    const grown = trees() - mid;
+    const afterGrow = trees(); loadFromText(serialize());
+    return [felled, saplings, keptSaplings, grown, trees() === afterGrow];
+  })()`);
+  ok(r[0] >= 3, 'Holzsammler hat kaum Bäume gefällt: ' + r);
+  ok(r[1] >= 3, 'Pflanzerin pflanzt nicht: ' + r);
+  ok(r[2] === r[1], 'Setzlinge nicht gespeichert: ' + r);
+  ok(r[3] >= 3, 'Setzlinge werden keine Bäume: ' + r);
+  ok(r[4], 'gewachsene Bäume nach dem Laden weg: ' + r);
+  noErrors(g);
+});
+
+test('Drehen: vier Richtungen, alte Stände (true) werden 1, Fischerplatz dreht sich selbst zum Wasser', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const out = [];
+    beginBuild('wohnhoehle'); for (let k = 0; k < 4; k++) { out.push(ghost.rot); rotateGhost(); } out.push(ghost.rot); cancelGhost();
+    const d = JSON.parse(serialize()); d.buildings[1].rot = true; loadFromText(JSON.stringify(d)); out.push(state.buildings[1].rot);
+    // Fischerplatz an einem Ufer: die Drehung mit dem meisten Wasser an den Bildseiten wird gewählt
+    state.stage = 'mittel'; state.techs.einbaum = true; state.techs.pfeil_bogen = true; state.res.holz = 999;
+    let spot = null;
+    for (let y = 40; y < 90 && !spot; y++) for (let x = 40; x < 90 && !spot; x++) if (!placeProblem('fischerplatz', x, y) && isOwned(x, y)) spot = { x, y };
+    beginBuild('fischerplatz'); ghost.x = spot.x; ghost.y = spot.y; ghost.manualRot = false; autoOrient();
+    const best = Math.max(...[0, 1, 2, 3].map(k => waterScore('fischerplatz', spot.x, spot.y, k)));
+    out.push(waterScore('fischerplatz', spot.x, spot.y, ghost.rot) === best && best > 0);
+    for (let k = 0; k < 4; k++) { ghost.rot = k; drawScene(0.05); }
+    return out;
+  })()`);
+  ok(JSON.stringify(r.slice(0, 5)) === '[0,1,2,3,0]', 'Drehung nicht 0–3: ' + r);
+  ok(r[5] === 1, 'alter Stand (true) nicht als 1 geladen: ' + r);
+  ok(r[6] === true, 'Fischerplatz nicht zum Wasser gedreht: ' + r);
   noErrors(g);
 });
 

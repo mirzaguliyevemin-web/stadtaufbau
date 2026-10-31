@@ -703,3 +703,6 @@ function updateLife(dt, range) {
 function resetLife() {
   life.walkers = []; life.workers = []; life.animals = []; life.birds = []; life.jumps = []; life.butterflies = []; life.felled = []; life.visitors = [];
 }
+
+// Holzsammler hat genug Holz für einen Baum beisammen: der Baum kippt sichtbar um
+on('treeFelled', t => { if (typeof gameRunning === 'undefined' || gameRunning) addFelled(t.x, t.y, 'wald'); });

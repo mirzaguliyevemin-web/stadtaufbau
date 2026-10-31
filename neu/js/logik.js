@@ -164,7 +164,7 @@ function moveBuilding(i, x, y, rot) {
   const p = placeProblem(b.type, x, y, i);
   if (p) return p;
   setOccupied(b, 0);
-  b.x = x; b.y = y; b.rot = !!rot;
+  b.x = x; b.y = y; b.rot = (Number(rot) || 0) & 3;
   setOccupied(b, i + 1);
   emit('moved', b);
   return null;
@@ -482,6 +482,80 @@ function outputPerMinute(i) {
   return out;
 }
 
+// ---------------------------------------------------------------------
+// Bäume: Holzsammler fällen sie nach und nach, die Pflanzerin setzt Setzlinge, die zu Bäumen wachsen
+// ---------------------------------------------------------------------
+
+// Nächster Baum am Gebäude (im Umkreis), oder null
+function nearestTree(b, radius) {
+  const s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
+  let best = null, bestD = Infinity;
+  for (let y = Math.floor(cy - radius); y <= cy + radius; y++)
+    for (let x = Math.floor(cx - radius); x <= cx + radius; x++) {
+      if (!inMap(x, y) || terrain[y * N + x] !== TERRAIN.wald.id || occ[y * N + x]) continue;
+      const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + hash(x * 3 + 1, y) * 0.8;
+      if (d < bestD && d <= radius + 0.8) { best = [x, y]; bestD = d; }
+    }
+  return best;
+}
+
+// Holz gesammelt → ist genug für einen Baum zusammen, fällt der nächste Baum um
+function chopTrees(b, wood) {
+  b.chop = (b.chop || 0) + wood;
+  const c = CONFIG.trees;
+  while (b.chop >= c.woodPerTree) {
+    b.chop -= c.woodPerTree;
+    const t = nearestTree(b, c.treeRadius);
+    if (!t) { b.chop = 0; return; }   // kein Baum mehr: nur noch Äste und Fallholz
+    clearTile(t[0], t[1], true);
+    emit('treeFelled', { x: t[0], y: t[1] });
+  }
+}
+
+function updateTrees(dt) {
+  const c = CONFIG.trees;
+  // Pflanzerinnen setzen Setzlinge auf freie Wiese in der Nähe
+  state.buildings.forEach((b, i) => {
+    const def = BUILDINGS[b.type];
+    if (!def.plants || b.build || b.paused || !isConnected(i)) return;
+    b.plant = (b.plant || 0) + dt * outputFactor(i);
+    if (b.plant < c.plantSeconds) return;
+    b.plant -= c.plantSeconds;
+    const spot = plantSpot(b, c.plantRadius);
+    if (spot !== null) { state.saplings.push([spot, 0]); emit('planted', spot); }
+    else b.plant = 0;
+  });
+  // Setzlinge wachsen; der Winter hält sie auf
+  const grow = seasonIndex() === 3 ? 0.3 : 1;
+  let changed = false;
+  for (const sp of state.saplings) sp[1] += dt * grow;
+  state.saplings = state.saplings.filter(([i, age]) => {
+    if (age < c.growSeconds) return true;
+    if (occ[i] || terrain[i] !== TERRAIN.gras.id) return false;
+    terrain[i] = TERRAIN.wald.id;
+    const k = state.cleared.indexOf(i);
+    if (k >= 0) state.cleared.splice(k, 1); else state.planted.push(i);
+    changed = true;
+    return false;
+  });
+  if (changed && typeof onTerrainChanged === 'function') onTerrainChanged();
+}
+
+// Freie Wiese für einen Setzling: nah an der Pflanzerin, lieber neben schon vorhandenem Wald
+function plantSpot(b, radius) {
+  const s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
+  let best = null, bestD = Infinity;
+  for (let y = Math.floor(cy - radius); y <= cy + radius; y++)
+    for (let x = Math.floor(cx - radius); x <= cx + radius; x++) {
+      if (!inMap(x, y) || terrain[y * N + x] !== TERRAIN.gras.id || occ[y * N + x] || saplingAt(x, y) || !isOwned(x, y)) continue;
+      if (x >= b.x - 1 && x <= b.x + s && y >= b.y - 1 && y <= b.y + s) continue;   // direkt am Haus bleibt frei (Weg)
+      const forest = countTerrainNear(x, y, 1, TERRAIN.wald.id, 1);
+      const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) - forest * 0.6 + hash(x, y + 7) * 0.5;
+      if (d < bestD && Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= radius + 0.8) { best = y * N + x; bestD = d; }
+    }
+  return best;
+}
+
 function updateProduction(dt) {
   const rates = {};
   // flows[Ware] = { in: { Gebäudetyp: je Minute }, out: { Verbraucher: je Minute } } – für das Info-Fenster
@@ -506,7 +580,9 @@ function updateProduction(dt) {
     }
     for (const [id, n] of Object.entries(def.produces)) { rates[id] = (rates[id] || 0) + n * f; flow(id, 'in', b.type, n * f); }
     addResources(def.produces, f * dt / 60);
+    if (def.fellsTrees) chopTrees(b, (def.produces.holz || 0) * f * dt / 60);
   });
+  updateTrees(dt);
   // Einwohner essen und verbrauchen Waren
   const eat = state.pop * CONFIG.foodPerPerson * effectFood();
   state.res.nahrung = Math.max(0, state.res.nahrung - eat * dt / 60);

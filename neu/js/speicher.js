@@ -69,9 +69,12 @@ function sanitizeState(data) {
   }
   s.buildings = data.buildings
     .filter(b => b && BUILDINGS[b.type] && Number.isInteger(b.x) && Number.isInteger(b.y))
-    .map(b => ({ type: b.type, x: b.x, y: b.y, rot: !!b.rot, build: Number.isFinite(b.build) && b.build > 0 ? b.build : 0, ...(b.paused ? { paused: true } : {}) }));
+    .map(b => ({ type: b.type, x: b.x, y: b.y, rot: (Number(b.rot) || 0) & 3, build: Number.isFinite(b.build) && b.build > 0 ? b.build : 0, ...(b.paused ? { paused: true } : {}),
+      ...(Number.isFinite(b.chop) && b.chop > 0 ? { chop: b.chop } : {}), ...(Number.isFinite(b.plant) && b.plant > 0 ? { plant: b.plant } : {}) }));
   if (Array.isArray(data.plots) && data.plots.length === s.plots.length) s.plots = data.plots.map(p => (p === 1 ? 1 : 0));
   if (Array.isArray(data.cleared)) s.cleared = data.cleared.filter(Number.isInteger);
+  if (Array.isArray(data.planted)) s.planted = data.planted.filter(i => Number.isInteger(i) && i >= 0 && i < N * N);
+  if (Array.isArray(data.saplings)) s.saplings = data.saplings.filter(a => Array.isArray(a) && Number.isInteger(a[0]) && a[0] >= 0 && a[0] < N * N && Number.isFinite(a[1])).map(a => [a[0], Math.max(0, a[1])]);
   if (data.techs && typeof data.techs === 'object') for (const id of Object.keys(data.techs)) if (TECHS[id]) s.techs[id] = true;
   if (data.research && TECHS[data.research.id] && !s.techs[data.research.id] && Number.isFinite(data.research.left))
     s.research = { id: data.research.id, left: Math.max(0, data.research.left) };
@@ -111,7 +114,7 @@ function loadFromText(text) {
   });
   if (!state.buildings.some(b => b.type === 'lagerfeuer')) {
     const c = Math.floor(N / 2) - 1;
-    state.buildings.unshift({ type: 'lagerfeuer', x: c, y: c, rot: false, build: 0 });
+    state.buildings.unshift({ type: 'lagerfeuer', x: c, y: c, rot: 0, build: 0 });
   }
   rebuildOccupancy();
   evolveBuildings();   // ältere Stände: schon erforschte Stufen nachholen

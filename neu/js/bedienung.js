@@ -24,6 +24,32 @@ function ghostToScreen(sx, sy) {
   const t = screenToTileF(sx, sy);
   ghost.x = Math.max(0, Math.min(N - s, Math.round(t.x - s / 2)));
   ghost.y = Math.max(0, Math.min(N - s, Math.round(t.y - s / 2)));
+  autoOrient();
+}
+
+function defaultRotation() { return 0; }
+
+// Auf welchen Seiten liegt bei Drehung rot das Wasser im Bild? (nur Gebäude mit eigenen Ansichten, z. B. Fischerplatz)
+// Seiten: hinten rechts (y − 1), hinten links (x − 1), vorne rechts (x + s), vorne links (y + s)
+const WATER_SIDES = [['hr', 'hl'], ['hr', 'vr'], ['vr', 'vl'], ['hl', 'vl']];
+
+function waterScore(type, x, y, rot) {
+  const s = BUILDINGS[type].size;
+  let n = 0;
+  for (const side of WATER_SIDES[rot]) for (let k = 0; k < s; k++) {
+    const [tx, ty] = side === 'hr' ? [x + k, y - 1] : side === 'hl' ? [x - 1, y + k] : side === 'vr' ? [x + s, y + k] : [x + k, y + s];
+    if (inMap(tx, ty) && terrain[ty * N + tx] === TERRAIN.wasser.id) n++;
+  }
+  return n;
+}
+
+// Wasser-Gebäude drehen sich beim Platzieren von selbst zum Fluss – bis man selbst ↻ drückt
+function autoOrient() {
+  const def = BUILDINGS[ghost.type];
+  if (!ghost || ghost.manualRot || !def.needsWater || !def.views || !def.views.includes('r1')) return;
+  let best = ghost.rot, bestN = -1;
+  for (let r = 0; r < 4; r++) { const n = waterScore(ghost.type, ghost.x, ghost.y, r); if (n > bestN) { best = r; bestN = n; } }
+  ghost.rot = best;
 }
 
 // Freien Platz in der Nähe eines Feldes suchen (Spirale nach außen)
@@ -50,11 +76,12 @@ function beginBuild(type, sx, sy) {
     return;
   }
   pathMode = false;
-  ghost = { type, x: 0, y: 0, rot: false, from: -1 };
+  ghost = { type, x: 0, y: 0, rot: defaultRotation(type), from: -1 };
   if (sx === undefined) {
     const c = screenToTile(viewW / 2, viewH / 2);
     const spot = findFreeSpot(type, c.x, c.y);
     ghost.x = spot.x; ghost.y = spot.y;
+    autoOrient();
   } else ghostToScreen(sx, sy - FINGER_LIFT_PX);
   renderActionBar();
 }
@@ -63,7 +90,7 @@ function liftBuilding(i) {
   const b = state.buildings[i];
   if (!b || BUILDINGS[b.type].isPath) return;
   closeInfo();
-  ghost = { type: b.type, x: b.x, y: b.y, rot: b.rot, from: i };
+  ghost = { type: b.type, x: b.x, y: b.y, rot: b.rot, from: i, manualRot: true };
   if (navigator.vibrate) try { navigator.vibrate(30); } catch (e) { /* egal */ }
   emit('lifted', b);
   renderActionBar();
@@ -80,7 +107,7 @@ function confirmGhost() {
 }
 
 function rotateGhost() {
-  if (ghost) ghost.rot = !ghost.rot;
+  if (ghost) { ghost.rot = ((Number(ghost.rot) || 0) + 1) & 3; ghost.manualRot = true; }   // vier Richtungen
 }
 
 function cancelGhost() {
@@ -246,6 +273,7 @@ function onPointerMove(e) {
     const s = BUILDINGS[ghost.type].size;
     ghost.x = Math.max(0, Math.min(N - s, Math.round(t.x - gesture.offset.x)));
     ghost.y = Math.max(0, Math.min(N - s, Math.round(t.y - gesture.offset.y)));
+    autoOrient();
     renderActionBar();
   } else if (gesture.mode === 'path') {
     paintPath(p.x, p.y);

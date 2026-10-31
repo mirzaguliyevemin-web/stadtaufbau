@@ -22,6 +22,8 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     buildings: [],
     plots,
     cleared: [],
+    planted: [],             // Felder, auf denen aus einem Setzling ein Baum gewachsen ist
+    saplings: [],            // Setzlinge: [Feld, Alter in Sekunden]
     techs: {},
     research: null,          // { id, left }
     hunt: null,              // Mammutjagd unterwegs: { left, cx, cy, x, y }
@@ -164,6 +166,7 @@ function generateTerrain(seed) {
 function buildTerrain() {
   terrain = generateTerrain(state.seed);
   for (const i of state.cleared) if (i >= 0 && i < N * N) terrain[i] = TERRAIN.gras.id;
+  for (const i of state.planted) if (i >= 0 && i < N * N) terrain[i] = TERRAIN.wald.id;
   if (typeof onTerrainChanged === 'function') onTerrainChanged();
 }
 
@@ -185,13 +188,19 @@ function touchesWater(ax, ay, size) {
   return false;
 }
 
+function saplingAt(x, y) {
+  const i = y * N + x;
+  return state.saplings.some(s => s[0] === i);
+}
+
 // Baum fällen / Felsen abtragen (macht Platz und bringt ein wenig Holz bzw. Stein).
 // free = auch fremdes Land und ohne Ertrag (Waldbrand, Holzsammler, die den Baum schon als Holz verbucht haben)
 function clearTile(x, y, free = false) {
   const t = terrainAt(x, y);
   if (!t || !t.clear || (!free && !isOwned(x, y)) || occ[y * N + x]) return false;
   terrain[y * N + x] = TERRAIN.gras.id;
-  state.cleared.push(y * N + x);
+  const k = state.planted.indexOf(y * N + x);
+  if (k >= 0) state.planted.splice(k, 1); else state.cleared.push(y * N + x);   // gepflanzter Baum: einfach wieder weg
   if (!free) addResources(t.clear);
   if (typeof onTerrainChanged === 'function') onTerrainChanged();
   return true;
@@ -239,7 +248,7 @@ function buyPlot(p) {
 
 function addBuilding(type, x, y, rot = false, finished = false) {
   const def = BUILDINGS[type];
-  const b = { type, x, y, rot, build: finished ? 0 : def.time || 0 };
+  const b = { type, x, y, rot: (Number(rot) || 0) & 3, build: finished ? 0 : def.time || 0 };
   state.buildings.push(b);
   return b;
 }
@@ -360,6 +369,7 @@ function placeProblem(type, x, y, ignore = -1) {
       if (!isOwned(xx, yy)) return 'Dieses Land gehört dir noch nicht';
       const o = occ[yy * N + xx] - 1;
       if (o >= 0 && o !== ignore) return 'Hier steht schon etwas';
+      if (saplingAt(xx, yy)) return 'Hier wächst ein Setzling';
       const t = terrainAt(xx, yy);
       if (def.onWater) { if (t !== TERRAIN.wasser) return 'Brücken gehen nur über Wasser'; continue; }
       if (t.blocks) return t === TERRAIN.wasser ? 'Nicht im Wasser – über den Fluss braucht es eine Brücke' : `${t.name} im Weg – antippen zum Räumen`;

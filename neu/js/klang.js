@@ -102,8 +102,13 @@ const SOUNDS = {
   knarzen: t => { tone(t, { f: 85, to: 120, dur: 0.5, type: 'sawtooth', vol: 0.09, attack: 0.05, filter: { type: 'bandpass', f: 600, q: 5 } }); },
   // Steinkreis: tiefer, schwebender Klang
   steinkreis: t => { for (const f of [110, 165, 220]) tone(t, { f, dur: 1.6, vol: 0.09, attack: 0.5 }); tone(t + 0.3, { f: 880, dur: 1.2, vol: 0.03, attack: 0.4 }); },
+  // Pflanzerin: Erde graben, Wasser gießen
+  graben: t => { for (const d of [0, 0.2]) noise(t + d, { dur: 0.12, type: 'lowpass', f: 700, vol: 0.3 }); for (let i = 0; i < 4; i++) tone(t + 0.45 + i * 0.06, { f: rnd(900, 1500), to: 600, dur: 0.06, vol: 0.08 }); },
   // Schritt auf Erde
   schritt: t => { noise(t, { dur: 0.07, type: 'lowpass', f: 300, vol: 0.3 }); noise(t + 0.18, { dur: 0.07, type: 'lowpass', f: 300, vol: 0.25 }); },
+
+  // Baum kracht um
+  baumfall: t => { for (let i = 0; i < 5; i++) noise(t + i * 0.05, { dur: 0.04, type: 'highpass', f: 2000, vol: 0.15 }); noise(t + 0.3, { dur: 0.6, type: 'lowpass', f: 250, vol: 0.45, attack: 0.02 }); },
 
   // Ereignisse
   bauen: t => { for (let i = 0; i < 3; i++) { tone(t + i * 0.13, { f: 300, to: 200, dur: 0.07, type: 'triangle', vol: 0.3 }); noise(t + i * 0.13, { dur: 0.03, type: 'lowpass', f: 1500, vol: 0.2 }); } },
@@ -120,7 +125,7 @@ const SOUNDS = {
 const BUILDING_SOUNDS = {
   lagerfeuer: 'feuer', feuerplatz: 'feuer', wohnhoehle: 'hoehle', fellzelt: 'zelt', grubenhaus: 'haus', langhaus: 'haus', pfahlbau: 'pfahl',
   sammlerin: 'rascheln', jaegerlager: 'horn', mammutjaegerlager: 'mammut', fischerplatz: 'platsch', acker: 'korn', ziegengehege: 'ziege',
-  holzsammler: 'hacken', steinsammler: 'klirren', hoehlenmaler: 'pinsel', fellmacherin: 'schaben', steinschlaeger: 'klopfen',
+  holzsammler: 'hacken', pflanzerin: 'graben', steinsammler: 'klirren', hoehlenmaler: 'pinsel', fellmacherin: 'schaben', steinschlaeger: 'klopfen',
   ahnenplatz: 'trommel', tongrube: 'matsch', toepferei: 'toepfern', vorratsspeicher: 'knarzen', steinkreis: 'steinkreis',
   pfad: 'schritt', bruecke: 'schritt',
 };
@@ -143,3 +148,4 @@ on('tapped', b => playSound(b.type));
 on('placed', b => { if (!BUILDINGS[b.type].isPath) playSound('bauen'); });
 on('finished', b => { if (BUILDINGS[b.type].time > 0 && !BUILDINGS[b.type].isPath) playSound('fertig'); });
 on('researchDone', () => playSound('forschung'));
+on('treeFelled', () => { if (gameRunning) playSound('baumfall'); });

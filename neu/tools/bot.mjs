@@ -82,6 +82,7 @@ function botWants() {
   if (botCount('hoehlenmaler') < 1 + Math.floor(pop / 15)) w.push('hoehlenmaler');
   if (botCount('holzsammler') < 2 + Math.floor(pop / 12)) w.push('holzsammler');
   if (botCount('steinsammler') < 1 + Math.floor(pop / 15)) w.push('steinsammler');
+  if (botCount('pflanzerin') < Math.floor(botCount('holzsammler') / 3)) w.push('pflanzerin');
   if (hungry) w.push(foodType);
   if ((stats.needs.waerme ?? 1) < 1) w.push('feuerplatz');
   if (stageReached('mittel') && (stats.needs.glaube ?? 1) < 1) w.push('ahnenplatz');

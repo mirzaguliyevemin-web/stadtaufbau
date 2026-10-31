@@ -9,6 +9,8 @@ const FONT = "Fredoka, 'Trebuchet MS', sans-serif";   // Schrift für Texte auf 
 const cam = { x: 0, y: N * TH / 2, zoom: 0.8 };
 const ZOOM_MIN = 0.3, ZOOM_MAX = 2.2;
 let canvas = null, ctx = null, viewW = 800, viewH = 450, dpr = 1;
+// Auflösung: Ist das Handy zu langsam, zeichnet das Spiel mit weniger Bildpunkten (start.js passt das an)
+let renderScale = 1;
 let chunks = [];          // vorgezeichnete Boden-Stücke (null = neu zeichnen)
 let frameTime = 0;        // Sekunden seit dem Start (für Bewegungen)
 
@@ -622,12 +624,16 @@ function drawPlaceholder(def, x, y, s, lift) {
 const SOCKEL_HOEHE = 0.05;   // Anteil der Grundstücksbreite
 
 // Erd-Textur für die Sockel, wandert mit der Karte mit
+let earthCache = { key: '', p: null };   // nur einmal je Bild bzw. Kameraposition anlegen (nicht je Gebäude)
 function earthPattern() {
   const img = images.erdsockel;
   if (!img || !ctx.createPattern || typeof DOMMatrix === 'undefined') return null;
-  const p = ctx.createPattern(img, 'repeat');
   const o = worldToScreen(0, 0), k = 0.35 * cam.zoom;
+  const key = o.x.toFixed(1) + ',' + o.y.toFixed(1) + ',' + k;
+  if (earthCache.key === key && earthCache.p) return earthCache.p;
+  const p = ctx.createPattern(img, 'repeat');
   p.setTransform(new DOMMatrix([k, 0, 0, k, o.x, o.y]));
+  earthCache = { key, p };
   return p;
 }
 
@@ -1292,7 +1298,7 @@ function drawScene(dt) {
 
 function resizeCanvas() {
   if (!canvas) return;
-  dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+  dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1) * renderScale;
   const r = canvas.getBoundingClientRect();
   viewW = Math.max(1, r.width);
   viewH = Math.max(1, r.height);

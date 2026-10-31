@@ -22,6 +22,9 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 28 – Ruckeln am iPhone: Läuft das Spiel unter etwa 45 Bildern pro Sekunde, zeichnet es automatisch mit
+  weniger Bildpunkten (bei feinen Handy-Bildschirmen kaum sichtbar); läuft es lange flüssig, wird es wieder feiner. Erd-Muster
+  der Gebäudesockel wird nur noch einmal je Bild erzeugt (vorher für jedes Gebäude).
 - 2026-10-31, Epochia Version 27 – Wissen gedrosselt: Höhlenmaler machen halb so viel Wissen, Wissen hat einen eigenen Speicher
   (2 × teuerste Forschung des Zeitalters, z. B. 450 in der Jungsteinzeit) statt sich endlos anzuhäufen. Bot: Wissen am Ende 450
   statt 15.000–17.000, Zeiten gleich (Mittelsteinzeit ≈ 105 min, Jungsteinzeit ≈ 270 min, kein Hunger).

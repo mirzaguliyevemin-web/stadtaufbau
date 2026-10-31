@@ -89,6 +89,22 @@ function afterWelcome() {
   if (state.daily.pending && (state.tutorial < 0 || state.tutorial > 1)) showDailyReward();
 }
 
+// Ruckelt es (unter etwa 45 Bildern pro Sekunde), zeichnet das Spiel mit weniger Bildpunkten – auf Handys mit
+// sehr feinem Bildschirm (iPhone) ist das kaum zu sehen, macht es aber flüssig. Läuft es lange flüssig, wieder feiner.
+let qualityTime = 0, qualityFrames = 0;
+function adaptQuality(dt) {
+  if (!(dt > 0)) return;
+  qualityTime += dt; qualityFrames++;
+  if (qualityTime < 2) return;
+  const fps = qualityFrames / qualityTime;
+  qualityTime = 0; qualityFrames = 0;
+  const native = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+  if (fps < 45 && native * renderScale > 1) renderScale = Math.max(1 / native, renderScale - 0.15);
+  else if (fps > 57 && renderScale < 1) renderScale = Math.min(1, renderScale + 0.05);
+  else return;
+  resizeCanvas();
+}
+
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = lastFrame ? Math.min(0.25, (now - lastFrame) / 1000) : 0;
@@ -96,7 +112,8 @@ function loop(now) {
   if (!gameRunning) return;
   // Größe geändert (Handy gedreht)? iPhones melden die neue Größe oft erst etwas später als „resize“ –
   // darum hier jedes Bild nachsehen, sonst wird das Bild verzerrt gestreckt
-  if (canvas && (Math.abs(canvas.clientWidth - viewW) > 0.5 || Math.abs(canvas.clientHeight - viewH) > 0.5 || (window.devicePixelRatio && Math.min(2, window.devicePixelRatio) !== dpr))) { resizeCanvas(); renderAll(); }
+  if (canvas && (Math.abs(canvas.clientWidth - viewW) > 0.5 || Math.abs(canvas.clientHeight - viewH) > 0.5 || (window.devicePixelRatio && Math.min(2, window.devicePixelRatio) * renderScale !== dpr))) { resizeCanvas(); renderAll(); }
+  adaptQuality(dt);
   update(dt);
   drawScene(dt);
   uiTimer += dt;

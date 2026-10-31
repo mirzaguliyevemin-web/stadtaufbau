@@ -195,7 +195,19 @@ function diamondPath(c, x, y, w, h, toPoint, grow = 0) {
 // Boden: vorab in Stücke gezeichnet (schnell, kein Ruckeln)
 // ---------------------------------------------------------------------
 
-function onTerrainChanged() { chunks = []; }
+// Gelände geändert: mit Feld (x, y) nur die Stücke daneben, sonst alle als „veraltet“ markieren. Veraltete Stücke
+// werden weiter gezeigt und nach und nach neu gemalt (höchstens eins pro Bild) – so ruckelt ein gefällter Baum nicht.
+function onTerrainChanged(x, y) {
+  if (!chunks.length) return;
+  const per = N / CHUNK;
+  if (x === undefined) { for (const ch of chunks) if (ch) ch.stale = true; return; }
+  // renderChunk malt 2 Felder über den Rand hinaus – Nachbarstücke können betroffen sein
+  for (let cy = Math.floor((y - 2) / CHUNK); cy <= Math.floor((y + 2) / CHUNK); cy++)
+    for (let cx = Math.floor((x - 2) / CHUNK); cx <= Math.floor((x + 2) / CHUNK); cx++) {
+      const ch = cx >= 0 && cy >= 0 && cx < per && cy < per && chunks[cy * per + cx];
+      if (ch) ch.stale = true;
+    }
+}
 
 function groundColor(x, y) {
   const t = terrain[y * N + x];
@@ -357,11 +369,13 @@ function renderChunk(cx, cy) {
 function drawGround(range) {
   const per = N / CHUNK;
   if (!chunks.length) chunks = new Array(per * per).fill(null);
+  let redraw = 1;   // veraltete Stücke: höchstens eins pro Bild neu malen
   for (let cy = Math.floor(range.y0 / CHUNK); cy <= Math.floor(range.y1 / CHUNK); cy++)
     for (let cx = Math.floor(range.x0 / CHUNK); cx <= Math.floor(range.x1 / CHUNK); cx++) {
       if (cx < 0 || cy < 0 || cx >= per || cy >= per) continue;
       const k = cy * per + cx;
       if (!chunks[k]) chunks[k] = renderChunk(cx, cy);
+      else if (chunks[k].stale && redraw > 0) { redraw--; chunks[k] = renderChunk(cx, cy) || chunks[k]; }
       const ch = chunks[k];
       if (!ch) continue;
       const p = worldToScreen(ch.left, ch.top);
@@ -1260,10 +1274,16 @@ function drawScene(dt) {
   }
 
   // Alles, was nach oben ragt, nach Tiefe sortieren (Mitte des Grundstücks: x + y)
+  // visibleRange ist ein Rechteck in Feldern, der Bildschirm darin eine Raute: Felder außerhalb des Bildes überspringen
+  // (Bäume und Berge ragen nach oben – unten darum mehr Rand)
   const objects = [];
+  const mx = 2 * TW * cam.zoom, top = -20 * cam.zoom, bottom = viewH + 160 * cam.zoom;
   for (let y = range.y0; y <= range.y1; y++)
     for (let x = range.x0; x <= range.x1; x++) {
       const t = terrain[y * N + x];
+      if (t !== TERRAIN.wald.id && t !== TERRAIN.fels.id && t !== TERRAIN.berg.id) continue;
+      const p = tileToScreen(x + 0.5, y + 0.5);
+      if (p.x < -mx || p.x > viewW + mx || p.y < top || p.y > bottom) continue;
       if (t === TERRAIN.wald.id) objects.push({ d: x + y + 1, kind: 'wald', x, y });
       else if (t === TERRAIN.fels.id) objects.push({ d: x + y + 1, kind: 'fels', x, y });
       else if (t === TERRAIN.berg.id) { const m = mountainAt(x, y); if (m) objects.push({ d: x + y + 1, kind: 'berg', x, y, m }); }

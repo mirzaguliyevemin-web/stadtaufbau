@@ -165,12 +165,14 @@ function generateTerrain(seed) {
 
 let baseTerrain = null;   // Gelände, wie es aus der Spielstand-Zahl entsteht (ohne Fällen und Pflanzen)
 
+let terrainVersion = 0;   // zählt Geländeänderungen (für gemerkte Werte wie terrainBonus)
 function buildTerrain() {
+  terrainVersion++;
   baseTerrain = generateTerrain(state.seed);
   terrain = baseTerrain.slice();
   for (const i of state.cleared) if (i >= 0 && i < N * N) terrain[i] = TERRAIN.gras.id;
   for (const i of state.planted) if (i >= 0 && i < N * N) terrain[i] = TERRAIN.wald.id;
-  if (typeof onTerrainChanged === 'function') onTerrainChanged();
+  if (typeof chunks !== 'undefined') chunks = [];   // andere Karte: Boden ganz neu
 }
 
 function inMap(x, y) { return x >= 0 && y >= 0 && x < N && y < N; }
@@ -208,10 +210,11 @@ function clearTile(x, y, free = false) {
   const t = terrainAt(x, y);
   if (!t || !t.clear || (!free && !isOwned(x, y)) || occ[y * N + x]) return false;
   terrain[y * N + x] = TERRAIN.gras.id;
+  terrainVersion++;
   const k = state.planted.indexOf(y * N + x);
   if (k >= 0) state.planted.splice(k, 1); else state.cleared.push(y * N + x);   // gepflanzter Baum: einfach wieder weg
   if (!free) addResources(t.clear);
-  if (typeof onTerrainChanged === 'function') onTerrainChanged();
+  if (typeof onTerrainChanged === 'function') onTerrainChanged(x, y);
   return true;
 }
 

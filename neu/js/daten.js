@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 41;
+const APP_VERSION = 42;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -172,7 +172,7 @@ const BUILDINGS = {
   fellzelt: {
     name: 'Fellzelt', icon: '⛺', size: 2, line: 'wohnen', tier: 1, stage: 'alt', bild: '1-fellzelt', views: ['r2'],
     color: '#b88a57', cost: { holz: 15, felle: 2 }, time: 30, housing: 4, requires: 'fellzelte', upgradeTo: 'grubenhaus',
-    info: 'Zelt aus Stangen und Fellen – Platz für 4 Menschen.',
+    info: 'Zelt aus Stangen und Fellen – Platz für 5 Menschen.',
   },
   grubenhaus: {
     name: 'Grubenhaus', icon: '🏠', size: 2, line: 'wohnen', tier: 2, stage: 'mittel', bild: '1-grubenhaus', views: ['r2'],

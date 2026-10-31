@@ -40,9 +40,12 @@ function addResources(amounts, factor = 1) {
     const have = state.res[id] || 0;
     const c = RESOURCES[id].knowledge ? knowledgeCap() : cap;   // Wissen: eigener Speicher
     state.res[id] = have >= c ? have : Math.min(c, have + n * factor);
-    continue;
-    state.res[id] = have >= cap ? have : Math.min(cap, have + n * factor);
   }
+}
+
+// Lagerplatz für eine Ware (Wissen hat einen eigenen Speicher)
+function capOf(id) {
+  return RESOURCES[id].knowledge ? knowledgeCap() : productionCap !== null ? productionCap : storageCap();
 }
 
 function missingText(cost) {
@@ -167,6 +170,8 @@ function finishBuilding(b) {
   b.build = 0;
   state.built[b.type] = (state.built[b.type] || 0) + 1;
   emit('finished', b);
+  const to = BUILDINGS[b.type].upgradeTo;
+  if (to && BUILDINGS[to] && isUnlocked(to) && BUILDINGS[to].size === BUILDINGS[b.type].size) evolveBuildings();
 }
 
 function moveBuilding(i, x, y, rot) {
@@ -193,7 +198,7 @@ function buildRoute(i) {
 }
 
 function refundOf(b) {
-  const def = BUILDINGS[b.type];
+  const def = BUILDINGS[b.from && BUILDINGS[b.from] ? b.from : b.type];   // von selbst weiterentwickelt: zählt das Bezahlte
   const out = {};
   for (const [id, n] of Object.entries(def.cost || {})) out[id] = Math.floor(n * CONFIG.refundShare);
   return out;
@@ -245,6 +250,7 @@ function upgradeBuilding(i) {
   payCost(BUILDINGS[to].cost);
   setOccupied(b, 0);
   b.type = to;
+  delete b.from;   // bezahlt: Erstattung nach dem neuen Gebäude
   b.build = BUILDINGS[to].time;
   setOccupied(b, i + 1);
   emit('placed', b);
@@ -381,7 +387,16 @@ function weatherInSlot(slot) {
 }
 
 // Aktuelles Wetter mit Stärke k (0–1): am Anfang und Ende eines Abschnitts zieht es auf bzw. ab
+// Merkt sich das Ergebnis für denselben Zeitpunkt: wird je Bild für jeden Baum und jedes Gebäude gefragt
+let weatherMemo = { st: null, t: -1, w: null };
 function currentWeather() {
+  if (weatherMemo.st === state && weatherMemo.t === state.playTime) return weatherMemo.w;
+  const w = computeWeather();
+  weatherMemo = { st: state, t: state.playTime, w };
+  return w;
+}
+
+function computeWeather() {
   const len = CONFIG.weatherSeconds, ramp = 10;
   const slot = Math.floor(state.playTime / len), s = state.playTime - slot * len;
   const id = weatherInSlot(slot);
@@ -407,7 +422,16 @@ function season() { return SEASONS[seasonIndex()]; }
 // ---------------------------------------------------------------------
 
 // Aktuelle Wirkungen als Liste { name, icon, effect, k } (k = Stärke 0–1, Wetter zieht langsam auf und ab)
+let effectsMemo = { st: null, t: -1, d: null, list: null };
 function activeEffects() {
+  const m = effectsMemo;
+  if (m.st === state && m.t === state.playTime && m.d === state.disaster) return m.list;
+  const list = computeEffects();
+  effectsMemo = { st: state, t: state.playTime, d: state.disaster, list };
+  return list;
+}
+
+function computeEffects() {
   const list = [];
   const w = currentWeather();
   if (w.effect) list.push({ name: w.name, icon: w.icon, effect: w.effect, k: w.k });
@@ -476,11 +500,17 @@ function burnForest(count) {
   return burnt;
 }
 
+// Gemerkt je Gebäude, bis sich Gelände, Ort oder Art ändern (wird sonst je Bild für jedes Gebäude gezählt)
+const bonusMemo = new WeakMap();
 function terrainBonus(b) {
   const bonus = BUILDINGS[b.type].bonus;
   if (!bonus) return 0;
+  const m = bonusMemo.get(b);
+  if (m && m.v === terrainVersion && m.x === b.x && m.y === b.y && m.type === b.type) return m.value;
   const n = countTerrainNear(b.x, b.y, BUILDINGS[b.type].size, TERRAIN[bonus.terrain].id, CONFIG.bonusRadius);
-  return Math.min(bonus.max, n * bonus.perTile);
+  const value = Math.min(bonus.max, n * bonus.perTile);
+  bonusMemo.set(b, { v: terrainVersion, x: b.x, y: b.y, type: b.type, value });
+  return value;
 }
 
 // Faktor für die Produktion eines Gebäudes (ohne Rohstoff-Mangel)
@@ -494,9 +524,11 @@ function outputFactor(i) {
 }
 
 // Was ein Gebäude je Minute herstellt (für Anzeige und Logik)
+// Ergebnis je Minute für die Anzeige: mit Rohstoffmangel (aus dem letzten Produktionsschritt), ohne „Lager voll“
 function outputPerMinute(i) {
   const def = BUILDINGS[state.buildings[i].type];
-  const f = outputFactor(i);
+  const r = stats.inputShare && stats.inputShare[i];
+  const f = outputFactor(i) * (r === undefined ? 1 : r);
   const out = {};
   for (const [id, n] of Object.entries(def.produces || {})) out[id] = n * f;
   return out;
@@ -547,19 +579,18 @@ function updateTrees(dt) {
   });
   // Setzlinge wachsen; der Winter hält sie auf
   const grow = seasonIndex() === 3 ? 0.3 : 1;
-  let changed = false;
   for (const sp of state.saplings) sp[1] += dt * grow;
   state.saplings = state.saplings.filter(([i, age]) => {
     if (age < c.growSeconds) return true;
     if (occ[i] || terrain[i] !== TERRAIN.gras.id) return false;
     terrain[i] = TERRAIN.wald.id;
+    terrainVersion++;
     // war hier ursprünglich Wald, reicht es, das Fällen zu vergessen; sonst (Wiese, früherer Felsen) als gepflanzt merken
     const k = state.cleared.indexOf(i);
     if (k >= 0 && baseTerrain && baseTerrain[i] === TERRAIN.wald.id) state.cleared.splice(k, 1); else state.planted.push(i);
-    changed = true;
+    if (typeof onTerrainChanged === 'function') onTerrainChanged(i % N, Math.floor(i / N));
     return false;
   });
-  if (changed && typeof onTerrainChanged === 'function') onTerrainChanged();
 }
 
 // Freie Wiese für einen Setzling: nah an der Pflanzerin, lieber neben schon vorhandenem Wald
@@ -589,17 +620,29 @@ function updateProductionStep(dt) {
   // flows[Ware] = { in: { Gebäudetyp: je Minute }, out: { Verbraucher: je Minute } } – für das Info-Fenster
   const flows = {};
   const flow = (id, dir, who, n) => { const f = (flows[id] ||= { in: {}, out: {} }); f[dir][who] = (f[dir][who] || 0) + n; };
+  const inputShare = [];   // je Gebäude: welcher Anteil läuft trotz Rohstoffmangel (1 = alles da)
   state.buildings.forEach((b, i) => {
     const def = BUILDINGS[b.type];
     if (b.build || !def.produces) return;
     let f = outputFactor(i);
     if (f <= 0) return;
+    // Lager voll: nur so viel herstellen, wie noch hineinpasst (sonst würden Rohstoffe und Bäume umsonst verbraucht).
+    // Bei mehreren Waren (Jäger: Nahrung und Felle) wird weitergearbeitet, solange eine davon noch Platz hat.
+    let room = 0;
+    for (const [id, n] of Object.entries(def.produces)) {
+      const amount = n * dt / 60;
+      if (amount > 0) room = Math.max(room, Math.max(0, capOf(id) - (state.res[id] || 0)) / amount);
+    }
+    f = Math.min(f, room);
+    if (f <= 0) return;
     if (def.consumes) {
       // fehlt ein Rohstoff, läuft das Gebäude nur so weit, wie er reicht
+      const before = f;
       for (const [id, n] of Object.entries(def.consumes)) {
         const need = n * f * dt / 60;
         if (need > 0) f = Math.min(f, f * (state.res[id] || 0) / need);
       }
+      inputShare[i] = before > 0 ? f / before : 1;
       for (const [id, n] of Object.entries(def.consumes)) {
         state.res[id] = Math.max(0, (state.res[id] || 0) - n * f * dt / 60);
         rates[id] = (rates[id] || 0) - n * f;
@@ -625,14 +668,23 @@ function updateProductionStep(dt) {
   }
   stats.rates = rates;
   stats.flows = flows;
+  stats.inputShare = inputShare;
 }
 
 let growthTimer = 0;
 
+let leaveTimer = 0;
 function updatePopulation(dt) {
   const room = stats.housing - state.pop;
-  if (room < 0) state.pop = stats.housing;
-  if (room > 0 && state.res.nahrung > 1 && stats.happiness >= CONFIG.growthMinHappy && !effectGrowthStopped()) {
+  // zu wenig Wohnraum (Haus im Umbau, ohne Weg, abgerissen): nicht alle auf einmal, sondern einer nach dem anderen ziehen weg
+  if (room < 0) {
+    leaveTimer += dt;
+    const step = CONFIG.growthSeconds / 4;
+    while (leaveTimer >= step && state.pop > stats.housing) { leaveTimer -= step; state.pop = Math.max(stats.housing, state.pop - 1); }
+  } else leaveTimer = 0;
+  // ganz leer (keiner da, nichts zu essen): ein paar Wanderer kommen trotzdem, sonst ginge es nie weiter
+  const restart = state.pop < 3;
+  if (room > 0 && (state.res.nahrung > 1 || restart) && (stats.happiness >= CONFIG.growthMinHappy || restart) && !effectGrowthStopped()) {
     growthTimer += dt;
     while (growthTimer >= CONFIG.growthSeconds && state.pop < stats.housing) {
       growthTimer -= CONFIG.growthSeconds;
@@ -704,6 +756,7 @@ function evolveBuildings() {
       const entry = changed.find(c => c.from === b.type && c.to === to) || (changed.push({ from: b.type, to, count: 0 }), changed[changed.length - 1]);
       entry.count++;
       if (!b.build) state.built[to] = (state.built[to] || 0) + 1;
+      if (!b.from) b.from = b.type;
       b.type = to;
       again = true;
     }
@@ -758,7 +811,8 @@ function updateHunt(dt) {
   if (state.hunt) {
     state.hunt.left -= dt;
     if (state.hunt.left > 0) return;
-    const reward = huntReward();
+    // Jägerlager inzwischen abgerissen: niemand bringt die Beute heim
+    const reward = huntCamps().length ? huntReward() : {};
     addResources(reward);
     state.hunt = null;
     state.herdWait = CONFIG.hunt.herdWait;
@@ -827,13 +881,16 @@ function claimDailyReward() {
 // Hauptschleife und Offline-Fortschritt
 // ---------------------------------------------------------------------
 
+let statsTimer = 0;
 function update(dt) {
   if (!state || !(dt > 0)) return;          // negative oder kaputte Zeit (Uhr verstellt) ignorieren
   dt = Math.min(dt, 5);
   state.playTime += dt;
   state.yearTime = (state.yearTime + dt) % CONFIG.yearSeconds;
   updateConstruction(dt);
-  recalcStats();
+  // Arbeiter, Wärme, Glaube usw. ändern sich langsam: 4× pro Sekunde reicht (Bauen/Abriss rechnen sofort neu)
+  statsTimer += dt;
+  if (statsTimer >= 0.25 || !stats.staff) { statsTimer = 0; recalcStats(); }
   updateProduction(dt);
   updatePopulation(dt);
   updateResearch(dt);

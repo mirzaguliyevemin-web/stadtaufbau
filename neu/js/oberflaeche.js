@@ -596,19 +596,18 @@ function showBuildingWindow(i) {
   }
   if (def.housing) {
     lines.push(`🏠 Platz für ${housingOf(b.type)} Menschen`);
-    const warm = state.buildings.some(s => !s.build && BUILDINGS[s.type].warmth && distance(s, b) <= warmthRadius(BUILDINGS[s.type]) + def.size / 2);
-    lines.push(warm ? '🔥 Hat es warm (Feuer in der Nähe)' : '❄️ Kein Feuer in der Nähe – baue einen Feuerplatz');
-    if (stageReached('mittel')) {
-      const belief = state.buildings.some(s => !s.build && BUILDINGS[s.type].belief && distance(s, b) <= BUILDINGS[s.type].belief + def.size / 2);
-      lines.push(belief ? '🗿 Ahnenplatz in der Nähe' : '🗿 Kein Ahnenplatz in der Nähe');
-    }
+    // gleiche Regel wie bei den Bedürfnissen: die Quelle braucht einen Weg
+    const near = (key, r) => state.buildings.some((s, k) => !s.build && BUILDINGS[s.type][key] && isConnected(k) && distance(s, b) <= r(BUILDINGS[s.type]) + def.size / 2);
+    lines.push(near('warmth', warmthRadius) ? '🔥 Hat es warm (Feuer in der Nähe)' : '❄️ Kein Feuer mit Weg in der Nähe – baue einen Feuerplatz');
+    if (activeNeeds().some(n => n.id === 'glaube'))
+      lines.push(near('belief', d => d.belief) ? '🗿 Ahnenplatz in der Nähe' : '🗿 Kein Ahnenplatz mit Weg in der Nähe');
   }
   if (def.workers && !b.build) lines.push(b.paused ? '⏸ Pausiert – die Arbeiter helfen in anderen Gebäuden'
     : `👤 Arbeiter: ${stats.staff[i] || 0} von ${def.workers}`);
   if (def.produces && !b.build) {
     const out = outputPerMinute(i);
     lines.push('Stellt her: ' + Object.entries(out).map(([id, n]) => `${RESOURCES[id].icon} ${n.toFixed(1)}/min`).join(', '));
-    if (def.consumes) lines.push('Braucht: ' + Object.entries(def.consumes).map(([id, n]) => `${RESOURCES[id].icon} ${n}/min`).join(', '));
+    if (def.consumes) lines.push('Braucht: ' + Object.entries(def.consumes).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n * outputFactor(i))}/min`).join(', '));
     for (const id of Object.keys(def.consumes || {})) if ((state.res[id] || 0) < 0.5) lines.push(`❗ Es fehlt ${RESOURCES[id].name} – darum steht es still${sourceText(id)}`);
     const tb = terrainBonus(b);
     if (def.bonus) lines.push(`🌲 Geländebonus (${TERRAIN[def.bonus.terrain].name}): +${Math.round(tb * 100)} %`);
@@ -682,7 +681,8 @@ function buildingDetailsHtml(i) {
     for (const [label, f, note] of parts) if (Math.abs(f - 1) > 0.005 || label.startsWith('👤')) row(label, '×' + perMin(f), note);
     const out = outputPerMinute(i);
     row('= Ergebnis je Minute', Object.entries(out).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n)}`).join(' '));
-    if (def.consumes) row('Verbraucht dafür', Object.entries(def.consumes).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n * outputFactor(i))}`).join(' '), 'fehlt etwas, läuft es nur so weit, wie es reicht');
+    const share = stats.inputShare && stats.inputShare[i] !== undefined ? stats.inputShare[i] : 1;
+    if (def.consumes) row('Verbraucht dafür', Object.entries(def.consumes).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n * outputFactor(i) * share)}`).join(' '), 'fehlt etwas, läuft es nur so weit, wie es reicht');
   }
   if (def.storage) row('📦 Lager', `+${def.storage}`, 'mehr Platz für jede Ware');
   if (def.needsWater) row('🌊 Am Wasser', 'nötig', 'Hochwasser legt Gebäude am Wasser still');

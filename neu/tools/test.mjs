@@ -597,7 +597,7 @@ test('Wetter wirkt: Hagel zerschlägt die Ernte, Gewitter bremst draußen, Schne
     const sum = g.run(`Object.values(WEATHERS).reduce((a, w) => a + w.chance[${si}], 0)`);
     ok(Math.abs(sum - 1) < 1e-9, `Wetter-Wahrscheinlichkeiten in Jahreszeit ${si} ergeben ${sum}`);
   }
-  const f = w => g.run(`(() => { currentWeather = () => ({ id: '${w}', k: 1, ...WEATHERS['${w}'] }); return [effectFactor('acker'), effectFactor('holzsammler'), effectFactor('hoehlenmaler'), effectFood(), effectHappy(), effectGrowthStopped()]; })()`);
+  const f = w => g.run(`(() => { currentWeather = () => ({ id: '${w}', k: 1, ...WEATHERS['${w}'] }); effectsMemo = { st: null }; return [effectFactor('acker'), effectFactor('holzsammler'), effectFactor('hoehlenmaler'), effectFood(), effectHappy(), effectGrowthStopped()]; })()`);
   const hagel = f('hagel'), gew = f('gewitter'), schnee = f('schnee'), klar = f('klar');
   ok(hagel[0] === 0.5 && hagel[4] < 0, 'Hagel: ' + hagel);
   ok(gew[1] < 1 && gew[2] === 1 && gew[5] === true, 'Gewitter: ' + gew);
@@ -663,6 +663,7 @@ test('Bäume: Holzsammler fällen sie nach und nach, Pflanzerin setzt Setzlinge,
     state.res.holz = 999; state.res.stein = 999; state.pop = 20;
     const sp = findFreeSpot('holzsammler', 60, 60); placeBuilding('holzsammler', sp.x, sp.y);
     let k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k);
+    state.res.holz = 0;   // Lager leer – bei vollem Lager wird nicht gefällt
     const before = trees();
     for (let i = 0; i < 20 * 60; i++) update(1);
     const felled = before - trees();

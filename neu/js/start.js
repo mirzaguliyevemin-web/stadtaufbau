@@ -93,15 +93,18 @@ function afterWelcome() {
 // Ruckelt es (unter etwa 45 Bildern pro Sekunde), zeichnet das Spiel mit weniger Bildpunkten – auf Handys mit
 // sehr feinem Bildschirm (iPhone) ist das kaum zu sehen, macht es aber flüssig. Läuft es lange flüssig, wieder feiner.
 let qualityTime = 0, qualityFrames = 0;
-function adaptQuality(dt) {
+// Auflösung nach der Rechenzeit je Bild regeln (nicht nach Bildern pro Sekunde: im Stromsparmodus zeigt das iPhone
+// nur 30 Bilder pro Sekunde, das Spiel ist dabei aber gar nicht überlastet)
+let qualityBusy = 0;
+function adaptQuality(dt, busyMs) {
   if (!(dt > 0)) return;
-  qualityTime += dt; qualityFrames++;
+  qualityTime += dt; qualityFrames++; qualityBusy += busyMs || 0;
   if (qualityTime < 2) return;
-  const fps = qualityFrames / qualityTime;
-  qualityTime = 0; qualityFrames = 0;
+  const busy = qualityBusy / qualityFrames;
+  qualityTime = 0; qualityFrames = 0; qualityBusy = 0;
   const native = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
-  if (fps < 45 && native * renderScale > 1) renderScale = Math.max(1 / native, renderScale - 0.15);
-  else if (fps > 57 && renderScale < 1) renderScale = Math.min(1, renderScale + 0.05);
+  if (busy > 12 && native * renderScale > 1) renderScale = Math.max(1 / native, renderScale - 0.15);
+  else if (busy < 6 && renderScale < 1) renderScale = Math.min(1, renderScale + 0.05);
   else return;
   resizeCanvas();
 }
@@ -114,9 +117,10 @@ function loop(now) {
   // Größe geändert (Handy gedreht)? iPhones melden die neue Größe oft erst etwas später als „resize“ –
   // darum hier jedes Bild nachsehen, sonst wird das Bild verzerrt gestreckt
   if (canvas && (Math.abs(canvas.clientWidth - viewW) > 0.5 || Math.abs(canvas.clientHeight - viewH) > 0.5 || (window.devicePixelRatio && Math.min(2, window.devicePixelRatio) * renderScale !== dpr))) { resizeCanvas(); renderAll(); }
-  adaptQuality(dt);
+  const t0 = performance.now();
   update(dt);
   drawScene(dt);
+  adaptQuality(dt, performance.now() - t0);
   uiTimer += dt;
   if (uiTimer > 0.25) {
     uiTimer = 0;
@@ -151,7 +155,7 @@ on('researchDone', id => {
       <div class="buttons"><button class="btn primary" onclick="closeDialog()">Weiter</button></div>`);
   }
 });
-on('huntDone', reward => { if (gameRunning) toast(`🦣 Die Jäger sind zurück: +${formatAmounts(reward)}`); });
+on('huntDone', reward => { if (gameRunning) toast(Object.keys(reward).length ? `🦣 Die Jäger sind zurück: +${formatAmounts(reward)}` : '🦣 Die Jäger fanden ihr Lager nicht mehr – die Beute ist verloren'); });
 on('placed', b => { (state.seen ||= {})[b.type] = true; });
 on('disaster', id => {
   if (!gameRunning || offlineRunning) return;

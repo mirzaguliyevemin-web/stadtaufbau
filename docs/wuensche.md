@@ -17,8 +17,11 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 <!-- Hier Veränderungswünsche eintragen -->
 - Arbeitende Menschen Teil 2: Fischer im Einbaum, Höhlenmaler, Fellmacherin, Steinschläger, Töpferei (Emin, 30.10.).
+  → Frage: braucht neue Figuren-Bilder/Animationen (Canva) und ist ein großer Umbau in `neu/js/leben.js` – wird in einer Sitzung mit Emin gebaut.
 - Karte größer machen (Emin, 30.10.).
+  → Frage: wie groß (jetzt 64 × 64)? Betrifft Zeichnen, Speicher und Leistung (Ruckeln) – wird in einer Sitzung mit Emin geklärt.
 - Mehr Topografie: ein Gebirge auf der Karte, Bilder mit Canva (Emin, 30.10.).
+  → Frage: braucht Canva-Bilder und neue Geländeregeln – wird in einer Sitzung mit Emin gebaut.
 
 ## Erledigt
 

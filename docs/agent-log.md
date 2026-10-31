@@ -3,6 +3,20 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-10-31 – Täglicher Lauf (Version 72)
+
+- Alle 20 Tests bestanden (inkl. 33 Epochia-Tests). Bot (3 Läufe à 90 min), Durchschnitt: Kleinstadt 5,7 min · 50 Einw. 18,7 ·
+  Stadt 22,8 · 150 Einw. 30,8 · 200 Einw. 35,5 · Antike 16,2–16,9 · Mittelalter 48,9–50,5 · Industrie in 2 von 3 Läufen (84,4 / 86,4) ·
+  Kathedrale ~53 · Hunger 0 · Frost 0. Alle Zielwerte eingehalten.
+- Epochia-Bot (`node neu/tools/bot.mjs 90 3`, Version 21): Mittelsteinzeit ~65–74 min (Lauf 1 siehe unten) · Jungsteinzeit/Kupferfund in keinem
+  Lauf erreicht · Endstand ~274–315 Einwohner · Hunger 2–3 min · unzufrieden 2–13 min. Deutlich langsamer als am 30.10. (Mittelsteinzeit
+  20–23 min) – passt zu den längeren Forschungen seit Epochia 12; nur notiert, kein Eingriff (Aufbau läuft, Zahlen mit Emin).
+  Häufigster Engpass: Jägerlager, Höhlenmaler, Wohnhöhle, Feuerplatz.
+- `wuensche.md`: Ruckel-Fehler weiter offen (mit Emin zu klären). Drei Epochia-Wünsche (Arbeitende Menschen Teil 2, größere Karte,
+  Gebirge) mit „→ Frage“ versehen: brauchen neue Canva-Bilder (Canva war im Lauf nicht erreichbar) bzw. sind große Umbauten.
+- Codebereich gelesen: `save` / `load` (game.js ~4094–4235, Spielstand laden und Altstände) – keine Fehler gefunden.
+- Keine Änderung nötig, keine Versionserhöhung.
+
 ## 2026-10-30 – Täglicher Lauf (Version 72)
 
 - Alle 20 Tests bestanden (inkl. 26 Epochia-Tests). Bot (3 Läufe à 90 min), Durchschnitt: Kleinstadt 5,7 min · 50 Einw. 18,7 ·

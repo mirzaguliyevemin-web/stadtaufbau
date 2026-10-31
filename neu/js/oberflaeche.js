@@ -327,9 +327,10 @@ function infoText(i) {
 
 function infoPopHtml(i) {
   const b = state.buildings[i];
+  // zwei getrennte, gleich große Knöpfe – „Mehr“ war vorher nur ein Text unter Pause und schwer zu treffen
   const pause = BUILDINGS[b.type].workers && !b.build
-    ? `<button class="btn small pop-pause" onclick="event.stopPropagation(); togglePause(${i}); showInfo(${i})">${b.paused ? '▶ Weiter' : '⏸ Pause'}</button>` : '';
-  return `${esc(infoText(i))}${pause}<small>Antippen für mehr</small>`;
+    ? `<button class="btn small" onclick="event.stopPropagation(); togglePause(${i}); showInfo(${i})">${b.paused ? '▶ Weiter' : '⏸ Pause'}</button>` : '';
+  return `${esc(infoText(i))}<span class="pop-buttons">${pause}<button class="btn small primary" onclick="event.stopPropagation(); closeInfo(); showBuildingWindow(${i})">ℹ️ Mehr</button></span>`;
 }
 
 function showInfo(i) {

@@ -611,7 +611,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .tech-detail { flex-wrap: wrap; }
 }
 
-.pop-pause { display: block; margin: 4px 0 0; }
+.pop-buttons { display: flex; gap: 14px; margin-top: 6px; }
+.pop-buttons .btn { flex: 1; min-height: 38px; }
 
 .slot { display: flex; align-items: center; gap: 8px; background: #fffdf6; border: 2px solid #ead3a3; border-radius: 16px; padding: 8px 12px; margin: 4px 0; }
 .slot > div { flex: 1; }

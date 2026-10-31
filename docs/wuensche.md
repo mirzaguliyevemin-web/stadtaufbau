@@ -22,6 +22,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-10-31, Epochia Version 29 – Kleine Gebäude-Info: „Antippen für mehr“ war schwer zu treffen (man traf Pause) – jetzt zwei
+  gleich große Knöpfe mit Abstand: „⏸ Pause“ und „ℹ️ Mehr“.
 - 2026-10-31, Epochia Version 28 – Ruckeln am iPhone: Läuft das Spiel unter etwa 45 Bildern pro Sekunde, zeichnet es automatisch mit
   weniger Bildpunkten (bei feinen Handy-Bildschirmen kaum sichtbar); läuft es lange flüssig, wird es wieder feiner. Erd-Muster
   der Gebäudesockel wird nur noch einmal je Bild erzeugt (vorher für jedes Gebäude).

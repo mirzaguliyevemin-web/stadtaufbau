@@ -416,7 +416,7 @@ function renderChunk(cx, cy) {
     const ox = (hash(y, x + 5) - 0.5) * TW * 0.25;
     g.drawImage(img, p.x - w / 2 + ox, p.y - h * 0.8, w, h);
   }
-  return { canvas: c, left, top, depth: renderDepthLayer(x0, y0, left, top) };
+  return { canvas: c, left, top, decor, depth: renderDepthLayer(x0, y0, left, top) };
 }
 
 // Wassertiefe als eigene, grob aufgelöste Ebene je Boden-Stück: liegt über dem fließenden Wasser. Das grobe Raster macht
@@ -681,6 +681,76 @@ function mountainAt(x, y) {
   return null;
 }
 
+// Verschneite Fassung eines Bildes (Felsen, Berge, Büsche – ohne eigenes Winterbild): Schnee liegt auf allem, was nach
+// oben zeigt: am oberen Rand des Umrisses und auf hellen Flächen. Wird je Bild nur einmal berechnet.
+const snowSprites = new Map();
+function snowSprite(img) {
+  if (!img) return null;
+  if (snowSprites.has(img)) return snowSprites.get(img);
+  let out = null;
+  try {
+    const k = Math.min(1, 320 / Math.max(img.width, img.height)), w = Math.max(1, Math.round(img.width * k)), h = Math.max(1, Math.round(img.height * k));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d'); g.drawImage(img, 0, 0, w, h);
+    const d = g.getImageData(0, 0, w, h), a = d.data;
+    if (a && a.length === w * h * 4) {
+      const lum = i => (a[i] * 0.3 + a[i + 1] * 0.59 + a[i + 2] * 0.11) / 255;
+      const reach = Math.max(2, Math.round(h * 0.045));
+      const L = new Float32Array(w * h);
+      for (let i = 0; i < w * h; i++) L[i] = a[i * 4 + 3] > 100 ? lum(i * 4) : -1;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        if (L[i] < 0) continue;
+        // Kante nach oben: darüber ist nichts oder etwas deutlich Dunkleres (Spalt zwischen zwei Steinen)
+        let top = 0;
+        for (let r = 1; r <= reach; r++) {
+          const up = y - r < 0 ? -1 : L[i - r * w];
+          if (up < 0 || up < L[i] - 0.14) { top = 1 - (r - 1) / reach; break; }
+        }
+        const bright = Math.max(0, Math.min(1, (L[i] - 0.42) / 0.22));
+        const grain = 0.82 + 0.18 * hash(x, y);
+        const m = Math.min(1, Math.max(top, bright) * grain);
+        const j = i * 4;
+        a[j] += (248 - a[j]) * m; a[j + 1] += (251 - a[j + 1]) * m; a[j + 2] += (255 - a[j + 2]) * m;
+      }
+      g.putImageData(d, 0, 0);
+      out = c;
+    }
+  } catch (e) { out = null; }
+  snowSprites.set(img, out);
+  return out;
+}
+
+// Im Winter: frisch verschneite Felsen, Berge und Büsche (sanft ein- und ausblenden)
+function drawSnowOver(img, x, y, w, h) {
+  const snow = typeof snowCover === 'function' ? snowCover() : 0;
+  if (snow <= 0.02) return;
+  const sp = snowSprite(img);
+  if (!sp) return;
+  const old = ctx.globalAlpha;
+  ctx.globalAlpha = old * Math.min(1, snow * 1.2);
+  ctx.drawImage(sp, x, y, w, h);
+  ctx.globalAlpha = old;
+}
+
+// Büsche liegen fest im Boden-Bild: im Winter kommt die verschneite Fassung darüber
+function drawDecorSnow(range) {
+  if (!chunks.length || (typeof snowCover === 'function' ? snowCover() : 0) <= 0.02) return;
+  const img = images.busch;
+  if (!img) return;
+  const per = N / CHUNK, z = cam.zoom, w = TW * 0.5 * z, h = w * img.height / img.width;
+  for (let cy = Math.floor(range.y0 / CHUNK); cy <= Math.floor(range.y1 / CHUNK); cy++)
+    for (let cx = Math.floor(range.x0 / CHUNK); cx <= Math.floor(range.x1 / CHUNK); cx++) {
+      const ch = cx >= 0 && cy >= 0 && cx < per && cy < per ? chunks[cy * per + cx] : null;
+      if (!ch || !ch.decor) continue;
+      for (const [x, y, name] of ch.decor) {
+        if (name !== 'busch') continue;
+        const p = tileToScreen(x + 0.5, y + 0.5), ox = (hash(y, x + 5) - 0.5) * TW * 0.25 * z;
+        drawSnowOver(img, p.x - w / 2 + ox, p.y - h * 0.8, w, h);
+      }
+    }
+}
+
 function drawMountain(x, y, m) {
   const img = images[m.name];
   const p = tileToScreen(x + 0.5, y + 0.5), z = cam.zoom;
@@ -695,12 +765,7 @@ function drawMountain(x, y, m) {
   ctx.translate(p.x, p.y);
   if (flip) ctx.scale(-1, 1);
   ctx.drawImage(img, -w / 2, -h * 0.8, w, h);
-  const snow = typeof snowCover === 'function' ? snowCover() : 0;
-  if (snow > 0.3 && m.name === 'berg-klein') {   // im Winter liegt Schnee auch auf den kleinen Bergen
-    ctx.globalAlpha = 0.35 * snow;
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.drawImage(img, -w / 2, -h * 0.8, w, h);
-  }
+  if (m.name === 'berg-klein') drawSnowOver(img, -w / 2, -h * 0.8, w, h);   // der große Gipfel hat im Bild schon Schnee
   ctx.restore();
 }
 
@@ -761,6 +826,7 @@ function drawTerrainObject(x, y, kind, anim = null) {
       return;
     }
     ctx.drawImage(img, p.x - w / 2 + ox, p.y - h + foot, w, h);
+    if (photo) drawSnowOver(img, p.x - w / 2 + ox, p.y - h + foot, w, h);
     return;
   }
   // Wind: jeder Baum wiegt sich etwas anders, dazu laufen sanfte Böen über die Karte
@@ -1521,6 +1587,7 @@ function drawScene(dt) {
   drawWaterfall(range);
   drawPlots(range);
   drawSeasonGround();
+  drawDecorSnow(range);
   drawPaths(range);
   if (ghost || pathMode) drawGrid(range);
   if (selected >= 0 && state.buildings[selected]) {

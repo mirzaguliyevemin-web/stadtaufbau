@@ -652,6 +652,19 @@ function plantSpot(b, radius) {
   return best;
 }
 
+// Laufender Verbrauch je Einwohner und Minute für eine Ware (siehe CONFIG.upkeep), ohne Jahreszeit und Wetter
+function upkeepPerHead(id, pop = state.pop) {
+  const u = CONFIG.upkeep[id];
+  if (!u) return 0;
+  const t = Math.max(0, Math.min(1, (pop - u.von) / (u.bis - u.von)));
+  return u.klein + (u.voll - u.klein) * t;
+}
+
+// So viel isst ein Einwohner gerade je Minute (mit Jahreszeit, Wetter und Ereignissen)
+function foodPerHead() {
+  return upkeepPerHead('nahrung') * CONFIG.foodSeason[seasonIndex()] * effectFood();
+}
+
 let productionCap = null;   // während eines Produktionsschritts nur einmal ausrechnen (bei vielen Gebäuden spürbar)
 
 function updateProduction(dt) {
@@ -703,7 +716,7 @@ function updateProductionStep(dt) {
   });
   updateTrees(dt);
   // Einwohner essen und verbrauchen Waren
-  const eat = state.pop * CONFIG.foodPerPerson * effectFood();
+  const eat = state.pop * foodPerHead();
   state.res.nahrung = Math.max(0, state.res.nahrung - eat * dt / 60);
   rates.nahrung = (rates.nahrung || 0) - eat;
   flow('nahrung', 'out', '__pop', eat);
@@ -713,6 +726,15 @@ function updateProductionStep(dt) {
     state.res[n.id] = Math.max(0, (state.res[n.id] || 0) - use * dt / 60);
     rates[n.id] = (rates[n.id] || 0) - use;
     flow(n.id, 'out', '__pop', use);
+  }
+  // Feuerholz, Ausbessern, Verschleiß: nur was da ist – ein leeres Lager bestraft niemanden
+  for (const id of ['holz', 'stein', 'werkzeug']) {
+    const have = state.res[id] || 0;
+    const use = Math.min(state.pop * upkeepPerHead(id), have * 60 / dt);
+    if (!(use > 0)) continue;
+    state.res[id] = Math.max(0, have - use * dt / 60);
+    rates[id] = (rates[id] || 0) - use;
+    flow(id, 'out', '__pop', use);
   }
   // Volles Lager bleibt wirklich voll: Die Herstellung füllt bis 200 auf, der Verbrauch danach nimmt gleich wieder
   // etwas weg – die Anzeige blieb ewig bei 199 und Forschungen für 200 waren nie bezahlbar. Wer mehr herstellen

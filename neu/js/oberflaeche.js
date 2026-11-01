@@ -172,6 +172,7 @@ function resourceTip(id) {
     <h3>Einnahmen je Minute</h3><div class="info-list">${rows(f.in, '+')}</div>
     <h3>Ausgaben je Minute</h3><div class="info-list">${rows(f.out, '−')}</div>
     ${id === 'wissen' ? '<p class="hint">Wissen wird beim Start einer Forschung auf einmal bezahlt.</p>' : ''}
+    ${upkeepPerHead(id) > 0 && id !== 'nahrung' ? `<p class="hint">${{ holz: 'Einwohner verbrauchen Feuerholz.', stein: 'Einwohner bessern Wege und Häuser aus.', werkzeug: 'Werkzeug nutzt sich ab.' }[id]} Ein leeres Lager schadet nicht, nur Bauen geht dann nicht.</p>` : ''}
     <p class="net">Zusammen: <b class="${net >= 0 ? 'good' : 'bad'}">${net >= 0 ? '+' : '−'}${perMin(Math.abs(net))} je Minute</b></p>
     ${eff.length ? `<p class="hint">Wirkt gerade: ${eff.join(' · ')}</p>` : ''}
     <div class="buttons"><button class="btn" onclick="closeDialog()">Schließen</button></div>`);
@@ -191,7 +192,10 @@ function popTip() {
       <div><span>Wohnplätze</span><b>${stats.housing}</b><small>${Object.entries(homes).map(([t, n]) => `${BUILDINGS[t].icon} ${esc(BUILDINGS[t].name)} ${n}`).join(' · ') || '–'}</small></div>
       <div><span>Arbeit</span><b>${stats.workers} / ${stats.jobs}</b><small>${stats.jobs > stats.workers ? `${stats.jobs - stats.workers} Stellen frei – Gebäude arbeiten langsamer` : `alle Stellen besetzt · ${Math.floor(state.pop) - stats.workers} Einwohner ohne Arbeit (spazieren, beten, sitzen am Feuer)`}</small></div>
       <div><span>Zuzug</span><small>${esc(why)}</small></div>
-      <div><span>🍖 Essen</span><small>Jeder isst ${perMin(CONFIG.foodPerPerson * effectFood())} Nahrung je Minute</small></div>
+      <div><span>🍖 Essen</span><small>Jeder isst ${perMin(foodPerHead())} Nahrung je Minute</small></div>
+      ${upkeepPerHead('holz') > 0 ? `<div><span>🪵 Feuerholz</span><small>Alle zusammen ${perMin(state.pop * upkeepPerHead('holz'))} Holz je Minute</small></div>` : ''}
+      ${upkeepPerHead('stein') > 0 ? `<div><span>🪨 Ausbessern</span><small>Alle zusammen ${perMin(state.pop * upkeepPerHead('stein'))} Stein je Minute</small></div>` : ''}
+      ${upkeepPerHead('werkzeug') > 0 ? `<div><span>🗡️ Verschleiß</span><small>Alle zusammen ${perMin(state.pop * upkeepPerHead('werkzeug'))} Werkzeug je Minute</small></div>` : ''}
     </div>
     <div class="buttons"><button class="btn" onclick="closeDialog()">Schließen</button></div>`);
 }
@@ -679,7 +683,7 @@ function buildingDetailsHtml(i) {
       `Anteil aller Wohnplätze mit ${word}. Jedes Bedürfnis zählt gleich viel für die Zufriedenheit (jetzt ${stats.happiness} %); zufriedene Menschen arbeiten schneller und es ziehen mehr zu.`);
   }
   if (def.housing) {
-    row('🏠 Wohnplätze', housingOf(b.type), `Einwohner essen je ${perMin(CONFIG.foodPerPerson)} Nahrung pro Minute. Sie brauchen Wärme${stageReached('mittel') ? ' und Glaube' : ''} in der Nähe.`);
+    row('🏠 Wohnplätze', housingOf(b.type), `Einwohner essen je ${perMin(foodPerHead())} Nahrung pro Minute. Sie brauchen Wärme${stageReached('mittel') ? ' und Glaube' : ''} in der Nähe.`);
   }
   if (def.produces) {
     const staff = def.workers ? (stats.staff[i] || 0) / def.workers : 1;

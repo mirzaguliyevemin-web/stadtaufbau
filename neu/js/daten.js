@@ -14,11 +14,20 @@ const CONFIG = {
   yearSeconds: 7200,      // ein Jahr = 4 Jahreszeiten à 30 Minuten (Emin, 31.10.; bis Version 22: 2 Minuten)
   daySeconds: 1800,       // ein Tag mit Nacht dauert 30 Minuten (bis Version 22: 160 Sekunden)
   weatherSeconds: 360,    // so lange hält ein Wetter an (6 Minuten), dann wird neu ausgewürfelt
-  foodPerPerson: 0.4,     // Nahrung je Einwohner und Minute
+  // Laufender Verbrauch je Einwohner und Minute (Emin, 01.11.: „Ich nehme viel mehr ein, als ich ausgebe“; vorher Nahrung immer 0,4).
+  // Kleine Stämme kommen mit wenig aus: bis „von“ Einwohnern gilt „klein“, ab „bis“ Einwohnern „voll“, dazwischen gleitend.
+  // Ist das Lager leer, passiert bei Holz, Stein und Werkzeug nichts weiter – man kann nur nicht bauen.
+  upkeep: {
+    nahrung:  { klein: 0.5, voll: 1.6,   von: 10, bis: 70 },   // Essen
+    holz:     { klein: 0,   voll: 0.14,  von: 20, bis: 70 },   // Feuerholz
+    stein:    { klein: 0,   voll: 0.08,  von: 25, bis: 70 },   // Ausbessern von Wegen und Häusern
+    werkzeug: { klein: 0,   voll: 0.018, von: 40, bis: 90 },   // Verschleiß
+  },
+  foodSeason: [0.92, 1.12, 1, 0.6],   // Essen je Jahreszeit (Frühling, Sommer, Herbst, Winter): gleicht die Ernte aus, im Winter lebt man sparsam von Vorräten
   needGrace: 600,         // neues Bedürfnis (Kleidung, Töpferwaren) zählt erst nach 10 Minuten; dazu gibt es einen Startvorrat
   needGift: 20,
   hunger: { after: 120, every: 30, minPop: 3, unhappy: 20 },   // ohne Nahrung: Laune −20; nach 2 Min. zieht alle 30 s einer weg (nie unter 3)
-  goodsPerPerson: 0.02,   // Kleidung / Töpferwaren je Einwohner und Minute (wenn das Bedürfnis zählt)
+  goodsPerPerson: 0.03,   // Kleidung / Töpferwaren je Einwohner und Minute (wenn das Bedürfnis zählt)
   growthSeconds: 45,      // so oft zieht jemand ein (seit Version 24: 45 s statt 15 s – sonst Hunger und zu große Stämme)
   growthMinHappy: 50,     // ab dieser Zufriedenheit ziehen Leute zu
   baseStorage: 200,       // Lagerplatz je Ware am Lagerfeuer (seit Version 24: 200, damit der lange Winter zu überstehen ist)

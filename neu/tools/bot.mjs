@@ -13,9 +13,24 @@ import { loadGame } from './headless.mjs';
 import { fileURLToPath } from 'node:url';
 
 // Der Bot läuft im Spiel selbst (gleiche Funktionen wie die Oberfläche benutzt)
-const BOT_CODE = String.raw`
+export const BOT_CODE = String.raw`
 var botReport = { mittelsteinzeit: null, jungsteinzeit: null, kupferfund: null, hungerMin: 0, lowHappyMin: 0, pop: [], built: 0,
-  blocked: {}, missing: {}, wait: {}, log: [], hunts: 0, quests: 0, paused: 0 };
+  blocked: {}, missing: {}, wait: {}, log: [], hunts: 0, quests: 0, paused: 0, lager: {} };
+
+// Lager-Statistik je Ware: Anteil der Spielzeit mit vollem (≥ 95 %) und leerem (< 5 %) Lager und mittlerer Bestand.
+// Gezählt wird erst, wenn die Ware im Spiel ist (seit sie zum ersten Mal im Lager lag).
+function botLagerZaehlen() {
+  for (const id of Object.keys(RESOURCES)) {
+    const n = state.res[id] || 0, cap = capOf(id);
+    const l = botReport.lager[id] || (n > 0 ? (botReport.lager[id] = { sec: 0, voll: 0, leer: 0, summe: 0, stufe: {} }) : null);
+    if (!l) continue;
+    const st = (l.stufe[state.stage] ||= { sec: 0, voll: 0 });
+    l.sec++; st.sec++;
+    l.summe += n;
+    if (n >= cap * 0.95) { l.voll++; st.voll++; }
+    if (n < cap * 0.05) l.leer++;
+  }
+}
 
 function botCount(type) { return state.buildings.filter(b => b.type === type).length; }
 function botLineCount(line) { return state.buildings.filter(b => BUILDINGS[b.type].line === line).length; }
@@ -115,9 +130,9 @@ function botSupply(res, season) {
 }
 
 // Laufender Verbrauch je Minute: Einwohner (Nahrung, Waren-Bedürfnisse) und Verarbeiter bei voller Besetzung
-function botUse(res, pop = state.pop) {
-  let n = 0;
-  if (res === 'nahrung') n += pop * CONFIG.foodPerPerson;
+function botUse(res, pop = state.pop, season = seasonIndex()) {
+  let n = pop * upkeepPerHead(res, pop);
+  if (res === 'nahrung') n *= CONFIG.foodSeason[season];
   else if (activeNeeds().some(nd => nd.kind === 'stock' && nd.id === res)) n += pop * CONFIG.goodsPerPerson;
   for (const b of state.buildings) {
     const c = BUILDINGS[b.type].consumes;
@@ -173,11 +188,11 @@ function botNeedsMore(res, extra = 0) {
 function botFoodShort() {
   const eat = botUse('nahrung', state.pop + 6) * effectFood();
   const stockNeed = Math.max(0, botResearchNeed('nahrung') - state.res.nahrung) / 20;
-  if (botSupply('nahrung') < eat * 1.15 + 1 + stockNeed) return true;
+  if (botSupply('nahrung') < eat * 1.3 + 1 + stockNeed) return true;   // etwas Puffer: Gewitter und Zuzug kommen immer dazwischen
   const s = seasonIndex();
   if (s >= 2) {
     // im Winter fehlt höchstens so viel, wie der Vorrat für eine Jahreszeit (30 min) hergibt
-    const winterEat = botUse('nahrung', state.pop + 10) * 1.1;
+    const winterEat = botUse('nahrung', state.pop + 10, 3) * 1.1;
     const reserve = (s === 3 ? state.res.nahrung : storageCap() * 0.8) / 30;
     if (botSupply('nahrung', 3) + reserve < winterEat) return true;
   }
@@ -360,6 +375,7 @@ function botRun(minutes, seed) {
   state.tutorial = -1;
   for (let sec = 0; sec < minutes * 60; sec++) {
     update(1);
+    botLagerZaehlen();
     if (sec % 3 === 0) botStep();
     // Nahrung erst mal knapp, aber nicht ganz leer, zählt nicht als Hunger
     if (sec % 60 === 59) {
@@ -399,6 +415,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.log(`  Dabei fehlte: ${Object.entries(report.missing).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([t, n]) => t + ' ' + n).join(', ')}`);
     console.log(`  Forschung wartete auf: ${Object.entries(report.wait).sort((a, b) => b[1] - a[1]).map(([t, n]) => t + ' ' + Math.round(n) + ' min').join(', ') || 'nichts'}`);
     console.log(`  Forschungen (Start in min): ${report.log.join(' ')}`);
+    for (const [id, l] of Object.entries(report.lager))
+      console.log(`  Lager ${id.padEnd(12)} voll ${String(Math.round(100 * l.voll / l.sec)).padStart(3)} % · leer ${String(Math.round(100 * l.leer / l.sec)).padStart(3)} % · Mittel ${String(Math.round(l.summe / l.sec)).padStart(3)} · voll je Stufe: ${Object.entries(l.stufe).map(([s, st]) => s + ' ' + Math.round(100 * st.voll / st.sec) + ' %').join(', ')}`);
     console.log(`  Mammutjagden ${report.hunts} · Aufträge ${report.quests} · Pausen ${report.paused}`);
   }
 }

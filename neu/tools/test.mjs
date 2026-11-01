@@ -1280,6 +1280,31 @@ await testAsync('Konto: Abmelden löscht nur die Sitzung; alter Spielstand des a
   noErrors(g);
 });
 
+test('Laufender Verbrauch: Holz und Stein je Einwohner wirken, kleine Stämme zahlen nichts, leeres Lager schadet nicht', () => {
+  const g = fresh();
+  // großer Stamm: eine Minute Verbrauch, im Waren-Fenster als Einwohner verbucht
+  const r = g.run(`(() => { state.pop = 86; state.res.holz = 100; state.res.stein = 100; state.res.nahrung = 150; recalcStats(); updateProduction(60);
+    return [state.res.holz, state.res.stein, stats.flows.holz.out.__pop, stats.flows.stein.out.__pop, state.res.nahrung]; })()`);
+  ok(Math.abs(r[0] - (100 - 86 * g.run('CONFIG.upkeep.holz.voll'))) < 1e-6, 'Holz falsch: ' + r[0]);
+  ok(Math.abs(r[1] - (100 - 86 * g.run('CONFIG.upkeep.stein.voll'))) < 1e-6, 'Stein falsch: ' + r[1]);
+  ok(r[2] > 0 && r[3] > 0, 'Verbrauch fehlt im Info-Fenster');
+  ok(r[4] < 150 - 86 * 0.4, 'Nahrung wird nicht stärker verbraucht: ' + r[4]);
+  // kleiner Stamm: kein Holz, kein Stein
+  const klein = g.run(`(() => { state.pop = 6; state.res.holz = 50; state.res.stein = 40; recalcStats(); updateProduction(60); return [state.res.holz, state.res.stein]; })()`);
+  ok(klein[0] === 50 && klein[1] === 40, 'Start-Stamm verbraucht Holz/Stein: ' + klein);
+  // leer: bleibt bei 0, kein Fehler, keine Bestrafung, Anzeige ohne Geisterverbrauch
+  const leer = g.run(`(() => { state.pop = 86; state.res.holz = 0; state.res.stein = 0; state.res.werkzeug = 0; state.res.nahrung = 150; recalcStats(); const laune = stats.happiness;
+    for (let k = 0; k < 60; k++) { recalcStats(); updateProduction(1); updatePopulation(1); }
+    return [state.res.holz, state.res.stein, state.res.werkzeug, (stats.flows.holz || { out: {} }).out.__pop || 0, stats.happiness === laune, stats.rates.holz || 0]; })()`);
+  ok(leer[0] === 0 && leer[1] === 0 && leer[2] === 0, 'Lager unter 0 oder kaputt: ' + leer);
+  ok(leer[3] === 0 && leer[5] === 0, 'Anzeige zeigt Verbrauch aus leerem Lager: ' + leer);
+  ok(leer[4], 'Leeres Holz/Stein-Lager senkt die Laune');
+  // Offline läuft derselbe Verbrauch mit
+  const off = g.run(`(() => { state.pop = 40; state.res.holz = 100; const r = applyOfflineProgress(Date.now() - 60 * 1000); return [state.res.holz, !!r]; })()`);
+  ok(off[1] && off[0] < 100, 'Offline kein Holzverbrauch: ' + off);
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

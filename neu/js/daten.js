@@ -417,18 +417,29 @@ const DAILY_REWARDS = [
   { holz: 100, stein: 80, nahrung: 100, wissen: 30 },
 ];
 
-// Einstieg mit dem Stammesältesten. done = Bedingung, ab der der nächste Schritt kommt (siehe einstieg.js)
+// Einstieg: Der Stammesälteste läuft auf der Karte mit (siehe einstieg.js). Die Reihenfolge und die IDs nie ändern:
+// state.tutorial ist der Index in dieser Liste, alte Spielstände stehen mitten darin.
+// ruf = sein Spruch, text = die Anweisung (*…* wird fett), ok = Rückmeldung bei Erfolg, hilfe = nach 20 Sekunden ohne Erfolg,
+// belohnung = wird je Spielstand nur einmal gutgeschrieben. Hier lassen sich die Mengen ändern.
 const TUTORIAL = [
-  { id: 'willkommen', text: 'Willkommen! Unser Stamm sucht eine neue Heimat – und hier am Fluss ist es schön. Verschiebe die Karte mit dem Finger, zoome mit zwei Fingern.', button: 'Los geht’s' },
-  { id: 'sammlerin', text: 'Wir brauchen Nahrung. Zieh die Sammlerin aus der Leiste unten auf einen freien Platz und tippe ✔.', target: 'bar:sammlerin' },
-  { id: 'pfad', text: 'Jedes Gebäude braucht einen Trampelpfad zum Lagerfeuer. Wähle 🟫 Trampelpfad und zieh mit dem Finger vom Feuer zur Sammlerin – oder tippe die Sammlerin an und dann auf „Weg bauen“.', target: 'bar:pfad' },
-  { id: 'antippen', text: 'Jetzt wird gebaut – höchstens 2 Baustellen gleichzeitig. Ist die Sammlerin fertig, tippe sie einmal an.' },
-  { id: 'holzsammler', text: 'Gut gemacht! Nun Holz: Baue einen Holzsammler – am Wald sammelt er viel mehr.', target: 'bar:holzsammler' },
-  { id: 'hochheben', text: 'Halte ein fertiges Gebäude gedrückt: Es hebt sich hoch. Dann kannst du es verschieben und mit ↻ drehen.' },
-  { id: 'wohnhoehle', text: 'Mehr Menschen brauchen Platz. Baue eine Wohnhöhle mit Weg zum Feuer – nah am Feuer haben sie es warm.', target: 'bar:wohnhoehle' },
-  { id: 'forschung', text: 'Wissen bringt uns weiter. Baue einen Höhlenmaler – mit Weg zum Feuer! –, öffne dann die Forschung 📜 und starte „Feuer hüten“, sobald genug Wissen da ist.', target: 'bar:hoehlenmaler' },
-  { id: 'auftraege', text: 'Zum Schluss: Unter 📋 Aufträge findest du Aufgaben mit Belohnung. Schau mal hinein!', target: 'btn-quests' },
-  { id: 'fertig', text: 'Jetzt gehört das Lager dir! Ich bin da, wenn es Neues gibt.', button: 'Danke!' },
+  { id: 'willkommen', ruf: 'Endlich! Hier bleiben wir.', auto: true },
+  { id: 'sammlerin', ruf: 'Hier wächst viel!', text: 'Zieh die *Sammlerin* her.', ok: 'Gut!', belohnung: { nahrung: 5 },
+    hilfe: 'Finger auf die *Sammlerin*, ziehen, dann ✔ tippen.', target: 'bar:sammlerin' },
+  { id: 'pfad', ruf: 'Oje, kein Weg!', text: 'Wähl unten den *Trampelpfad*.', ok: 'Der Weg steht!',
+    hilfe: 'Oder tipp die Baustelle an, dann „Weg bauen“.', target: 'bar:pfad' },
+  { id: 'antippen', ruf: 'Sie ist fertig.', text: 'Tipp sie an!', ok: 'So siehst du alles über sie.',
+    hilfe: 'Bis zu 2 Baustellen gehen gleichzeitig.' },
+  { id: 'holzsammler', ruf: 'Mir wird kalt. Wir brauchen Holz!', text: 'Bau den *Holzsammler* am Wald.', ok: 'Am Wald sammelt er mehr.', belohnung: { holz: 5 },
+    target: 'bar:holzsammler' },
+  { id: 'hochheben', ruf: 'Falsch gestellt? Kein Problem.', text: 'Halte ein Gebäude gedrückt: Es hebt sich.', ok: 'Verschieben und drehen geht jetzt.' },
+  { id: 'wohnhoehle', ruf: 'Es kommen Leute! Wo schlafen sie?', text: 'Bau eine *Wohnhöhle* mit Weg zum Feuer.', ok: 'Bald ziehen Leute ein!',
+    hilfe: 'Nah am Feuer ist es warm.', target: 'bar:wohnhoehle' },
+  { id: 'forschung', ruf: 'Wer malt unser Wissen auf?', text: 'Bau den *Höhlenmaler* mit Weg.', target: 'bar:hoehlenmaler',
+    bauOk: 'Er malt bald!', bauBelohnung: { wissen: 10 },
+    ruf2: 'Jetzt lernen wir was!', text2: 'Öffne die *Forschung*, starte „Feuer hüten“.', target2: 'btn-research', ok: 'Das Feuer wärmt bald weiter.',
+    hilfe: 'Noch zu wenig Wissen? Der Höhlenmaler braucht etwas Zeit.' },
+  { id: 'auftraege', ruf: 'Noch was: Hier gibt’s Geschenke.', text: 'Schau in die *Aufträge*.', ok: 'Dort warten Belohnungen.', target: 'btn-quests' },
+  { id: 'fertig', ruf: 'Das Lager gehört dir.', text: 'Ich bin in der Nähe!', auto: true, belohnung: { wissen: 20 } },
 ];
 
 const LOADING_SAYINGS = [

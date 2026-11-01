@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum'];
+const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -593,6 +593,22 @@ function splash(x, y, z, k) {
 // Fischer im Einbaum: Boot schaukelt, Figur sitzt (nur Oberkörper), paddelt abwechselnd links und rechts
 function drawBoat(w, t) {
   const z = cam.zoom, p = tileToScreen(w.x, w.y), img = images.einbaum;
+  const front = images['fischer-boot-vorne'], back = images['fischer-boot-hinten'];
+  if (front && back) {   // Canva: Paddel wechselt zwischen vorn und hinten, das Boot schaukelt und schiebt sich beim Zug
+    const cyc = (t * 0.9 + w.ph) % 1, pull = cyc > 0.5, pic = pull ? back : front;
+    const bw = 58 * z, bh = bw * pic.height / pic.width, rock = Math.sin(t * 1.8 + w.ph) * 1.1 * z;
+    ctx.fillStyle = 'rgba(20,60,90,0.2)';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y + 2 * z, bw * 0.48, bh * 0.2, 0, 0, 7); ctx.fill();
+    ctx.save();
+    ctx.translate(p.x, p.y + rock * 0.4);
+    if (w.face < 0) ctx.scale(-1, 1);
+    ctx.rotate(Math.sin(t * 1.8 + w.ph) * 0.02);
+    ctx.drawImage(pic, -bw / 2, -bh * 0.82, bw, bh);
+    ctx.restore();
+    const q = pull ? (cyc - 0.5) / 0.5 : cyc / 0.5;
+    if (q < 0.25) splash(p.x + (pull ? 0.28 : -0.33) * bw * w.face, p.y + 1 * z, z, 0.8);
+    return;
+  }
   const rock = Math.sin(t * 1.8 + w.ph) * 1.2 * z;
   const bw = 40 * z, bh = bw * img.height / img.width;
   ctx.fillStyle = 'rgba(20,60,90,0.18)';

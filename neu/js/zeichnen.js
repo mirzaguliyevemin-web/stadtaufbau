@@ -1741,6 +1741,7 @@ function drawScene(dt) {
   drawDayNight();
   // Blasen und das geplante Gebäude bleiben auch nachts und im Regen gut zu sehen
   for (const o of objects) if (o.kind === 'b') drawBubble(o.i);
+  if (state.tutorial >= 0) drawGuide(dt);   // Einstieg: Stammesältester, Vorschau und Pfeile (nur solange er läuft)
   if (ghost) drawGhost(ghost);
 }
 

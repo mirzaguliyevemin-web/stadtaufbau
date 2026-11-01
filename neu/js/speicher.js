@@ -96,7 +96,15 @@ function sanitizeState(data) {
   if (data.built && typeof data.built === 'object') s.built = { ...data.built };
   if (data.seen && typeof data.seen === 'object') s.seen = { ...data.seen };
   if (data.daily && typeof data.daily === 'object') s.daily = { last: String(data.daily.last || ''), streak: Number(data.daily.streak) || 0, pending: Number(data.daily.pending) || 0 };
-  if (Number.isInteger(data.tutorial)) s.tutorial = data.tutorial;
+  // Einstieg: Die Liste hat noch dieselbe Reihenfolge, der Index alter Stände gilt also weiter. Unsinnige Werte heißen „fertig“.
+  if (Number.isInteger(data.tutorial)) s.tutorial = data.tutorial >= 0 && data.tutorial < TUTORIAL.length ? data.tutorial : -1;
+  if (data.tutorialRewards && typeof data.tutorialRewards === 'object') {
+    for (const [key, got] of Object.entries(data.tutorialRewards)) if (got === true) s.tutorialRewards[key] = true;
+  } else {
+    // Stand von vor den Belohnungen: Was schon hinter ihm liegt, gibt es nicht nachträglich
+    TUTORIAL.forEach((step, i) => { if (s.tutorial < 0 || i < s.tutorial) s.tutorialRewards[step.id] = true; });
+    if (s.tutorial < 0 || s.buildings.some(b => b.type === 'hoehlenmaler')) s.tutorialRewards.forschung_bau = true;
+  }
   return s;
 }
 

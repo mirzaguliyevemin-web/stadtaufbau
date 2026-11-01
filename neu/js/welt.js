@@ -41,6 +41,7 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     seen: {},                // Typ → in der Bauleiste schon angesehen (sonst „Neu“)
     daily: { last: '', streak: 0, pending: 0 },   // pending = Tag (1–7), dessen Belohnung noch wartet
     tutorial: 0,             // Schritt im Einstieg, -1 = fertig/übersprungen
+    tutorialRewards: {},     // Belohnungen des Einstiegs, die schon gutgeschrieben sind (jede nur einmal)
     mapSize: N,              // Kartengröße beim Speichern (alte Stände: 64, werden beim Laden in die Mitte gelegt)
     torches: true,           // Wege haben schon Fackeln bekommen (alte Stände: einmal beim Laden nachholen)
     mapGen: 2,               // Art der Kartenerzeugung: 2 = breiter, kurviger Fluss (alte Stände: 1 = bleibt, wie sie war)

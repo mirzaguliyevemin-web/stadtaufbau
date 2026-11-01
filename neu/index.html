@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="app-version" content="54">
   <meta name="theme-color" content="#3d7a2a">
+  <meta name="color-scheme" content="only light">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <title>Epochia</title>
@@ -48,6 +49,11 @@
     <div id="research-pill" class="hidden" onclick="openResearch()"></div>
     <div id="info-pop" class="hidden"></div>
     <div id="tutorial" class="hidden"></div>
+    <div id="guide" class="hidden">
+      <div id="guide-bubble" class="off"></div>
+      <button id="guide-skip" onclick="skipTutorial()">Überspringen</button>
+      <button id="guide-edge" class="hidden" onclick="tutorialGoToTarget()" aria-label="Zum Ort des Einstiegs"><span id="guide-edge-arrow">➜</span>Hier entlang</button>
+    </div>
     <div id="action-bar" class="hidden"></div>
     <div id="bar-tabs"></div>
     <nav id="buildbar"></nav>

@@ -320,32 +320,160 @@ test('Land kaufen: nur neben eigenem Land, Preis steigt', () => {
   ok(g.run('JSON.stringify(plotPrice())') !== price1, 'Preis steigt nicht');
 });
 
-test('Einstieg: Schritte folgen den Handlungen, überspringen geht', () => {
-  const g = fresh();
+// Einstieg durchspielen wie ein Spieler: Vorschlag des Ältesten annehmen, Weg bauen, antippen …
+function einstiegBau(g, type) {
+  const plan = g.run(`(() => { const p = tutorialPlan(); return p && p.kind === 'site' ? [p.x, p.y, p.type] : null; })()`);
+  ok(plan && plan[2] === type, `Vorschlag für ${type} fehlt: ${JSON.stringify(plan)}`);
+  ok(g.run(`placeProblem('${type}', ${plan[0]}, ${plan[1]})`) === null, `Vorschlag für ${type} ist kein freier Bauplatz`);
+  g.run(`beginBuild('${type}'); ghost.x = ${plan[0]}; ghost.y = ${plan[1]}; confirmGhost();`);
+  ok(g.run(`state.buildings.some(b => b.type === '${type}' && b.x === ${plan[0]} && b.y === ${plan[1]})`), `${type} wurde nicht gebaut`);
+}
+function einstiegWeg(g, type) {
+  g.run(`(() => { const i = tutorialBuildingIndex('${type}'); if (!isConnected(i)) buildRoute(i); })()`);
+}
+function einstiegTick(g, n = 3) { g.run(`for (let i = 0; i < ${n}; i++) tutorialTick(0.6);`); }
+function einstiegDurch(g) {
   g.run('state.tutorial = 0; state.res.holz = 200; state.res.stein = 200; state.res.wissen = 50; renderTutorial();');
-  g.run('advanceTutorial()');   // Willkommen
-  ok(g.run('tutorialStep().id') === 'sammlerin', 'Schritt 2 erwartet');
-  g.run(`beginBuild('sammlerin'); confirmGhost();`);
-  if (g.run('tutorialStep().id') === 'pfad') {
-    g.run(`buildRoute(state.buildings.findIndex(b => b.type === 'sammlerin'))`);
+  const id = () => g.run('(tutorialStep() || {}).id');
+  einstiegTick(g, 6);   // Begrüßung schließt sich von selbst
+  ok(id() === 'sammlerin', 'Nach der Begrüßung: Sammlerin, ist ' + id());
+  einstiegTick(g, 4);
+  einstiegBau(g, 'sammlerin');
+  einstiegTick(g, 4);
+  ok(id() === 'pfad', 'Nach der Sammlerin: Pfad, ist ' + id());
+  ok(g.run(`tutorialPlan().kind === 'road' && tutorialPlan().route.length > 0`), 'Der Pfad-Schritt zeigt keine Felder');
+  g.run(`beginBuild('pfad')`);
+  ok(g.run(`tutorialPlan().say.text`) !== undefined, 'kein Spruch');
+  einstiegWeg(g, 'sammlerin');
+  ok(id() === 'antippen', 'Nach dem Weg: antippen, ist ' + id());
+  ok(g.run('pathMode') === false, 'Pfadmodus muss enden, sonst täte Antippen nichts');
+  einstiegTick(g, 4);
+  ok(g.run('tutorialPlan().wait') === true, 'Während des Baus soll er warten');
+  g.run('for (let i = 0; i < 70; i++) update(1);');
+  einstiegTick(g, 4);
+  ok(g.run('tutorialPlan().tap') === true, 'Fertig: antippen zeigen');
+  g.run(`emit('tapped', state.buildings[tutorialBuildingIndex('sammlerin')])`);
+  ok(id() === 'holzsammler', 'Nach Antippen: Holzsammler, ist ' + id());
+  einstiegTick(g, 4);
+  einstiegBau(g, 'holzsammler');
+  einstiegTick(g, 4);
+  if (id() === 'holzsammler') {
+    ok(g.run(`tutorialPlan().kind`) === 'road', 'Holzsammler ohne Weg: Er soll den Weg zeigen');
+    einstiegWeg(g, 'holzsammler');
   }
-  ok(g.run('tutorialStep().id') === 'antippen', 'Nach Sammlerin und Weg: antippen, ist ' + g.run('tutorialStep().id'));
-  g.run('for (let i = 0; i < 46; i++) update(1); emit("tapped", state.buildings[5]);');
-  ok(g.run('tutorialStep().id') === 'holzsammler', 'Nach Antippen: Holzsammler');
-  g.run(`beginBuild('holzsammler'); confirmGhost();`);
-  g.run('liftBuilding(5); cancelGhost();');
-  ok(g.run('tutorialStep().id') === 'wohnhoehle', 'Nach Hochheben: Wohnhöhle, ist ' + g.run('tutorialStep().id'));
-  g.run('for (let i = 0; i < 46; i++) update(1);');
-  g.run(`beginBuild('wohnhoehle'); confirmGhost();`);
-  ok(g.run('tutorialStep().id') === 'forschung', 'Forschung erwartet');
+  ok(id() === 'hochheben', 'Danach: hochheben, ist ' + id());
+  g.run('liftBuilding(5);');
+  ok(id() === 'wohnhoehle', 'Nach Hochheben: Wohnhöhle, ist ' + id());
+  einstiegTick(g, 4);
+  ok(g.run(`tutorialPlan().say.text`).includes('abstellen'), 'Hochgehoben: erst abstellen');
+  g.run('cancelGhost(); for (let i = 0; i < 70; i++) update(1);');
+  einstiegTick(g, 4);
+  einstiegBau(g, 'wohnhoehle');
+  einstiegTick(g, 4);
+  if (id() === 'wohnhoehle') einstiegWeg(g, 'wohnhoehle');
+  ok(id() === 'forschung', 'Forschung erwartet, ist ' + id());
+  einstiegTick(g, 4);
+  g.run('for (let i = 0; i < 70; i++) update(1);');
+  einstiegTick(g, 4);
+  einstiegBau(g, 'hoehlenmaler');
+  einstiegTick(g, 4);
+  if (g.run(`tutorialPlan().kind`) === 'road') einstiegWeg(g, 'hoehlenmaler');
+  einstiegTick(g, 4);
+  ok(g.run(`tutorialPlan().ui`) === 'btn-research', 'Mit Höhlenmaler: zur Forschung');
   g.run(`startResearch('feuer_hueten')`);
-  ok(g.run('tutorialStep().id') === 'auftraege', 'Aufträge erwartet');
+  ok(id() === 'auftraege', 'Aufträge erwartet, ist ' + id());
   g.run('openQuests(); closePage();');
-  ok(g.run('tutorialStep().id') === 'fertig', 'Ende erwartet');
-  g.run('advanceTutorial()');
+  ok(id() === 'fertig', 'Ende erwartet, ist ' + id());
+  einstiegTick(g, 8);   // Abschluss schließt sich von selbst
   ok(g.run('state.tutorial') === -1, 'Einstieg nicht beendet');
-  g.run('restartTutorial(); skipTutorial();');
-  ok(g.run('state.tutorial') === -1, 'Überspringen ging nicht');
+}
+
+test('Einstieg: ganz durchspielbar, Pfeil-Ziele sind freie Bauplätze, Rückmeldung und Ende', () => {
+  const g = fresh();
+  einstiegDurch(g);
+  noErrors(g);
+});
+
+test('Einstieg: Überspringen geht jederzeit und bleibt auch nach dem Laden', () => {
+  const g = fresh();
+  for (const i of [0, 1, 4, 7, 8]) {
+    g.run(`state.tutorial = ${i}; renderTutorial(); skipTutorial();`);
+    ok(g.run('state.tutorial') === -1 && !g.run('tutorialStep()'), 'Überspringen ging nicht bei Schritt ' + i);
+  }
+  g.run('loadFromText(JSON.stringify(state)); renderTutorial();');
+  ok(g.run('state.tutorial') === -1, 'Nach dem Laden läuft der Einstieg wieder');
+  ok(g.run(`document.getElementById('guide').classList.contains('hidden')`), 'Der Älteste bleibt nach dem Überspringen sichtbar');
+  noErrors(g);
+});
+
+test('Einstieg: Belohnungen kommen nur einmal, auch nach Neuladen und neuem Einstieg', () => {
+  const g = fresh();
+  const summe = () => g.run(`JSON.stringify(TUTORIAL.reduce((a, s) => { for (const o of [s.belohnung, s.bauBelohnung]) for (const [k, n] of Object.entries(o || {})) a[k] = (a[k] || 0) + n; return a; }, {}))`);
+  const liste = JSON.parse(summe());
+  ok(Object.values(liste).every(n => n <= 30), 'Belohnungen zu groß: ' + summe());
+  // eine Belohnung direkt: wird gutgeschrieben, zweites Mal nicht
+  g.run(`state.tutorial = 1; state.res.nahrung = 0; state.tutorialRewards = {}; renderTutorial();`);
+  g.run(`beginBuild('sammlerin'); confirmGhost();`);
+  const nachher = g.run('state.res.nahrung');
+  ok(nachher === g.run('TUTORIAL[1].belohnung.nahrung'), 'Sammlerin-Belohnung fehlt: ' + nachher);
+  const text = g.run('JSON.stringify(sanitizeState(JSON.parse(JSON.stringify(state))).tutorialRewards)');
+  ok(JSON.parse(text).sammlerin === true, 'Merker geht beim Speichern verloren: ' + text);
+  g.run(`state.tutorial = 1; renderTutorial(); advanceTutorial(); restartTutorial(); state.tutorial = 1; advanceTutorial();`);
+  ok(g.run('state.res.nahrung') === nachher, 'Belohnung doppelt: ' + g.run('state.res.nahrung'));
+  // ganzer Durchlauf bringt Waren; zweiter Durchlauf (Menü: Einstieg neu starten) nichts mehr
+  const h = fresh();
+  einstiegDurch(h);
+  const gotAll = h.run('JSON.stringify(state.tutorialRewards)');
+  for (const key of ['sammlerin', 'holzsammler', 'forschung_bau', 'fertig']) ok(JSON.parse(gotAll)[key], key + ' fehlt: ' + gotAll);
+  h.run('state.res.wissen = 3; restartTutorial(); for (let i = 0; i < 30; i++) tutorialTick(0.6);');
+  h.run('while (tutorialStep() && tutorialStep().id !== "fertig") advanceTutorial(); for (let i = 0; i < 10; i++) tutorialTick(0.6);');
+  ok(h.run('state.res.wissen') < 10, 'Erneuter Einstieg zahlt doppelt: ' + h.run('state.res.wissen'));
+  noErrors(g); noErrors(h);
+});
+
+test('Einstieg: alte Spielstände mitten im Einstieg laden und bleiben nicht hängen', () => {
+  const ids = ['willkommen', 'sammlerin', 'pfad', 'antippen', 'holzsammler', 'hochheben', 'wohnhoehle', 'forschung', 'auftraege', 'fertig'];
+  const g0 = fresh();
+  ok(JSON.stringify(g0.run('TUTORIAL.map(s => s.id)')) === JSON.stringify(ids) || g0.run('TUTORIAL.map(s => s.id).join()') === ids.join(), 'Schritt-IDs oder Reihenfolge geändert');
+  for (let i = 0; i < ids.length; i++) {
+    const g = fresh();
+    // alter Stand: kein tutorialRewards-Feld, Index mitten in der Liste, nur das Startlager
+    g.run(`(() => { const old = JSON.parse(JSON.stringify(state)); delete old.tutorialRewards; old.tutorial = ${i}; loadFromText(JSON.stringify(old)); renderTutorial(); })()`);
+    ok(g.run('state.tutorial') === i, `Index ${i} wurde zu ${g.run('state.tutorial')}`);
+    ok(g.run('Object.keys(state.tutorialRewards).length') === (g.run(`TUTORIAL.slice(0, ${i}).length`)), `Stand ${i}: abgehakte Belohnungen falsch`);
+    g.run('state.res.holz = 300; state.res.stein = 300; state.res.wissen = 100; for (let k = 0; k < 12; k++) tutorialTick(0.6); drawScene(0.1);');
+    // Wer zuvor die Sammlerin nicht hat, wird zurückgeführt statt hängen zu bleiben
+    const now = g.run('(tutorialStep() || {}).id');
+    if (ids[i] === 'pfad' || ids[i] === 'antippen') ok(now === 'sammlerin', `Stand ${ids[i]} ohne Sammlerin bleibt hängen: ${now}`);
+    noErrors(g);
+  }
+  // unsinnige Indizes: gilt als fertig
+  for (const bad of [10, 99, -5]) {
+    const g = fresh();
+    g.run(`(() => { const old = JSON.parse(JSON.stringify(state)); old.tutorial = ${bad}; loadFromText(JSON.stringify(old)); renderTutorial(); })()`);
+    ok(g.run('state.tutorial') === -1, `Index ${bad} nicht abgefangen: ${g.run('state.tutorial')}`);
+    noErrors(g);
+  }
+  // alter Stand, der fertig ist: keine Belohnung bei „Einstieg neu starten“
+  const g = fresh();
+  g.run(`(() => { const old = JSON.parse(JSON.stringify(state)); delete old.tutorialRewards; old.tutorial = -1; loadFromText(JSON.stringify(old)); state.res.nahrung = 7; restartTutorial(); state.tutorial = 1; advanceTutorial(); })()`);
+  ok(g.run('state.res.nahrung') === 7, 'Alter fertiger Stand bekommt Belohnung nachgezahlt');
+  noErrors(g);
+});
+
+test('Einstieg: Vorschlag ist nicht bindend, Älteste-Hinweise nutzen danach das alte Fenster', () => {
+  const g = fresh();
+  g.run('state.tutorial = 1; renderTutorial(); for (let i = 0; i < 4; i++) tutorialTick(0.6);');
+  const spot = g.run(`(() => { const p = tutorialPlan(); return [p.x, p.y]; })()`);
+  // woanders bauen: Schritt gilt trotzdem
+  g.run(`(() => { for (let y = ${spot[1]} - 9; y < ${spot[1]} + 9; y++) for (let x = ${spot[0]} - 9; x < ${spot[0]} + 9; x++) if ((Math.abs(x - ${spot[0]}) > 3 || Math.abs(y - ${spot[1]}) > 3) && !placeProblem('sammlerin', x, y)) { placeBuilding('sammlerin', x, y); return; } })()`);
+  ok(g.run('tutorialStep().id') !== 'sammlerin', 'Bauen abseits des Vorschlags zählt nicht');
+  // Im Einstieg gibt es kein altes Fenster, danach schon
+  g.run('state.tutorial = 2; renderTutorial();');
+  ok(g.run(`document.getElementById('tutorial').classList.contains('hidden')`), 'Altes Fenster steht im Einstieg offen');
+  g.run(`skipTutorial(); elderHint = 'Test'; renderTutorial();`);
+  ok(!g.run(`document.getElementById('tutorial').classList.contains('hidden')`), 'Hinweis nach dem Einstieg zeigt das alte Fenster nicht');
+  ok(g.run(`document.getElementById('guide').classList.contains('hidden')`), 'Der mitlaufende Älteste bleibt nach dem Ende sichtbar');
   noErrors(g);
 });
 

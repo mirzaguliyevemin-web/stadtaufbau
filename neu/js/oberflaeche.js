@@ -279,8 +279,8 @@ function setBarCategory(id) {
 function renderBuildBar() {
   if (barDrag) return;   // nicht neu aufbauen, solange ein Finger auf der Leiste liegt
   // Im Einstieg zeigt die Leiste die Kategorie, in der das gesuchte Gebäude steht
-  const step = typeof tutorialStep === 'function' ? tutorialStep() : null;
-  if (step && step.target && step.target.startsWith('bar:') && BUILDINGS[step.target.slice(4)]) barCategory = categoryOf(step.target.slice(4));
+  const wanted = typeof tutorialBarType === 'function' ? tutorialBarType() : null;
+  if (wanted && BUILDINGS[wanted]) barCategory = categoryOf(wanted);
   const entries = barEntries();
   const fresh = new Set(entries.filter(({ type, locked }) => !locked && BUILDINGS[type].requires && !(state.seen || {})[type]).map(e => categoryOf(e.type)));
   const tabs = BAR_CATEGORIES.filter(c => entries.some(e => categoryOf(e.type) === c.id)).map(c =>

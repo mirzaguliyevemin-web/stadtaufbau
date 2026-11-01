@@ -1,37 +1,111 @@
-Epochia – Winterbilder der Rückansichten (für Emin, 01.11.2026)
-=================================================================
+Epochia – fehlende Bilder: Rückansichten und Winter-Rückansichten (01.11.2026)
+==============================================================================
 
-Claude macht parallel die noch fehlenden Rückansichten in Canva. Diese Liste hier sind die WINTER-Versionen der
-Rückansichten, die es schon gibt – die kannst du selbst erzeugen.
+Bei jedem Bild: die Vorlage als Referenzbild hochladen, dann den Prompt einfügen.
+Fertiges Bild als PNG in bilder/epochia/ legen, am besten mit dem Namen aus „Speichern als“.
+Wichtig bei Rückansichten: Es muss wirklich die RÜCKSEITE sein, nicht nur ein Spiegelbild
+(gespiegelt kann das Spiel selbst).
 
-So geht's (je Bild):
-1. Als Vorlage hochladen: die Datei aus bilder/epochia/quelle/ (Spalte „Vorlage“).
-2. Prompt unten einfügen (immer derselbe).
-3. Fertiges Bild als PNG mit dem Namen aus Spalte „Speichern als“ in bilder/epochia/ legen.
-   (Name ist wichtig, sonst finde ich nicht, wohin es gehört. Falls anders benannt: kurz sagen.)
+Vorlagen liegen in bilder/epochia/quelle/ (PNG) bzw. bilder/epochia/ (WEBP).
 
-PROMPT (für alle gleich):
----------------------------------------------------------------------------------
-The exact same building on the same diamond-shaped grass plate, identical shape, size, position, camera angle
-and art style as the reference image – only change the season to WINTER: a soft layer of fresh white snow on
-the roofs, the ground and the plate, small icicles, bare or snow-covered plants, a light cold blue tint.
-Do not move, add or remove any objects. Plain pure white background, no text.
----------------------------------------------------------------------------------
 
-Vorlage (bilder/epochia/quelle/)      Speichern als
-1-wohnhoehle-r2.png  (falls fehlt: bilder/epochia/1-wohnhoehle-r2.webp)  → 1-wohnhoehle-r2-winter.png
-1-fellzelt-r2.png                     → 1-fellzelt-r2-winter.png
-1-grubenhaus-r2.png                   → 1-grubenhaus-r2-winter.png
-1-langhaus-r2.png                     → 1-langhaus-r2-winter.png
-1-sammlerin-r2.png                    → 1-sammlerin-r2-winter.png
-1-jaegerlager-r2.png                  → 1-jaegerlager-r2-winter.png
-1-mammutjaegerlager-r2.png            → 1-mammutjaegerlager-r2-winter.png
-1-holzsammler-r2.png                  → 1-holzsammler-r2-winter.png
-1-steinsammler-r2.png                 → 1-steinsammler-r2-winter.png
-1-hoehlenmaler-r2.png                 → 1-hoehlenmaler-r2-winter.png
-1-feuerplatz-r2.png                   → 1-feuerplatz-r2-winter.png
-1-acker-r2.png                        → 1-acker-r2-winter.png
+TEIL A – RÜCKANSICHTEN (9 Bilder)
+---------------------------------
 
-Die Rückansichten, die Claude heute noch erzeugt (Ziegengehege, Fellmacherin, Steinschläger, Ahnenplatz, Töpferei,
-Vorratsspeicher, Steinkreis, Lagerfeuer, Pflanzerin), kommen danach auf dieselbe Weise dazu – ich ergänze sie hier,
-sobald sie fertig sind.
+A1  Ziegengehege – Vorlage: 1-ziegengehege.png – Speichern als: 1-ziegengehege-r2.png
+Back view of the exact same goat pen from the reference image, same art style, colors, goats, wooden fence and
+isometric camera angle, but seen from the opposite side (the camera walked around it by 180 degrees). The
+straw-roofed shelter with its stone base now stands at the FRONT-LEFT corner of the pen (lower left of the image)
+and we see its closed back wall and the back of the roof. The water trough is now at the back-right. Three goats
+inside the pen. Same diamond-shaped grass plate, same size and position. Plain pure white background, no text.
+
+A2  Fellmacherin – Vorlage: 1-fellmacherin.png – Speichern als: 1-fellmacherin-r2.png
+Back view of the exact same stone-age hide workshop from the reference image, same art style, colors and isometric
+camera angle, but seen from the opposite side (camera walked around 180 degrees). The fur-covered tent now stands at
+the FRONT of the plate (lower part of the image) and we see its closed back side without the entrance. The two
+wooden stretching frames with hides, the drying line with furs and the stone work slab are now behind the tent at
+the back of the plate. Same diamond-shaped grass plate, same size and position. Plain pure white background, no text.
+
+A3  Steinschläger – Vorlage: 1-steinschlaeger.png – Speichern als: 1-steinschlaeger-r2.png
+Back view of the exact same stone-age flint knapper workshop from the reference image, same art style, colors and
+isometric camera angle, but seen from the opposite side (camera walked around 180 degrees). The open shelter with
+the patchwork hide roof now stands at the FRONT of the plate (lower part of the image), seen from behind. The big
+flat work stone with the flint tools, the basket of stones and the wooden stump are now at the back of the plate.
+Same diamond-shaped grass plate, same size and position. Plain pure white background, no text.
+
+A4  Ahnenplatz – Vorlage: 1-ahnenplatz.png – Speichern als: 1-ahnenplatz-r2.png
+Back view of the exact same stone-age ancestor shrine from the reference image, same art style, colors and isometric
+camera angle, but seen from the opposite side (camera walked around 180 degrees). The tall carved wooden totem
+figures with the antler crown now stand at the FRONT of the plate (lower part of the image) and we see their carved
+BACKS, not their faces. The small fire bowl, standing stones and offering baskets are now behind them. Same
+diamond-shaped grass plate, same size and position. Plain pure white background, no text.
+
+A5  Töpferei – Vorlage: 1-toepferei.png – Speichern als: 1-toepferei-r2.png
+Back view of the exact same stone-age pottery from the reference image, same art style, colors and isometric camera
+angle, but seen from the opposite side (camera walked around 180 degrees). The dome-shaped clay kiln with smoke now
+stands at the FRONT-LEFT (lower left of the image), the straw-roofed open workshop is behind it and we see the back
+of its shelves. The pots and bowls on the ground are now at the back. Same diamond-shaped grass plate, same size
+and position. Plain pure white background, no text.
+
+A6  Vorratsspeicher – Vorlage: 1-vorratsspeicher.png – Speichern als: 1-vorratsspeicher-r2.png
+Back view of the exact same stone-age storage hut on stilts from the reference image, same art style, colors and
+isometric camera angle, but seen from the opposite side (camera walked around 180 degrees). We see the closed back
+wall of the stilt hut and the back of the straw roof; the wooden ladder and door are now hidden on the far side.
+The clay jars, baskets and sacks are now at the back of the plate. Same diamond-shaped grass plate, same size and
+position. Plain pure white background, no text.
+
+A7  Steinkreis – Vorlage: 1-steinkreis.png – Speichern als: 1-steinkreis-r2.png
+Back view of the exact same stone circle from the reference image, same art style, colors and isometric camera
+angle, but seen from the opposite side (camera walked around 180 degrees). The two small round thatched huts now
+stand at the FRONT corners on the opposite sides, the wooden fence is now at the back. The big ring of standing
+stones with lintels and the small fire in the middle stay in the center. Same diamond-shaped grass plate, same size
+and position. Plain pure white background, no text.
+
+A8  Lagerfeuer – Vorlage: 1-lagerfeuer.png – Speichern als: 1-lagerfeuer-r2.png
+Back view of the exact same stone-age campfire place from the reference image, same art style, colors and isometric
+camera angle, but seen from the opposite side (camera walked around 180 degrees). The campfire with the stone ring
+stays in the middle. The wooden drying rack with hanging furs and the painted standing stone with the baskets are now
+at the FRONT of the plate (lower part of the image), seen from behind. The log seats and the fur are now at the back.
+Same diamond-shaped plate with the stone edge, same size and position. Plain pure white background, no text.
+
+A9  Pflanzerin – Vorlage: 1-pflanzerin.png – Speichern als: 1-pflanzerin-r2.png
+Back view of the exact same stone-age tree nursery from the reference image, same art style, colors and isometric
+camera angle, but seen from the opposite side (camera walked around 180 degrees). The leaf-roofed lean-to shelter with
+the seed baskets now stands at the FRONT-RIGHT (lower right of the image), seen from behind. The rows of young
+seedlings in the soil beds are now at the back. Same diamond-shaped plate with the stone edge, same size and
+position. Plain pure white background, no text.
+
+
+TEIL B – WINTERBILDER DER RÜCKANSICHTEN (21 Bilder)
+---------------------------------------------------
+
+Für ALLE Bilder in Teil B derselbe Prompt:
+
+The exact same building on the same diamond-shaped grass plate, identical shape, size, position, camera angle and
+art style as the reference image – only change the season to WINTER: a soft layer of fresh white snow on the roofs,
+the ground and the plate, small icicles, bare or snow-covered plants, a light cold blue tint. Do not move, add or
+remove any objects. Plain pure white background, no text.
+
+Vorlage                         → Speichern als
+1-wohnhoehle-r2                 → 1-wohnhoehle-r2-winter.png
+1-fellzelt-r2                   → 1-fellzelt-r2-winter.png
+1-grubenhaus-r2                 → 1-grubenhaus-r2-winter.png
+1-langhaus-r2                   → 1-langhaus-r2-winter.png
+1-sammlerin-r2                  → 1-sammlerin-r2-winter.png
+1-jaegerlager-r2                → 1-jaegerlager-r2-winter.png
+1-mammutjaegerlager-r2          → 1-mammutjaegerlager-r2-winter.png
+1-holzsammler-r2                → 1-holzsammler-r2-winter.png
+1-steinsammler-r2               → 1-steinsammler-r2-winter.png
+1-hoehlenmaler-r2               → 1-hoehlenmaler-r2-winter.png
+1-feuerplatz-r2                 → 1-feuerplatz-r2-winter.png
+1-acker-r2                      → 1-acker-r2-winter.png
+und danach die 9 neuen aus Teil A:
+1-ziegengehege-r2               → 1-ziegengehege-r2-winter.png
+1-fellmacherin-r2               → 1-fellmacherin-r2-winter.png
+1-steinschlaeger-r2             → 1-steinschlaeger-r2-winter.png
+1-ahnenplatz-r2                 → 1-ahnenplatz-r2-winter.png
+1-toepferei-r2                  → 1-toepferei-r2-winter.png
+1-vorratsspeicher-r2            → 1-vorratsspeicher-r2-winter.png
+1-steinkreis-r2                 → 1-steinkreis-r2-winter.png
+1-lagerfeuer-r2                 → 1-lagerfeuer-r2-winter.png
+1-pflanzerin-r2                 → 1-pflanzerin-r2-winter.png

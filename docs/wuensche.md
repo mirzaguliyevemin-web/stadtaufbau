@@ -16,11 +16,12 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Gebäude 4× drehen (Emin, 31.10.): noch offen Rückansichten für Vorratsspeicher, Steinkreis, Lagerfeuer, Pflanzerin – danach Winterbilder aller Rückansichten (Canva-Pause auf Emins Wunsch).
+- Gebäude 4× drehen (Emin, 31.10.): noch offen Rückansicht Pflanzerin – danach Winterbilder aller Rückansichten (Canva-Pause auf Emins Wunsch).
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-01, Epochia Version 47 – Fehler von Emin: Waren blieben bei 199 von 200 hängen (Verbrauch nahm nach dem Auffüllen gleich wieder etwas weg), Forschungen für 200 waren nie bezahlbar – volles Lager mit Überschuss bleibt jetzt bei 200. Rückansichten (Canva) für Vorratsspeicher, Steinkreis, Lagerfeuer.
 - 2026-11-01, Epochia Version 46 – Fehler von Emin: Fischer hielt den Speer waagrecht wie ein Gewehr – jetzt sticht er steil von oben ins Wasser (mit Steinspitze). Fischerplatz, Tongrube und Pfahlbau stehen halb im Fluss ohne Erdsockel, das Wasser im Bild geht in den Fluss über (alte Gebäude bleiben, wo sie sind). Rückansichten (Canva) für Ziegengehege, Fellmacherin, Steinschläger, Ahnenplatz, Töpferei.
 - 2026-11-01, Epochia Version 45 – Letzte drei Arbeiterbilder (Canva): Bäuerin mit Grabstock unten (Acker gräbt jetzt im Wechsel), Hirte mit Hirtenstab am Ziegengehege, Pflanzerin kniet beim Setzen; Rückansicht Acker.
 - 2026-10-31, Epochia Version 44 – Balancing nach Emins Entscheidung: Forschungszeiten halbiert (dafür 50 % mehr Waren), neue Waren-Bedürfnisse mit 10 Min. Schonfrist + 20 Startvorrat, Fellmacherin/Töpferei +25 %, Hunger senkt Laune und lässt Einwohner wegziehen (nie unter 3), 9 neue Aufträge bis 120 Einwohner, Mammutjagd bringt 150 Nahrung, 15 Felle, 10 Wissen.

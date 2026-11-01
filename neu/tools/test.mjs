@@ -774,6 +774,20 @@ test('Wissen: eigener Speicher (2 × teuerste Forschung des Zeitalters), jede Fo
   noErrors(g);
 });
 
+test('Volles Lager mit Überschuss bleibt bei 200 (nicht ewig 199) – Forschung für 200 bezahlbar', () => {
+  const g = fresh();
+  const r = g.run(`(() => { const cap = storageCap(); state.res.nahrung = cap - 0.3; state.pop = 10;
+    for (let k = 0; k < 3; k++) { const f = findFreeSpot('sammlerin', state.buildings[0].x, state.buildings[0].y); addBuilding('sammlerin', f.x, f.y, 0, true); }
+    isConnected = () => true; recalcStats();   // Wege sind hier egal
+    for (let k = 0; k < 60; k++) updateProduction(0.25);
+    const full = state.res.nahrung;
+    state.pop = 400; for (let k = 0; k < 8; k++) updateProduction(0.25);   // zu viele Esser: Lager muss sinken
+    return { have: full, cap, drop: state.res.nahrung }; })()`);
+  ok(r.have >= r.cap - 1e-9, 'Lager bleibt unter voll: ' + JSON.stringify(r));
+  ok(r.drop < r.cap - 1, 'Bei zu wenig Nahrung bleibt das Lager trotzdem voll: ' + JSON.stringify(r));
+  noErrors(g);
+});
+
 test('Arbeiter laufen nie übers Wasser (Wegsuche über Land und Brücken)', () => {
   const g = fresh();
   const r = g.run(`(() => { state.res.holz = 999; state.res.stein = 999; state.pop = 30;

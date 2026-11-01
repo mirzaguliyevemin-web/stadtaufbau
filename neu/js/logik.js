@@ -638,6 +638,8 @@ function updateProductionStep(dt) {
   const flows = {};
   const flow = (id, dir, who, n) => { const f = (flows[id] ||= { in: {}, out: {} }); f[dir][who] = (f[dir][who] || 0) + n; };
   const inputShare = [];   // je Gebäude: welcher Anteil läuft trotz Rohstoffmangel (1 = alles da)
+  const throttled = new Set();   // Waren, deren Herstellung wegen vollem Lager gebremst wurde
+  const potential = {};          // je Ware: was alle Gebäude ohne Lagergrenze je Minute herstellen könnten
   state.buildings.forEach((b, i) => {
     const def = BUILDINGS[b.type];
     if (b.build || !def.produces) return;
@@ -650,6 +652,7 @@ function updateProductionStep(dt) {
       const amount = n * dt / 60;
       if (amount > 0) room = Math.max(room, Math.max(0, capOf(id) - (state.res[id] || 0)) / amount);
     }
+    for (const [id, n] of Object.entries(def.produces)) { potential[id] = (potential[id] || 0) + n * f; if (room < f) throttled.add(id); }   // könnte mehr – Lager ist voll
     f = Math.min(f, room);
     if (f <= 0) return;
     if (def.consumes) {
@@ -682,6 +685,14 @@ function updateProductionStep(dt) {
     state.res[n.id] = Math.max(0, (state.res[n.id] || 0) - use * dt / 60);
     rates[n.id] = (rates[n.id] || 0) - use;
     flow(n.id, 'out', '__pop', use);
+  }
+  // Volles Lager bleibt wirklich voll: Die Herstellung füllt bis 200 auf, der Verbrauch danach nimmt gleich wieder
+  // etwas weg – die Anzeige blieb ewig bei 199 und Forschungen für 200 waren nie bezahlbar. Wer mehr herstellen
+  // könnte, als ins Lager passt, deckt diesen Verbrauch locker – also bleibt das Lager voll.
+  for (const id of throttled) {
+    if (RESOURCES[id].knowledge) continue;
+    const used = Object.values((flows[id] || { out: {} }).out).reduce((a, n) => a + n, 0);
+    if (potential[id] > used) state.res[id] = Math.max(state.res[id] || 0, capOf(id));
   }
   stats.rates = rates;
   stats.flows = flows;

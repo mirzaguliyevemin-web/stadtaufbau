@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 46;
+const APP_VERSION = 47;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -164,7 +164,7 @@ const TERRAIN_BY_ID = Object.values(TERRAIN).sort((a, b) => a.id - b.id);
 // Gebäude-IDs nie umbenennen oder löschen (stehen in Spielständen).
 const BUILDINGS = {
   lagerfeuer: {
-    name: 'Lagerfeuer', icon: '🔥', size: 3, line: 'mitte', tier: 0, stage: 'alt', bild: '1-lagerfeuer',
+    name: 'Lagerfeuer', icon: '🔥', size: 3, line: 'mitte', tier: 0, stage: 'alt', bild: '1-lagerfeuer', views: ['r2'],
     color: '#c9733a', buildable: false, storage: CONFIG.baseStorage, warmth: 7,
     info: 'Mittelpunkt des Lagers: Hier liegen alle Vorräte, das Feuer wärmt die Wohnungen im Umkreis.',
   },
@@ -279,12 +279,12 @@ const BUILDINGS = {
     requires: 'toepfern', info: 'Formt und brennt aus 2 Ton und 1 Holz 1 Töpferware.',
   },
   vorratsspeicher: {
-    name: 'Vorratsspeicher', icon: '🛖', size: 3, line: 'lager', tier: 0, stage: 'jung', bild: '1-vorratsspeicher',
+    name: 'Vorratsspeicher', icon: '🛖', size: 3, line: 'lager', tier: 0, stage: 'jung', bild: '1-vorratsspeicher', views: ['r2'],
     color: '#b09060', cost: { holz: 80, stein: 40 }, time: 120, storage: 150, requires: 'vorratshaltung',
     info: 'Mehr Lagerplatz für alle Waren.',
   },
   steinkreis: {
-    name: 'Steinkreis', icon: '🪨', size: 4, line: 'wahrzeichen', tier: 0, stage: 'jung', bild: '1-steinkreis',
+    name: 'Steinkreis', icon: '🪨', size: 4, line: 'wahrzeichen', tier: 0, stage: 'jung', bild: '1-steinkreis', views: ['r2'],
     color: '#9a9a9a', cost: { stein: 200, holz: 100, werkzeug: 20 }, time: 300, belief: 14, warmth: 14,
     requires: 'sternenkunde', info: 'Wahrzeichen der Steinzeit: Glaube und Wärme im großen Umkreis. Nötig für den Aufbruch.',
   },

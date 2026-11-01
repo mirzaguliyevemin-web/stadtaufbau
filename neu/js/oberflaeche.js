@@ -747,7 +747,7 @@ function showPlotDialog(p) {
   if (!canBuyPlot(p)) { toast('Dieses Land liegt zu weit weg – kaufe erst das Land daneben'); return; }
   const price = plotPrice();
   openDialog(`<h2>🛒 Land kaufen</h2>
-    <p>Ein neues Stück Land (${CONFIG.plotSize}×${CONFIG.plotSize} Felder) für dein Lager.</p>
+    <p>Ein neues Stück Land (${CONFIG.plotSize}×${CONFIG.plotSize} Felder) für dein Lager. Was unter den Wolken liegt, siehst du nach dem Kauf.</p>
     <p>${costHtml(price)}</p>
     <div class="buttons"><button class="btn primary" ${canAfford(price) ? '' : 'disabled'} onclick="doBuyPlot(${p})">Kaufen</button>
     <button class="btn" onclick="closeDialog()">Später</button></div>

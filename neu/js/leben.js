@@ -76,10 +76,11 @@ function spawnAnimal(kind, x, y, extra = {}) {
   life.animals.push({ kind, x: x + 0.5, y: y + 0.5, tx: x + 0.5, ty: y + 0.5, wait: lifeRandom() * 4, face: 1, ph: lifeRandom() * 9, ...extra });
 }
 
+// Tiere bleiben auf eigenem Land: Unter den Wolken sähe man sie nicht (und könnte die Mammuts nicht antippen)
 function randomFreeTile(cx, cy, r, minDist = 0) {
   for (let i = 0; i < 40; i++) {
     const x = Math.round(cx + (lifeRandom() * 2 - 1) * r), y = Math.round(cy + (lifeRandom() * 2 - 1) * r);
-    if (Math.hypot(x - cx, y - cy) >= minDist && animalFree(x, y)) return [x, y];
+    if (Math.hypot(x - cx, y - cy) >= minDist && animalFree(x, y) && isOwned(x, y)) return [x, y];
   }
   return null;
 }
@@ -97,7 +98,7 @@ function updateAnimals(dt) {
   if (herdPresent() && !life.animals.some(a => a.kind === 'mammut') && life.herdTimer <= 0) {
     // nur dort, wo die Jäger zu Fuß hinkommen (nicht auf der anderen Flussseite ohne Brücke)
     let p = null;
-    for (let i = 0; i < 6 && !p; i++) { const q = randomFreeTile(cx, cy, 26, 14); if (q && walkRoute(cx, cy, q[0] + 0.5, q[1] + 0.5)) p = q; }
+    for (let i = 0; i < 6 && !p; i++) { const q = randomFreeTile(cx, cy, 26, i < 3 ? 14 : 9); if (q && isOwned(q[0] + 1, q[1]) && isOwned(q[0], q[1] + 1) && walkRoute(cx, cy, q[0] + 0.5, q[1] + 0.5)) p = q; }
     if (p) for (let i = 0; i < 3; i++) spawnAnimal('mammut', p[0] + (i % 2), p[1] + Math.floor(i / 2), { home: p, herd: i });
     life.herdTimer = 20;
   }
@@ -141,7 +142,7 @@ function updateAnimals(dt) {
     }
     const step = Math.min(dist, speed * dt);
     const nx = a.x + dx / dist * step, ny = a.y + dy / dist * step;
-    if (!animalFree(Math.floor(nx), Math.floor(ny))) { a.tx = a.x; a.ty = a.y; continue; }   // Hindernis (auch auf der Flucht, z. B. Wasser): stehen bleiben
+    if (!animalFree(Math.floor(nx), Math.floor(ny)) || (!a.flee && !isOwned(Math.floor(nx), Math.floor(ny)))) { a.tx = a.x; a.ty = a.y; continue; }   // Hindernis (auch auf der Flucht, z. B. Wasser): stehen bleiben
     a.x = nx; a.y = ny;
     const sx = dx - dy;
     if (Math.abs(sx) > 0.01) a.face = sx > 0 ? -1 : 1;
@@ -210,7 +211,7 @@ function hunterObjects(inView, t) {
 function mammothAtScreen(sx, sy) {
   const z = cam.zoom;
   for (const a of life.animals) {
-    if (a.kind !== 'mammut' || a.flee) continue;
+    if (a.kind !== 'mammut' || a.flee || !isOwned(Math.floor(a.x), Math.floor(a.y))) continue;
     const p = tileToScreen(a.x, a.y);
     if (Math.abs(sx - p.x) <= 34 * z && sy <= p.y + 8 * z && sy >= p.y - 60 * z) return a;
   }
@@ -324,7 +325,8 @@ function workSpot(b, kind, far, k = 0) {
   for (let y = Math.floor(cy - max); y <= cy + max; y++)
     for (let x = Math.floor(cx - max); x <= cx + max; x++) {
       if (!inMap(x, y) || !ids.includes(terrain[y * N + x])) continue;
-      const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + hash(x + b.x + k * 13, y - b.y + k * 7) * (far ? 4 : 2.5);   // nicht alle zum selben Baum
+      const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + hash(x + b.x + k * 13, y - b.y + k * 7) * (far ? 4 : 2.5)   // nicht alle zum selben Baum
+        + (isOwned(x, y) ? 0 : 40);   // lieber auf eigenem Land arbeiten – unter den Wolken sieht man niemanden
       if (d >= bestD) continue;
       for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
         if (!animalFree(x + dx, y + dy) && !isPathAt(x + dx, y + dy)) continue;
@@ -830,7 +832,7 @@ function addFelled(x, y, kind) {
 function felledObjects(dt) {
   for (const f of life.felled) f.k += dt / 0.9;
   life.felled = life.felled.filter(f => f.k < 1);
-  return life.felled.map(f => ({ d: f.x + f.y + 1, kind: 'leben', draw: () => {
+  return life.felled.filter(f => landMask[f.y * N + f.x] === 2).map(f => ({ d: f.x + f.y + 1, kind: 'leben', draw: () => {
     const e = f.k * f.k;   // erst langsam, dann schneller
     drawTerrainObject(f.x, f.y, f.kind, { k: f.k, rot: f.dir * e * 1.45, alpha: f.k < 0.7 ? 1 : 1 - (f.k - 0.7) / 0.3 });
     // Staubwölkchen beim Aufschlag
@@ -847,7 +849,8 @@ function felledObjects(dt) {
 // Alles, was auf dem Boden läuft, für die Tiefensortierung in drawScene
 function lifeObjects(range) {
   const out = [];
-  const inView = (x, y) => x >= range.x0 - 1 && x <= range.x1 + 1 && y >= range.y0 - 1 && y <= range.y1 + 1;
+  // Wer unter den Wolken ist, wird nicht gezeichnet (Jäger, Holzsammler am Rand, flüchtende Tiere)
+  const inView = (x, y) => x >= range.x0 - 1 && x <= range.x1 + 1 && y >= range.y0 - 1 && y <= range.y1 + 1 && landMask[Math.floor(y) * N + Math.floor(x)] === 2;
   const t = frameTime;
   out.push(...felledObjects(lifeDt));
   out.push(...hunterObjects(inView, t));
@@ -877,6 +880,7 @@ function lifeObjects(range) {
 
 function updateSky(dt, range) {
   const z = cam.zoom;
+  range = clipToLand(range);   // Fische und Schmetterlinge nur über eigenem Land
   // Vögel: ab und zu fliegt ein kleiner Schwarm quer über das Bild
   life.birdTimer -= dt;
   if (life.birdTimer <= 0) {
@@ -896,7 +900,7 @@ function updateSky(dt, range) {
     life.fishTimer = 1.5 + lifeRandom() * 2.5;
     for (let i = 0; i < 12; i++) {
       const x = range.x0 + Math.floor(lifeRandom() * (range.x1 - range.x0 + 1)), y = range.y0 + Math.floor(lifeRandom() * (range.y1 - range.y0 + 1));
-      if (inMap(x, y) && terrain[y * N + x] === TERRAIN.wasser.id) { life.jumps.push({ x: x + 0.5, y: y + 0.5, k: 0, face: lifeRandom() < 0.5 ? 1 : -1 }); break; }
+      if (inMap(x, y) && terrain[y * N + x] === TERRAIN.wasser.id && landMask[y * N + x] === 2) { life.jumps.push({ x: x + 0.5, y: y + 0.5, k: 0, face: lifeRandom() < 0.5 ? 1 : -1 }); break; }
     }
   }
   for (const j of life.jumps) j.k += dt / 1.1;
@@ -904,7 +908,7 @@ function updateSky(dt, range) {
   // Schmetterlinge: über Blumen im sichtbaren Bereich
   if (life.butterflies.length < 6) {
     const x = range.x0 + Math.floor(lifeRandom() * (range.x1 - range.x0 + 1)), y = range.y0 + Math.floor(lifeRandom() * (range.y1 - range.y0 + 1));
-    if (inMap(x, y) && terrain[y * N + x] === TERRAIN.gras.id && hash(x, y + 3) > 0.92 && !occ[y * N + x]) {
+    if (inMap(x, y) && terrain[y * N + x] === TERRAIN.gras.id && hash(x, y + 3) > 0.92 && !occ[y * N + x] && landMask[y * N + x] === 2) {
       const colors = ['#ffd84a', '#ff8ac0', '#8ecbff', '#ffffff', '#ffa94d'];
       life.butterflies.push({ x: x + 0.5, y: y + 0.5, ph: lifeRandom() * 9, c: colors[Math.floor(lifeRandom() * colors.length)], life: 20 + lifeRandom() * 20 });
     }

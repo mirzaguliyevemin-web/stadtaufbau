@@ -1,7 +1,10 @@
 // Epochia – automatische Tests. Aufruf: node neu/tools/test.mjs   (Code 1 bei Fehlschlag)
-import { loadGame } from './headless.mjs';
+import { loadGame as startGame } from './headless.mjs';
 import fs from 'node:fs';
 import { runBot } from './bot.mjs';
+
+// O = Verschiebung gegenüber der 128er-Karte: Feste Koordinaten in den Tests gelten so für jede Kartengröße
+function loadGame(opt) { const g = startGame(opt); g.run('var O = (N - 128) / 2;'); return g; }
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -31,7 +34,7 @@ test('Start: Lagerfeuer, zwei Wohnhöhlen, 6 Einwohner, Land in der Mitte', () =
   ok(g.run('state.buildings.every((b, i) => isConnected(i))'), 'Start-Wohnhöhlen ohne Weg');
   ok(g.run('state.pop') === 6, 'Einwohner');
   ok(g.run('stats.housing') === 6, 'Wohnplätze');
-  ok(g.run('isOwned(64, 64) && isOwned(48, 48) && isOwned(79, 79) && !isOwned(47, 64)'), 'Start-Land falsch');
+  ok(g.run('isOwned(64 + O, 64 + O) && isOwned(48 + O, 48 + O) && isOwned(79 + O, 79 + O) && !isOwned(47 + O, 64 + O)'), 'Start-Land falsch');
   ok(g.run('state.buildings.every(b => !placeProblem(b.type, b.x, b.y, state.buildings.indexOf(b)))'), 'Startgebäude stehen auf ungültigem Platz');
   noErrors(g);
 });
@@ -62,11 +65,11 @@ test('Zoomen am Finger: der Punkt unter dem Finger bleibt stehen', () => {
 test('Bauen: Baustelle, höchstens 2 gleichzeitig, wird fertig und produziert', () => {
   const g = fresh();
   g.run(`state.res.holz = 100; state.res.stein = 100;`);
-  const spot = g.run(`JSON.stringify(findFreeSpot('sammlerin', 64, 58))`);
-  const r1 = g.run(`const s1 = findFreeSpot('sammlerin', 64, 58); placeBuilding('sammlerin', s1.x, s1.y)`);
+  const spot = g.run(`JSON.stringify(findFreeSpot('sammlerin', 64 + O, 58 + O))`);
+  const r1 = g.run(`const s1 = findFreeSpot('sammlerin', 64 + O, 58 + O); placeBuilding('sammlerin', s1.x, s1.y)`);
   ok(r1 === null, 'Sammlerin nicht gebaut: ' + r1 + ' ' + spot);
-  g.run(`const s2 = findFreeSpot('holzsammler', 58, 58); placeBuilding('holzsammler', s2.x, s2.y)`);
-  const r3 = g.run(`const s3 = findFreeSpot('steinsammler', 70, 58); placeBuilding('steinsammler', s3.x, s3.y)`);
+  g.run(`const s2 = findFreeSpot('holzsammler', 58 + O, 58 + O); placeBuilding('holzsammler', s2.x, s2.y)`);
+  const r3 = g.run(`const s3 = findFreeSpot('steinsammler', 70 + O, 58 + O); placeBuilding('steinsammler', s3.x, s3.y)`);
   ok(r3 && r3.includes('Baustellen'), 'Dritte Baustelle müsste warten: ' + r3);
   ok(g.run(`state.res.holz`) === 90, 'Kosten nicht abgezogen');
   g.run('for (let i = 0; i < 46; i++) update(1)');
@@ -84,18 +87,18 @@ test('Bauen: Baustelle, höchstens 2 gleichzeitig, wird fertig und produziert', 
 
 test('Bauplatz: nicht im Wasser, nicht auf fremdem Land, nicht übereinander; Fischer nur am Wasser', () => {
   const g = fresh();
-  ok(g.run(`placeProblem('sammlerin', 63, 63)`) === 'Hier steht schon etwas', 'Überlappung erlaubt');
+  ok(g.run(`placeProblem('sammlerin', 63 + O, 63 + O)`) === 'Hier steht schon etwas', 'Überlappung erlaubt');
   ok(g.run(`placeProblem('sammlerin', 2, 2)`).includes('gehört dir'), 'fremdes Land erlaubt');
-  const water = g.run(`(() => { for (let y = 48; y < 80; y++) for (let x = 48; x < 80; x++) if (terrain[y * N + x] === TERRAIN.wasser.id) return [x, y]; })()`);
+  const water = g.run(`(() => { for (let y = 48 + O; y < 80 + O; y++) for (let x = 48 + O; x < 80 + O; x++) if (terrain[y * N + x] === TERRAIN.wasser.id) return [x, y]; })()`);
   ok(water, 'Kein Wasser im Startland');
   ok(g.run(`placeProblem('sammlerin', ${water[0]}, ${water[1]})`) !== null, 'Bauen im Wasser erlaubt');
-  ok(g.run(`placeProblem('fischerplatz', 52, 52)`) !== null, 'Fischer fern vom Wasser erlaubt');
-  ok(g.run(`(() => { for (let y = 48; y < 78; y++) for (let x = 48; x < 78; x++) if (!placeProblem('fischerplatz', x, y)) return true; return false; })()`), 'Kein Platz für den Fischer am Fluss');
+  ok(g.run(`placeProblem('fischerplatz', 52 + O, 52 + O)`) !== null, 'Fischer fern vom Wasser erlaubt');
+  ok(g.run(`(() => { for (let y = 48 + O; y < 78 + O; y++) for (let x = 48 + O; x < 78 + O; x++) if (!placeProblem('fischerplatz', x, y)) return true; return false; })()`), 'Kein Platz für den Fischer am Fluss');
 });
 
 test('Baum fällen und Felsen abtragen geben Holz/Stein und machen Platz', () => {
   const g = fresh();
-  const tree = g.run(`(() => { for (let y = 48; y < 80; y++) for (let x = 48; x < 80; x++) if (terrain[y * N + x] === TERRAIN.wald.id) return [x, y]; })()`);
+  const tree = g.run(`(() => { for (let y = 48 + O; y < 80 + O; y++) for (let x = 48 + O; x < 80 + O; x++) if (terrain[y * N + x] === TERRAIN.wald.id) return [x, y]; })()`);
   ok(tree, 'Kein Baum im Startland');
   const holz = g.run('state.res.holz');
   ok(g.run(`clearTile(${tree[0]}, ${tree[1]})`) === true, 'Fällen ging nicht');
@@ -196,15 +199,15 @@ function freshOldMap() {
 
 test('Verschieben und Drehen', () => {
   const g = freshOldMap();
-  const spot = g.run(`JSON.stringify(findFreeSpot('wohnhoehle', 56, 56))`);
+  const spot = g.run(`JSON.stringify(findFreeSpot('wohnhoehle', 56 + O, 56 + O))`);
   const r = g.run(`const sp = ${spot}; moveBuilding(1, sp.x, sp.y, true)`);
   ok(r === null, 'Verschieben ging nicht: ' + r);
   ok(g.run(`state.buildings[1].rot === 1 && buildingAt(${JSON.parse(spot).x}, ${JSON.parse(spot).y}) === 1`), 'Platz/Drehung falsch');
-  ok(g.run(`buildingAt(28, 32)`) === -1, 'Alter Platz noch belegt');
-  ok(g.run(`moveBuilding(1, 31, 31, false)`) !== null, 'Verschieben auf Lagerfeuer erlaubt');
+  ok(g.run(`buildingAt(60 + O, 65 + O)`) === -1, 'Alter Platz noch belegt');
+  ok(g.run(`moveBuilding(1, 63 + O, 63 + O, false)`) !== null, 'Verschieben auf Lagerfeuer erlaubt');
   // über die Bedienung: hochheben, ✔
   g.run(`liftBuilding(2); ghost.x -= 6; confirmGhost();`);
-  ok(g.run('ghost === null && state.buildings[2].x === 57'), 'Hochheben + ✔ ging nicht');
+  ok(g.run('ghost === null && state.buildings[2].x === 57 + O'), 'Hochheben + ✔ ging nicht');
   noErrors(g);
 });
 
@@ -221,7 +224,7 @@ test('Bedienung: aus der Leiste bauen mit ✔, Abbrechen mit ✖', () => {
 test('Wärme: Wohnung fern vom Feuer senkt die Zufriedenheit', () => {
   const g = freshOldMap();
   ok(g.run('stats.needs.waerme') === 1, 'Startwohnungen kalt');
-  g.run(`addBuilding('wohnhoehle', 49, 49, false, true); rebuildOccupancy(); buildRoute(state.buildings.length - 1); recalcStats();`);
+  g.run(`addBuilding('wohnhoehle', 49 + O, 49 + O, false, true); rebuildOccupancy(); buildRoute(state.buildings.length - 1); recalcStats();`);
   ok(g.run('isConnected(5)'), 'ferne Wohnung nicht angeschlossen');
   ok(g.run('stats.needs.waerme') < 1, 'Ferne Wohnung trotzdem warm');
   ok(g.run('stats.happiness') < 100, 'Zufriedenheit unverändert');
@@ -229,7 +232,7 @@ test('Wärme: Wohnung fern vom Feuer senkt die Zufriedenheit', () => {
 
 test('Speichern und Laden ergibt denselben Stand', () => {
   const g = fresh();
-  g.run(`state.res.holz = 77.5; state.techs.faustkeil = true; state.research = { id: 'feuer_hueten', left: 12 }; placeBuilding('sammlerin', findFreeSpot('sammlerin', 62, 56).x, findFreeSpot('sammlerin', 62, 56).y); state.plots[0] = 0; saveGame();`);
+  g.run(`state.res.holz = 77.5; state.techs.faustkeil = true; state.research = { id: 'feuer_hueten', left: 12 }; placeBuilding('sammlerin', findFreeSpot('sammlerin', 62 + O, 56 + O).x, findFreeSpot('sammlerin', 62 + O, 56 + O).y); state.plots[0] = 0; saveGame();`);
   const before = g.run('JSON.stringify({ ...state, savedAt: 0 })');
   g.run('state = null; loadSlot(currentSlot)');
   const after = g.run('JSON.stringify({ ...state, savedAt: 0 })');
@@ -271,7 +274,7 @@ test('Export und Import', () => {
 
 test('Offline-Fortschritt: läuft weiter, höchstens 2 Stunden, verstellte Uhr schadet nicht', () => {
   const g = fresh();
-  g.run(`state.res.holz = 100; const sp = findFreeSpot('holzsammler', 58, 58); placeBuilding('holzsammler', sp.x, sp.y); buildRoute(5); for (let i = 0; i < 40; i++) update(1);`);
+  g.run(`state.res.holz = 100; const sp = findFreeSpot('holzsammler', 58 + O, 58 + O); placeBuilding('holzsammler', sp.x, sp.y); buildRoute(5); for (let i = 0; i < 40; i++) update(1);`);
   const holz = g.run('state.res.holz');
   const r = g.run('JSON.stringify(applyOfflineProgress(Date.now() - 3600 * 1000))');
   ok(r && Math.abs(JSON.parse(r).seconds - 3600) < 1, 'Offline nicht gelaufen');
@@ -312,11 +315,11 @@ test('Aufträge: Fortschritt und Abholen', () => {
 test('Land kaufen: nur neben eigenem Land, Preis steigt', () => {
   const g = fresh();
   ok(!g.run('canBuyPlot(0)'), 'Ecke kaufbar');
-  const p = g.run('plotOf(42, 52)');
+  const p = g.run('plotOf(42 + O, 52 + O)');
   ok(g.run(`canBuyPlot(${p})`), 'Nachbarland nicht kaufbar');
   g.run('state.res.holz = 1000; state.res.nahrung = 1000;');
   const price1 = g.run('JSON.stringify(plotPrice())');
-  ok(g.run(`buyPlot(${p})`) && g.run('isOwned(42, 52)'), 'Kauf ging nicht');
+  ok(g.run(`buyPlot(${p})`) && g.run('isOwned(42 + O, 52 + O)'), 'Kauf ging nicht');
   ok(g.run('JSON.stringify(plotPrice())') !== price1, 'Preis steigt nicht');
 });
 
@@ -484,7 +487,7 @@ test('Zeichnen und Oberfläche laufen ohne Fehler (Baustelle, Geist, Pfadmodus, 
     cancelGhost(); beginBuild('pfad'); drawScene(0.1); cancelGhost();
     for (let i = 0; i < 70; i++) update(1);
     drawScene(0.1); renderAll(); showInfo(5); positionInfo(); showBuildingWindow(5); showBuildingWindow(6); showBuildingWindow(0); askDemolish(5);
-    showPlotDialog(plotOf(42, 52)); openQuests(); openMenu(); openSlots(true); showExport(); showDailyReward();
+    showPlotDialog(plotOf(42 + O, 52 + O)); openQuests(); openMenu(); openSlots(true); showExport(); showDailyReward();
     cam.zoom = ZOOM_MIN; drawScene(0.1); cam.zoom = ZOOM_MAX; drawScene(0.1); handleTap(400, 200);`);
   noErrors(g);
 });
@@ -493,7 +496,7 @@ test('Trampelpfad: ohne Weg kein Wohnen und keine Arbeit, Weg bauen verbindet, A
   const g = fresh();
   g.run('state.res.holz = 200; state.res.stein = 200;');
   // Gebäude weiter weg ohne Weg
-  const placed = g.run(`const far = findFreeSpot('holzsammler', 53, 74); placeBuilding('holzsammler', far.x, far.y)`);
+  const placed = g.run(`const far = findFreeSpot('holzsammler', 53 + O, 74 + O); placeBuilding('holzsammler', far.x, far.y)`);
   ok(placed === null, 'Holzsammler nicht gebaut: ' + placed);
   g.run('for (let i = 0; i < 46; i++) update(1);');
   const i = g.run(`state.buildings.findIndex(b => b.type === 'holzsammler')`);
@@ -517,7 +520,7 @@ test('Pause: Arbeiter wechseln zu einem anderen Gebäude, Pause wird gespeichert
   g.run(`
     state.res.holz = 500; state.res.stein = 500; state.res.nahrung = 500;
     for (const type of ['sammlerin', 'jaegerlager', 'holzsammler', 'steinsammler']) {
-      const sp = findFreeSpot(type, 62, 62);
+      const sp = findFreeSpot(type, 62 + O, 62 + O);
       placeBuilding(type, sp.x, sp.y);
       const k = state.buildings.length - 1;
       finishBuilding(state.buildings[k]);
@@ -569,7 +572,7 @@ test('Mammutjagd: erst nach der Forschung, Jäger bringen Beute, Herde kommt wie
   ok(/Mammutjagd/.test(g.run('huntProblem()')), 'Jagd ohne Forschung möglich');
   g.run('state.techs.mammutjagd = true');
   ok(/Jägerlager/.test(g.run('huntProblem()')), 'Jagd ohne Jägerlager möglich');
-  g.run(`const sp = findFreeSpot('jaegerlager', 62, 62); placeBuilding('jaegerlager', sp.x, sp.y);
+  g.run(`const sp = findFreeSpot('jaegerlager', 62 + O, 62 + O); placeBuilding('jaegerlager', sp.x, sp.y);
     const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); if (!isConnected(k)) buildRoute(k); recalcStats();`);
   ok(g.run('huntProblem()') === null, 'Jagd mit Jägerlager nicht möglich: ' + g.run('huntProblem()'));
   ok(g.run('startHunt(20, 20)') === null && g.run('!!state.hunt'), 'Jagd startet nicht');
@@ -630,7 +633,7 @@ test('Bauleiste einklappen bleibt gespeichert, Pfade zeichnen ohne Fehler', () =
   ok(JSON.parse(g.run(`storageGet(SETTINGS_KEY)`)).barHidden === true, 'Einklappen nicht gespeichert');
   g.run(`toggleBuildBar();`);
   ok(g.run('settings.barHidden') === false, 'Leiste geht nicht wieder auf');
-  g.run(`state.res.holz = 50; for (let x = 52; x < 58; x++) placeBuilding('pfad', x, 62); drawPaths(visibleRange()); drawScene(0.1);`);
+  g.run(`state.res.holz = 50; for (let x = 52 + O; x < 58 + O; x++) placeBuilding('pfad', x, 62 + O); drawPaths(visibleRange()); drawScene(0.1);`);
   noErrors(g);
 });
 
@@ -651,7 +654,7 @@ test('Brücke: Pfad nie aufs Wasser, Brücke nur aufs Wasser, über Brücken ist
 test('Arbeitende Menschen: gehen zum Baum, arbeiten und kommen zurück', () => {
   const g = fresh();
   g.run(`state.res.holz = 999; state.res.stein = 999; state.pop = 12;
-    for (const t of ['holzsammler', 'steinsammler', 'sammlerin']) { const sp = findFreeSpot(t, 62, 62); placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
+    for (const t of ['holzsammler', 'steinsammler', 'sammlerin']) { const sp = findFreeSpot(t, 62 + O, 62 + O); placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
     recalcStats();`);
   const all = '{x0:0,y0:0,x1:N-1,y1:N-1}';
   const seen = g.run(`(() => { const ph = {}; for (let i = 0; i < 1200; i++) { updateLife(0.05, ${all}); for (const w of life.workers) ph[w.b.type + ':' + w.phase] = true; if (i % 50 === 0) drawScene(0.05); } return Object.keys(ph).join(','); })()`);
@@ -666,7 +669,7 @@ test('Arbeitende Menschen Teil 2: Fischer (auch im Einbaum), Höhlenmaler, Werks
   const g = fresh();
   g.run(`for (const k in state.res) state.res[k] = 999; state.pop = 30; state.stage = 'jung'; for (const id in TECHS) state.techs[id] = true;
     for (const t of ['fischerplatz', 'hoehlenmaler', 'fellmacherin', 'steinschlaeger', 'toepferei', 'tongrube']) {
-      const sp = findFreeSpot(t, 62, 62); if (!sp) continue; placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
+      const sp = findFreeSpot(t, 62 + O, 62 + O); if (!sp) continue; placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
     recalcStats();`);
   const all = '{x0:0,y0:0,x1:N-1,y1:N-1}';
   const seen = g.run(`(() => { const ph = {}; for (let i = 0; i < 1600; i++) { updateLife(0.05, ${all}); for (const w of life.workers) ph[w.b.type + ':' + w.phase + (w.kind.boat && w.k === 1 ? ':boot' : '')] = true; if (i % 40 === 0) drawScene(0.05); } return Object.keys(ph).join(','); })()`);
@@ -680,7 +683,7 @@ test('Antippen: Baum direkt vor einem Gebäude lässt sich fällen, Gebäude sel
   const g = fresh();
   const r = g.run(`(() => {
     state.res.holz = 999; state.res.stein = 999;
-    const sp = findFreeSpot('steinsammler', 53, 53); placeBuilding('steinsammler', sp.x, sp.y);
+    const sp = findFreeSpot('steinsammler', 53 + O, 53 + O); placeBuilding('steinsammler', sp.x, sp.y);
     const b = state.buildings[state.buildings.length - 1], s = BUILDINGS[b.type].size;
     const tx = b.x + s, ty = b.y;   // rechts neben dem Haus (steht im Bild davor)
     for (let y = ty - 3; y <= ty + 4; y++) for (let x = tx - 3; x <= tx + 4; x++) if (buildingAt(x, y) < 0) terrain[y * N + x] = TERRAIN.gras.id;
@@ -796,13 +799,13 @@ test('Bäume: Holzsammler fällen sie nach und nach, Pflanzerin setzt Setzlinge,
   const r = g.run(`(() => {
     const trees = () => { let k = 0; for (let i = 0; i < N * N; i++) if (terrain[i] === TERRAIN.wald.id) k++; return k; };
     state.res.holz = 999; state.res.stein = 999; state.pop = 20;
-    const sp = findFreeSpot('holzsammler', 60, 60); placeBuilding('holzsammler', sp.x, sp.y);
+    const sp = findFreeSpot('holzsammler', 60 + O, 60 + O); placeBuilding('holzsammler', sp.x, sp.y);
     let k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k);
     state.res.holz = 0;   // Lager leer – bei vollem Lager wird nicht gefällt
     const before = trees();
     for (let i = 0; i < 20 * 60; i++) update(1);
     const felled = before - trees();
-    const sp2 = findFreeSpot('pflanzerin', 66, 66); placeBuilding('pflanzerin', sp2.x, sp2.y);
+    const sp2 = findFreeSpot('pflanzerin', 66 + O, 66 + O); placeBuilding('pflanzerin', sp2.x, sp2.y);
     k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k);
     state.buildings.forEach((b, i) => { if (b.type === 'holzsammler') togglePause(i); });
     for (let i = 0; i < 5 * 60; i++) update(1);
@@ -869,7 +872,7 @@ test('Drehen: vier Richtungen, alte Stände (true) werden 1, Fischerplatz dreht 
     // Fischerplatz auf Säulen: steht teils im Fluss; die Drehung ist eine der beiden Spiegelungen
     state.stage = 'mittel'; state.techs.einbaum = true; state.techs.pfeil_bogen = true; state.res.holz = 999;
     let spot = null;
-    for (let y = 40; y < 90 && !spot; y++) for (let x = 40; x < 90 && !spot; x++) if (!placeProblem('fischerplatz', x, y) && isOwned(x, y)) spot = { x, y };
+    for (let y = 40 + O; y < 90 + O && !spot; y++) for (let x = 40 + O; x < 90 + O && !spot; x++) if (!placeProblem('fischerplatz', x, y) && isOwned(x, y)) spot = { x, y };
     beginBuild('fischerplatz'); ghost.x = spot.x; ghost.y = spot.y; ghost.manualRot = false; autoOrient();
     out.push(!placeProblem('fischerplatz', spot.x, spot.y, -1, ghost.rot) && (ghost.rot === 0 || ghost.rot === 1));
     for (let k = 0; k < 4; k++) { ghost.rot = k; drawScene(0.05); }
@@ -914,21 +917,21 @@ test('Offline: Katastrophe und Zeitalter öffnen kein Fenster, sondern stehen in
 test('Bauen: Baum unter dem geplanten Gebäude antippen fällt ihn; schräg gezogener Pfad ist zusammenhängend', () => {
   const g = fresh();
   const r = g.run(`(() => {
-    state.res.holz = 999; cam.zoom = 1; centerOnTile(56, 56);
-    let tree = null; for (let y = 50; y < 78 && !tree; y++) for (let x = 50; x < 78 && !tree; x++) if (terrain[y * N + x] === TERRAIN.wald.id && isOwned(x, y) && !occ[y * N + x]) tree = { x, y };
+    state.res.holz = 999; cam.zoom = 1; centerOnTile(56 + O, 56 + O);
+    let tree = null; for (let y = 50 + O; y < 78 + O && !tree; y++) for (let x = 50 + O; x < 78 + O && !tree; x++) if (terrain[y * N + x] === TERRAIN.wald.id && isOwned(x, y) && !occ[y * N + x]) tree = { x, y };
     beginBuild('sammlerin'); ghost.x = tree.x; ghost.y = tree.y;
     const p = tileToScreen(tree.x + 0.5, tree.y + 0.5); handleTap(p.x, p.y);
     const felled = terrain[tree.y * N + tree.x] === TERRAIN.gras.id && ghost.x === tree.x;
     cancelGhost();
-    for (let y = 52; y <= 60; y++) for (let x = 52; x <= 60; x++) if (!occ[y * N + x]) terrain[y * N + x] = TERRAIN.gras.id;
+    for (let y = 52 + O; y <= 60 + O; y++) for (let x = 52 + O; x <= 60 + O; x++) if (!occ[y * N + x]) terrain[y * N + x] = TERRAIN.gras.id;
     gesture = { mode: 'path' };
-    const a = tileToScreen(52.5, 52.5), b = tileToScreen(58.5, 57.5);
+    const a = tileToScreen(52.5 + O, 52.5 + O), b = tileToScreen(58.5 + O, 57.5 + O);
     paintPath(a.x, a.y); paintPath(b.x, b.y);
     // zusammenhängend: vom Start aus über Pfade das Ziel erreichbar
-    const seen = new Set(['52,52']), q = [[52, 52]];
+    const seen = new Set([(52 + O) + ',' + (52 + O)]), q = [[52 + O, 52 + O]];
     while (q.length) { const [x, y] = q.pop(); for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) { const k = (x+dx) + ',' + (y+dy); if (!seen.has(k) && isPathAt(x+dx, y+dy)) { seen.add(k); q.push([x+dx, y+dy]); } } }
     gesture = null;
-    return [felled, seen.has('58,57')];
+    return [felled, seen.has((58 + O) + ',' + (57 + O))];
   })()`);
   ok(r[0], 'Baum unter dem Gebäude nicht gefällt');
   ok(r[1], 'schräger Pfad nicht zusammenhängend');
@@ -1047,28 +1050,90 @@ test('Menü: Neu starten – freier Platz lässt den alten Stand stehen, Ersetze
   noErrors(g);
 });
 
-test('Karte: neues Spiel hat breiten, kurvigen Fluss mit Wasserfall; alter Stand behält seine Karte', () => {
+test('Karte: Quelle im Gebirge oben, Wasserfall, langer Fluss rechts am Lager vorbei, See unten; Fischer im Startland', () => {
   const g = fresh();
-  for (const seed of [4242, 1, 77, 999]) {
-    const r = g.run(`(() => { startNewGame(${seed}); let water = 0, own = 0, minW = 99, maxX = 0, minX = N;
-      for (let y = 8; y < N - 8; y++) { let c = 0, sx = 0; for (let x = 0; x < N; x++) if (terrain[y * N + x] === TERRAIN.wasser.id) { c++; sx += x; } if (c) { minW = Math.min(minW, c); maxX = Math.max(maxX, sx / c); minX = Math.min(minX, sx / c); } }
-      for (let y = 48; y < 80; y++) for (let x = 48; x < 80; x++) if (terrain[y * N + x] === TERRAIN.wasser.id) own++;
-      return { gen: state.mapGen, own, minW, swing: maxX - minX, fall: !!mapFeatures.fall, campOk: state.buildings.every((b, i) => !b.build && !placeProblem(b.type, b.x, b.y, i)), depth: Math.max(...waterDepth) }; })()`);
+  for (const seed of [4242, 1, 77, 999, 31337, 5, 12, 2024]) {
+    const r = g.run(`(() => { startNewGame(${seed}); let own = 0, minD = 1e9;
+      const a = N / 2 - 16, b = N / 2 + 16, c = N / 2 - 0.5, W = TERRAIN.wasser.id;
+      for (let y = a; y < b; y++) for (let x = a; x < b; x++) if (terrain[y * N + x] === W) own++;
+      for (let i = 0; i < N * N; i++) if (terrain[i] === W) minD = Math.min(minD, Math.hypot(i % N - c, Math.floor(i / N) - c));
+      // zusammenhängend von der Quelle bis zum See? (Flutfüllung übers Wasser)
+      const f = mapFeatures, seen = new Uint8Array(N * N), q = [Math.floor(f.source.y) * N + Math.floor(f.source.x)];
+      seen[q[0]] = 1; let wet = 0;
+      for (let h = 0; h < q.length; h++) { const i = q[h]; wet++; for (const d of [1, -1, N, -N]) { const k = i + d; if (k >= 0 && k < N * N && !seen[k] && terrain[k] === W && Math.abs((k % N) - (i % N)) <= 1) { seen[k] = 1; q.push(k); } } }
+      const lakeReached = !!seen[Math.floor(f.lake.y) * N + Math.floor(f.lake.x)];
+      // kein Wasser am Kartenrand: Der Fluss endet im See
+      let edge = 0; for (let k = 0; k < N; k++) if (terrain[k] === W || terrain[(N - 1) * N + k] === W || terrain[k * N] === W || terrain[k * N + N - 1] === W) edge++;
+      // Gebirge oben am Stück, um die Quelle herum
+      let top = 0, topAll = 0; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (x + y < N * 0.2 && terrain[y * N + x] !== W) { topAll++; if (terrain[y * N + x] === TERRAIN.berg.id) top++; }
+      let spot = false; for (let y = a; y < b - 1 && !spot; y++) for (let x = a; x < b - 1 && !spot; x++) if (!placeProblem('fischerplatz', x, y)) spot = true;
+      return { gen: state.mapGen, own, minD, lakeReached, edge, top: top / topAll, spot, fall: f.fall && (f.fall.x + f.fall.y) / N, fallDir: f.fall && (f.fall.ux + f.fall.uy) / Math.SQRT2, srcDepth: (f.source.x + f.source.y) / N, lakeDepth: (f.lake.x + f.lake.y) / N, lakeR: f.lake.r,
+        lakeWet: wet, campOk: state.buildings.every((b, i) => !b.build && !placeProblem(b.type, b.x, b.y, i)), depth: waterDepth.reduce((a, v) => Math.max(a, v), 0) }; })()`);
+    const t = JSON.stringify(r);
     ok(r.gen === 2, 'neues Spiel sollte mapGen 2 haben');
-    ok(r.own > 30, 'Fluss sollte durchs Startland gehen: ' + JSON.stringify(r));
-    ok(r.minW >= 2, 'Fluss überall durchgehend: ' + JSON.stringify(r));
-    ok(r.swing > 25, 'Fluss schlängelt zu wenig: ' + JSON.stringify(r));
-    ok(r.fall, 'kein Wasserfall: ' + seed);
-    ok(r.campOk, 'Lager steht falsch: ' + JSON.stringify(r));
-    ok(r.depth > 2.5, 'keine tiefen Stellen: ' + JSON.stringify(r));
+    ok(r.own > 30, 'Fluss sollte durchs Startland gehen: ' + t);
+    ok(r.minD >= 8, 'Lager zu nah am Fluss: ' + t);
+    ok(r.lakeReached, 'Fluss kommt nicht durchgehend zum See: ' + t);
+    ok(r.edge === 0, 'Fluss läuft durch den Kartenrand: ' + t);
+    ok(r.top > 0.95, 'oben fehlt das zusammenhängende Gebirge: ' + t);
+    ok(r.srcDepth < 0.3 && r.lakeDepth > 1.5, 'Quelle/See nicht oben/unten im Bild: ' + t);
+    ok(r.fall && r.fall > 0.2 && r.fall < 0.55 && r.fallDir > 0.6, 'Wasserfall nicht am Bergfuß: ' + t);
+    ok(r.spot, 'Kein Platz für den Fischer im Startland: ' + t);
+    ok(r.campOk, 'Lager steht falsch: ' + t);
+    ok(r.depth > 4, 'See ohne tiefe Mitte: ' + t);
   }
-  // alter Stand ohne mapGen: Karte wie früher (alte Erzeugung), mapGen bleibt beim Speichern und Laden erhalten
-  const old = g.run(`(() => { startNewGame(4242); const d = JSON.parse(serialize()); delete d.mapGen; loadFromText(JSON.stringify(d));
-    const expect = generateTerrain(state.seed); let diff = 0; for (let i = 0; i < N * N; i++) if (baseTerrain[i] !== expect[i]) diff++;
-    return { gen: state.mapGen, diff, fall: mapFeatures.fall }; })()`);
-  ok(old.gen === 1 && old.diff === 0 && !old.fall, 'alter Stand hat andere Karte: ' + JSON.stringify(old));
-  const neu = g.run(`(() => { startNewGame(99); const before = baseTerrain.slice(); loadFromText(serialize()); let diff = 0; for (let i = 0; i < N * N; i++) if (baseTerrain[i] !== before[i]) diff++; return { gen: state.mapGen, diff, fall: !!mapFeatures.fall }; })()`);
-  ok(neu.gen === 2 && neu.diff === 0 && neu.fall, 'neuer Stand ändert sich beim Laden: ' + JSON.stringify(neu));
+  const neu = g.run(`(() => { startNewGame(99); const before = baseTerrain.slice(); loadFromText(serialize()); let diff = 0; for (let i = 0; i < N * N; i++) if (baseTerrain[i] !== before[i]) diff++; return { gen: state.mapGen, core: state.mapCore, diff, fall: !!mapFeatures.fall }; })()`);
+  ok(neu.gen === 2 && neu.core === 0 && neu.diff === 0 && neu.fall, 'neuer Stand ändert sich beim Laden: ' + JSON.stringify(neu));
+  noErrors(g);
+});
+
+test('Karte groß: mindestens 256 Felder je Seite, Land bis zum Rand kaufbar, Kamera erreicht alles, Spielstand klein', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const ps = CONFIG.plotSize; state.res.holz = 1e7; state.res.stein = 1e7;
+    let n = 0, more = true;
+    while (more) { more = false; for (let p = 0; p < state.plots.length; p++) if (canBuyPlot(p) && buyPlot(p)) { n++; more = true; } }
+    centerOnTile(0, 0); const a = tileToWorld(0, 0), ax = cam.x, ay = cam.y;
+    centerOnTile(N, N); const by = cam.y; centerOnTile(N, 0); const cx = cam.x; centerOnTile(0, N); const dx = cam.x;
+    drawScene(0.05);
+    return { N, n, all: state.plots.every(p => p === 1), size: serialize().length, plots: state.plots.length, ax, ay, by, cx, dx, wx: N * TW / 2, wy: N * TH, cover: cloudCovers(0) }; })()`);
+  ok(r.N >= 256 && r.N % 16 === 0, 'Karte zu klein: ' + r.N);
+  ok(r.all, 'nicht alles Land kaufbar');
+  ok(r.ay === 0 && r.by === r.wy && r.cx === r.wx && r.dx === -r.wx, 'Kamera erreicht nicht alle Ecken: ' + JSON.stringify(r));
+  ok(r.size < 3 * 1024 * 1024 / 4, 'Spielstand zu groß: ' + r.size);
+  noErrors(g);
+});
+
+test('Wolken: fremdes Land bedeckt, Preisschild antippbar, Kauf löst die Wolke auf, nichts unter den Wolken wird gezeichnet', () => {
+  const g = fresh();
+  g.run('state.res.holz = 500; state.res.stein = 500; cam.zoom = 0.6; centerOnTile(N / 2, N / 2); viewW = 1600; viewH = 1000;');
+  const p = g.run('plotOf(42 + O, 52 + O)');
+  ok(g.run(`cloudCovers(${p})`), 'fremdes Land nicht bedeckt');
+  ok(g.run('!cloudCovers(plotOf(N / 2, N / 2))'), 'eigenes Land bedeckt');
+  g.run('drawScene(0.05)');
+  const tag = g.run(`(() => { const t = plotTags.find(q => q.p === ${p}); return t ? [(t.x0 + t.x1) / 2, (t.y0 + t.y1) / 2] : null; })()`);
+  ok(tag, 'Preisschild fehlt');
+  ok(g.run(`plotTagAtScreen(${tag[0]}, ${tag[1]})`) === p, 'Preisschild nicht antippbar');
+  g.run(`dialogOpen = false; handleTap(${tag[0]}, ${tag[1]})`);
+  ok(g.run('dialogOpen'), 'Tipp aufs Schild öffnet das Kauffenster nicht');
+  g.run(`closeDialog(); buyPlot(${p});`);
+  ok(g.run(`state.plots[${p}] === 1 && cloudCovers(${p}) && landMask[(52 + O) * N + 42 + O] === 2`), 'Kauf: Land frei, Wolke löst sich auf');
+  g.run('for (let i = 0; i < 10; i++) drawScene(0.25)');
+  ok(g.run(`!cloudCovers(${p})`), 'Wolke nach dem Auflösen noch da');
+  // Bäume, Tiere und Leute unter Wolken kommen nicht in die Zeichenliste; Mammuts nur auf eigenem Land
+  const r = g.run(`(() => {
+    const all = { x0: 0, y0: 0, x1: N - 1, y1: N - 1 };
+    life.animals = [];
+    const free = lifeObjects(all).length;
+    life.animals.push({ kind: 'hirsch', x: 2.5, y: 2.5, tx: 2.5, ty: 2.5, wait: 9, face: 1, ph: 0, home: [2, 2] });
+    const hidden = lifeObjects(all).length;
+    life.animals = [];
+    state.herdWait = 0; state.hunt = null; life.herdTimer = 0;
+    let off = 0, seen = 0;
+    for (let i = 0; i < 400; i++) { updateAnimals(0.25); for (const a of life.animals) if (a.kind === 'mammut' || a.kind === 'hirsch') { seen++; if (!isOwned(Math.round(a.tx - 0.5), Math.round(a.ty - 0.5))) off++; } }
+    return { hidden, free, off, seen }; })()`);
+  ok(r.hidden === r.free, 'Tier unter den Wolken wird gezeichnet');
+  ok(r.seen > 0 && r.off === 0, 'Tiere laufen unter die Wolken: ' + JSON.stringify(r));
   noErrors(g);
 });
 
@@ -1105,7 +1170,7 @@ test('Fischerplatz auf Säulen: teils im Fluss, ganz im Wasser oder ganz an Land
 test('Arbeiter laufen nie übers Wasser (Wegsuche über Land und Brücken)', () => {
   const g = fresh();
   const r = g.run(`(() => { state.res.holz = 999; state.res.stein = 999; state.pop = 30;
-    for (const t of ['holzsammler', 'steinsammler', 'sammlerin', 'holzsammler']) { const sp = findFreeSpot(t, 70, 62); placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
+    for (const t of ['holzsammler', 'steinsammler', 'sammlerin', 'holzsammler']) { const sp = findFreeSpot(t, 70 + O, 62 + O); placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
     recalcStats(); let wet = 0, moves = 0;
     for (let i = 0; i < 3000; i++) { updateLife(0.05, {x0:0,y0:0,x1:N-1,y1:N-1});
       for (const w of life.workers) if (w.phase === 'go' || w.phase === 'back') { moves++; const x = Math.floor(w.x), y = Math.floor(w.y);
@@ -1118,8 +1183,9 @@ test('Arbeiter laufen nie übers Wasser (Wegsuche über Land und Brücken)', () 
 
 test('Alte Spielstände (kleine Karte bis Version 21) landen in der Mitte der großen Karte', () => {
   const fixture = JSON.parse(fs.readFileSync(new URL('./alter-stand-v21.json', import.meta.url), 'utf8'));
-  const old = fixture.save, oldN = 64, off = 32;
+  const old = fixture.save, oldN = 64;
   const g = fresh();
+  const off = g.run('(N - 64) / 2'), O = g.run('O');
   ok(g.run(`loadFromText(${JSON.stringify(JSON.stringify(old))})`), 'alter Stand lädt nicht');
   ok(g.run('state.mapSize') === g.run('N'), 'Kartengröße nicht übernommen');
   const nb = g.run('JSON.stringify(state.buildings.map(b => [b.type, b.x, b.y]))');
@@ -1130,12 +1196,60 @@ test('Alte Spielstände (kleine Karte bis Version 21) landen in der Mitte der gr
     for (let y = 0; y < ${oldN}; y++) for (let x = 0; x < ${oldN}; x++) if (Number(t[y * ${oldN} + x]) !== terrain[(y + ${off}) * N + x + ${off}]) n++; return n; })()`);
   ok(bad === 0, bad + ' Felder haben sich verändert');
   // gekauftes Land und Jagd mitgewandert
-  ok(g.run('isOwned(42, 52) && isOwned(64, 64)') && !g.run('isOwned(10, 20)'), 'Land nicht mitgewandert');
-  ok(g.run('state.hunt.cx') === 62 && g.run('state.hunt.x') === 72, 'Jagd nicht verschoben');
+  ok(g.run('isOwned(42 + O, 52 + O) && isOwned(64 + O, 64 + O)') && !g.run('isOwned(10 + O, 20 + O)'), 'Land nicht mitgewandert');
+  ok(g.run('state.hunt.cx') === 62 + O && g.run('state.hunt.x') === 72 + O, 'Jagd nicht verschoben');
   ok(g.run('state.buildings.every((b, i) => !placeProblem(b.type, b.x, b.y, i))'), 'Gebäude stehen nach dem Umzug falsch');
   ok(g.run('state.buildings.every((b, i) => isConnected(i))'), 'Wege nach dem Umzug unterbrochen');
   // ein zweites Laden verschiebt nicht noch einmal
   ok(g.run('loadFromText(serialize()) && state.buildings[0].x') === old.buildings[0].x + off, 'doppelt verschoben');
+  noErrors(g);
+});
+
+test('Alte Spielstände (128er-Karte bis Version 54): Kern Feld für Feld gleich, alles an Ort und Stelle, doppeltes Laden verschiebt nicht', () => {
+  const fx = JSON.parse(fs.readFileSync(new URL('./alter-stand-v54.json', import.meta.url), 'utf8'));
+  const g = fresh();
+  const crc = '(a=>{let h=0x811c9dc5;for(let i=0;i<a.length;i++){h^=a[i];h=Math.imul(h,16777619)>>>0}return h})';
+  // Die alte Erzeugung liefert noch genau dieselben Karten (Prüfsummen mit Epochia 54 errechnet)
+  for (const [s, e] of Object.entries(fx.gelaende)) {
+    const r = g.run(`(() => { const c = ${crc}; const g1 = c(generateTerrain(${s})), g2 = c(generateTerrain2(${s})); return { g1, g2, fx: lastOldMap.fall.x }; })()`);
+    ok(r.g1 === e.g1 && r.g2 === e.g2 && r.fx === e.fall.x, 'alte Karte verändert, Zahl ' + s);
+    for (const gen of [1, 2]) {   // Wassertiefe und Sandbänke auch
+      const t = g.run(`(() => { const c = ${crc}; startNewGame(${s}); state.mapGen = ${gen}; state.mapCore = 128; buildTerrain(); const o = [];
+        for (let y = 12; y < 116; y++) for (let x = 12; x < 116; x++) o.push(Math.round(waterDepth[(y + O) * N + x + O] * 1000) % 251, Math.round(waterShoal[(y + O) * N + x + O] * 1000) % 251); return c(o); })()`);
+      ok(t === e['tiefe' + gen], 'Wassertiefe verändert, Karte ' + gen + ' Zahl ' + s);
+    }
+  }
+  for (const k of ['gen1', 'gen2']) {
+    const old = fx.staende[k], O = g.run('O'), oldN = 128;
+    const text = JSON.stringify(JSON.stringify(old));
+    ok(g.run(`loadFromText(${text})`), k + ' lädt nicht');
+    const moved = i => (Math.floor(i / oldN) + O) * g.run('N') + (i % oldN) + O;
+    const r = g.run(`(() => { const t = ${JSON.stringify(fx.staende[k + '_terrain'])}; let diff = 0;
+      for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) if (Number(t[y * 128 + x]) !== terrain[(y + O) * N + x + O]) diff++;
+      const a = state.buildings.map(b => [b.type, b.x - O, b.y - O, b.rot, !!b.torch].join());
+      return { diff, a, core: state.mapCore, size: state.mapSize, gen: state.mapGen, cleared: state.cleared, planted: state.planted, saplings: state.saplings, owned: state.plots.filter(p => p === 1).length,
+        oki: state.buildings.every((b, i) => !placeProblem(b.type, b.x, b.y, i)), net: state.buildings.every((b, i) => isConnected(i)), hunt: state.hunt,
+        lake: !!mapFeatures.lake, src: !!mapFeatures.source, fall: mapFeatures.fall, pop: state.pop }; })()`);
+    ok(r.diff === 0, k + ': ' + r.diff + ' Felder im Kern anders');
+    ok(r.core === 128 && r.size === g.run('N') && r.gen === (k === 'gen1' ? 1 : 2), k + ': Felder falsch ' + JSON.stringify([r.core, r.size, r.gen]));
+    ok(JSON.stringify(r.a) === JSON.stringify(old.buildings.map(b => [b.type, b.x, b.y, b.rot, !!b.torch].join())), k + ': Gebäude/Wege nicht an Ort und Stelle');
+    ok(r.oki && r.net, k + ': Gebäude ungültig oder Wege unterbrochen');
+    ok(JSON.stringify(r.cleared) === JSON.stringify(old.cleared.map(moved)), k + ': gefällte Bäume');
+    ok(JSON.stringify(r.planted) === JSON.stringify(old.planted.map(moved)), k + ': gepflanzte Bäume');
+    ok(JSON.stringify(r.saplings) === JSON.stringify(old.saplings.map(a => [moved(a[0]), a[1]])), k + ': Setzlinge');
+    ok(r.owned === old.plots.filter(p => p === 1).length && g.run(`[${old.plots.map((v, p) => (v === 1 ? p : -1)).filter(p => p >= 0)}].every(p => isOwned((p % 16) * 8 + O, Math.floor(p / 16) * 8 + O))`), k + ': gekauftes Land');
+    ok(r.hunt && r.hunt.cx === old.hunt.cx + O && r.hunt.y === old.hunt.y + O, k + ': Jagd');
+    ok(r.lake && r.src, k + ': Außenland ohne See/Quelle');
+    if (k === 'gen2') ok(r.fall, k + ': alter Wasserfall weg');
+    // Doppelt laden: nichts wandert
+    const again = g.run(`(() => { const before = serialize(); const b0 = JSON.stringify(state.buildings), t0 = baseTerrain.slice(); loadFromText(before); let d = 0; for (let i = 0; i < N * N; i++) if (baseTerrain[i] !== t0[i]) d++; return { same: JSON.stringify(state.buildings) === b0, d, cleared: JSON.stringify(state.cleared) === JSON.stringify(JSON.parse(before).cleared) }; })()`);
+    ok(again.same && again.d === 0 && again.cleared, k + ': zweites Laden verschiebt ' + JSON.stringify(again));
+    // Fluss am Rand des Kerns geht weiter: Über und unter dem Kern liegt in der Nähe wieder Wasser
+    const edge = g.run(`(() => { const W = TERRAIN.wasser.id, near = (y0, y1) => { const out = []; for (let x = O; x < O + 128; x++) if (terrain[y0 * N + x] === W) { let hit = false; for (let d = -5; d <= 5; d++) if (terrain[y1 * N + x + d] === W) hit = true; out.push(hit); } return out; };
+      return { top: near(O, O - 1), bottom: near(O + 127, O + 128) }; })()`);
+    ok(edge.top.length && edge.top.every(Boolean), k + ': Fluss bricht oben am Kern ab ' + JSON.stringify(edge));
+    ok(edge.bottom.length && edge.bottom.every(Boolean), k + ': Fluss bricht unten am Kern ab ' + JSON.stringify(edge));
+  }
   noErrors(g);
 });
 

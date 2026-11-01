@@ -505,9 +505,9 @@ let lastBurnt = [];
 
 // Waldbrand: ein zusammenhängendes Waldstück nahe der Siedlung brennt ab
 function burnForest(count) {
-  const c = Math.floor(N / 2);
+  const c = Math.floor(N / 2), R = 64;   // nur rund um die Siedlung suchen (die Karte ist viel größer als der Brand)
   const trees = [];
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (terrain[y * N + x] === TERRAIN.wald.id && !occ[y * N + x]) trees.push([x, y]);
+  for (let y = Math.max(0, c - R); y < Math.min(N, c + R); y++) for (let x = Math.max(0, c - R); x < Math.min(N, c + R); x++) if (terrain[y * N + x] === TERRAIN.wald.id && !occ[y * N + x]) trees.push([x, y]);
   if (!trees.length) return [];
   trees.sort((a, b) => Math.hypot(a[0] - c, a[1] - c) - Math.hypot(b[0] - c, b[1] - c));
   const [sx, sy] = trees[Math.floor(disasterRandom() * Math.min(trees.length, 40))];

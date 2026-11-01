@@ -586,6 +586,7 @@ function placeProblem(type, x, y, ignore = -1, rot) {
       if (!def.isPath && saplingAt(xx, yy)) return 'Hier wächst ein Setzling – antippen zum Ausreißen';   // Pfade gehen darüber
       const t = terrainAt(xx, yy);
       if (def.onWater) { if (t !== TERRAIN.wasser) return 'Brücken gehen nur über Wasser'; continue; }
+      if (t === TERRAIN.wasser && def.stilts) { wet++; continue; }   // Säulen stehen im echten Fluss
       if (t === TERRAIN.wasser && halfInWater(def)) {
         const d = waterCornerDist(xx - x, yy - y, s, rot);
         if (d > s - 1) return 'Nur die Wasserseite darf im Fluss stehen – drehen (↻) oder verschieben';
@@ -599,6 +600,14 @@ function placeProblem(type, x, y, ignore = -1, rot) {
     const old = ignore >= 0 && state.buildings[ignore];
     if (old && old.x === x && old.y === y && !wet && touchesWater(x, y, s)) return null;
     if (!cornerWet) return 'Muss halb im Wasser stehen – die Wasserseite in den Fluss setzen';
+    if (wet === s * s) return 'Braucht auch etwas Land';
+    return null;
+  }
+  if (def.stilts) {
+    // Ältere Spielstände: Fischerplätze am Ufer bleiben an ihrem Platz gültig (die Säulen stehen dann an Land)
+    const old = ignore >= 0 && state.buildings[ignore];
+    if (old && old.x === x && old.y === y && touchesWater(x, y, s)) return null;
+    if (!wet) return 'Muss mit den Säulen im Fluss stehen';
     if (wet === s * s) return 'Braucht auch etwas Land';
     return null;
   }

@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 53;
+const APP_VERSION = 54;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -220,9 +220,9 @@ const BUILDINGS = {
     info: 'Doppelt so viel Nahrung und Felle wie das Jägerlager.',
   },
   fischerplatz: {
-    name: 'Fischerplatz', icon: '🎣', size: 2, line: 'fischen', tier: 0, stage: 'mittel', bild: '1-fischerplatz', views: ['r1', 'r2'],
-    color: '#4f86b0', cost: { holz: 30 }, time: 60, workers: 2, produces: { nahrung: 14 }, needsWater: true,
-    requires: 'einbaum', info: 'Fischer im Einbaum – viel Nahrung. Muss am Wasser stehen.',
+    name: 'Fischerplatz', icon: '🎣', size: 2, line: 'fischen', tier: 0, stage: 'mittel', bild: '1-fischerhuette',
+    color: '#4f86b0', cost: { holz: 30 }, time: 60, workers: 2, produces: { nahrung: 14 }, needsWater: true, stilts: true,
+    requires: 'einbaum', info: 'Fischerhütte auf Säulen, unten liegt das Boot – viel Nahrung. Steht mit den Säulen im Fluss, ein Stück auch an Land.',
   },
   acker: {
     name: 'Acker', icon: '🌾', size: 3, line: 'feld', tier: 0, stage: 'jung', bild: '1-acker', views: ['r2'],

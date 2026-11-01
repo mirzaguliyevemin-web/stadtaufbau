@@ -18,13 +18,14 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 <!-- Hier Veränderungswünsche eintragen -->
 - Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten (5 von 21 fertig, Rest bis nach dem 27.11.) (Canva-Pause auf Emins Wunsch).
 
-- Fischer (Emin, 01.11.): Fischerplatz auf Säulen ohne gemaltes Wasser, unten ein Boot; im Boot sichtbar paddeln (2 Haltungen, erste fertig); Speer verbessern. Canva-Bilder – kommen einzeln (monatliches Limit bis 27.11., Emin kauft nichts dazu).
+- Fischer (Emin, 01.11.): im Boot sichtbar paddeln (2 Haltungen, erste fertig); Speer verbessern. Canva-Bilder – kommen einzeln (monatliches Limit bis 27.11., Emin kauft nichts dazu).
 - Wunderwerke je Zeitalter (Emin, 01.11.): Entwurf `docs/konzept-wunderwerke.md`, wird mit Emin besprochen.
   → Frage: Zurück-Knopf auf der Aufträge-Seite sei träge – nicht nachstellbar, Emins Spielstand zum Testen nötig.
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-01, Epochia Version 54 – Wunsch Emin: Fischerplatz auf Säulen ohne gemaltes Wasser, Boot liegt immer auf einem Wasserfeld (alte Fischerplätze bleiben, wo sie sind). Rückansichten ohne eigenes Winterbild werden vom Spiel selbst verschneit (eigene Canva-Winterbilder folgen nach dem 27.11.).
 - 2026-11-01, Epochia Version 53 – Im Winter liegt Schnee auch auf Felsen, Bergen und Büschen (vom Spiel selbst gezeichnet, ohne Canva).
 - 2026-11-01, Epochia Version 52 – Neuer Fluss in neuen Spielen (breit, Schleifen, seicht/tief, Sandbänke, Wasserfall; alte Stände behalten ihre Karte), Konto mit Cloud-Sicherung (Menü → Konto), Knopf „Neu starten“, neue Startseite und Spielstände, gemalter Rauch und weiße Flecken aus den Gebäudebildern entfernt, Winterbilder neu freigestellt.
 - 2026-11-01, Epochia Version 51 – Neues Forschungsfenster (Entwurf C von Emin gewählt, auch Handy quer), bewegtes Feuer und Rauch in den Rückansichten statt gemaltem Rauch, Einwohner-Fenster nennt Leute ohne Arbeit, Winterbilder sauber freigestellt, Winter Sammlerin.

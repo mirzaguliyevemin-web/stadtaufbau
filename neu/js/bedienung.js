@@ -43,9 +43,18 @@ function waterScore(type, x, y, rot) {
   return n;
 }
 
+// Hütte auf Säulen (nur ein Bild und sein Spiegelbild): Die Leiter zeigt zum Land, die Bootsseite zum Wasser
+function stiltRotation(type, x, y) {
+  const s = BUILDINGS[type].size, water = (tx, ty) => inMap(tx, ty) && terrain[ty * N + tx] === TERRAIN.wasser.id;
+  let right = 0, left = 0;   // Wasser vorne rechts bzw. vorne links
+  for (let k = 0; k < s; k++) { if (water(x + s, y + k)) right++; if (water(x + k, y + s)) left++; }
+  return left > right ? 1 : 0;
+}
+
 // Wasser-Gebäude drehen sich beim Platzieren von selbst zum Fluss – bis man selbst ↻ drückt
 function autoOrient() {
   const def = BUILDINGS[ghost.type];
+  if (ghost && !ghost.manualRot && def.stilts) { ghost.rot = stiltRotation(ghost.type, ghost.x, ghost.y); return; }
   if (!ghost || ghost.manualRot || !def.needsWater || !def.views || !def.views.includes('r1')) return;
   // zuerst eine Drehung, bei der die Wasserseite im Fluss steht; sonst die mit dem meisten Wasser daneben
   const fit = bestWaterRot(ghost.type, ghost.x, ghost.y, ghost.from);

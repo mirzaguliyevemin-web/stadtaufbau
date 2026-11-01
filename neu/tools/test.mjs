@@ -738,12 +738,12 @@ test('Drehen: vier Richtungen, alte Stände (true) werden 1, Fischerplatz dreht 
     const out = [];
     beginBuild('wohnhoehle'); for (let k = 0; k < 4; k++) { out.push(ghost.rot); rotateGhost(); } out.push(ghost.rot); cancelGhost();
     const d = JSON.parse(serialize()); d.buildings[1].rot = true; loadFromText(JSON.stringify(d)); out.push(state.buildings[1].rot);
-    // Fischerplatz halb im Fluss: es wird eine Drehung gewählt, bei der die Wasserseite des Bildes im Wasser steht
+    // Fischerplatz auf Säulen: steht teils im Fluss; die Drehung ist eine der beiden Spiegelungen
     state.stage = 'mittel'; state.techs.einbaum = true; state.techs.pfeil_bogen = true; state.res.holz = 999;
     let spot = null;
     for (let y = 40; y < 90 && !spot; y++) for (let x = 40; x < 90 && !spot; x++) if (!placeProblem('fischerplatz', x, y) && isOwned(x, y)) spot = { x, y };
     beginBuild('fischerplatz'); ghost.x = spot.x; ghost.y = spot.y; ghost.manualRot = false; autoOrient();
-    out.push(!placeProblem('fischerplatz', spot.x, spot.y, -1, ghost.rot) && bestWaterRot('fischerplatz', spot.x, spot.y) === ghost.rot);
+    out.push(!placeProblem('fischerplatz', spot.x, spot.y, -1, ghost.rot) && (ghost.rot === 0 || ghost.rot === 1));
     for (let k = 0; k < 4; k++) { ghost.rot = k; drawScene(0.05); }
     return out;
   })()`);
@@ -941,6 +941,36 @@ test('Karte: neues Spiel hat breiten, kurvigen Fluss mit Wasserfall; alter Stand
   ok(old.gen === 1 && old.diff === 0 && !old.fall, 'alter Stand hat andere Karte: ' + JSON.stringify(old));
   const neu = g.run(`(() => { startNewGame(99); const before = baseTerrain.slice(); loadFromText(serialize()); let diff = 0; for (let i = 0; i < N * N; i++) if (baseTerrain[i] !== before[i]) diff++; return { gen: state.mapGen, diff, fall: !!mapFeatures.fall }; })()`);
   ok(neu.gen === 2 && neu.diff === 0 && neu.fall, 'neuer Stand ändert sich beim Laden: ' + JSON.stringify(neu));
+  noErrors(g);
+});
+
+test('Fischerplatz auf Säulen: teils im Fluss, ganz im Wasser oder ganz an Land nein; alter Stand am Ufer bleibt gültig', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    state.stage = 'mittel'; state.techs.einbaum = true;
+    const isW = (x, y) => inMap(x, y) && terrain[y * N + x] === TERRAIN.wasser.id;
+    const land = (x, y) => inMap(x, y) && !terrainAt(x, y).blocks;
+    let half = null, deep = null, bank = null;
+    for (let y = 5; y < N - 5; y++) for (let x = 5; x < N - 5; x++) {
+      const cells = [[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]], w = cells.filter(c => isW(...c)).length, l = cells.filter(c => land(...c)).length;
+      if (!half && w >= 1 && w + l === 4 && l >= 1) half = { x, y };
+      if (!deep && w === 4) deep = { x, y };
+      if (!bank && l === 4 && touchesWater(x, y, 2)) bank = { x, y };
+    }
+    const msg = c => { const old = isOwned; isOwned = () => true; const m = placeProblem('fischerplatz', c.x, c.y); isOwned = old; return m; };
+    const res = { half: msg(half), deep: msg(deep), bank: msg(bank) };
+    isOwned = () => true;
+    const b = addBuilding('fischerplatz', bank.x, bank.y, 2, true);
+    rebuildOccupancy();
+    res.oldOk = placeProblem('fischerplatz', bank.x, bank.y, state.buildings.indexOf(b));
+    res.view = buildingView(BUILDINGS.fischerplatz, 1).mirror;
+    drawScene(0.05);
+    return res; })()`);
+  ok(r.half === null, 'Halb im Wasser sollte gehen: ' + r.half);
+  ok(r.deep && /Land/.test(r.deep), 'Ganz im Wasser: ' + r.deep);
+  ok(r.bank && /Fluss/.test(r.bank), 'Ganz an Land: ' + r.bank);
+  ok(r.oldOk === null, 'Alter Stand am Ufer ungültig: ' + r.oldOk);
+  ok(r.view === true, 'Drehung 1 sollte gespiegelt sein');
   noErrors(g);
 });
 

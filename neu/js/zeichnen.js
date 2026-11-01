@@ -23,14 +23,74 @@ function loadImage(name) {
     if (typeof Image === 'undefined') return resolve(false);
     const img = new Image();
     img.onload = () => {
-      img.sockel = measurePlate(img);
-      images[name] = isHalfInWaterImage(name) ? featherWater(img) : img;
+      img.sockel = STILT_IMAGES[name] ? STILT_IMAGES[name].sockel : measurePlate(img);
+      images[name] = STILT_IMAGES[name] ? splitStiltBoat(name, img) : isHalfInWaterImage(name) ? featherWater(img) : img;
       if (GROUND_TEXTURES.includes(name) || name === 'busch' || name === 'blumen') onTerrainChanged();   // Boden neu zeichnen
       resolve(true);
     };
-    img.onerror = () => resolve(false);
+    img.onerror = () => { missingImages.add(name); resolve(false); };
     img.src = IMAGE_DIR + name + '.webp';
   });
+}
+
+// Bilder, die es (noch) nicht gibt – dann zeichnet das Spiel den Schnee selbst
+const missingImages = new Set();
+
+// Hütte auf Säulen: keine Platte im Bild – die Säulenfüße sind die Ecken der Raute. Das Boot wird aus dem Bild
+// gelöst und liegt immer auf einem echten Wasserfeld. Werte in Bildpunkten des Bildes (538 × 640).
+const STILT_IMAGES = {
+  '1-fischerhuette': {
+    sockel: { lx: 22 / 538, ly: 500 / 640, rx: 515 / 538, ry: 495 / 640, fx: 238 / 538, fy: 635 / 640, dicke: 0, farbe: '#6b4a2a', noClip: true },
+    boat: 'fischerboot', spanPx: 493,
+    outline: [[251, 553], [257, 555], [283, 553], [310, 536], [360, 508], [397, 494], [433, 479], [467, 464], [477, 469], [474, 488], [454, 535], [420, 572], [360, 602], [313, 613], [282, 607], [257, 592], [251, 580]],
+  },
+};
+function splitStiltBoat(name, img) {
+  try {
+    const d = STILT_IMAGES[name];
+    if (typeof document === 'undefined') return img;
+    const k = img.width / 538, xs = d.outline.map(p => p[0] * k), ys = d.outline.map(p => p[1] * k);
+    const trace = g => { g.beginPath(); xs.forEach((x, i) => g.lineTo(x, ys[i])); g.closePath(); };
+    const x0 = Math.floor(Math.min(...xs)), y0 = Math.floor(Math.min(...ys));
+    const b = document.createElement('canvas'); b.width = Math.ceil(Math.max(...xs)) - x0; b.height = Math.ceil(Math.max(...ys)) - y0;
+    const bg = b.getContext('2d');
+    bg.translate(-x0, -y0); trace(bg); bg.clip(); bg.drawImage(img, 0, 0);
+    b.spanPx = d.spanPx * k;
+    images[d.boat] = b;
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    g.globalCompositeOperation = 'destination-out'; trace(g); g.fill();
+    c.sockel = img.sockel;
+    return c;
+  } catch (e) { return img; }
+}
+
+// Wo liegt das Boot der Hütte? Auf dem ersten freien Wasserfeld: zuerst vorne auf der Bootsseite, sonst ringsum.
+function stiltBoatSpot(x, y, s, rot) {
+  const mirror = (Number(rot) || 0) % 2 === 1;
+  const alongY = [[x + s, y + 1], [x + s, y], [x + s + 1, y + 1], [x + s + 1, y]];   // vorne rechts (Boot wie im Bild)
+  const alongX = [[x + 1, y + s], [x, y + s], [x + 1, y + s + 1], [x, y + s + 1]];   // vorne links (gespiegelt)
+  const back = [[x - 1, y + 1], [x - 1, y], [x + 1, y - 1], [x, y - 1]];
+  const order = mirror ? [[alongX, true], [alongY, false], [back, false]] : [[alongY, false], [alongX, true], [back, false]];
+  for (const [list, flip] of order) for (const [tx, ty] of list)
+    if (inMap(tx, ty) && terrain[ty * N + tx] === TERRAIN.wasser.id && buildingAt(tx, ty) < 0) return { x: tx, y: ty, flip };
+  return null;
+}
+
+function drawStiltBoat(x, y, s, rot) {
+  const img = images.fischerboot, spot = img && stiltBoatSpot(x, y, s, rot);
+  if (!spot) return;
+  const z = cam.zoom, k = s * TW * z / img.spanPx, w = img.width * k, h = img.height * k;
+  const p = tileToScreen(spot.x + 0.5, spot.y + 0.5), bob = Math.sin(frameTime * 1.6 + spot.x + spot.y) * 1.2 * z;
+  ctx.save();
+  ctx.translate(p.x, p.y + bob);
+  if (spot.flip) ctx.scale(-1, 1);
+  ctx.fillStyle = 'rgba(15,45,70,0.22)';
+  ctx.beginPath(); ctx.ellipse(0, h * 0.12, w * 0.42, h * 0.3, -0.4, 0, 7); ctx.fill();
+  ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  drawSnowOver(img, -w / 2, -h / 2, w, h);
+  ctx.restore();
 }
 
 // Gebäude halb im Wasser: Das Wasser im Bild läuft zum Rand der Platte hin weich aus, damit es nahtlos in den
@@ -684,12 +744,12 @@ function mountainAt(x, y) {
 // Verschneite Fassung eines Bildes (Felsen, Berge, Büsche – ohne eigenes Winterbild): Schnee liegt auf allem, was nach
 // oben zeigt: am oberen Rand des Umrisses und auf hellen Flächen. Wird je Bild nur einmal berechnet.
 const snowSprites = new Map();
-function snowSprite(img) {
+function snowSprite(img, building = false) {
   if (!img) return null;
   if (snowSprites.has(img)) return snowSprites.get(img);
   let out = null;
   try {
-    const k = Math.min(1, 320 / Math.max(img.width, img.height)), w = Math.max(1, Math.round(img.width * k)), h = Math.max(1, Math.round(img.height * k));
+    const k = Math.min(1, (building ? 560 : 320) / Math.max(img.width, img.height)), w = Math.max(1, Math.round(img.width * k)), h = Math.max(1, Math.round(img.height * k));
     const c = document.createElement('canvas'); c.width = w; c.height = h;
     const g = c.getContext('2d'); g.drawImage(img, 0, 0, w, h);
     const d = g.getImageData(0, 0, w, h), a = d.data;
@@ -705,12 +765,22 @@ function snowSprite(img) {
         let top = 0;
         for (let r = 1; r <= reach; r++) {
           const up = y - r < 0 ? -1 : L[i - r * w];
-          if (up < 0 || up < L[i] - 0.14) { top = 1 - (r - 1) / reach; break; }
+          // Gebäude haben feine Muster (Holz, Stroh): dort zählt nur der echte Rand, sonst wird alles grau
+          if (up < 0 || (!building && up < L[i] - 0.14) || (building && r <= 2 && up < L[i] - 0.34)) { top = 1 - (r - 1) / reach; break; }
         }
-        const bright = Math.max(0, Math.min(1, (L[i] - 0.42) / 0.22));
-        const grain = 0.82 + 0.18 * hash(x, y);
-        const m = Math.min(1, Math.max(top, bright) * grain);
         const j = i * 4;
+        const bright = Math.max(0, Math.min(1, (L[i] - (building ? 0.58 : 0.42)) / 0.22));
+        // Gebäude: Gras auf der Platte wird ganz weiß, damit keine grünen Flecken bleiben
+        let green = 0;
+        if (building) {   // Farbton: Gras (auch olivgrün) wird weiß, Stroh und Korn tragen viel Schnee, Holz bleibt
+          const r0 = a[j], g0 = a[j + 1], b0 = a[j + 2], mx = Math.max(r0, g0, b0), mn = Math.min(r0, g0, b0), dl = mx - mn;
+          const hue = !dl ? 0 : mx === r0 ? 60 * ((g0 - b0) / dl) : mx === g0 ? 60 * ((b0 - r0) / dl + 2) : 60 * ((r0 - g0) / dl + 4);
+          const sat = mx ? dl / mx : 0;
+          if (hue >= 50 && hue <= 150 && sat > 0.2) green = 1;
+          else if (hue >= 37 && hue < 50 && sat > 0.45 && L[i] > 0.38) green = 0.72;
+        }
+        const grain = 0.82 + 0.18 * hash(x, y);
+        const m = Math.min(1, Math.max(top * (building ? 0.8 : 1), bright, green) * grain);
         a[j] += (248 - a[j]) * m; a[j + 1] += (251 - a[j + 1]) * m; a[j + 2] += (255 - a[j + 2]) * m;
       }
       g.putImageData(d, 0, 0);
@@ -719,6 +789,15 @@ function snowSprite(img) {
   } catch (e) { out = null; }
   snowSprites.set(img, out);
   return out;
+}
+
+// Gebäudebild ohne eigenes Winterbild: verschneite Fassung mit denselben Platten-Maßen (einmal je Bild)
+function buildingSnow(img) {
+  if (!img) return img;
+  const c = snowSprite(img, true);
+  if (!c) return img;
+  c.sockel = img.sockel;
+  return c;
 }
 
 // Im Winter: frisch verschneite Felsen, Berge und Büsche (sanft ein- und ausblenden)
@@ -993,10 +1072,12 @@ function drawImageOnTiles(img, x, y, s, rot, lift = 0, flat = false) {
   ctx.save();
   // alles unterhalb der Graskante abschneiden: dort sitzt der einheitliche Sockel
   const wide = br.x - bl.x, g = Math.max(1, 0.8 * cam.zoom);
+  if (!p.noClip) {   // Hütte auf Säulen: nichts abschneiden (Leiter reicht über den Rand)
   ctx.beginPath();
   ctx.moveTo(left.x - wide, -1e5); ctx.lineTo(left.x - wide, left.y + g); ctx.lineTo(left.x, left.y + g); ctx.lineTo(front.x, front.y + g);
   ctx.lineTo(right.x, right.y + g); ctx.lineTo(right.x + wide, right.y + g); ctx.lineTo(right.x + wide, -1e5); ctx.closePath();
   ctx.clip();
+  }
   ctx.transform(a, b, c, d, e, f);
   if (rot) { ctx.translate(iw, 0); ctx.scale(-1, 1); }
   ctx.drawImage(img, 0, 0);
@@ -1157,6 +1238,7 @@ function drawBuildingSprite(type, x, y, rot, lift = 0, alpha = 1) {
   if (img) {
     drawImageOnTiles(img, x, y, s, view.mirror, lift, !!def.needsWater);
     if (alpha === 1 && !lift) drawBuildingEffects(img, view.name, hash(x, y));
+    if (def.stilts && alpha === 1 && !lift) drawStiltBoat(x, y, s, rot);
   } else {
     drawPlot(x, y, s, lift ? 'rgba(160,220,110,0.9)' : '#93d466', '#6fae48');
     drawPlaceholder(def, x, y, s, lift);
@@ -1174,8 +1256,10 @@ function buildingView(def, rot, x = 0, y = 0) {
   let [v, mirror] = options[r];
   if (v && !has(v)) { v = ''; mirror = r % 2 === 1; }
   const name = def.bild ? def.bild + (v ? '-' + v : '') : null;
-  const winter = name && images[name + '-winter'] && state && staggeredSeason(hash(x, y)) === 3;
-  return { name, mirror, img: name && (winter ? images[name + '-winter'] : images[name]) };
+  const winter = name && state && staggeredSeason(hash(x, y)) === 3;
+  // Winterbild aus Canva hat Vorrang; fehlt es, legt das Spiel selbst Schnee aufs Bild
+  const img = !name ? null : !winter ? images[name] : images[name + '-winter'] || (missingImages.has(name + '-winter') ? buildingSnow(images[name]) : images[name]);
+  return { name, mirror, img };
 }
 
 // Grundriss: Platte in der Farbe des Gebäudes mit Zeichen (und Name, wenn groß genug)

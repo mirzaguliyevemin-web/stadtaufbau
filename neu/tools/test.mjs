@@ -796,6 +796,7 @@ test('Geräusche: jedes Gebäude hat ein eigenes, ohne Ton läuft alles ohne Feh
 
 test('Bäume: Holzsammler fällen sie nach und nach, Pflanzerin setzt Setzlinge, daraus werden Bäume; bleibt gespeichert', () => {
   const g = fresh();
+  g.run(`state.mapGen = 2; buildTerrain(); rebuildOccupancy(); recalcStats();`);   // feste Felder: Karte, für die der Test geschrieben wurde
   const r = g.run(`(() => {
     const trees = () => { let k = 0; for (let i = 0; i < N * N; i++) if (terrain[i] === TERRAIN.wald.id) k++; return k; };
     state.res.holz = 999; state.res.stein = 999; state.pop = 20;
@@ -1052,7 +1053,7 @@ test('Menü: Neu starten – freier Platz lässt den alten Stand stehen, Ersetze
 
 test('Karte: Quelle im Gebirge oben, Wasserfall, langer Fluss rechts am Lager vorbei, See unten; Fischer im Startland', () => {
   const g = fresh();
-  for (const seed of [4242, 1, 77, 999, 31337, 5, 12, 2024]) {
+  for (const seed of [4242, 1, 77, 999, 31337, 5, 12, 2024, 8, 23]) {
     const r = g.run(`(() => { startNewGame(${seed}); let own = 0, minD = 1e9;
       const a = N / 2 - 16, b = N / 2 + 16, c = N / 2 - 0.5, W = TERRAIN.wasser.id;
       for (let y = a; y < b; y++) for (let x = a; x < b; x++) if (terrain[y * N + x] === W) own++;
@@ -1070,20 +1071,20 @@ test('Karte: Quelle im Gebirge oben, Wasserfall, langer Fluss rechts am Lager vo
       return { gen: state.mapGen, own, minD, lakeReached, edge, top: top / topAll, spot, fall: f.fall && (f.fall.x + f.fall.y) / N, fallDir: f.fall && (f.fall.ux + f.fall.uy) / Math.SQRT2, srcDepth: (f.source.x + f.source.y) / N, lakeDepth: (f.lake.x + f.lake.y) / N, lakeR: f.lake.r,
         lakeWet: wet, campOk: state.buildings.every((b, i) => !b.build && !placeProblem(b.type, b.x, b.y, i)), depth: waterDepth.reduce((a, v) => Math.max(a, v), 0) }; })()`);
     const t = JSON.stringify(r);
-    ok(r.gen === 2, 'neues Spiel sollte mapGen 2 haben');
+    ok(r.gen === 3, 'neues Spiel sollte mapGen 3 haben');
     ok(r.own > 30, 'Fluss sollte durchs Startland gehen: ' + t);
     ok(r.minD >= 8, 'Lager zu nah am Fluss: ' + t);
     ok(r.lakeReached, 'Fluss kommt nicht durchgehend zum See: ' + t);
     ok(r.edge === 0, 'Fluss läuft durch den Kartenrand: ' + t);
     ok(r.top > 0.95, 'oben fehlt das zusammenhängende Gebirge: ' + t);
-    ok(r.srcDepth < 0.3 && r.lakeDepth > 1.5, 'Quelle/See nicht oben/unten im Bild: ' + t);
+    ok(r.srcDepth < 0.3 && r.lakeDepth > 1.3, 'Quelle/See nicht oben/unten im Bild: ' + t);   // der große See reicht weiter zur Mitte
     ok(r.fall && r.fall > 0.2 && r.fall < 0.55 && r.fallDir > 0.6, 'Wasserfall nicht am Bergfuß: ' + t);
     ok(r.spot, 'Kein Platz für den Fischer im Startland: ' + t);
     ok(r.campOk, 'Lager steht falsch: ' + t);
     ok(r.depth > 4, 'See ohne tiefe Mitte: ' + t);
   }
   const neu = g.run(`(() => { startNewGame(99); const before = baseTerrain.slice(); loadFromText(serialize()); let diff = 0; for (let i = 0; i < N * N; i++) if (baseTerrain[i] !== before[i]) diff++; return { gen: state.mapGen, core: state.mapCore, diff, fall: !!mapFeatures.fall }; })()`);
-  ok(neu.gen === 2 && neu.core === 0 && neu.diff === 0 && neu.fall, 'neuer Stand ändert sich beim Laden: ' + JSON.stringify(neu));
+  ok(neu.gen === 3 && neu.core === 0 && neu.diff === 0 && neu.fall, 'neuer Stand ändert sich beim Laden: ' + JSON.stringify(neu));
   noErrors(g);
 });
 
@@ -1164,6 +1165,17 @@ test('Fischerplatz auf Säulen: teils im Fluss, ganz im Wasser oder ganz an Land
   ok(r.bank && /Fluss/.test(r.bank), 'Ganz an Land: ' + r.bank);
   ok(r.oldOk === null, 'Alter Stand am Ufer ungültig: ' + r.oldOk);
   ok(r.view === true, 'Drehung 1 sollte gespiegelt sein');
+  noErrors(g);
+});
+
+test('See: neue Karten (mapGen 3) mit doppelt so breitem See; Stände mit mapGen 2 behalten ihre Karte', () => {
+  const g = fresh();
+  const r = g.run(`(() => { startNewGame(77); const neu = mapFeatures.lake.r; const m = state.buildings.filter(b => BUILDINGS[b.type]);
+    state.mapGen = 2; buildTerrain(); const alt = mapFeatures.lake.r; const a = baseTerrain.slice();
+    loadFromText(serialize()); let diff = 0; for (let i = 0; i < N * N; i++) if (baseTerrain[i] !== a[i]) diff++;
+    return { neu, alt, gen: state.mapGen, diff }; })()`);
+  ok(Math.abs(r.neu / r.alt - 2) < 0.01, 'See nicht doppelt so breit: ' + JSON.stringify(r));
+  ok(r.gen === 2 && r.diff === 0, 'mapGen 2 hat sich geändert: ' + JSON.stringify(r));
   noErrors(g);
 });
 

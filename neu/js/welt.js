@@ -45,7 +45,7 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     mapSize: N,              // Kartengröße beim Speichern (ältere Stände: kleiner, werden beim Laden in die Mitte gelegt)
     mapCore: 0,              // 0 = ganze Karte aus einem Guss; 128 = alte 128er-Karte liegt als Kern in der Mitte (Außenland neu)
     torches: true,           // Wege haben schon Fackeln bekommen (alte Stände: einmal beim Laden nachholen)
-    mapGen: 2,               // Art der Kartenerzeugung: 2 = breiter, kurviger Fluss (alte Stände: 1 = bleibt, wie sie war)
+    mapGen: 3,               // Art der Kartenerzeugung: 3 = wie 2, See doppelt so breit (Emin); 2 = breiter, kurviger Fluss; 1 = alter Fluss. Alte Stände behalten ihre Art.
     savedAt: Date.now(),
   };
 }
@@ -316,11 +316,11 @@ function generateTerrain2(seed, n = OLD_N) {
 // ---------------------------------------------------------------------
 
 // Hat der Stand einen alten Kern? (mapGen 1 hat immer einen)
-function hasOldCore() { return state.mapCore === OLD_N || state.mapGen !== 2; }
+function hasOldCore() { return state.mapCore === OLD_N || state.mapGen < 2; }
 
 // Lage der großen Dinge, alles im Verhältnis zur Kartengröße
 function worldPlan(rng) {
-  const lakeR = Math.min(46, 16 + N * 0.05) * (0.9 + rng() * 0.2);
+  const lakeR = Math.min(46, 16 + N * 0.05) * (0.9 + rng() * 0.2) * (state.mapGen >= 3 ? 2 : 1);   // ab mapGen 3: doppelte Breite, vierfache Fläche
   const lakeAt = N - 1 - lakeR * 1.55 - rng() * 4, lakeSide = (rng() - 0.5) * N * 0.08;
   const srcAt = N * (0.075 + rng() * 0.02), srcSide = (rng() - 0.5) * N * 0.08;
   return {
@@ -368,18 +368,32 @@ function bigRiverCurve(rng, plan) {
   for (const q of pts) q.w = Math.max(1.5, riverWidth(q.s, wp) * (0.32 + 0.68 * Math.min(1, q.s / (N * 0.16))));
   let push = clear + 5 - lateralNear;
   const shift = (q, d) => { const g = d * Math.exp(-(((q.s - near.s) / sig) ** 2)); return { x: q.x + g / Math.SQRT2, y: q.y - g / Math.SQRT2 }; };
+  let cleared = false;
   for (let k = 0; k < 120; k++, push += 0.5) {
     let ok = true;
     for (const q of pts) { const a = shift(q, push); if (Math.hypot(a.x - c, a.y - c) - q.w < clear) { ok = false; break; } }
-    if (ok) break;
+    if (ok) { cleared = true; break; }
   }
+  // Ab mapGen 3: Findet sich kein Abstand zum Lager, neuen Lauf versuchen (sonst schnitte der Schutz ums Lager den Fluss durch).
+  if (!cleared && state.mapGen >= 3) return null;
   for (const q of pts) { const a = shift(q, push); q.x = a.x; q.y = a.y; }
   for (const q of pts) if (q.x < 6 || q.y < 4 || q.x > N - 6 || q.y > N - 6) return null;
-  for (let i = 0; i < pts.length; i++) {
-    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], l = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-    pts[i].ux = (b.x - a.x) / l; pts[i].uy = (b.y - a.y) / l;
+  let out = pts;
+  if (state.mapGen >= 3) {   // Die Beule am Lager zieht Punkte auseinander: Lücken füllen, sonst reißt der Fluss dort ab
+    out = [];
+    for (let i = 0; i < pts.length; i++) {
+      const q = pts[i], n = pts[i + 1];
+      out.push(q);
+      if (!n) break;
+      const gaps = Math.ceil(Math.hypot(n.x - q.x, n.y - q.y) / 0.6);
+      for (let g = 1; g < gaps; g++) { const k = g / gaps; out.push({ x: q.x + (n.x - q.x) * k, y: q.y + (n.y - q.y) * k, s: q.s + (n.s - q.s) * k, w: q.w + (n.w - q.w) * k }); }
+    }
   }
-  return pts;
+  for (let i = 0; i < out.length; i++) {
+    const a = out[Math.max(0, i - 1)], b = out[Math.min(out.length - 1, i + 1)], l = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    out[i].ux = (b.x - a.x) / l; out[i].uy = (b.y - a.y) / l;
+  }
+  return out;
 }
 
 // Fluss als Bogen von P nach Q mit vorgegebenen Richtungen an den Enden, leicht gewunden. Für das Außenland alter Stände.
@@ -436,7 +450,7 @@ function waterField(lists, lake) {
 function generateWorld(seed) {
   let core = null;
   if (hasOldCore() || N === OLD_N) {
-    const t0 = state.mapGen === 2 ? generateTerrain2(seed, OLD_N) : generateTerrain(seed, OLD_N);
+    const t0 = state.mapGen >= 2 ? generateTerrain2(seed, OLD_N) : generateTerrain(seed, OLD_N);
     if (N === OLD_N) { mapFeatures.fall = lastOldMap.fall; return t0; }
     core = lastOldMap;
   }
@@ -489,7 +503,7 @@ function generateWorld(seed) {
   const t = new Uint8Array(N * N);
   const mid = N / 2, ON = OLD_N, end = off + ON - 1;
   const tri = v => { const m = ON - 1; return v < 0 ? -v : v > m ? 2 * m - v : v; };
-  const gen1 = core && state.mapGen !== 2;
+  const gen1 = core && state.mapGen < 2;
   const cn = core ? core.noise : {};
   // Altes Gebirge am Rand des Kerns: läuft als Bergrücken ein Stück ins Außenland und endet dann
   const spurs = core ? core.mountains.map(m => ({ L: m.L + 2 * off, w: m.w })) : [];

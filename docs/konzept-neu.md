@@ -253,7 +253,7 @@ Gewünscht:
 
 ---
 
-## Stand (2026-11-01, Version 52; Konto und neuer Fluss seit V52)
+## Stand (2026-11-01, Version 55; Konto seit V52, große Karte, Wolken, neuer Einstieg und neues Balancing seit V55)
 
 Steinzeit spielbar mit allen Gebäuden, Rückansichten, Musik. Neu seit V44: Wassergebäude halb im Fluss, Felsen werden abgebaut,
 Fackeln am Weg, Arbeit auf dem eigenen Grundstück, neues Forschungsfenster (Liste + Detail). Offen: Winterbilder der Rückansichten,

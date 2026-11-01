@@ -30,13 +30,13 @@ function botOnRoadGrid(x, y, s) {
 var botSpotCache = {};
 function botSpot(type, near, anyGrid) {
   const c = Math.floor(N / 2), tx = near ? Math.round(near.x) : c, ty = near ? Math.round(near.y) : c;
-  const key = (anyGrid ? '*' : '') + type + ':' + tx + ':' + ty + ':' + state.buildings.length + ':' + state.plots.join('') + ':' + state.cleared.length + ':' + state.saplings.length;
+  const key = (anyGrid ? '*' : '') + type + ':' + tx + ':' + ty + ':' + state.buildings.length + ':' + plotsBought() + ':' + state.cleared.length + ':' + state.saplings.length;
   if (key in botSpotCache) return botSpotCache[key];
   const def = BUILDINGS[type], s = def.size, half = s / 2;
   // nah an einem Ziel (Wärme/Glaube für eine Wohnung): nur Plätze, von denen aus das Ziel im Umkreis liegt
   const reach = near ? (def.belief || warmthRadius(def)) : Infinity;
-  const y0 = near ? Math.max(0, Math.floor(ty - reach - s)) : 0, y1 = near ? Math.min(N - 1, Math.ceil(ty + reach)) : N - 1;
-  const x0 = near ? Math.max(0, Math.floor(tx - reach - s)) : 0, x1 = near ? Math.min(N - 1, Math.ceil(tx + reach)) : N - 1;
+  const y0 = near ? Math.max(landBox.y0, Math.floor(ty - reach - s)) : landBox.y0, y1 = near ? Math.min(landBox.y1, Math.ceil(ty + reach)) : landBox.y1;
+  const x0 = near ? Math.max(landBox.x0, Math.floor(tx - reach - s)) : landBox.x0, x1 = near ? Math.min(landBox.x1, Math.ceil(tx + reach)) : landBox.x1;
   let best = null, bestD = Infinity;
   for (let y = y0; y <= y1; y++)
     for (let x = x0; x <= x1; x++) {

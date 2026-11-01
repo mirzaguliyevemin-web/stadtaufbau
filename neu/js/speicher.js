@@ -42,18 +42,23 @@ function saveGame() {
 }
 
 // Prüft einen gelesenen Spielstand und ergänzt Fehlendes. Gibt null zurück, wenn er unbrauchbar ist.
-// Alte Spielstände (64 × 64, bis Version 21) in die Mitte der großen Karte legen: Gebäude, Land, geräumte Felder, Jagd
+// Ältere Spielstände (64 × 64 bis Version 21, 128 × 128 bis Version 54) in die Mitte der großen Karte legen: Gebäude und Wege,
+// Land, geräumte Felder, gepflanzte Bäume, Setzlinge, Jagd. Ihr Gelände bleibt Feld für Feld gleich (mapCore), nur das Außenland ist neu.
+// Danach steht im Stand mapSize = N: Ein zweites Laden verschiebt nichts mehr. Die Kamera wird nicht gespeichert (sucht beim Start das Lager).
 function migrateMapSize(data) {
   const old = Number.isInteger(data.mapSize) ? data.mapSize : 64;
   if (old === N || old > N) return data;
   const off = (N - old) / 2, poff = off / CONFIG.plotSize, oldPlots = old / CONFIG.plotSize;
-  const d = { ...data, mapSize: N };
+  const d = { ...data, mapSize: N, mapCore: OLD_N };
+  const moved = i => (Math.floor(i / old) + off) * N + (i % old) + off;
   d.buildings = data.buildings.map(b => (b && Number.isInteger(b.x) && Number.isInteger(b.y) ? { ...b, x: b.x + off, y: b.y + off } : b));
   if (Array.isArray(data.plots) && data.plots.length === oldPlots * oldPlots) {
     d.plots = new Array(PLOTS * PLOTS).fill(0);
     data.plots.forEach((v, k) => { if (v === 1) d.plots[(Math.floor(k / oldPlots) + poff) * PLOTS + (k % oldPlots) + poff] = 1; });
   }
-  if (Array.isArray(data.cleared)) d.cleared = data.cleared.filter(Number.isInteger).map(i => (Math.floor(i / old) + off) * N + (i % old) + off);
+  if (Array.isArray(data.cleared)) d.cleared = data.cleared.filter(i => Number.isInteger(i) && i >= 0 && i < old * old).map(moved);
+  if (Array.isArray(data.planted)) d.planted = data.planted.filter(i => Number.isInteger(i) && i >= 0 && i < old * old).map(moved);
+  if (Array.isArray(data.saplings)) d.saplings = data.saplings.filter(a => Array.isArray(a) && Number.isInteger(a[0]) && a[0] >= 0 && a[0] < old * old).map(a => [moved(a[0]), a[1]]);
   if (data.hunt && typeof data.hunt === 'object') {
     d.hunt = { ...data.hunt };
     for (const k of ['cx', 'cy', 'x', 'y']) if (Number.isFinite(Number(d.hunt[k]))) d.hunt[k] = Number(d.hunt[k]) + off;
@@ -74,6 +79,7 @@ function sanitizeState(data) {
     .map(b => ({ type: b.type, x: b.x, y: b.y, rot: (Number(b.rot) || 0) & 3, build: Number.isFinite(b.build) && b.build > 0 ? b.build : 0, ...(b.paused ? { paused: true } : {}), ...(BUILDINGS[b.from] ? { from: b.from } : {}),
       ...(Number.isFinite(b.chop) && b.chop > 0 ? { chop: b.chop } : {}), ...(Number.isFinite(b.mine) && b.mine > 0 ? { mine: b.mine } : {}), ...(Number.isFinite(b.plant) && b.plant > 0 ? { plant: b.plant } : {}), ...(b.torch && BUILDINGS[b.type].isPath ? { torch: 1 } : {}) }));
   s.mapGen = data.mapGen === 2 ? 2 : 1;   // alte Stände behalten ihre Karte (fehlt = alter, schmaler Fluss)
+  s.mapCore = data.mapCore === OLD_N ? OLD_N : 0;   // fehlt = Karte aus einem Guss
   s.torches = data.torches === true;   // fehlt bei alten Ständen: Fackeln werden beim Laden einmal verteilt
   if (Array.isArray(data.plots) && data.plots.length === s.plots.length) s.plots = data.plots.map(p => (p === 1 ? 1 : 0));
   if (Array.isArray(data.cleared)) s.cleared = data.cleared.filter(Number.isInteger);

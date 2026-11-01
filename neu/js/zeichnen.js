@@ -7,7 +7,7 @@ const CHUNK = 16;
 const FONT = "Fredoka, 'Trebuchet MS', sans-serif";   // Schrift für Texte auf der Karte (Zeichen/Emoji fallen auf die Systemschrift zurück)   // Boden-Stück = 16 × 16 Felder
 
 const cam = { x: 0, y: N * TH / 2, zoom: 0.8 };
-const ZOOM_MIN = 0.3, ZOOM_MAX = 3.5;   // Emin: näher heranzoomen (Bilder reichen bis etwa 3,5)
+const ZOOM_MIN = 0.15, ZOOM_MAX = 3.5;   // Emin: näher heranzoomen (Bilder reichen bis etwa 3,5)
 let canvas = null, ctx = null, viewW = 800, viewH = 450, dpr = 1;
 // Auflösung: Ist das Handy zu langsam, zeichnet das Spiel mit weniger Bildpunkten (start.js passt das an)
 let renderScale = 1;
@@ -445,6 +445,9 @@ function renderChunk(cx, cy) {
       }
       // Blumen und Büsche auf der Wiese (nur Schmuck – darauf bauen geht trotzdem)
       if (t === TERRAIN.gras.id && hash(x, y + 3) > 0.92) decor.push([x, y, hash(x + 1, y) > 0.8 ? 'busch' : 'blumen']);
+      // Schilf am Seeufer
+      if (t === TERRAIN.sand.id && mapFeatures.lake && hash(x + 9, y) > 0.35 && Math.hypot(x - mapFeatures.lake.x, y - mapFeatures.lake.y) < mapFeatures.lake.r * 1.8
+        && [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1]].some(([dx, dy]) => inMap(x + dx, y + dy) && isWaterAt(x + dx, y + dy))) decor.push([x, y, 'schilf']);
     }
   // Ufer: Sand mit weichem Rand zur Wiese, dunkler nasser Sand am Wasser, darauf das Wasser (alles rund)
   if (patterns.wiese && patterns.sand) {
@@ -466,6 +469,7 @@ function renderChunk(cx, cy) {
   }
   for (const [x, y, name] of decor) {
     const p = toPoint(x + 0.5, y + 0.5);
+    if (name === 'schilf') { drawReeds(g, p.x, p.y, x, y); continue; }
     const img = images[name];
     if (!img) {   // ohne Bilder: kleiner Farbtupfer
       g.fillStyle = hash(x + 1, y) > 0.5 ? '#ffe36b' : '#ff9ec7';
@@ -477,6 +481,22 @@ function renderChunk(cx, cy) {
     g.drawImage(img, p.x - w / 2 + ox, p.y - h * 0.8, w, h);
   }
   return { canvas: c, left, top, decor, depth: renderDepthLayer(x0, y0, left, top) };
+}
+
+// Schilfbüschel (fest im Boden-Bild, selbst gezeichnet): dünne Halme, oben dunkle Kolben
+function drawReeds(g, px, py, x, y) {
+  g.lineCap = 'round';
+  for (let k = 0; k < 9; k++) {
+    const a = hash(x + k * 3, y), b = hash(x, y + k * 5), h = 18 + a * 18;
+    const bx = px + (a - 0.5) * 30, by = py + (b - 0.5) * 16, lean = (b - 0.5) * 6;
+    g.strokeStyle = a > 0.5 ? '#6f8f3d' : '#88a24a';
+    g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(bx, by); g.quadraticCurveTo(bx + lean * 0.3, by - h * 0.6, bx + lean, by - h); g.stroke();
+    if (k % 2 === 0) {
+      g.strokeStyle = '#6a4a2a'; g.lineWidth = 3;
+      g.beginPath(); g.moveTo(bx + lean * 0.8, by - h * 0.82); g.lineTo(bx + lean, by - h); g.stroke();
+    }
+  }
 }
 
 // Wassertiefe als eigene, grob aufgelöste Ebene je Boden-Stück: liegt über dem fließenden Wasser. Das grobe Raster macht
@@ -528,6 +548,9 @@ function renderDepthLayer(x0, y0, left, top) {
   mg.lineCap = 'round'; mg.lineJoin = 'round';
   paintRegion(mg, box, isWaterAt, '#000', 1.0, 2);
   g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-in'; g.drawImage(mask, 0, 0); g.restore();
+  // Nur die Raute des eigenen Boden-Stücks: Die Bilder überlappen sich, sonst läge die Tiefe am Rand doppelt (am großen See als Muster zu sehen)
+  g.save(); g.globalCompositeOperation = 'destination-in'; g.fillStyle = '#000';
+  g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0 + CHUNK, y0); g.lineTo(x0 + CHUNK, y0 + CHUNK); g.lineTo(x0, y0 + CHUNK); g.closePath(); g.fill(); g.restore();
   // ein paar Steine auf den Sandbänken
   for (let y = Math.max(0, box[1]); y <= Math.min(N - 1, box[3]); y++)
     for (let x = Math.max(0, box[0]); x <= Math.min(N - 1, box[2]); x++) {
@@ -541,6 +564,7 @@ function renderDepthLayer(x0, y0, left, top) {
 function drawWaterDepth(range) {
   const per = N / CHUNK;
   if (!chunks.length) return;
+  range = clipToLand(range);
   for (let cy = Math.floor(range.y0 / CHUNK); cy <= Math.floor(range.y1 / CHUNK); cy++)
     for (let cx = Math.floor(range.x0 / CHUNK); cx <= Math.floor(range.x1 / CHUNK); cx++) {
       if (cx < 0 || cy < 0 || cx >= per || cy >= per) continue;
@@ -554,7 +578,7 @@ function drawWaterDepth(range) {
 // Wasserfall: Felsstufe quer über den Fluss, weißer Vorhang (läuft), Schaum am Fuß. Selbst gezeichnet, nur wenn sichtbar.
 function drawWaterfall(range) {
   const f = mapFeatures.fall;
-  if (!f || f.x < range.x0 - 8 || f.x > range.x1 + 8 || f.y < range.y0 - 8 || f.y > range.y1 + 8) return;
+  if (!f || !landMask[Math.floor(f.y) * N + Math.floor(f.x)] || f.x < range.x0 - 8 || f.x > range.x1 + 8 || f.y < range.y0 - 8 || f.y > range.y1 + 8) return;
   const z = cam.zoom, t = frameTime, H = 46 * z;
   const px = f.uy, py = -f.ux;
   const a = tileToScreen(f.x - px * f.w, f.y - py * f.w), b = tileToScreen(f.x + px * f.w, f.y + py * f.w);
@@ -618,21 +642,204 @@ function drawWaterfall(range) {
   }
 }
 
+// Boden nur dort, wo eigenes Land liegt – unter den Wolken wird nichts gemalt. Höchstens MAX_CHUNKS Stücke bleiben im Speicher
+// (jedes kostet etwa 3 MB): Sind es mehr, fliegen die am längsten nicht gezeigten raus. Neue Stücke kosten höchstens etwa 10 ms je Bild,
+// der Rest folgt in den nächsten Bildern (bis dahin liegt dort die Wolkenfarbe) – so ruckelt schnelles Verschieben nicht.
+const MAX_CHUNKS = 48, MAX_CHUNKS_HARD = 72;   // hart: auch sichtbare Stücke werden dann nicht mehr angelegt (nur bei sehr viel eigenem Land ganz weit weg)
+let chunksAlive = 0, chunkTick = 0;
+const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
+function chunkHasLand(cx, cy) {
+  const k = CHUNK / CONFIG.plotSize;
+  for (let py = cy * k; py < (cy + 1) * k; py++)
+    for (let px = cx * k; px < (cx + 1) * k; px++) if (state.plots[py * PLOTS + px] === 1) return true;
+  return false;
+}
+
 function drawGround(range) {
   const per = N / CHUNK;
-  if (!chunks.length) chunks = new Array(per * per).fill(null);
+  if (!chunks.length) { chunks = new Array(per * per).fill(null); chunksAlive = 0; }
+  chunkTick++;
   let redraw = 1;   // veraltete Stücke: höchstens eins pro Bild neu malen
+  let made = 0;
+  const t0 = nowMs(), first = chunksAlive === 0;
+  range = clipToLand(range);
   for (let cy = Math.floor(range.y0 / CHUNK); cy <= Math.floor(range.y1 / CHUNK); cy++)
     for (let cx = Math.floor(range.x0 / CHUNK); cx <= Math.floor(range.x1 / CHUNK); cx++) {
-      if (cx < 0 || cy < 0 || cx >= per || cy >= per) continue;
+      if (cx < 0 || cy < 0 || cx >= per || cy >= per || !chunkHasLand(cx, cy)) continue;
       const k = cy * per + cx;
-      if (!chunks[k]) chunks[k] = renderChunk(cx, cy);
-      else if (chunks[k].stale && redraw > 0) { redraw--; chunks[k] = renderChunk(cx, cy) || chunks[k]; }
+      if (!chunks[k]) {
+        // (ganz am Anfang, wenn noch nichts da ist: alles Sichtbare auf einmal, sonst beginnt das Spiel mit Löchern)
+        if ((made && first === false && nowMs() - t0 > 10) || chunksAlive >= MAX_CHUNKS_HARD) continue;
+        chunks[k] = renderChunk(cx, cy);
+        if (chunks[k]) { chunksAlive++; made++; }
+      } else if (chunks[k].stale && redraw > 0) { redraw--; chunks[k] = renderChunk(cx, cy) || chunks[k]; }
       const ch = chunks[k];
       if (!ch) continue;
+      ch.used = chunkTick;
       const p = worldToScreen(ch.left, ch.top);
       ctx.drawImage(ch.canvas, p.x, p.y, ch.canvas.width * cam.zoom, ch.canvas.height * cam.zoom);
     }
+  if (chunksAlive > MAX_CHUNKS) {
+    const old = [];
+    chunks.forEach((c, k) => { if (c && c.used !== chunkTick) old.push(k); });
+    old.sort((a, b) => (chunks[a].used || 0) - (chunks[b].used || 0));
+    for (const k of old.slice(0, chunksAlive - MAX_CHUNKS)) { chunks[k] = null; chunksAlive--; }
+  }
+}
+
+// ---------------------------------------------------------------------
+// Wolken: Was nicht gekauft ist, liegt unter einer weichen weißen Wolkendecke. Die Decke besteht aus wenigen vorgezeichneten
+// Bildern (je Landstück eins, nur ein Bild-Aufruf; Speicher fest, egal wie groß die Karte ist). Die Wölkchen ragen über den Rand
+// des Landstücks, dadurch hat eigenes Land einen weichen, gewellten Rand. Gezeichnet auf dem Boden, unter Bäumen und Häusern:
+// Eigene hohe Dinge stehen vor den Wolken, fremde werden gar nicht gezeichnet. Nacht, Wetter und Winter liegen darüber.
+// ---------------------------------------------------------------------
+
+const CLOUD_BASE = '#f4f7fb';
+const CLOUD_VARIANTS = 8, CLOUD_SCALE = 0.42, CLOUD_PAD = 2;   // Überstand in Feldern
+const CLOUD_LIFT_SECONDS = 1.9;
+const cloudSprites = [];
+const cloudLifts = new Map();   // Landstück → wie weit die Wolke schon aufgelöst ist (0–1)
+let cloudPuffSprite = null;
+
+function drawPuff(g, x, y, r, soft = 0.42) {
+  g.save();
+  g.translate(x, y); g.scale(1, 0.8);
+  const sh = g.createRadialGradient(0, r * 0.3, r * 0.3, 0, r * 0.3, r * 1.1);
+  sh.addColorStop(0, `rgba(190,206,228,${soft})`);
+  sh.addColorStop(0.7, `rgba(190,206,228,${soft * 0.65})`);
+  sh.addColorStop(1, 'rgba(190,206,228,0)');
+  g.fillStyle = sh;
+  g.beginPath(); g.arc(0, r * 0.3, r * 1.1, 0, 7); g.fill();
+  const hi = g.createRadialGradient(-r * 0.2, -r * 0.3, r * 0.1, 0, 0, r);
+  hi.addColorStop(0, 'rgba(255,255,255,1)');
+  hi.addColorStop(0.55, 'rgba(254,255,255,0.97)');
+  hi.addColorStop(0.82, 'rgba(244,248,253,0.72)');
+  hi.addColorStop(1, 'rgba(240,245,251,0)');
+  g.fillStyle = hi;
+  g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill();
+  g.restore();
+}
+
+function cloudSprite(v) {
+  if (cloudSprites[v] !== undefined) return cloudSprites[v];
+  if (typeof document === 'undefined') return (cloudSprites[v] = null);
+  const ps = CONFIG.plotSize, W = (ps + 2 * CLOUD_PAD) * TW, H = (ps + 2 * CLOUD_PAD) * TH;
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(W * CLOUD_SCALE); c.height = Math.ceil(H * CLOUD_SCALE);
+  const g = c.getContext('2d');
+  if (!g) return (cloudSprites[v] = null);
+  g.scale(CLOUD_SCALE, CLOUD_SCALE);
+  // u, v in Feldern ab der oberen Ecke des Landstücks → Bildpunkte im Bild
+  const at = (a, b) => ({ x: W / 2 + (a - b) * TW / 2, y: CLOUD_PAD * TH + (a + b) * TH / 2 });
+  const i = 0.25, e = ps - 0.25, co = [at(i, i), at(e, i), at(e, e), at(i, e)];
+  g.fillStyle = CLOUD_BASE;
+  g.beginPath(); co.forEach(q => g.lineTo(q.x, q.y)); g.closePath(); g.fill();
+  const rnd = (a, b) => hash(v * 31 + a * 7 + 3, b * 13 + 11 + v);
+  const puffs = [];
+  // am Rand entlang (leicht nach innen versetzt), dadurch die gewellte Kante
+  for (let k = 0; k <= ps * 1.5; k++) {
+    const t = k / 1.5, inset = 0.35;
+    for (let side = 0; side < 4; side++) {
+      const j = rnd(k, side), j2 = rnd(side + 5, k + 9);
+      const along = t + (j - 0.5) * 0.5, inn = inset + j2 * 0.5;
+      const [a, b] = side === 0 ? [along, inn] : side === 1 ? [ps - inn, along] : side === 2 ? [along, ps - inn] : [inn, along];
+      const q = at(a, b);
+      puffs.push({ x: q.x, y: q.y, r: 40 + j * 24 });
+    }
+  }
+  // Fläche: wenige große Ballen, dazwischen kleinere (verschiedene Größen, sonst sieht es nach Fischschuppen aus)
+  for (let k = 0; k < 16; k++) {
+    const a = 0.6 + rnd(k, 21) * (ps - 1.2), b = 0.6 + rnd(k, 22) * (ps - 1.2), q = at(a, b);
+    puffs.push({ x: q.x, y: q.y, r: 62 + rnd(k, 23) * 70, soft: 0.3 });
+  }
+  for (let k = 0; k < 14; k++) {
+    const a = 0.8 + rnd(k, 24) * (ps - 1.6), b = 0.8 + rnd(k, 25) * (ps - 1.6), q = at(a, b);
+    puffs.push({ x: q.x, y: q.y, r: 22 + rnd(k, 26) * 26, soft: 0.5 });
+  }
+  puffs.sort((p1, p2) => p1.y - p2.y);
+  for (const q of puffs) drawPuff(g, q.x, q.y, q.r, q.soft);
+  c.originX = W / 2; c.originY = CLOUD_PAD * TH; c.worldW = W; c.worldH = H;
+  return (cloudSprites[v] = c);
+}
+
+// Beim Kauf: Die Wolke über dem Landstück löst sich auf
+function liftClouds(p) { cloudLifts.set(p, 0); }
+
+// Liegt dieses Landstück (noch) unter Wolken?
+function cloudCovers(p) { return state.plots[p] !== 1 || cloudLifts.has(p); }
+
+// Die ganze Decke liegt fertig gemalt auf einer eigenen Leinwand (etwas größer als der Bildschirm, gröber aufgelöst – Wolken sind
+// weich): Je Bild kostet sie nur einen Bild-Aufruf. Neu gemalt wird nur, wenn man weit verschiebt oder zoomt und wenn Land dazukommt.
+const CLOUD_OVER = 0.3, CLOUD_RES = 0.65;
+const cloudLayer = { canvas: null, g: null, x: 0, y: 0, z: 0, w: 0, h: 0, plots: -1 };
+
+function paintCloudLayer() {
+  const L = cloudLayer, z = cam.zoom, ps = CONFIG.plotSize;
+  if (!L.canvas) {
+    if (typeof document === 'undefined') return false;
+    L.canvas = document.createElement('canvas');
+    L.g = L.canvas.getContext('2d');
+    if (!L.g) { L.canvas = null; return false; }
+  }
+  L.w = viewW * (1 + 2 * CLOUD_OVER); L.h = viewH * (1 + 2 * CLOUD_OVER);
+  const cw = Math.ceil(L.w * CLOUD_RES), ch = Math.ceil(L.h * CLOUD_RES);
+  if (L.canvas.width !== cw || L.canvas.height !== ch) { L.canvas.width = cw; L.canvas.height = ch; }
+  L.x = cam.x; L.y = cam.y; L.z = z;
+  const g = L.g;
+  g.setTransform(CLOUD_RES, 0, 0, CLOUD_RES, 0, 0);
+  g.clearRect(0, 0, L.w, L.h);
+  // Feldbereich der Leinwand
+  const toTile = (sx, sy) => { const wx = (sx - L.w / 2) / z + cam.x, wy = (sy - L.h / 2) / z + cam.y; return { x: (wx / (TW / 2) + wy / (TH / 2)) / 2, y: (wy / (TH / 2) - wx / (TW / 2)) / 2 }; };
+  const corners = [toTile(0, 0), toTile(L.w, 0), toTile(0, L.h), toTile(L.w, L.h)];
+  const m = CLOUD_PAD / ps + 1, lim = 5;   // über den Kartenrand hinaus: dort geht das Wolkenmeer weiter
+  const px0 = Math.max(-lim, Math.floor(Math.min(...corners.map(q => q.x)) / ps - m)), px1 = Math.min(PLOTS + lim, Math.ceil(Math.max(...corners.map(q => q.x)) / ps + m));
+  const py0 = Math.max(-lim, Math.floor(Math.min(...corners.map(q => q.y)) / ps - m)), py1 = Math.min(PLOTS + lim, Math.ceil(Math.max(...corners.map(q => q.y)) / ps + m));
+  const hw = TW / 2 * ps, hh = TH / 2 * ps, cx = L.w / 2 - cam.x * z, cy = L.h / 2 - cam.y * z;
+  const s0 = cloudSprite(0);
+  if (!s0) return false;
+  const W = s0.worldW * z, H = s0.worldH * z, ox = s0.originX * z, oy = s0.originY * z;
+  let n = 0;
+  for (let py = py0; py <= py1; py++)
+    for (let px = px0; px <= px1; px++) {
+      const inside = px >= 0 && py >= 0 && px < PLOTS && py < PLOTS, p = inside ? py * PLOTS + px : -1;
+      if (inside && state.plots[p] === 1) continue;
+      const sx = cx + (px - py) * hw * z, sy = cy + (px + py) * hh * z;
+      if (sx + W - ox < 0 || sx - ox > L.w || sy - oy > L.h || sy + H - oy < 0) continue;
+      const img = cloudSprite(Math.floor(hash(px + 40, py + 40) * CLOUD_VARIANTS));
+      if (img) { g.drawImage(img, sx - ox, sy - oy, W, H); n++; }
+    }
+  L.sprites = n;
+  L.plots = landVersion;
+  return true;
+}
+
+function drawClouds(dt) {
+  const L = cloudLayer, z = cam.zoom;
+  // reicht die fertige Leinwand noch? (Verschieben und leichtes Zoomen gehen ohne neues Malen)
+  const k = L.z ? z / L.z : 0;
+  const dx = (cam.x - L.x) * L.z, dy = (cam.y - L.y) * L.z;
+  const fits = L.canvas && k > 0.8 && k < 1.3 && L.plots === landVersion && Math.abs(dx) + viewW / 2 / k <= L.w / 2 - 6 && Math.abs(dy) + viewH / 2 / k <= L.h / 2 - 6;
+  if (!fits && !paintCloudLayer()) return;
+  // leichtes Treiben: die ganze Decke wandert ein paar Bildpunkte hin und her
+  const drift = Math.sin(frameTime * 0.13) * 4 * z, driftY = Math.cos(frameTime * 0.1) * 2.5 * z;
+  const q = z / L.z, sw = L.w * q, sh = L.h * q;
+  const lx = (L.x - cam.x) * z + viewW / 2 - sw / 2 + drift, ly = (L.y - cam.y) * z + viewH / 2 - sh / 2 + driftY;
+  ctx.drawImage(L.canvas, lx, ly, sw, sh);
+  // Gerade gekauft: Die Wolke des Landstücks löst sich auf (ein Bild, wird größer, heller, steigt auf)
+  if (cloudLifts.size) {
+    const ps = CONFIG.plotSize, s0 = cloudSprite(0);
+    for (const [p, t] of cloudLifts) {
+      const px = p % PLOTS, py = Math.floor(p / PLOTS), e0 = Math.min(1, t / CLOUD_LIFT_SECONDS), e = e0 * e0 * (3 - 2 * e0), grow = 1 + 0.32 * e;
+      const c = tileToScreen((px + 0.5) * ps, (py + 0.5) * ps), img = cloudSprite(Math.floor(hash(px + 40, py + 40) * CLOUD_VARIANTS));
+      if (!img || !s0) continue;
+      const W = s0.worldW * z * grow, H = s0.worldH * z * grow;
+      ctx.globalAlpha = 1 - e;
+      ctx.drawImage(img, c.x - W / 2, c.y - H / 2 - 30 * e * z, W, H);
+      ctx.globalAlpha = 1;
+      if (t + dt >= CLOUD_LIFT_SECONDS) cloudLifts.delete(p); else cloudLifts.set(p, t + dt);
+    }
+  }
 }
 
 // Sichtbarer Bereich in Feldern (mit Rand)
@@ -823,7 +1030,7 @@ function drawDecorSnow(range) {
       const ch = cx >= 0 && cy >= 0 && cx < per && cy < per ? chunks[cy * per + cx] : null;
       if (!ch || !ch.decor) continue;
       for (const [x, y, name] of ch.decor) {
-        if (name !== 'busch') continue;
+        if (name !== 'busch' || landMask[y * N + x] !== 2) continue;
         const p = tileToScreen(x + 0.5, y + 0.5), ox = (hash(y, x + 5) - 0.5) * TW * 0.25 * z;
         drawSnowOver(img, p.x - w / 2 + ox, p.y - h * 0.8, w, h);
       }
@@ -1180,10 +1387,12 @@ function drawSmoke() {
 // Fließendes Wasser: über das vorgezeichnete Wasser zwei langsam wandernde Lagen der Wasser-Textur legen
 function drawWater(range) {
   if (!images.wasser) return;
+  range = clipToLand(range);   // unter den Wolken fließt nichts (spart auf der großen Karte fast alles)
   const x0 = range.x0 - 1, y0 = range.y0 - 1, x1 = range.x1 + 1, y1 = range.y1 + 1;
+  const isWaterShown = (x, y) => isWaterAt(x, y) && landMask[y * N + x] > 0;
   let any = false;
   for (let y = Math.max(0, y0); y <= Math.min(N - 1, y1) && !any; y++)
-    for (let x = Math.max(0, x0); x <= Math.min(N - 1, x1); x++) if (isWaterAt(x, y)) { any = true; break; }
+    for (let x = Math.max(0, x0); x <= Math.min(N - 1, x1); x++) if (isWaterShown(x, y)) { any = true; break; }
   if (!any) return;
   const t = frameTime;
   const o = tileToScreen(0, 0), ex = tileToScreen(1, 0), ey = tileToScreen(0, 1);
@@ -1192,11 +1401,11 @@ function drawWater(range) {
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const box = [x0, y0, x1, y1];
   // Schaumsaum am Ufer (atmet leicht)
-  paintRegion(ctx, box, isWaterAt, `rgba(255,255,255,${0.32 + 0.12 * Math.sin(t * 1.3)})`, 1.1 + 0.03 * Math.sin(t * 1.3), 2);
+  paintRegion(ctx, box, isWaterShown, `rgba(255,255,255,${0.32 + 0.12 * Math.sin(t * 1.3)})`, 1.1 + 0.03 * Math.sin(t * 1.3), 2);
   // zwei langsam wandernde Lagen der Wasser-Textur
-  paintRegion(ctx, box, isWaterAt, tilePattern(ctx, 'wasser', (t * 0.18) % TEXTURE_TILES, (t * 0.05) % TEXTURE_TILES), 1.0, 2);
+  paintRegion(ctx, box, isWaterShown, tilePattern(ctx, 'wasser', (t * 0.18) % TEXTURE_TILES, (t * 0.05) % TEXTURE_TILES), 1.0, 2);
   ctx.globalAlpha = 0.35;
-  paintRegion(ctx, box, isWaterAt, tilePattern(ctx, 'wasser', (t * 0.07) % TEXTURE_TILES, (t * 0.15) % TEXTURE_TILES), 1.0, 2);
+  paintRegion(ctx, box, isWaterShown, tilePattern(ctx, 'wasser', (t * 0.07) % TEXTURE_TILES, (t * 0.15) % TEXTURE_TILES), 1.0, 2);
   ctx.restore();
   ctx.globalAlpha = 1;
   // Glitzern
@@ -1204,7 +1413,7 @@ function drawWater(range) {
   ctx.lineWidth = Math.max(1, 1.5 * cam.zoom);
   for (let y = Math.max(0, range.y0); y <= range.y1; y++)
     for (let x = Math.max(0, range.x0); x <= range.x1; x++) {
-      if (!isWaterAt(x, y)) continue;
+      if (!isWaterShown(x, y)) continue;
       const h = hash(x + 3, y + 11);
       if (h < 0.75) continue;
       const a = Math.pow(Math.max(0, Math.sin(t * 1.7 + h * 40)), 6);
@@ -1395,33 +1604,43 @@ function drawBubble(i) {
 // Bild zusammensetzen
 // ---------------------------------------------------------------------
 
+// Preisschilder auf den Wolken über dem Land, das man kaufen kann (nach der Nacht gezeichnet: bleiben immer gut zu sehen)
+let plotTags = [];   // Schilder im aktuellen Bild: { p, x0, y0, x1, y1 } zum Antippen
 function drawPlots(range) {
-  const ps = CONFIG.plotSize;
-  const price = plotPrice();
-  for (let p = 0; p < state.plots.length; p++) {
-    if (state.plots[p] === 1) continue;
-    const px = (p % PLOTS) * ps, py = Math.floor(p / PLOTS) * ps;
-    if (px > range.x1 || py > range.y1 || px + ps < range.x0 || py + ps < range.y0) continue;
-    diamondPath(ctx, px, py, ps, ps, tileToScreen, 0.5);
-    ctx.fillStyle = 'rgba(30,40,20,0.38)';
-    ctx.fill();
-    if (canBuyPlot(p) && cam.zoom > 0.35) {
-      const c = tileToScreen(px + ps / 2, py + ps / 2);
-      const size = Math.max(12, 15 * cam.zoom);
-      ctx.font = `600 ${Math.round(size)}px ${FONT}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const text = '🛒 ' + formatAmounts(price);
-      const w = ctx.measureText(text).width + 16;
-      ctx.fillStyle = canAfford(price) ? 'rgba(255,248,225,0.92)' : 'rgba(220,210,190,0.8)';
+  plotTags = [];
+  if (cam.zoom <= 0.22) return;
+  const ps = CONFIG.plotSize, price = plotPrice(), afford = canAfford(price);
+  const px0 = Math.max(0, Math.floor((landBox.x0 - ps) / ps)), px1 = Math.min(PLOTS - 1, Math.floor((landBox.x1 + ps) / ps));
+  const py0 = Math.max(0, Math.floor((landBox.y0 - ps) / ps)), py1 = Math.min(PLOTS - 1, Math.floor((landBox.y1 + ps) / ps));
+  const size = Math.max(12, 15 * cam.zoom), text = '🛒 ' + formatAmounts(price);
+  ctx.font = `600 ${Math.round(size)}px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const w = ctx.measureText(text).width + 16;
+  for (let py = py0; py <= py1; py++)
+    for (let px = px0; px <= px1; px++) {
+      const p = py * PLOTS + px;
+      if (state.plots[p] === 1 || !canBuyPlot(p)) continue;
+      const c = tileToScreen((px + 0.5) * ps, (py + 0.5) * ps);
+      if (c.x < -w || c.x > viewW + w || c.y < -size * 2 || c.y > viewH + size * 2) continue;
+      ctx.fillStyle = 'rgba(70,85,110,0.25)';
+      roundRect(c.x - w / 2, c.y - size + 2, w, size * 2, size * 0.5); ctx.fill();
+      ctx.fillStyle = afford ? 'rgba(255,248,225,0.97)' : 'rgba(226,220,206,0.92)';
       roundRect(c.x - w / 2, c.y - size, w, size * 2, size * 0.5); ctx.fill();
-      ctx.fillStyle = '#4a3420';
+      ctx.fillStyle = afford ? '#4a3420' : '#7a6a58';
       ctx.fillText(text, c.x, c.y + 1);
+      plotTags.push({ p, x0: c.x - w / 2, y0: c.y - size, x1: c.x + w / 2, y1: c.y + size });
     }
-  }
+}
+
+// Liegt unter dem Finger ein Preisschild?
+function plotTagAtScreen(sx, sy) {
+  const m = 4, t = plotTags.find(q => sx >= q.x0 - m && sx <= q.x1 + m && sy >= q.y0 - m && sy <= q.y1 + m);
+  return t ? t.p : -1;
 }
 
 function drawGrid(range) {
+  range = clipToLand(range);
   ctx.strokeStyle = 'rgba(255,255,255,0.28)';
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -1661,7 +1880,7 @@ function drawScene(dt) {
   if (!ctx || !state) return;
   frameTime += dt;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = '#5a9a3a';
+  ctx.fillStyle = CLOUD_BASE;   // jenseits des gemalten Bodens: Wolkenfarbe
   ctx.fillRect(0, 0, viewW, viewH);
   const range = visibleRange();
   updateLife(dt, range);
@@ -1669,8 +1888,8 @@ function drawScene(dt) {
   drawWater(range);
   drawWaterDepth(range);
   drawWaterfall(range);
-  drawPlots(range);
   drawSeasonGround();
+  drawClouds(dt);
   drawDecorSnow(range);
   drawPaths(range);
   if (ghost || pathMode) drawGrid(range);
@@ -1686,11 +1905,14 @@ function drawScene(dt) {
   // visibleRange ist ein Rechteck in Feldern, der Bildschirm darin eine Raute: Felder außerhalb des Bildes überspringen
   // (Bäume und Berge ragen nach oben – unten darum mehr Rand)
   const objects = [];
-  const mx = 2 * TW * cam.zoom, top = -20 * cam.zoom, bottom = viewH + 160 * cam.zoom;
-  for (let y = range.y0; y <= range.y1; y++)
-    for (let x = range.x0; x <= range.x1; x++) {
+  // Nur eigenes Land: Was unter den Wolken liegt, wird gar nicht erst angefasst
+  const mx = 2 * TW * cam.zoom, top = -20 * cam.zoom, bottom = viewH + 160 * cam.zoom, land = clipToLand(range), thin = cam.zoom < 0.18 ? 0.3 : cam.zoom < 0.25 ? 0.55 : 1;
+  for (let y = land.y0; y <= land.y1; y++)
+    for (let x = land.x0; x <= land.x1; x++) {
       const t = terrain[y * N + x];
       if (t !== TERRAIN.wald.id && t !== TERRAIN.fels.id && t !== TERRAIN.berg.id) continue;
+      if (landMask[y * N + x] !== 2) continue;
+      if (thin < 1 && t !== TERRAIN.berg.id && hash(x + 2, y + 5) > thin) continue;   // ganz weit weg: lichter, spart bei viel eigenem Land Rechenzeit
       const p = tileToScreen(x + 0.5, y + 0.5);
       if (p.x < -mx || p.x > viewW + mx || p.y < top || p.y > bottom) continue;
       if (t === TERRAIN.wald.id) objects.push({ d: x + y + 1, kind: 'wald', x, y });
@@ -1741,6 +1963,7 @@ function drawScene(dt) {
   drawDayNight();
   // Blasen und das geplante Gebäude bleiben auch nachts und im Regen gut zu sehen
   for (const o of objects) if (o.kind === 'b') drawBubble(o.i);
+  drawPlots(range);
   if (ghost) drawGhost(ghost);
 }
 

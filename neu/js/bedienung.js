@@ -177,7 +177,7 @@ function objectAtScreen(sx, sy) {
   });
   for (let y = t.y - 1; y <= t.y + 3; y++)
     for (let x = t.x - 1; x <= t.x + 3; x++) {
-      if (!inMap(x, y) || !terrainAt(x, y).clear || buildingAt(x, y) >= 0) continue;
+      if (!inMap(x, y) || !isOwned(x, y) || !terrainAt(x, y).clear || buildingAt(x, y) >= 0) continue;   // unter den Wolken gibt es nichts anzutippen
       const r = terrainObjectRect(x, y);
       const onTile = x === t.x && y === t.y;
       if (onTile || (sx >= r.x0 && sx <= r.x1 && sy >= r.y0 && sy <= r.y1)) consider(x + y + 1 + (onTile ? 0.01 : 0), { x, y });
@@ -209,6 +209,8 @@ function handleTap(sx, sy) {
     return;
   }
   if (pathMode) return;
+  const tag = plotTagAtScreen(sx, sy);   // Preisschild auf den Wolken: Land kaufen
+  if (tag >= 0) { closeInfo(); showPlotDialog(tag); return; }
   const mammoth = typeof mammothAtScreen === 'function' ? mammothAtScreen(sx, sy) : null;
   if (mammoth) { showHuntInfo(mammoth); return; }
   const hit = objectAtScreen(sx, sy);

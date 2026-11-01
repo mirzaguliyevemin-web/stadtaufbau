@@ -5,7 +5,7 @@
 const APP_VERSION = 54;
 
 const CONFIG = {
-  mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
+  mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
   plotSize: 8,            // Landstück = 8 × 8 Felder
   startPlots: 4,          // in der Mitte gehören 4 × 4 Landstücke (32 × 32 Felder) von Anfang an dazu
   tileW: 64,              // Breite einer Raute in Bildpunkten (Zoom 1)

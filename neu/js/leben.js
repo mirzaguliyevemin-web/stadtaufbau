@@ -495,11 +495,16 @@ function drawWorker(w, t) {
   }
   const hand = { x: p.x - 8 * z * w.face, y: p.y - 15 * z };
   if (!walking && swing === 'spear') {   // mit dem Speer ins Wasser stechen, es spritzt
+    // Speer steil von oben nach unten ins Wasser (nicht waagrecht – das sah aus wie ein Gewehr)
     const cyc = (t * 0.8 + w.ph) % 1, thrust = cyc > 0.75 ? Math.sin((cyc - 0.75) / 0.25 * Math.PI) : 0;
-    const q = tileToScreen(w.tx, w.ty);
-    const ex = hand.x + (q.x - hand.x) * (0.55 + 0.3 * thrust), ey = hand.y + (q.y - 4 * z - hand.y) * (0.55 + 0.3 * thrust);
+    const q = tileToScreen(w.tx, w.ty), dir = Math.sign(q.x - p.x) || -w.face;
+    const ex = p.x + dir * (9 + 2 * thrust) * z, ey = p.y + (1 + 6 * thrust) * z;   // Spitze vor den Füßen im Wasser
+    const gx = ex - dir * 11 * z, gy = ey - 30 * z;                                   // oberes Ende über der Schulter
     ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 1.8 * z; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(hand.x - (ex - hand.x) * 0.5, hand.y - 6 * z - (ey - hand.y) * 0.5); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(ex, ey); ctx.stroke();
+    const ux = (ex - gx) / 32, uy = (ey - gy) / 32;   // Steinspitze
+    ctx.fillStyle = '#8a8478';
+    ctx.beginPath(); ctx.moveTo(ex + ux * 5, ey + uy * 5); ctx.lineTo(ex - uy * 1.6 - ux * 1.5, ey + ux * 1.6 - uy * 1.5); ctx.lineTo(ex + uy * 1.6 - ux * 1.5, ey - ux * 1.6 - uy * 1.5); ctx.fill();
     if (thrust > 0.6) splash(ex, ey + 2 * z, z, thrust);
   }
   if (!walking && swing === 'paint') {   // Pinsel an die Felswand, bunte Tupfen erscheinen nach und nach

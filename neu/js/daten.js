@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 45;
+const APP_VERSION = 46;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -223,7 +223,7 @@ const BUILDINGS = {
     requires: 'ackerbau', info: 'Sehr viel Nahrung – im Sommer am meisten, im Winter nichts.',
   },
   ziegengehege: {
-    name: 'Ziegengehege', icon: '🐐', size: 3, line: 'tiere', tier: 0, stage: 'jung', bild: '1-ziegengehege',
+    name: 'Ziegengehege', icon: '🐐', size: 3, line: 'tiere', tier: 0, stage: 'jung', bild: '1-ziegengehege', views: ['r2'],
     color: '#c8b48a', cost: { holz: 60, werkzeug: 5 }, time: 120, workers: 2, produces: { nahrung: 10, felle: 2 },
     requires: 'viehzucht', info: 'Ziegen geben Milch, Fleisch und Felle – das ganze Jahr.',
   },
@@ -254,17 +254,17 @@ const BUILDINGS = {
     info: 'Wärme und Gemeinschaft für Wohnungen im Umkreis.',
   },
   fellmacherin: {
-    name: 'Fellmacherin', icon: '🧥', size: 2, line: 'kleidung', tier: 0, stage: 'mittel', bild: '1-fellmacherin',
+    name: 'Fellmacherin', icon: '🧥', size: 2, line: 'kleidung', tier: 0, stage: 'mittel', bild: '1-fellmacherin', views: ['r2'],
     color: '#a8784a', cost: { holz: 40, stein: 20 }, time: 90, workers: 2, consumes: { felle: 4 }, produces: { kleidung: 2.5 },
     requires: 'fellbearbeitung', info: 'Näht aus 2 Fellen 1 Kleidung.',
   },
   steinschlaeger: {
-    name: 'Steinschläger', icon: '🗡️', size: 2, line: 'werkzeug', tier: 0, stage: 'mittel', bild: '1-steinschlaeger',
+    name: 'Steinschläger', icon: '🗡️', size: 2, line: 'werkzeug', tier: 0, stage: 'mittel', bild: '1-steinschlaeger', views: ['r2'],
     color: '#707880', cost: { holz: 30, stein: 40 }, time: 90, workers: 2, consumes: { stein: 2, holz: 1 }, produces: { werkzeug: 1 },
     requires: 'feine_klingen', info: 'Schlägt aus 2 Stein und 1 Holz 1 Werkzeug.',
   },
   ahnenplatz: {
-    name: 'Ahnenplatz', icon: '🗿', size: 3, line: 'glaube', tier: 0, stage: 'mittel', bild: '1-ahnenplatz',
+    name: 'Ahnenplatz', icon: '🗿', size: 3, line: 'glaube', tier: 0, stage: 'mittel', bild: '1-ahnenplatz', views: ['r2'],
     color: '#8a7a6a', cost: { holz: 60, stein: 60 }, time: 120, belief: 8, requires: 'ahnenkult',
     info: 'Hier ehrt der Stamm die Ahnen – Glaube für Wohnungen im Umkreis.',
   },
@@ -274,7 +274,7 @@ const BUILDINGS = {
     requires: 'toepfern', info: 'Gräbt Ton am Ufer. Muss am Wasser stehen.',
   },
   toepferei: {
-    name: 'Töpferei', icon: '🏺', size: 2, line: 'toepfern', tier: 0, stage: 'jung', bild: '1-toepferei',
+    name: 'Töpferei', icon: '🏺', size: 2, line: 'toepfern', tier: 0, stage: 'jung', bild: '1-toepferei', views: ['r2'],
     color: '#b8643a', cost: { holz: 50, stein: 40 }, time: 120, workers: 2, consumes: { ton: 2, holz: 1 }, produces: { toepferwaren: 1.25 },
     requires: 'toepfern', info: 'Formt und brennt aus 2 Ton und 1 Holz 1 Töpferware.',
   },

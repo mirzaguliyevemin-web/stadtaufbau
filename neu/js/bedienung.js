@@ -15,7 +15,7 @@ let pressTimer = 0;
 
 function ghostProblem() {
   if (!ghost) return null;
-  return ghost.from < 0 ? buildProblem(ghost.type, ghost.x, ghost.y) : placeProblem(ghost.type, ghost.x, ghost.y, ghost.from);
+  return ghost.from < 0 ? buildProblem(ghost.type, ghost.x, ghost.y, -1, ghost.rot) : placeProblem(ghost.type, ghost.x, ghost.y, ghost.from, ghost.rot);
 }
 
 // Gebäude mit der Mitte auf einen Bildschirmpunkt setzen
@@ -47,6 +47,9 @@ function waterScore(type, x, y, rot) {
 function autoOrient() {
   const def = BUILDINGS[ghost.type];
   if (!ghost || ghost.manualRot || !def.needsWater || !def.views || !def.views.includes('r1')) return;
+  // zuerst eine Drehung, bei der die Wasserseite im Fluss steht; sonst die mit dem meisten Wasser daneben
+  const fit = bestWaterRot(ghost.type, ghost.x, ghost.y, ghost.from);
+  if (fit >= 0) { ghost.rot = fit; return; }
   let best = ghost.rot, bestN = -1;
   for (let r = 0; r < 4; r++) { const n = waterScore(ghost.type, ghost.x, ghost.y, r); if (n > bestN) { best = r; bestN = n; } }
   ghost.rot = best;

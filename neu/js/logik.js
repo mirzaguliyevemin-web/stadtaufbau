@@ -141,11 +141,11 @@ function constructionCount() {
   return state.buildings.filter(b => b.build > 0).length;
 }
 
-function buildProblem(type, x, y, ignore = -1) {
+function buildProblem(type, x, y, ignore = -1, rot) {
   const def = BUILDINGS[type];
   if (!def || def.buildable === false) return 'Kann man nicht bauen';
   if (!isUnlocked(type)) return lockText(type);
-  const p = placeProblem(type, x, y, ignore);
+  const p = placeProblem(type, x, y, ignore, rot);
   if (p) return p;
   if (!canAfford(def.cost)) return missingText(def.cost);
   if (def.time > 0 && constructionCount() >= CONFIG.maxConstructions)
@@ -155,7 +155,9 @@ function buildProblem(type, x, y, ignore = -1) {
 
 // Baut ein Gebäude (mit Baustelle). Gibt einen Fehlertext zurück oder null.
 function placeBuilding(type, x, y, rot = false) {
-  const problem = buildProblem(type, x, y);
+  // ohne Drehung (Bot, Wege): Gebäude halb im Wasser drehen sich selbst passend zum Fluss
+  if (rot === false && halfInWater(BUILDINGS[type])) { const r = bestWaterRot(type, x, y); if (r >= 0) rot = r; }
+  const problem = buildProblem(type, x, y, -1, rot === false ? undefined : rot);
   if (problem) return problem;
   const def = BUILDINGS[type];
   payCost(def.cost);
@@ -177,7 +179,7 @@ function finishBuilding(b) {
 function moveBuilding(i, x, y, rot) {
   const b = state.buildings[i];
   if (!b) return 'Gebäude fehlt';
-  const p = placeProblem(b.type, x, y, i);
+  const p = placeProblem(b.type, x, y, i, rot);
   if (p) return p;
   setOccupied(b, 0);
   b.x = x; b.y = y; b.rot = (Number(rot) || 0) & 3;

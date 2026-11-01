@@ -694,13 +694,12 @@ test('Drehen: vier Richtungen, alte Stände (true) werden 1, Fischerplatz dreht 
     const out = [];
     beginBuild('wohnhoehle'); for (let k = 0; k < 4; k++) { out.push(ghost.rot); rotateGhost(); } out.push(ghost.rot); cancelGhost();
     const d = JSON.parse(serialize()); d.buildings[1].rot = true; loadFromText(JSON.stringify(d)); out.push(state.buildings[1].rot);
-    // Fischerplatz an einem Ufer: die Drehung mit dem meisten Wasser an den Bildseiten wird gewählt
+    // Fischerplatz halb im Fluss: es wird eine Drehung gewählt, bei der die Wasserseite des Bildes im Wasser steht
     state.stage = 'mittel'; state.techs.einbaum = true; state.techs.pfeil_bogen = true; state.res.holz = 999;
     let spot = null;
     for (let y = 40; y < 90 && !spot; y++) for (let x = 40; x < 90 && !spot; x++) if (!placeProblem('fischerplatz', x, y) && isOwned(x, y)) spot = { x, y };
     beginBuild('fischerplatz'); ghost.x = spot.x; ghost.y = spot.y; ghost.manualRot = false; autoOrient();
-    const best = Math.max(...[0, 1, 2, 3].map(k => waterScore('fischerplatz', spot.x, spot.y, k)));
-    out.push(waterScore('fischerplatz', spot.x, spot.y, ghost.rot) === best && best > 0);
+    out.push(!placeProblem('fischerplatz', spot.x, spot.y, -1, ghost.rot) && bestWaterRot('fischerplatz', spot.x, spot.y) === ghost.rot);
     for (let k = 0; k < 4; k++) { ghost.rot = k; drawScene(0.05); }
     return out;
   })()`);

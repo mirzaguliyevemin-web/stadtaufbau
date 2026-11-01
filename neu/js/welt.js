@@ -374,10 +374,31 @@ function buildingAt(x, y) {
   return occ[y * N + x] - 1;
 }
 
-// Warum passt ein Gebäude hier nicht? null = passt. ignore = Gebäude, das gerade verschoben wird
-function placeProblem(type, x, y, ignore = -1) {
+// Gebäude „halb im Wasser“ (Fischerplatz, Tongrube, Pfahlbau – Bilder mit Wasserseite je Drehung):
+// Die Wasserseite des Bildes liegt auf echten Flussfeldern, die Landseite auf Land.
+const halfInWater = def => !!(def && def.needsWater && def.views && def.views.includes('r1'));
+
+// Abstand eines Feldes (lx, ly im Gebäude) von der Wasser-Ecke des Bildes bei Drehung rot
+// (0: hinten = kleines x und y, 1: rechts, 2: vorne, 3: links – passend zu WATER_SIDES in bedienung.js)
+function waterCornerDist(lx, ly, s, rot) {
+  const m = s - 1;
+  return rot === 1 ? (m - lx) + ly : rot === 2 ? (m - lx) + (m - ly) : rot === 3 ? lx + (m - ly) : lx + ly;
+}
+
+// Warum passt ein Gebäude hier nicht? null = passt. ignore = Gebäude, das gerade verschoben wird.
+// rot: Drehung (nur für Gebäude halb im Wasser wichtig; ohne Angabe genügt irgendeine passende Drehung)
+function placeProblem(type, x, y, ignore = -1, rot) {
   const def = BUILDINGS[type];
   const s = def.size;
+  if (halfInWater(def)) {
+    if (rot === undefined || rot === null || rot === false) {
+      let first = null;
+      for (let r = 0; r < 4; r++) { const p = placeProblem(type, x, y, ignore, r); if (!p) return null; if (first === null) first = p; }
+      return first;
+    }
+    rot = (Number(rot) || 0) & 3;
+  }
+  let wet = 0, cornerWet = false;
   for (let yy = y; yy < y + s; yy++)
     for (let xx = x; xx < x + s; xx++) {
       if (!inMap(xx, yy)) return 'Außerhalb der Karte';
@@ -387,10 +408,38 @@ function placeProblem(type, x, y, ignore = -1) {
       if (!def.isPath && saplingAt(xx, yy)) return 'Hier wächst ein Setzling – antippen zum Ausreißen';   // Pfade gehen darüber
       const t = terrainAt(xx, yy);
       if (def.onWater) { if (t !== TERRAIN.wasser) return 'Brücken gehen nur über Wasser'; continue; }
+      if (t === TERRAIN.wasser && halfInWater(def)) {
+        const d = waterCornerDist(xx - x, yy - y, s, rot);
+        if (d > s - 1) return 'Nur die Wasserseite darf im Fluss stehen – drehen (↻) oder verschieben';
+        wet++; if (d === 0) cornerWet = true;
+        continue;
+      }
       if (t.blocks) return t === TERRAIN.wasser ? 'Nicht im Wasser – über den Fluss braucht es eine Brücke' : `${t.name} im Weg – antippen zum Räumen`;
     }
+  if (halfInWater(def)) {
+    // Ältere Spielstände: Wassergebäude am Ufer bleiben an ihrem Platz gültig
+    const old = ignore >= 0 && state.buildings[ignore];
+    if (old && old.x === x && old.y === y && !wet && touchesWater(x, y, s)) return null;
+    if (!cornerWet) return 'Muss halb im Wasser stehen – die Wasserseite in den Fluss setzen';
+    if (wet === s * s) return 'Braucht auch etwas Land';
+    return null;
+  }
   if (def.needsWater && !touchesWater(x, y, s)) return 'Muss am Wasser stehen';
   return null;
+}
+
+// Beste passende Drehung für ein Gebäude halb im Wasser (meiste Wasserfelder auf der Wasserseite), sonst -1
+function bestWaterRot(type, x, y, ignore = -1) {
+  const def = BUILDINGS[type], s = def.size;
+  let best = -1, bestN = -1;
+  for (let r = 0; r < 4; r++) {
+    if (placeProblem(type, x, y, ignore, r)) continue;
+    let n = 0;
+    for (let ly = 0; ly < s; ly++) for (let lx = 0; lx < s; lx++)
+      if (terrainAt(x + lx, y + ly) === TERRAIN.wasser) n += 10 - waterCornerDist(lx, ly, s, r);
+    if (n > bestN) { bestN = n; best = r; }
+  }
+  return best;
 }
 
 // Mittelpunkt eines Gebäudes in Feldern (für Umkreise)

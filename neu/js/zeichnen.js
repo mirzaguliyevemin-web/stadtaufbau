@@ -24,13 +24,59 @@ function loadImage(name) {
     const img = new Image();
     img.onload = () => {
       img.sockel = measurePlate(img);
-      images[name] = img;
+      images[name] = isHalfInWaterImage(name) ? featherWater(img) : img;
       if (GROUND_TEXTURES.includes(name) || name === 'busch' || name === 'blumen') onTerrainChanged();   // Boden neu zeichnen
       resolve(true);
     };
     img.onerror = () => resolve(false);
     img.src = IMAGE_DIR + name + '.webp';
   });
+}
+
+// Gebäude halb im Wasser: Das Wasser im Bild läuft zum Rand der Platte hin weich aus, damit es nahtlos in den
+// Fluss übergeht (statt mit einer harten Kante darüber zu liegen). Einmal beim Laden, als eigenes Bild (Canvas).
+function isHalfInWaterImage(name) {
+  return Object.values(BUILDINGS).some(d => halfInWater(d) && d.bild && name.startsWith(d.bild));
+}
+function featherWater(img) {
+  try {
+    if (typeof document === 'undefined' || !img.sockel) return img;
+    const w = img.width, h = img.height, p = img.sockel;
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+    const data = g.getImageData(0, 0, w, h), px = data.data;
+    if (!px || px.length !== w * h * 4) return img;
+    // Grasoberfläche der Platte (Raute) im Bild: linke, rechte, vordere Ecke, hintere = L + R − F
+    const up = p.dicke * h;
+    const L = [p.lx * w, p.ly * h - up], R = [p.rx * w, p.ry * h - up], F = [p.fx * w, p.fy * h - up];
+    const ax = L[0] - F[0], ay = L[1] - F[1], bx = R[0] - F[0], by = R[1] - F[1], det = ax * by - bx * ay;
+    if (!det) return img;
+    const inside = new Uint8Array(w * h), water = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const dx = x - F[0], dy = y - F[1];
+      const u = (dx * by - bx * dy) / det, v = (ax * dy - dx * ay) / det;
+      const i = y * w + x;
+      if (u >= 0 && v >= 0 && u <= 1 && v <= 1 && px[i * 4 + 3] > 40) inside[i] = 1;
+      const r = px[i * 4], gg = px[i * 4 + 1], b = px[i * 4 + 2];
+      if (b > r + 20 && b > 90) water[i] = 1;
+    }
+    // Abstand (in Bildpunkten) vom Plattenrand, nur durch Wasser hindurch
+    const RADIUS = Math.round(w * 0.035), dist = new Int16Array(w * h).fill(-1), queue = [];
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      if (!inside[i] || !water[i]) continue;
+      if (!inside[i - 1] || !inside[i + 1] || !inside[i - w] || !inside[i + w]) { dist[i] = 0; queue.push(i); }
+    }
+    for (let q = 0; q < queue.length; q++) {
+      const i = queue[q], d = dist[i];
+      if (d >= RADIUS) continue;
+      for (const j of [i - 1, i + 1, i - w, i + w]) if (j >= 0 && j < w * h && dist[j] < 0 && inside[j] && water[j]) { dist[j] = d + 1; queue.push(j); }
+    }
+    for (let i = 0; i < w * h; i++) if (dist[i] >= 0) px[i * 4 + 3] = Math.round(px[i * 4 + 3] * (dist[i] + 1) / (RADIUS + 1));
+    g.putImageData(data, 0, 0);
+    c.sockel = p;
+    return c;
+  } catch (e) { return img; }
 }
 
 // Gebäudebild: Wo liegen die linke, rechte und vordere Ecke der Unterkante des Erdsockels?
@@ -652,14 +698,14 @@ function earthPattern() {
 }
 
 // Wo landet das Bild auf dem Bildschirm? Ecken der Raute und die Abbildung Bildpunkt → Bildschirm (a … f)
-function imagePlacement(img, x, y, s, rot, lift = 0) {
+function imagePlacement(img, x, y, s, rot, lift = 0, flat = false) {
   const iw = img.width, ih = img.height, p = img.sockel;
   const up = p.dicke * ih;
   let L = [p.lx * iw, p.ly * ih - up], R = [p.rx * iw, p.ry * ih - up], F = [p.fx * iw, p.fy * ih - up];
   if (rot) [L, R, F] = [[iw - R[0], R[1]], [iw - L[0], L[1]], [iw - F[0], F[1]]];
   const bl = tileToScreen(x, y + s), br = tileToScreen(x + s, y), bf = tileToScreen(x + s, y + s);
   bl.y -= lift; br.y -= lift; bf.y -= lift;
-  const H = SOCKEL_HOEHE * (br.x - bl.x);
+  const H = flat ? 0 : SOCKEL_HOEHE * (br.x - bl.x);   // Gebäude am Wasser ohne Sockel: Wasser im Bild auf Flusshöhe
   const left = { x: bl.x, y: bl.y - H }, right = { x: br.x, y: br.y - H }, front = { x: bf.x, y: bf.y - H };
   const det = (R[0] - L[0]) * (F[1] - L[1]) - (F[0] - L[0]) * (R[1] - L[1]);
   const map = (tl, tr, tf) => {
@@ -699,7 +745,7 @@ function buildingImageHit(b, sx, sy) {
   const view = b.build > 0 ? { img: images['1-baustelle-' + def.size] || images['1-baustelle-2'], mirror: (Number(b.rot) || 0) % 2 === 1 } : buildingView(def, b.rot, b.x, b.y);
   const img = view.img;
   if (!img || !img.sockel) return null;
-  const pl = imagePlacement(img, b.x, b.y, def.size, view.mirror);
+  const pl = imagePlacement(img, b.x, b.y, def.size, view.mirror, 0, !!def.needsWater && !(b.build > 0));
   if (sy > pl.left.y && sy > pl.right.y && sy > pl.front.y) return null;
   const [a, bb, c, d, e, f] = pl.m, det = a * d - c * bb;
   if (!det) return null;
@@ -711,9 +757,10 @@ function buildingImageHit(b, sx, sy) {
   return al === null ? null : al > 40;
 }
 
-function drawImageOnTiles(img, x, y, s, rot, lift = 0) {
+function drawImageOnTiles(img, x, y, s, rot, lift = 0, flat = false) {
   const iw = img.width, ih = img.height, p = img.sockel;
-  const { bl, br, bf, left, right, front, m } = imagePlacement(img, x, y, s, rot, lift);
+  const { bl, br, bf, left, right, front, m } = imagePlacement(img, x, y, s, rot, lift, flat);
+  if (!flat) {
   // Einheitlicher Erdsockel für alle Gebäude (der gezeichnete Sockel im Bild wird an der Graskante abgeschnitten)
   const earth = earthPattern();
   ctx.fillStyle = earth || p.farbe;
@@ -728,6 +775,7 @@ function drawImageOnTiles(img, x, y, s, rot, lift = 0) {
   ctx.strokeStyle = 'rgba(60,35,15,0.55)';   // dunkle Unterkante wie bei den Bildern
   ctx.lineWidth = Math.max(1, 1.2 * cam.zoom);
   ctx.beginPath(); ctx.moveTo(bl.x, bl.y); ctx.lineTo(bf.x, bf.y); ctx.lineTo(br.x, br.y); ctx.stroke();
+  }
   // Abbildung Bild → Bildschirm aus drei Punktpaaren
   const [a, b, c, d, e, f] = m;
   ctx.save();
@@ -883,7 +931,7 @@ function drawBuildingSprite(type, x, y, rot, lift = 0, alpha = 1) {
   const view = buildingView(def, rot, x, y);
   const img = view.img;
   if (img) {
-    drawImageOnTiles(img, x, y, s, view.mirror, lift);
+    drawImageOnTiles(img, x, y, s, view.mirror, lift, !!def.needsWater);
     if (alpha === 1 && !lift) drawBuildingEffects(img, view.name, hash(x, y));
   } else {
     drawPlot(x, y, s, lift ? 'rgba(160,220,110,0.9)' : '#93d466', '#6fae48');

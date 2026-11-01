@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum'];
+const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -274,9 +274,26 @@ function targetGone(w) {
   return inMap(x, y) && !targetIds(k).includes(terrain[y * N + x]);
 }
 
+// Arbeitsplatz IN der Werkstatt (auf der Platte, vordere Hälfte, passend zum Bild): [Standplatz u, v, Werkstück u, v]
+// u läuft zur rechten, v zur linken Ecke der Raute (0 … Größe). Gespiegelte Ansicht: u und v tauschen.
+const INSIDE_SPOTS = {
+  fellmacherin:   [[1.55, 1.05, 1.25, 0.8], [1.05, 1.55, 0.8, 1.25]],   // vor den Spannrahmen
+  steinschlaeger: [[1.6, 1.05, 1.15, 1.25], [1.25, 1.7, 1.1, 1.25]],    // am großen Arbeitsstein
+  toepferei:      [[1.65, 1.0, 1.35, 1.35], [1.05, 1.65, 1.35, 1.35]],  // zwischen Ofen und Töpfen
+};
+function insideSpot(b, k) {
+  const list = INSIDE_SPOTS[b.type];
+  if (!list) return null;
+  let [su, sv, tu, tv] = list[k % list.length];
+  if (typeof buildingView === 'function' && buildingView(BUILDINGS[b.type], b.rot, b.x, b.y).mirror) [su, sv, tu, tv] = [sv, su, tv, tu];
+  return { tx: b.x + tu, ty: b.y + tv, sx: b.x + su, sy: b.y + sv };
+}
+
 function workSpot(b, kind, far, k = 0) {
   const s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
-  if (kind === 'self') {   // arbeitet direkt vor dem Haus, das Werkstück liegt daneben (nach außen)
+  if (kind === 'self') {   // arbeitet in der Werkstatt auf der Platte; ohne festgelegten Platz direkt vor dem Haus
+    const inside = insideSpot(b, k);
+    if (inside) return inside;
     const f = frontSpot(b, k);
     if (!f) return null;
     return { tx: f.x + f.dx * 0.45 + f.dy * 0.1, ty: f.y + f.dy * 0.45 + f.dx * 0.1, sx: f.x - f.dx * 0.1, sy: f.y - f.dy * 0.1 };
@@ -397,7 +414,8 @@ function updateWorkers(dt) {
           if (inMap(x, y) && terrain[y * N + x] === TERRAIN.wasser.id && buildingAt(x, y) < 0) { spot.tx = x + 0.5; spot.ty = y + 0.5; break; }
         }
       }
-      const route = walkRoute(w.x, w.y, spot.sx, spot.sy);
+      const own = w.kind.target === 'self' ? state.buildings.indexOf(w.b) : -1;   // Werkstatt: über die eigene Platte gehen
+      const route = walkRoute(w.x, w.y, spot.sx, spot.sy, own);
       if (!route) { w.t = 8; continue; }   // nur übers Wasser erreichbar: später nochmal (anderer Baum)
       Object.assign(w, spot, { phase: 'go', route });
     } else if (w.phase === 'go' || w.phase === 'back') {
@@ -428,7 +446,7 @@ function updateWorkers(dt) {
       }
       const sxd = w.tx - w.x - (w.ty - w.y);
       if (Math.abs(sxd) > 0.01) w.face = sxd > 0 ? -1 : 1;   // zum Baum/Felsen schauen
-      if (w.t <= 0) { w.phase = 'back'; w.route = walkRoute(w.x, w.y, w.home.x, w.home.y) || [[w.home.x, w.home.y]]; }
+      if (w.t <= 0) { w.phase = 'back'; w.route = walkRoute(w.x, w.y, w.home.x, w.home.y, state.buildings.indexOf(w.b)) || [[w.home.x, w.home.y]]; }
     }
   }
 }
@@ -641,15 +659,16 @@ function updateVisitors(dt) {
       if (here.length >= gatherWant(b) || budget <= 0 || lifeRandom() < 0.4) return;
       const used = new Set(here.map(v => v.slot));
       const s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
-      const r = GATHER[b.type] === 'feuer' ? s * 0.34 + 0.1 : s / 2 + 0.3;   // am Feuer auf die Bänke
+      const pray = GATHER[b.type] === 'beten';
+      const r = pray ? s * 0.27 : s * 0.34 + 0.1;   // am Feuer auf die Bänke; Beter knien auf dem Platz um die Mitte
       // freien Platz suchen: auf dem eigenen Platz oder auf begehbarem Boden – nicht im Acker oder Nachbarhaus
       let slot = -1, a = 0, spot = null;
       for (let k = 0; k < 10 && slot < 0; k++) {
         if (used.has(k)) continue;
-        a = k * 2.4 + hash(b.x, b.y) * 6;
+        a = pray ? Math.PI / 4 + (k % 5 - 2) * 0.55 + (k >= 5 ? 0.27 : 0) : k * 2.4 + hash(b.x, b.y) * 6;   // Beter vorne (zum Betrachter hin)
         const p = { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r * 0.9 };
         const tx = Math.floor(p.x), ty = Math.floor(p.y);
-        if (buildingAt(tx, ty) === i || walkable(tx, ty)) { slot = k; spot = p; }
+        if (buildingAt(tx, ty) === i || (!pray && walkable(tx, ty))) { slot = k; spot = p; }
       }
       if (slot < 0) return;
       const from = gatherFrom(spot, a, r, cx, cy, i);
@@ -700,8 +719,8 @@ function drawVisitor(v, t) {
     const hop = Math.abs(Math.sin(t * 4 + v.ph)) * 6 * z;
     drawCreature(personImg(v.img, 'leer'), v.x, v.y, 32, Math.sin(t * 1.3 + v.ph) > 0 ? 1 : -1, hop, '💃', t * 8 + v.ph);
   } else if (v.kind === 'feuer') drawSitting(v, t);
-  else if (images['mensch-mann-betend'] && v.img === 'mensch-mann') {   // beten: kniet (Canva-Bild), nickt langsam
-    const p = tileToScreen(v.x, v.y), img = images['mensch-mann-betend'], z = cam.zoom;
+  else if (images[v.img + '-betend']) {   // beten: Mann und Frau knien (Canva-Bilder), nicken langsam
+    const p = tileToScreen(v.x, v.y), img = images[v.img + '-betend'], z = cam.zoom;
     const h = 24 * z, w = h * img.width / img.height, nod = Math.max(0, Math.sin(t * 0.8 + v.ph)) * 0.08;
     ctx.fillStyle = 'rgba(0,0,0,0.14)';
     ctx.beginPath(); ctx.ellipse(p.x, p.y, 9 * z, 3 * z, 0, 0, 7); ctx.fill();

@@ -7,7 +7,7 @@ const CHUNK = 16;
 const FONT = "Fredoka, 'Trebuchet MS', sans-serif";   // Schrift für Texte auf der Karte (Zeichen/Emoji fallen auf die Systemschrift zurück)   // Boden-Stück = 16 × 16 Felder
 
 const cam = { x: 0, y: N * TH / 2, zoom: 0.8 };
-const ZOOM_MIN = 0.3, ZOOM_MAX = 2.2;
+const ZOOM_MIN = 0.3, ZOOM_MAX = 3.5;   // Emin: näher heranzoomen (Bilder reichen bis etwa 3,5)
 let canvas = null, ctx = null, viewW = 800, viewH = 450, dpr = 1;
 // Auflösung: Ist das Handy zu langsam, zeichnet das Spiel mit weniger Bildpunkten (start.js passt das an)
 let renderScale = 1;
@@ -1261,12 +1261,35 @@ function drawPathLight(p, style, seed) {
 }
 
 // Brückenstück aus Canva: läuft im Bild von unten links nach oben rechts (= entlang y); entlang x gespiegelt
+// Brücke aus mehreren Feldern: Das Bild ist etwa 1,6 Felder lang. Jedes Feld zeichnet nur seinen eigenen Abschnitt
+// (Scheibe quer zur Laufrichtung) – so entsteht eine durchgehende Brücke statt übereinander gestapelter Bilder.
+// Die äußeren Enden (Ufer) werden nicht abgeschnitten, dort sieht man Stammenden und Pfosten.
+function isBridgeAt(x, y) {
+  const i = buildingAt(x, y);
+  return i >= 0 && !!BUILDINGS[state.buildings[i].type].onWater;
+}
+
+const BRIDGE_SHEAR = 0.87 - TH / TW;
 function drawBridgeSprite(img, b, snow) {
   const p = tileToScreen(b.x + 0.5, b.y + 0.5), z = cam.zoom;
   const w = TW * 1.0 * z, h = w * img.height / img.width;
+  const ax = bridgeAlongX(b);
+  const [dx, dy] = ax ? [1, 0] : [0, 1];
+  const prev = isBridgeAt(b.x - dx, b.y - dy), next = isBridgeAt(b.x + dx, b.y + dy);
   ctx.save();
+  if (prev || next) {   // nur den eigenen Abschnitt zeigen (Seite zum Ufer bleibt offen)
+    const a0 = prev ? 0 : -3, a1 = next ? 1 : 4;   // Bereich entlang der Laufrichtung (in Feldern ab b.x bzw. b.y)
+    const pt = (along, across) => ax ? tileToScreen(b.x + along, b.y + across) : tileToScreen(b.x + across, b.y + along);
+    const c = [pt(a0, -3), pt(a1, -3), pt(a1, 4), pt(a0, 4)];
+    ctx.beginPath(); ctx.moveTo(c[0].x, c[0].y);
+    for (let k = 1; k < 4; k++) ctx.lineTo(c[k].x, c[k].y);
+    ctx.closePath(); ctx.clip();
+  }
   ctx.translate(p.x, p.y);
-  if (bridgeAlongX(b)) ctx.scale(-1, 1);
+  if (ax) ctx.scale(-1, 1);
+  // Im Bild steigt die Brücke etwas steiler an (≈ 0,87) als die Rasterachse (22/32 ≈ 0,69): leicht scheren,
+  // damit aneinandergereihte Abschnitte genau fluchten (Pfosten bleiben senkrecht)
+  ctx.transform(1, BRIDGE_SHEAR, 0, 1, 0, 0);
   ctx.fillStyle = 'rgba(20, 40, 60, 0.25)';   // Schatten im Wasser
   ctx.beginPath(); ctx.ellipse(3 * z, 5 * z, w * 0.42, h * 0.2, 0, 0, 7); ctx.fill();
   ctx.drawImage(img, -w / 2, -h * 0.58, w, h);

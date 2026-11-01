@@ -215,12 +215,17 @@ function drawDayNight() {
   nightCtx.fillStyle = `rgba(12,20,55,${0.62 * d})`;
   nightCtx.fillRect(0, 0, w, h);
   nightCtx.globalCompositeOperation = 'destination-out';
+  // Flackern hängt am Ort auf der Karte, nicht am Bildschirm – sonst flackert es beim Verschieben schneller
+  const o = worldToScreen(0, 0), zz = cam.zoom || 1;
   for (const l of lights) {
-    const fl = 0.92 + 0.08 * Math.sin(frameTime * 9 + l.x);
+    const fl = 0.92 + 0.08 * Math.sin(frameTime * 9 + ((l.x - o.x) + (l.y - o.y) * 0.7) / zz * 0.05);
     const r = l.r * s * fl;
     const g = nightCtx.createRadialGradient(l.x * s, l.y * s, 0, l.x * s, l.y * s, r);
-    g.addColorStop(0, 'rgba(0,0,0,0.95)');
-    g.addColorStop(0.5, 'rgba(0,0,0,0.5)');
+    // weicher Abfall (fast wie echtes Licht: innen hell, nach außen langsam auslaufend)
+    g.addColorStop(0, 'rgba(0,0,0,0.97)');
+    g.addColorStop(0.2, 'rgba(0,0,0,0.85)');
+    g.addColorStop(0.45, 'rgba(0,0,0,0.5)');
+    g.addColorStop(0.7, 'rgba(0,0,0,0.2)');
     g.addColorStop(1, 'rgba(0,0,0,0)');
     nightCtx.fillStyle = g;
     nightCtx.beginPath(); nightCtx.ellipse(l.x * s, l.y * s, r, r * 0.7, 0, 0, 7); nightCtx.fill();
@@ -230,10 +235,14 @@ function drawDayNight() {
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   for (const l of lights) {
-    const r = l.r * 0.6;
+    // warmes Streulicht: heller Kern, breiter orangefarbener Hof, der weich in die Nacht ausläuft
+    const fl = 0.94 + 0.06 * Math.sin(frameTime * 7 + ((l.x - o.x) - (l.y - o.y)) / zz * 0.05);
+    const r = l.r * 0.95 * fl;
     const g = ctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, r);
-    g.addColorStop(0, `rgba(255,150,60,${0.22 * d})`);
-    g.addColorStop(1, 'rgba(255,120,40,0)');
+    g.addColorStop(0, `rgba(255,190,110,${0.30 * d})`);
+    g.addColorStop(0.18, `rgba(255,150,60,${0.20 * d})`);
+    g.addColorStop(0.5, `rgba(255,120,40,${0.08 * d})`);
+    g.addColorStop(1, 'rgba(255,100,30,0)');
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.ellipse(l.x, l.y, r, r * 0.7, 0, 0, 7); ctx.fill();
   }

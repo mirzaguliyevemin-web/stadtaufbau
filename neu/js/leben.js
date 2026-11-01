@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten'];
+const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-unten'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -230,7 +230,7 @@ const WORK = {
   jaegerlager:       { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true, look: 'mensch-jaeger' },
   mammutjaegerlager: { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true, look: 'mensch-jaeger' },
   // Teil 2: am Ufer und im Einbaum fischen, an der Felswand malen, vor dem Haus arbeiten (target 'self')
-  fischerplatz:      { target: 'wasser', tool: null,  carry: 'ware-nahrung', img: 'mensch-mann', chips: '#cfe9f7', swing: 'spear', boat: true },
+  fischerplatz:      { target: 'wasser', tool: 'speer', carry: 'ware-nahrung', img: 'mensch-mann', chips: '#cfe9f7', swing: 'spear', boat: true },
   hoehlenmaler:      { target: 'fels',  tool: null,   carry: 'ware-wissen',  img: 'mensch-mann', chips: null,      swing: 'paint' },
   tongrube:          { target: 'wasser', tool: 'hacke', carry: 'ware-ton',   img: 'mensch-mann', chips: '#9a5a32', swing: 'hack' },
   fellmacherin:      { target: 'self',  tool: null,   carry: null, img: 'mensch-frau', chips: null,      swing: 'scrape', thing: 'ware-felle' },
@@ -527,7 +527,11 @@ function drawWorker(w, t) {
     }
   }
   const hand = { x: p.x - 8 * z * w.face, y: p.y - 15 * z };
-  if (!walking && swing === 'spear') {   // mit dem Speer ins Wasser stechen, es spritzt
+  if (!walking && swing === 'spear' && posed) {   // Canva-Haltungen: beim Zustechen spritzt es an der Speerspitze
+    const cyc = (t * 1.6 + w.ph) % 1;
+    if (cyc >= 0.7) splash(p.x - w.face * 15 * z, p.y - 1 * z, z, 1 - (cyc - 0.7) / 0.3);
+  }
+  if (!walking && swing === 'spear' && !posed) {   // ohne Bilder: gezeichneter Speer, es spritzt
     // Speer steil von oben nach unten ins Wasser (nicht waagrecht – das sah aus wie ein Gewehr)
     const cyc = (t * 0.8 + w.ph) % 1, thrust = cyc > 0.75 ? Math.sin((cyc - 0.75) / 0.25 * Math.PI) : 0;
     const q = tileToScreen(w.tx, w.ty), dir = Math.sign(q.x - p.x) || -w.face;
@@ -784,6 +788,7 @@ function drawSitting(v, t) {
 const TOOL_POSES = {
   axt:   [['mensch-axt-oben', 38, 0], ['mensch-axt-unten', 34, 0.12]],
   hacke: [['mensch-hacke-oben', 38, 0], ['mensch-hacke-unten', 34, 0.12]],
+  speer: [['fischer-speer-oben', 40, 0.05], ['fischer-speer-unten', 34, 0.12]],
   grabstock: [['mensch-frau-grabstock-oben', 36, 0], ['mensch-frau-grabstock-unten', 33, 0.1]],
 };
 

@@ -1233,6 +1233,33 @@ function drawPaths(range) {
   }
 }
 
+// Fackel bzw. Laterne am Wegrand (selbst gezeichnet, kein Bild nötig). Nachts leuchtet sie (Loch in der Dunkelheit).
+const TORCH_SPOT = [0.84, 0.16];   // rechte Ecke des Wegfelds – neben dem Weg, nicht mitten drauf
+function drawPathLight(p, style, seed) {
+  const z = cam.zoom, h = 15 * z, top = p.y - h;
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath(); ctx.ellipse(p.x, p.y, 3 * z, 1.2 * z, 0, 0, 7); ctx.fill();
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#5a3a1c'; ctx.lineWidth = Math.max(1, 1.6 * z);
+  ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, top + 2 * z); ctx.stroke();
+  const fl = Math.sin(frameTime * 11 + seed) * 0.5 + Math.sin(frameTime * 17 + seed * 3) * 0.5;
+  if (style === 'laterne') {   // für spätere Zeitalter: kleines Gehäuse mit Licht
+    ctx.fillStyle = '#3b2a1a'; ctx.fillRect(p.x - 2.6 * z, top - 4.5 * z, 5.2 * z, 6 * z);
+    ctx.fillStyle = `rgba(255,${200 + fl * 20},110,0.95)`; ctx.fillRect(p.x - 1.7 * z, top - 3.6 * z, 3.4 * z, 4.2 * z);
+  } else {
+    ctx.fillStyle = '#7a5530';   // umwickelter Kopf der Fackel
+    ctx.beginPath(); ctx.ellipse(p.x, top + 1.5 * z, 1.7 * z, 1.3 * z, 0, 0, 7); ctx.fill();
+    const fh = (5 + fl * 1.2) * z, sway = fl * 0.8 * z;
+    ctx.fillStyle = '#ff8a1e';
+    ctx.beginPath(); ctx.moveTo(p.x - 2 * z, top + 1 * z);
+    ctx.quadraticCurveTo(p.x - 1.8 * z + sway, top - fh * 0.5, p.x + sway, top - fh);
+    ctx.quadraticCurveTo(p.x + 1.8 * z + sway, top - fh * 0.5, p.x + 2 * z, top + 1 * z); ctx.fill();
+    ctx.fillStyle = '#ffe07a';
+    ctx.beginPath(); ctx.ellipse(p.x + sway * 0.5, top - fh * 0.25, 0.9 * z, 1.6 * z, 0, 0, 7); ctx.fill();
+  }
+  if (typeof addLight === 'function') addLight(p.x, p.y - 4 * z, 46 * z);   // leuchtet in der Nacht (Lichtkreis am Boden)
+}
+
 // Brückenstück aus Canva: läuft im Bild von unten links nach oben rechts (= entlang y); entlang x gespiegelt
 function drawBridgeSprite(img, b, snow) {
   const p = tileToScreen(b.x + 0.5, b.y + 0.5), z = cam.zoom;
@@ -1343,6 +1370,16 @@ function drawScene(dt) {
     if (BUILDINGS[b.type].isPath) return;    // Pfade zeichnet drawPaths vorher am Stück
     objects.push({ d: b.x + b.y + s, kind: 'b', i });
   });
+  // Fackeln (später Laternen) am Wegrand – wie alles Hohe nach Tiefe sortiert
+  if (state.buildings.length) {
+    const style = pathLightStyle();
+    for (const b of state.buildings) {
+      if (!b.torch || b.x < range.x0 || b.x > range.x1 || b.y < range.y0 || b.y > range.y1) continue;
+      const p = tileToScreen(b.x + TORCH_SPOT[0], b.y + TORCH_SPOT[1]);
+      if (p.x < -mx || p.x > viewW + mx || p.y < top || p.y > bottom) continue;
+      objects.push({ d: b.x + b.y + 1, kind: 'leben', x: b.x, draw: () => drawPathLight(p, style, b.x * 7 + b.y) });
+    }
+  }
   for (const [i, age] of state.saplings) {
     const x = i % N, y = Math.floor(i / N);
     if (x < range.x0 || x > range.x1 || y < range.y0 || y > range.y1) continue;

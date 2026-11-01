@@ -70,7 +70,8 @@ function sanitizeState(data) {
   s.buildings = data.buildings
     .filter(b => b && BUILDINGS[b.type] && Number.isInteger(b.x) && Number.isInteger(b.y))
     .map(b => ({ type: b.type, x: b.x, y: b.y, rot: (Number(b.rot) || 0) & 3, build: Number.isFinite(b.build) && b.build > 0 ? b.build : 0, ...(b.paused ? { paused: true } : {}), ...(BUILDINGS[b.from] ? { from: b.from } : {}),
-      ...(Number.isFinite(b.chop) && b.chop > 0 ? { chop: b.chop } : {}), ...(Number.isFinite(b.mine) && b.mine > 0 ? { mine: b.mine } : {}), ...(Number.isFinite(b.plant) && b.plant > 0 ? { plant: b.plant } : {}) }));
+      ...(Number.isFinite(b.chop) && b.chop > 0 ? { chop: b.chop } : {}), ...(Number.isFinite(b.mine) && b.mine > 0 ? { mine: b.mine } : {}), ...(Number.isFinite(b.plant) && b.plant > 0 ? { plant: b.plant } : {}), ...(b.torch && BUILDINGS[b.type].isPath ? { torch: 1 } : {}) }));
+  s.torches = data.torches === true;   // fehlt bei alten Ständen: Fackeln werden beim Laden einmal verteilt
   if (Array.isArray(data.plots) && data.plots.length === s.plots.length) s.plots = data.plots.map(p => (p === 1 ? 1 : 0));
   if (Array.isArray(data.cleared)) s.cleared = data.cleared.filter(Number.isInteger);
   if (Array.isArray(data.planted)) s.planted = data.planted.filter(i => Number.isInteger(i) && i >= 0 && i < N * N);
@@ -119,6 +120,7 @@ function loadFromText(text) {
     state.buildings.unshift({ type: 'lagerfeuer', x: c, y: c, rot: 0, build: 0 });
   }
   rebuildOccupancy();
+  if (!state.torches) assignTorches();   // alte Stände: Wege bekommen einmal ihre Fackeln
   evolveBuildings();   // ältere Stände: schon erforschte Stufen nachholen
   recalcStats();
   return true;

@@ -163,6 +163,7 @@ function placeBuilding(type, x, y, rot = false) {
   payCost(def.cost);
   const b = addBuilding(type, x, y, rot);
   setOccupied(b, state.buildings.length);
+  giveTorch(b);   // jedes zweite Wegfeld bekommt eine Fackel
   if (!b.build) finishBuilding(b);
   emit('placed', b);
   return null;

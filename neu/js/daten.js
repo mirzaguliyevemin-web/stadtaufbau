@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 48;
+const APP_VERSION = 49;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -29,6 +29,9 @@ const CONFIG = {
     stonePerRock: 40,     // so viel Stein bringt ein Felsfeld – dann ist es abgebaut (im Umkreis rockRadius)
     rockRadius: 6,
   },
+  // Licht am Weg (Emin, 01.11.): jedes zweite Wegfeld bekommt eine Fackel, später eine Laterne.
+  // style je Zeitalter (Epoche aus STAGES): 'fackel' jetzt, 'laterne' ab Bronze-/Eisenzeit, wenn diese gebaut sind.
+  pathLights: { Steinzeit: 'fackel', Bronzezeit: 'fackel', Eisenzeit: 'laterne' },
   trees: {                // Bäume fällen und nachpflanzen (Emin, 31.10.)
     woodPerTree: 20,      // so viel Holz bringt ein Baum – dann fällt ihn der Holzsammler (im Umkreis treeRadius)
     treeRadius: 6,

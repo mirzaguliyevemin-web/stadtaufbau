@@ -811,6 +811,38 @@ test('Wissen: eigener Speicher (2 × teuerste Forschung des Zeitalters), jede Fo
   noErrors(g);
 });
 
+test('Fackeln: jedes zweite Wegfeld, bleibt gespeichert, alte Stände bekommen sie einmal', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    state.res.holz = 999;
+    // freie Reihe aus 6 Landfeldern suchen und dort nacheinander Wege bauen
+    let row = null;
+    for (let y = 20; y < N - 20 && !row; y++) for (let x = 20; x < N - 26 && !row; x++) {
+      let ok = true;
+      for (let k = 0; k < 6; k++) if (placeProblem('pfad', x + k, y)) { ok = false; break; }
+      if (ok) row = { x, y };
+    }
+    if (!row) return { err: 'keine Reihe' };
+    for (let k = 0; k < 6; k++) { const p = placeBuilding('pfad', row.x + k, row.y); if (p) return { err: p }; }
+    const pattern = () => [0, 1, 2, 3, 4, 5].map(k => { const i = buildingAt(row.x + k, row.y); return state.buildings[i].torch ? 1 : 0; }).join('');
+    const built = pattern();
+    loadFromText(serialize());
+    const reloaded = pattern();
+    // alter Stand: ohne Fackeln und ohne Merker
+    const old = JSON.parse(serialize()); delete old.torches; for (const b of old.buildings) delete b.torch;
+    loadFromText(JSON.stringify(old));
+    const migrated = pattern();
+    const again = JSON.parse(serialize()).torches;
+    return { built, reloaded, migrated, again };
+  })()`);
+  ok(!r.err, 'Testaufbau: ' + r.err);
+  ok(r.built === '101010', 'Wege sollten abwechselnd Fackeln haben: ' + r.built);
+  ok(r.reloaded === r.built, 'Fackeln nach dem Laden verändert: ' + r.reloaded);
+  ok(/1/.test(r.migrated) && !/11/.test(r.migrated), 'Alter Stand bekommt keine abwechselnden Fackeln: ' + r.migrated);
+  ok(r.again === true, 'Merker für Fackeln fehlt nach dem Laden');
+  noErrors(g);
+});
+
 test('Volles Lager mit Überschuss bleibt bei 200 (nicht ewig 199) – Forschung für 200 bezahlbar', () => {
   const g = fresh();
   const r = g.run(`(() => { const cap = storageCap(); state.res.nahrung = cap - 0.3; state.pop = 10;

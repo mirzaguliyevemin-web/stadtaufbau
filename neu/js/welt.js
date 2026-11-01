@@ -42,6 +42,7 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     daily: { last: '', streak: 0, pending: 0 },   // pending = Tag (1–7), dessen Belohnung noch wartet
     tutorial: 0,             // Schritt im Einstieg, -1 = fertig/übersprungen
     mapSize: N,              // Kartengröße beim Speichern (alte Stände: 64, werden beim Laden in die Mitte gelegt)
+    torches: true,           // Wege haben schon Fackeln bekommen (alte Stände: einmal beim Laden nachholen)
     savedAt: Date.now(),
   };
 }
@@ -57,6 +58,7 @@ function startNewGame(seed) {
   addBuilding('pfad', c - 1, c + 1, false, true);   // Trampelpfade von den Wohnhöhlen zum Feuer
   addBuilding('pfad', c, c + 3, false, true);
   rebuildOccupancy();
+  assignTorches();
 }
 
 // ---------------------------------------------------------------------
@@ -451,4 +453,41 @@ function centerOf(b) {
 function distance(a, b) {
   const ca = centerOf(a), cb = centerOf(b);
   return Math.hypot(ca.x - cb.x, ca.y - cb.y);
+}
+
+// ---------------------------------------------------------------------
+// Fackeln am Weg: jedes zweite Wegfeld. Ein neues Wegfeld bekommt eine Fackel, wenn kein direkt
+// angrenzendes Wegfeld (auch Brücke) schon eine hat. Auf Brücken (Wasser) steht keine Fackel.
+// ---------------------------------------------------------------------
+
+function torchNear(x, y, self = null) {
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const i = buildingAt(x + dx, y + dy);
+    if (i < 0) continue;
+    const n = state.buildings[i];
+    if (n !== self && BUILDINGS[n.type].isPath && n.torch) return true;
+  }
+  return false;
+}
+
+function wantsTorch(type, x, y) {
+  const def = BUILDINGS[type];
+  return !!(def && def.isPath && !def.onWater && !torchNear(x, y));
+}
+
+function giveTorch(b) {
+  if (wantsTorch(b.type, b.x, b.y)) b.torch = 1;
+}
+
+// alte Spielstände: einmal in Bau-Reihenfolge nachholen
+function assignTorches() {
+  for (const b of state.buildings) if (BUILDINGS[b.type].isPath) delete b.torch;
+  for (const b of state.buildings) giveTorch(b);
+  state.torches = true;
+}
+
+// Fackel oder Laterne – je nach Zeitalter
+function pathLightStyle() {
+  const st = STAGES[stageIndex()] || STAGES[0];
+  return (CONFIG.pathLights && CONFIG.pathLights[st.epoch]) || 'fackel';
 }

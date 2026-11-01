@@ -102,6 +102,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #loading-bar { height: 100%; width: 0; background: linear-gradient(#ffe47a, #f2a832); transition: width 0.2s; }
 #loading-text { color: #fff; font-style: italic; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); }
 .start-buttons { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* Startseite auf großen Bildschirmen: Logo oben im Himmel statt über der Burg, alles größer */
+@media (min-width: 900px) and (min-height: 620px) {
+  #start { justify-content: flex-start; padding-top: 5vh; }
+  #start .logo img { width: min(860px, 50vw); max-height: 36vh; }
+  #start .tagline { font-size: clamp(22px, 1.7vw, 32px); margin: 8px 0 22px; text-shadow: 0 2px 0 #4a2c10, 0 0 10px rgba(40, 25, 10, 0.75), 0 3px 12px rgba(40, 25, 10, 0.7); }
+  #start .start-buttons { gap: 14px; }
+  #start #start-continue { font-size: clamp(26px, 2vw, 36px); padding: 16px 52px; }
+  #start .start-buttons .btn:not(#start-continue) { font-size: clamp(18px, 1.3vw, 24px); padding: 11px 30px; }
+}
 .start-note { position: absolute; bottom: 10px; font-size: 12px; color: rgba(255, 255, 255, 0.9); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); margin: 0; }
 
 /* ---------- Spiel ---------- */
@@ -677,10 +686,40 @@ small.ok { color: var(--green-dark); }
 .pop-buttons { display: flex; gap: 14px; margin-top: 6px; }
 .pop-buttons .btn { flex: 1; min-height: 38px; }
 
-.slot { display: flex; align-items: center; gap: 8px; background: #fffdf6; border: 2px solid #ead3a3; border-radius: 16px; padding: 8px 12px; margin: 4px 0; }
-.slot > div { flex: 1; }
-.slot small { display: block; color: #8a6a44; }
-.slot.current { box-shadow: 0 0 0 2px var(--gold); }
+/* Spielstände: große Karten mit Bild des Zeitalters */
+.slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; width: 100%; max-width: 1240px; margin: auto; padding: 12px 0; }
+.slot { display: flex; flex-direction: column; gap: 12px; background: #fffdf6; border: 3px solid #ead3a3; border-radius: 22px; padding: 18px; box-shadow: 0 5px 0 #e2c692, 0 10px 22px rgba(90, 60, 25, 0.14); }
+.slot.current { border-color: var(--gold); box-shadow: 0 5px 0 #d9a93a, 0 10px 22px rgba(90, 60, 25, 0.18); }
+.slot-pic { height: 210px; display: flex; align-items: center; justify-content: center; font-size: 56px; background: radial-gradient(circle at 50% 45%, #f7efd6, #ecdcb4); border-radius: 16px; }
+.slot-pic img { max-width: 92%; max-height: 92%; object-fit: contain; filter: drop-shadow(0 6px 6px rgba(60, 35, 10, 0.3)); }
+.slot.empty .slot-pic img { opacity: 0.45; filter: grayscale(0.5); }
+.slot-text { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 18px; color: #5a3d1e; }
+.slot-text b { font-size: 26px; color: #3f2710; }
+.slot-text em { font-style: normal; font-size: 14px; font-weight: 600; color: #6d4c00; background: #ffe6a0; border-radius: 10px; padding: 2px 9px; margin-left: 6px; vertical-align: middle; }
+.slot-stage { font-size: 20px; font-weight: 700; color: #a45f12; }
+.slot small { font-size: 15px; color: #8a6a44; }
+.slot-buttons { display: flex; gap: 10px; }
+.slot-buttons .btn.primary { flex: 1; font-size: 21px; padding: 13px 16px; }
+.slot-buttons .btn.danger { font-size: 20px; padding: 13px 16px; }
+/* Handy hochkant und quer: flache Zeilen mit kleinem Bild */
+@media (max-width: 700px), (max-height: 560px) {
+  .slots { grid-template-columns: 1fr; gap: 10px; max-width: 760px; padding: 4px 0; margin: 0 auto; }
+  .slot { flex-direction: row; align-items: center; padding: 10px; gap: 12px; border-radius: 16px; }
+  .slot-pic { width: 86px; height: 72px; flex: none; font-size: 32px; }
+  .slot-text { font-size: 15px; gap: 1px; min-width: 0; }
+  .slot-text b { font-size: 18px; }
+  .slot-text em { font-size: 12px; padding: 1px 7px; }
+  .slot-stage { font-size: 15px; }
+  .slot small { font-size: 12px; }
+  .slot-buttons { flex: none; }
+  .slot-buttons .btn.primary { font-size: 15px; padding: 9px 12px; }
+  .slot-buttons .btn.danger { font-size: 15px; padding: 9px 10px; }
+}
+@media (max-width: 460px) {
+  .slot { flex-wrap: wrap; }
+  .slot-text { flex: 1 1 55%; }
+  .slot-buttons { flex: 1 1 100%; }
+}
 
 /* schmale Handys hochkant: alle Waren und Anzeigen fließen gemeinsam über die Zeilen (statt untereinander gestapelt) */
 @media (max-width: 480px) {
@@ -746,3 +785,15 @@ details.more summary { cursor: pointer; font-weight: 700; padding: 6px 10px; bor
 details.more summary::-webkit-details-marker { display: none; }
 details.more[open] summary { margin-bottom: 4px; }
 .side-btn.on { outline: 3px solid var(--gold); background-color: #ffe7a8; }
+
+/* Konto-Seite */
+.konto { max-width: 620px; width: 100%; margin: 0 auto; }
+.konto .card { display: flex; flex-direction: column; gap: 10px; }
+.konto label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
+.konto-feld { width: 100%; box-sizing: border-box; padding: 10px 12px; font: inherit; font-size: 16px; border: 2px solid rgba(120, 80, 40, 0.35); border-radius: 10px; background: #fffdf7; user-select: text; -webkit-user-select: text; }
+.konto-feld:focus { outline: none; border-color: #d8a23a; }
+#dialog-box .konto-feld { margin: 8px 0; }
+.konto .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.konto .konto-klein { align-self: flex-start; font-size: 14px; padding: 6px 12px; }
+.konto-meldung { margin: 0; padding: 8px 12px; border-radius: 10px; background: #e6f4dc; color: #2c5a1e; }
+.konto-meldung.fehler { background: #fbe3dc; color: #a33218; }

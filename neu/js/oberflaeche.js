@@ -547,7 +547,7 @@ function closeDialog(fromHistory = false) {
 let pageOpen = null;
 const pageStack = [];        // darunterliegende Seiten (z. B. Menü unter Spielstände) – „Zurück“ führt dorthin
 let reopening = false;
-const PAGE_OPENERS = { menu: () => openMenu(), slots: () => openSlots(true), research: () => openResearch(), quests: () => openQuests() };
+const PAGE_OPENERS = { menu: () => openMenu(), slots: () => openSlots(true), research: () => openResearch(), quests: () => openQuests(), konto: () => openKonto() };
 
 function openPage(title, html, name) {
   $('page-title').textContent = title;
@@ -1100,6 +1100,8 @@ function menuHtml() {
       <div class="tiles">
         ${tile('💾', 'Speichern', "saveGame(); toast('Gespeichert')")}
         ${tile('🗂', 'Spielstände', 'openSlots(true)')}
+        ${tile('☁️', 'Konto', 'openKonto()')}
+        ${tile('🌱', 'Neu starten', 'askRestart()')}
         ${tile('📤', 'Exportieren', 'showExport()')}
         ${tile('📥', 'Importieren', 'showImport()')}
         ${tile('🏠', 'Startseite', 'saveGame(); closeAllPages(); showStartScreen()')}
@@ -1115,16 +1117,26 @@ function openMenu() {
   openPage('⚙️ Menü', menuHtml(), 'menu');
 }
 
+const SLOT_PICTURES = { alt: '1-lagerfeuer', mittel: '1-grubenhaus', jung: '1-langhaus' };
+
 function slotsHtml(inGame) {
-  return SLOTS.map(slot => {
-    const info = slotInfo(slot);
-    const desc = !info ? 'leer' : info.broken ? 'beschädigt' : `${info.stage} · ${info.pop} Einwohner · ${new Date(info.savedAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}`;
-    return `<div class="slot${slot === currentSlot ? ' current' : ''}">
-      <div><b>Platz ${slot}</b>${slot === currentSlot && inGame ? ' (gerade offen)' : ''}<small>${esc(desc)}</small></div>
-      <button class="btn primary" onclick="chooseSlot(${slot})">${info && !info.broken ? 'Spielen' : 'Neues Spiel'}</button>
-      ${info ? `<button class="btn danger" onclick="askDeleteSlot(${slot})">🗑</button>` : ''}
+  return '<div class="slots">' + SLOTS.map(slot => {
+    const info = slotInfo(slot), good = info && !info.broken, cur = slot === currentSlot;
+    const pic = good ? (SLOT_PICTURES[info.stageId] || 'logo-rund') : info ? '' : '1-baustelle-2';
+    const when = good && info.savedAt ? new Date(info.savedAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+    return `<div class="slot${cur ? ' current' : ''}${info ? '' : ' empty'}">
+      <div class="slot-pic">${pic ? `<img src="${IMAGE_DIR}${pic}.webp" alt="">` : '⚠️'}</div>
+      <div class="slot-text">
+        <b>Platz ${slot}${cur && inGame ? ' <em>gerade offen</em>' : ''}</b>
+        ${good ? `<span class="slot-stage">${esc(info.stage)}</span><span>👥 ${info.pop} Einwohner</span><small>${esc(when)}</small>`
+          : info ? '<span>Spielstand beschädigt</span>' : '<span>Frei für ein neues Spiel</span>'}
+      </div>
+      <div class="slot-buttons">
+        <button class="btn primary" onclick="chooseSlot(${slot})">${good ? '▶ Spielen' : '🌱 Neues Spiel'}</button>
+        ${info ? `<button class="btn danger" aria-label="Platz ${slot} löschen" onclick="askDeleteSlot(${slot})">🗑</button>` : ''}
+      </div>
     </div>`;
-  }).join('');
+  }).join('') + '</div>';
 }
 
 function openSlots(inGame = false) {
@@ -1138,6 +1150,19 @@ function chooseSlot(slot) {
   saveSettings();
   closeAllPages();
   enterGame();
+}
+
+// Neu starten: Gibt es einen freien Platz, bleibt der jetzige Spielstand erhalten; sonst wird er nach Rückfrage ersetzt
+function askRestart() {
+  const free = SLOTS.find(sl => !slotInfo(sl));
+  openDialog(`<h2>🌱 Neu starten?</h2>
+    <p>${free ? `Du kannst auf dem freien <b>Platz ${free}</b> neu anfangen – dein Spiel auf Platz ${currentSlot} bleibt erhalten.` : 'Alle Plätze sind belegt.'}</p>
+    <p>„Diesen Platz ersetzen“ löscht das Spiel auf Platz ${currentSlot} für immer.</p>
+    <div class="buttons">
+      ${free ? `<button class="btn primary" onclick="closeDialog(); chooseSlot(${free})">Auf Platz ${free} neu starten</button>` : ''}
+      <button class="btn danger" onclick="doDeleteSlot(${currentSlot})">Diesen Platz ersetzen</button>
+      <button class="btn" onclick="closeDialog()">Abbrechen</button>
+    </div>`);
 }
 
 function askDeleteSlot(slot) {

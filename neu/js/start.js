@@ -33,7 +33,7 @@ function showStartScreen() {
   show($('game'), false);
   show($('loading'), false);
   const info = slotInfo(currentSlot);
-  $('start-continue').textContent = info && !info.broken ? `▶ Weiterspielen (Platz ${currentSlot})` : '▶ Neues Spiel';
+  $('start-continue').textContent = info && !info.broken ? "▶ Weiterspielen" : '▶ Neues Spiel';
   if (images.start) $('start').style.backgroundImage = `url(${IMAGE_DIR}start.webp)`;
   show($('start'), true);
 }
@@ -48,6 +48,7 @@ function centerOnCamp() {
 
 // Spiel auf dem aktuellen Platz öffnen (Stand laden oder neu anfangen)
 function enterGame() {
+  if (typeof kontoVorSpielstart === 'function') kontoVorSpielstart();
   resetLife();
   resetWeather();
   show($('start'), false);
@@ -73,6 +74,7 @@ function enterGame() {
   renderAll();
   renderTutorial();
   gameRunning = true;
+  if (typeof kontoNachSpielstart === 'function') kontoNachSpielstart();
   if (offline) showOfflineSummary(offline);
   else afterWelcome();
   checkTurnHint();
@@ -213,6 +215,7 @@ function boot() {
   canvas = $('map');
   ctx = canvas.getContext('2d');
   loadSettings();
+  if (typeof kontoStart === 'function') kontoStart();
   setupInput();
   $('loading-text').textContent = LOADING_SAYINGS[Math.floor(Math.random() * LOADING_SAYINGS.length)];
   if (typeof window !== 'undefined') {

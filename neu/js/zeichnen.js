@@ -291,6 +291,13 @@ function regionStroke(g, x0, y0, x1, y1, inRegion) {
     for (let x = x0; x <= x1; x++) {
       if (!inMap(x, y) || !inRegion(x, y)) continue;
       const cx = x + 0.5, cy = y + 0.5;
+      // Felder mitten in der Fläche brauchen nur zwei Linien (breiter Fluss: spart viel Rechenzeit)
+      if (inMap(x - 1, y - 1) && inMap(x + 1, y + 1) && inRegion(x - 1, y) && inRegion(x + 1, y) && inRegion(x, y - 1) && inRegion(x, y + 1)
+        && inRegion(x - 1, y - 1) && inRegion(x + 1, y - 1) && inRegion(x - 1, y + 1) && inRegion(x + 1, y + 1)) {
+        g.moveTo(cx, cy); g.lineTo(cx + 1, cy);
+        g.moveTo(cx, cy); g.lineTo(cx, cy + 1);
+        continue;
+      }
       g.moveTo(cx, cy); g.lineTo(cx + 0.001, cy);
       for (const [dx, dy] of [[1, 0], [0, 1], [1, 1], [1, -1]]) {
         if (!inMap(x + dx, y + dy) || !inRegion(x + dx, y + dy)) continue;
@@ -409,7 +416,146 @@ function renderChunk(cx, cy) {
     const ox = (hash(y, x + 5) - 0.5) * TW * 0.25;
     g.drawImage(img, p.x - w / 2 + ox, p.y - h * 0.8, w, h);
   }
-  return { canvas: c, left, top };
+  return { canvas: c, left, top, depth: renderDepthLayer(x0, y0, left, top) };
+}
+
+// Wassertiefe als eigene, grob aufgelöste Ebene je Boden-Stück: liegt über dem fließenden Wasser. Das grobe Raster macht
+// die Übergänge von selbst weich und kostet beim Zeichnen nur ein drawImage je Stück.
+const DEPTH_SCALE = 0.34;
+function renderDepthLayer(x0, y0, left, top) {
+  let any = false;
+  for (let y = Math.max(0, y0 - 2); y < Math.min(N, y0 + CHUNK + 2) && !any; y++)
+    for (let x = Math.max(0, x0 - 2); x < Math.min(N, x0 + CHUNK + 2); x++) if (isWaterAt(x, y)) { any = true; break; }
+  if (!any || !waterDepth) return null;
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(CHUNK * TW * DEPTH_SCALE);
+  c.height = Math.ceil((CHUNK * TH + 2) * DEPTH_SCALE);
+  const g = c.getContext('2d');
+  // Farbe je Bildpunkt aus der weichen Tiefenkarte: hell und türkis am Ufer, dunkelblau in der Mitte, Sand auf Sandbänken
+  const W = c.width, H = c.height, img = g.createImageData && g.createImageData(W, H), d = img && img.data;
+  if (!d) return null;
+  const sample = (f, fx, fy) => {
+    const ix = Math.floor(fx), iy = Math.floor(fy), ax = fx - ix, ay = fy - iy;
+    if (ix < 0 || iy < 0 || ix >= N - 1 || iy >= N - 1) return 0;
+    const i = iy * N + ix;
+    return (f[i] * (1 - ax) + f[i + 1] * ax) * (1 - ay) + (f[i + N] * (1 - ax) + f[i + N + 1] * ax) * ay;
+  };
+  for (let py = 0; py < H; py++)
+    for (let px = 0; px < W; px++) {
+      const sx = px / DEPTH_SCALE + left, sy = py / DEPTH_SCALE + top;
+      const fx = sx / TW + sy / TH - 0.5, fy = sy / TH - sx / TW - 0.5;   // Feld-Koordinaten (Feldmitte = ganze Zahl)
+      const dep = sample(waterDepth, fx, fy);
+      if (dep <= 0) continue;
+      const sh = sample(waterShoal, fx, fy);
+      let r, gg, b, a;
+      if (dep < 1.7) { const k = Math.max(0, (dep - 0.6) / 1.1); r = 185; gg = 238; b = 212; a = 0.46 * (1 - k); }   // seicht
+      else { const k = Math.min(1, (dep - 1.7) / 3.0); r = 16; gg = 72; b = 140; a = 0.5 * k; }                     // tief
+      if (sh > 0) {   // Sandbank schimmert durch
+        const sa = 0.62 * sh, ra = sa + a * (1 - sa);
+        if (ra > 0) { r = (232 * sa + r * a * (1 - sa)) / ra; gg = (216 * sa + gg * a * (1 - sa)) / ra; b = (160 * sa + b * a * (1 - sa)) / ra; a = ra; }
+      }
+      const o = (py * W + px) * 4;
+      d[o] = r; d[o + 1] = gg; d[o + 2] = b; d[o + 3] = a * 255;
+    }
+  g.putImageData(img, 0, 0);
+  g.setTransform(DEPTH_SCALE * TW / 2, DEPTH_SCALE * TH / 2, -DEPTH_SCALE * TW / 2, DEPTH_SCALE * TH / 2, -left * DEPTH_SCALE, -top * DEPTH_SCALE);
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  const box = [x0 - 2, y0 - 2, x0 + CHUNK + 1, y0 + CHUNK + 1];
+  // nur innerhalb der runden Wasserfläche
+  const mask = document.createElement('canvas'); mask.width = W; mask.height = H;
+  const mg = mask.getContext('2d');
+  mg.setTransform(DEPTH_SCALE * TW / 2, DEPTH_SCALE * TH / 2, -DEPTH_SCALE * TW / 2, DEPTH_SCALE * TH / 2, -left * DEPTH_SCALE, -top * DEPTH_SCALE);
+  mg.lineCap = 'round'; mg.lineJoin = 'round';
+  paintRegion(mg, box, isWaterAt, '#000', 1.0, 2);
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-in'; g.drawImage(mask, 0, 0); g.restore();
+  // ein paar Steine auf den Sandbänken
+  for (let y = Math.max(0, box[1]); y <= Math.min(N - 1, box[3]); y++)
+    for (let x = Math.max(0, box[0]); x <= Math.min(N - 1, box[2]); x++) {
+      if (waterShoal[y * N + x] < 0.6 || hash(x + 11, y) < 0.72) continue;
+      g.fillStyle = hash(x, y + 13) > 0.5 ? 'rgba(120,115,105,0.85)' : 'rgba(155,150,135,0.85)';
+      g.beginPath(); g.ellipse(x + hash(x + 3, y), y + hash(x, y + 3), 0.1 + hash(y, x) * 0.1, 0.08 + hash(x, y) * 0.08, 0, 0, 7); g.fill();
+    }
+  return c;
+}
+
+function drawWaterDepth(range) {
+  const per = N / CHUNK;
+  if (!chunks.length) return;
+  for (let cy = Math.floor(range.y0 / CHUNK); cy <= Math.floor(range.y1 / CHUNK); cy++)
+    for (let cx = Math.floor(range.x0 / CHUNK); cx <= Math.floor(range.x1 / CHUNK); cx++) {
+      if (cx < 0 || cy < 0 || cx >= per || cy >= per) continue;
+      const ch = chunks[cy * per + cx];
+      if (!ch || !ch.depth) continue;
+      const p = worldToScreen(ch.left, ch.top);
+      ctx.drawImage(ch.depth, p.x, p.y, CHUNK * TW * cam.zoom * ch.depth.width / (CHUNK * TW * DEPTH_SCALE), (CHUNK * TH + 2) * cam.zoom * ch.depth.height / ((CHUNK * TH + 2) * DEPTH_SCALE));
+    }
+}
+
+// Wasserfall: Felsstufe quer über den Fluss, weißer Vorhang (läuft), Schaum am Fuß. Selbst gezeichnet, nur wenn sichtbar.
+function drawWaterfall(range) {
+  const f = mapFeatures.fall;
+  if (!f || f.x < range.x0 - 8 || f.x > range.x1 + 8 || f.y < range.y0 - 8 || f.y > range.y1 + 8) return;
+  const z = cam.zoom, t = frameTime, H = 46 * z;
+  const px = f.uy, py = -f.ux;
+  const a = tileToScreen(f.x - px * f.w, f.y - py * f.w), b = tileToScreen(f.x + px * f.w, f.y + py * f.w);
+  const at = k => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k });
+  const wob = k => Math.sin(k * 23 + f.x) * 3 * z;
+  // Wasser-Vorhang
+  const g = ctx.createLinearGradient(0, Math.min(a.y, b.y), 0, Math.max(a.y, b.y) + H);
+  g.addColorStop(0, 'rgba(70,165,225,1)');
+  g.addColorStop(0.3, 'rgba(120,200,240,1)');
+  g.addColorStop(0.7, 'rgba(205,238,250,1)');
+  g.addColorStop(1, 'rgba(255,255,255,1)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y - 2 * z);
+  for (let k = 0; k <= 1.001; k += 0.1) { const q = at(k); ctx.lineTo(q.x, q.y - 2 * z + wob(k) * 0.3); }
+  for (let k = 1; k >= -0.001; k -= 0.1) { const q = at(k); ctx.lineTo(q.x, q.y + H + wob(k)); }
+  ctx.closePath(); ctx.fill();
+  // fallende Streifen
+  ctx.lineCap = 'round';
+  const n = Math.max(6, Math.round(f.w * 7));
+  for (let i = 0; i < n; i++) {
+    const k = (i + 0.5) / n, q = at(k), sp = 0.55 + hash(i, 7) * 0.5, ph = hash(i, 19);
+    for (let j = 0; j < 2; j++) {
+      const v = (t * sp + ph + j * 0.5) % 1, y0 = q.y + v * H * 0.85, len = (5 + hash(i, j) * 7) * z;
+      ctx.strokeStyle = `rgba(255,255,255,${0.75 * (0.35 + 0.65 * v)})`;
+      ctx.lineWidth = Math.max(1, (1.1 + hash(j, i) * 1.2) * z);
+      ctx.beginPath(); ctx.moveTo(q.x, y0); ctx.lineTo(q.x, Math.min(y0 + len, q.y + H)); ctx.stroke();
+    }
+  }
+  // Schaum am Fuß
+  for (let i = 0; i < n + 5; i++) {
+    const k = (i + 0.5) / (n + 5), q = at(k), r = (3.5 + hash(i, 3) * 3.5 + Math.sin(t * 3 + i * 1.7) * 1.1) * z;
+    ctx.fillStyle = `rgba(255,255,255,${0.72 + 0.2 * Math.sin(t * 2 + i)})`;
+    ctx.beginPath(); ctx.ellipse(q.x, q.y + H + wob(k) + Math.sin(t * 2.2 + i) * 1.2 * z, r * 1.5, r * 0.75, 0, 0, 7); ctx.fill();
+  }
+  // Felsen an der Kante und an den Seiten
+  const rock = (x, y, r, col) => {
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath(); ctx.ellipse(x + 1.5 * z, y + r * 0.55, r * 1.1, r * 0.5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.78, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.ellipse(x - r * 0.25, y - r * 0.3, r * 0.5, r * 0.28, 0, 0, 7); ctx.fill();
+  };
+  for (let i = 0; i < 6; i++) {
+    const k = hash(i, 41), q = at(k);
+    if (hash(i, 43) < 0.5) rock(q.x, q.y - 3 * z, (2.5 + hash(i, 47) * 2.5) * z, '#807c72');
+  }
+  // große Felsen rechts und links verdecken die Kanten des Vorhangs
+  for (const k of [0, 1]) {
+    const q = at(k), side = k ? 1 : -1;
+    for (let i = 0; i < 4; i++) {
+      const v = i / 3;
+      rock(q.x + side * (3 + hash(i, k + 2) * 7) * z, q.y + v * H, (10 - i) * z, i % 2 ? '#8a867b' : '#736f66');
+    }
+    rock(q.x - side * 3 * z, q.y + H + 3 * z, 7 * z, '#6d695f');
+  }
+  // Gischt: feiner Dunst über dem Schaum
+  for (let i = 0; i < 5; i++) {
+    const k = hash(i, 53), q = at(k), v = (t * 0.25 + hash(i, 59)) % 1;
+    ctx.fillStyle = `rgba(255,255,255,${0.28 * (1 - v)})`;
+    ctx.beginPath(); ctx.arc(q.x + Math.sin(t + i) * 4 * z, q.y + H - v * 16 * z, (5 + v * 10) * z, 0, 7); ctx.fill();
+  }
 }
 
 function drawGround(range) {
@@ -1371,6 +1517,8 @@ function drawScene(dt) {
   updateLife(dt, range);
   drawGround(range);
   drawWater(range);
+  drawWaterDepth(range);
+  drawWaterfall(range);
   drawPlots(range);
   drawSeasonGround();
   drawPaths(range);

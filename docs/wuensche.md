@@ -16,9 +16,9 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten (5 von 21 fertig) (Canva-Pause auf Emins Wunsch).
+- Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten (5 von 21 fertig, Rest bis nach dem 27.11.) (Canva-Pause auf Emins Wunsch).
 
-- Fischer im Boot sieht nicht richtig aus (Emin, 01.11.): neues Bild „Fischer im Einbaum“ aus Canva – in Arbeit.
+- Fischer (Emin, 01.11.): Fischerplatz auf Säulen ohne gemaltes Wasser, unten ein Boot; im Boot sichtbar paddeln (2 Haltungen, erste fertig); Speer verbessern. Canva-Bilder – kommen einzeln (monatliches Limit bis 27.11., Emin kauft nichts dazu).
 - Felsen, Berge und Büsche bleiben im Winter grün (Emin, 01.11.): Winterbilder fehlen noch – nach den Rückansichten.
 - Wunderwerke je Zeitalter (Emin, 01.11.): Entwurf `docs/konzept-wunderwerke.md`, wird mit Emin besprochen.
   → Frage: Zurück-Knopf auf der Aufträge-Seite sei träge – nicht nachstellbar, Emins Spielstand zum Testen nötig.
@@ -26,6 +26,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-01, Epochia Version 52 – Neuer Fluss in neuen Spielen (breit, Schleifen, seicht/tief, Sandbänke, Wasserfall; alte Stände behalten ihre Karte), Konto mit Cloud-Sicherung (Menü → Konto), Knopf „Neu starten“, neue Startseite und Spielstände, gemalter Rauch und weiße Flecken aus den Gebäudebildern entfernt, Winterbilder neu freigestellt.
 - 2026-11-01, Epochia Version 51 – Neues Forschungsfenster (Entwurf C von Emin gewählt, auch Handy quer), bewegtes Feuer und Rauch in den Rückansichten statt gemaltem Rauch, Einwohner-Fenster nennt Leute ohne Arbeit, Winterbilder sauber freigestellt, Winter Sammlerin.
 - 2026-11-01, Epochia Version 50 – Emins Liste: Fellmacherin, Steinschläger, Töpferei arbeiten auf ihrem Grundstück statt davor; Beter knien auf dem Ahnenplatz/Steinkreis; Frauen knien beim Beten (Canva-Bild); Lichter flackern beim Verschieben nicht mehr schneller; weicheres, wärmeres Licht nachts; näher heranzoomen (bis 3,5); lange Brücken sehen durchgehend aus (keine gestapelten Bilder, weiße Streifen weg).
 - 2026-11-01, Epochia Version 49 – Wunsch Emin: Fackeln am Trampelpfad (jedes zweite Feld, das Spiel schaut beim Bauen auf die Nachbarfelder; alte Wege bekommen sie einmalig), nachts warmer Lichtschein; später werden es Laternen (CONFIG.pathLights je Zeitalter). Winterbilder Rückansicht Grubenhaus und Langhaus.

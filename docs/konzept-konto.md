@@ -10,6 +10,21 @@ Stand: 31.10.2026, nur geplant, noch nichts gebaut. Wird in Sitzungen mit Emin u
 - **Freunde:** Liste **und Siedlung besuchen** (ansehen).
 - **Zeitpunkt:** erst nach der Bronzezeit, eventuell auch erst nach weiteren Zeitaltern. Keine Eile.
 
+## Stand
+
+2026-11-01: **Schritt A gebaut** (`neu/js/konto.js`, Knopf „☁️ Konto“ im Menü). Supabase-Projekt `nisfsdkjxtzovxqzovtn` (Frankfurt).
+Datenbank: `profile` (Name, Nummer), `spielstaende` (je Platz, `version` zählt der Server), Funktion `konto_loeschen()`, alles mit RLS.
+Ohne Bibliothek (nur fetch), Spielen ohne Konto und offline unverändert. Ins Spiel kommt nur der öffentliche Schlüssel, nie `service_role`.
+
+So bleibt kein Spielstand auf der Strecke: Das Gerät merkt sich die zuletzt gesehene Cloud-Version und schreibt nur auf genau diese.
+Hat sich die Cloud geändert (oder wäre es ein deutlicher Rückschritt), fragt das Spiel: „Cloud laden / Dieses Gerät behalten“.
+Vor dem Laden wird der Gerätestand in `epochia-save-N-vorher` aufgehoben. Sicherung höchstens alle 3 Minuten und beim Verlassen.
+
+Noch einzustellen im Supabase-Dashboard (geht nicht per Werkzeug):
+- Authentication → URL Configuration: Site URL und Redirect URLs = `https://mirzaguliyevemin-web.github.io/stadtaufbau/neu/`
+- Der eingebaute Mail-Versand ist nur zum Ausprobieren gedacht (sehr wenige Mails je Stunde). Für viele Spieler später eigenen SMTP-Dienst eintragen.
+- Für den Play Store: Datenschutzerklärung nötig. Gespeichert werden E-Mail, Profilname, Spielstände.
+
 ## Technik
 
 - Server: **Supabase** (kostenloser Tarif): Anmeldung, Datenbank, Zugriffsregeln (RLS). Spiel bleibt auf GitHub Pages.
@@ -69,7 +84,7 @@ Jede Stufe braucht etwas mehr EP. Server prüft grob auf Glaubwürdigkeit (max. 
 
 | Schritt | Inhalt |
 |---|---|
-| A | Supabase einrichten, E-Mail-Anmeldung, Profil mit ID, Cloud-Spielstand |
+| A ✅ | Supabase einrichten, E-Mail-Anmeldung, Profil mit ID, Cloud-Spielstand |
 | B | EP und Stufen, Anzeige im Menü, Geschenkkiste |
 | C | Schmuck-Geschenke: Deko-Gebäude (Canva), Profilbilder, Rahmen, Titel |
 | D | Freundesliste (ID-Suche, Einladungslink, Anfragen) |

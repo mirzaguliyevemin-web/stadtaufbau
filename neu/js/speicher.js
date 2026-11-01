@@ -36,7 +36,9 @@ function serialize() {
 
 function saveGame() {
   if (!state) return false;
-  return storageSet(SAVE_PREFIX + currentSlot, serialize());
+  const ok = storageSet(SAVE_PREFIX + currentSlot, serialize());
+  if (ok && typeof kontoNachSpeichern === 'function') kontoNachSpeichern();   // Cloud-Sicherung (gedrosselt, nur mit Konto)
+  return ok;
 }
 
 // Prüft einen gelesenen Spielstand und ergänzt Fehlendes. Gibt null zurück, wenn er unbrauchbar ist.
@@ -71,6 +73,7 @@ function sanitizeState(data) {
     .filter(b => b && BUILDINGS[b.type] && Number.isInteger(b.x) && Number.isInteger(b.y))
     .map(b => ({ type: b.type, x: b.x, y: b.y, rot: (Number(b.rot) || 0) & 3, build: Number.isFinite(b.build) && b.build > 0 ? b.build : 0, ...(b.paused ? { paused: true } : {}), ...(BUILDINGS[b.from] ? { from: b.from } : {}),
       ...(Number.isFinite(b.chop) && b.chop > 0 ? { chop: b.chop } : {}), ...(Number.isFinite(b.mine) && b.mine > 0 ? { mine: b.mine } : {}), ...(Number.isFinite(b.plant) && b.plant > 0 ? { plant: b.plant } : {}), ...(b.torch && BUILDINGS[b.type].isPath ? { torch: 1 } : {}) }));
+  s.mapGen = data.mapGen === 2 ? 2 : 1;   // alte Stände behalten ihre Karte (fehlt = alter, schmaler Fluss)
   s.torches = data.torches === true;   // fehlt bei alten Ständen: Fackeln werden beim Laden einmal verteilt
   if (Array.isArray(data.plots) && data.plots.length === s.plots.length) s.plots = data.plots.map(p => (p === 1 ? 1 : 0));
   if (Array.isArray(data.cleared)) s.cleared = data.cleared.filter(Number.isInteger);
@@ -138,7 +141,7 @@ function slotInfo(slot) {
   try {
     const d = JSON.parse(text);
     const stage = STAGES.find(s => s.id === d.stage) || STAGES[0];
-    return { pop: Math.floor(d.pop || 0), stage: stage.name, savedAt: d.savedAt || 0 };
+    return { pop: Math.floor(d.pop || 0), stage: stage.name, stageId: stage.id, savedAt: d.savedAt || 0 };
   } catch (e) {
     return { broken: true };
   }

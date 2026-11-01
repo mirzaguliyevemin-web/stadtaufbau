@@ -187,8 +187,15 @@ test('Weiterentwickeln: Wohnhöhle → Fellzelt; größeres Langhaus braucht Pla
   noErrors(g);
 });
 
-test('Verschieben und Drehen', () => {
+// Für Tests mit festen Feldern: die Karte, auf der sie geschrieben wurden (mapGen 1, gleicher Seed)
+function freshOldMap() {
   const g = fresh();
+  g.run(`state.mapGen = 1; buildTerrain(); rebuildOccupancy(); recalcStats();`);
+  return g;
+}
+
+test('Verschieben und Drehen', () => {
+  const g = freshOldMap();
   const spot = g.run(`JSON.stringify(findFreeSpot('wohnhoehle', 56, 56))`);
   const r = g.run(`const sp = ${spot}; moveBuilding(1, sp.x, sp.y, true)`);
   ok(r === null, 'Verschieben ging nicht: ' + r);
@@ -212,7 +219,7 @@ test('Bedienung: aus der Leiste bauen mit ✔, Abbrechen mit ✖', () => {
 });
 
 test('Wärme: Wohnung fern vom Feuer senkt die Zufriedenheit', () => {
-  const g = fresh();
+  const g = freshOldMap();
   ok(g.run('stats.needs.waerme') === 1, 'Startwohnungen kalt');
   g.run(`addBuilding('wohnhoehle', 49, 49, false, true); rebuildOccupancy(); buildRoute(state.buildings.length - 1); recalcStats();`);
   ok(g.run('isConnected(5)'), 'ferne Wohnung nicht angeschlossen');
@@ -899,6 +906,44 @@ test('Volles Lager mit Überschuss bleibt bei 200 (nicht ewig 199) – Forschung
   noErrors(g);
 });
 
+test('Menü: Neu starten – freier Platz lässt den alten Stand stehen, Ersetzen fängt von vorn an', () => {
+  const g = fresh();
+  const r = g.run(`(() => { gameRunning = true; state.pop = 50; saveGame(); const alt = currentSlot; askRestart();
+    const frei = SLOTS.find(sl => !slotInfo(sl)); closeDialog(); chooseSlot(frei);
+    const neu = state.pop; const altDa = slotInfo(alt) && slotInfo(alt).pop;
+    askRestart(); doDeleteSlot(currentSlot);
+    return { frei, alt, neu, altDa, danach: state.pop, slot: currentSlot }; })()`);
+  ok(r.frei !== r.alt && r.neu === 6, 'Neues Spiel auf freiem Platz: ' + JSON.stringify(r));
+  ok(r.altDa === 50, 'Alter Stand verschwunden: ' + JSON.stringify(r));
+  ok(r.danach === 6 && r.slot === r.frei, 'Ersetzen falsch: ' + JSON.stringify(r));
+  noErrors(g);
+});
+
+test('Karte: neues Spiel hat breiten, kurvigen Fluss mit Wasserfall; alter Stand behält seine Karte', () => {
+  const g = fresh();
+  for (const seed of [4242, 1, 77, 999]) {
+    const r = g.run(`(() => { startNewGame(${seed}); let water = 0, own = 0, minW = 99, maxX = 0, minX = N;
+      for (let y = 8; y < N - 8; y++) { let c = 0, sx = 0; for (let x = 0; x < N; x++) if (terrain[y * N + x] === TERRAIN.wasser.id) { c++; sx += x; } if (c) { minW = Math.min(minW, c); maxX = Math.max(maxX, sx / c); minX = Math.min(minX, sx / c); } }
+      for (let y = 48; y < 80; y++) for (let x = 48; x < 80; x++) if (terrain[y * N + x] === TERRAIN.wasser.id) own++;
+      return { gen: state.mapGen, own, minW, swing: maxX - minX, fall: !!mapFeatures.fall, campOk: state.buildings.every((b, i) => !b.build && !placeProblem(b.type, b.x, b.y, i)), depth: Math.max(...waterDepth) }; })()`);
+    ok(r.gen === 2, 'neues Spiel sollte mapGen 2 haben');
+    ok(r.own > 30, 'Fluss sollte durchs Startland gehen: ' + JSON.stringify(r));
+    ok(r.minW >= 2, 'Fluss überall durchgehend: ' + JSON.stringify(r));
+    ok(r.swing > 25, 'Fluss schlängelt zu wenig: ' + JSON.stringify(r));
+    ok(r.fall, 'kein Wasserfall: ' + seed);
+    ok(r.campOk, 'Lager steht falsch: ' + JSON.stringify(r));
+    ok(r.depth > 2.5, 'keine tiefen Stellen: ' + JSON.stringify(r));
+  }
+  // alter Stand ohne mapGen: Karte wie früher (alte Erzeugung), mapGen bleibt beim Speichern und Laden erhalten
+  const old = g.run(`(() => { startNewGame(4242); const d = JSON.parse(serialize()); delete d.mapGen; loadFromText(JSON.stringify(d));
+    const expect = generateTerrain(state.seed); let diff = 0; for (let i = 0; i < N * N; i++) if (baseTerrain[i] !== expect[i]) diff++;
+    return { gen: state.mapGen, diff, fall: mapFeatures.fall }; })()`);
+  ok(old.gen === 1 && old.diff === 0 && !old.fall, 'alter Stand hat andere Karte: ' + JSON.stringify(old));
+  const neu = g.run(`(() => { startNewGame(99); const before = baseTerrain.slice(); loadFromText(serialize()); let diff = 0; for (let i = 0; i < N * N; i++) if (baseTerrain[i] !== before[i]) diff++; return { gen: state.mapGen, diff, fall: !!mapFeatures.fall }; })()`);
+  ok(neu.gen === 2 && neu.diff === 0 && neu.fall, 'neuer Stand ändert sich beim Laden: ' + JSON.stringify(neu));
+  noErrors(g);
+});
+
 test('Arbeiter laufen nie übers Wasser (Wegsuche über Land und Brücken)', () => {
   const g = fresh();
   const r = g.run(`(() => { state.res.holz = 999; state.res.stein = 999; state.pop = 30;
@@ -933,6 +978,147 @@ test('Alte Spielstände (kleine Karte bis Version 21) landen in der Mitte der gr
   ok(g.run('state.buildings.every((b, i) => isConnected(i))'), 'Wege nach dem Umzug unterbrochen');
   // ein zweites Laden verschiebt nicht noch einmal
   ok(g.run('loadFromText(serialize()) && state.buildings[0].x') === old.buildings[0].x + off, 'doppelt verschoben');
+  noErrors(g);
+});
+
+// Konto: Netz wird gefälscht (kein echter Server). Die Tests sind asynchron, weil das Konto mit fetch arbeitet.
+async function testAsync(name, fn) {
+  try { await fn(); passed++; console.log('✔ ' + name); }
+  catch (e) { failed++; console.log('✖ ' + name + '\n   ' + (e.message || e)); }
+}
+const FAKE_SERVER = `
+  var server = { aufrufe: [], stand: null, ausfall: false, fremd: false };
+  globalThis.fetch = async (url, opt = {}) => {
+    if (server.ausfall) throw new Error('offline');
+    const m = opt.method || 'GET'; server.aufrufe.push(m + ' ' + url);
+    const antwort = (status, daten) => ({ ok: status < 400, status, json: async () => daten });
+    if (url.includes('/auth/v1/token')) return opt.body.includes('falsch') ? antwort(400, { error_code: 'invalid_credentials', msg: 'x' })
+      : antwort(200, { access_token: 'a', refresh_token: 'r', expires_in: 3600, user: { id: 'u1', email: 'x@y.de' } });
+    if (url.includes('/rest/v1/profile')) return antwort(200, [{ name: 'Siedler', nummer: 'ABC234' }]);
+    if (url.includes('/rest/v1/spielstaende')) {
+      if (m === 'GET') return antwort(200, server.stand ? [server.stand] : []);
+      if (m === 'POST') { if (server.stand) return antwort(409, {}); server.stand = { daten: JSON.parse(opt.body).daten, version: 1 }; return antwort(201, [{ version: 1 }]); }
+      if (m === 'PATCH') {
+        const v = Number(/version=eq\\.(\\d+)/.exec(url)[1]);
+        if (server.fremd || !server.stand || server.stand.version !== v) return antwort(200, []);
+        server.stand = { daten: JSON.parse(opt.body).daten, version: v + 1 }; return antwort(200, [{ version: v + 1 }]);
+      }
+    }
+    return antwort(200, {});
+  };
+  var schreiben = () => server.aufrufe.filter(a => /^(POST|PATCH).*spielstaende/.test(a)).length;
+  function anmeldenFake(basis = {}) { konto = { access: 'a', refresh: 'r', expires: Date.now() + 3600000, id: 'u1', email: 'x@y.de', name: '', nummer: '', basis, zeit: {} }; }
+  function cloudStand(pop, savedAt, playTime = 5000) { const d = JSON.parse(serialize()); d.pop = pop; d.savedAt = savedAt; d.playTime = playTime; return JSON.stringify(d); }
+`;
+function kontoSpiel(storage) {
+  const g = fresh(4242, storage);
+  g.run(FAKE_SERVER + "gameRunning = true; saveGame();");
+  return g;
+}
+
+await testAsync('Konto: ohne Anmeldung kein einziger Netzaufruf, Spiel läuft', async () => {
+  const g = kontoSpiel();
+  g.run("for (let k = 0; k < 5; k++) saveGame(); enterGame(); kontoNachSpeichern(); kontoBeimVerlassen(); kontoPruefen();");
+  await g.run('kontoJetztSichern()');
+  ok(g.run('server.aufrufe.length') === 0, 'Netz benutzt: ' + g.run('server.aufrufe.join()'));
+  ok(g.run('state.pop') === 6, 'Spiel nicht normal');
+  noErrors(g);
+});
+
+await testAsync('Konto: Netzausfall stört nicht, Meldung statt Fehler, Spielstand bleibt', async () => {
+  const g = kontoSpiel();
+  const vorher = g.run("anmeldenFake(); server.ausfall = true; kontoAbgeglichen[currentSlot] = true; kontoLetzterVersuch = 0; saveGame(); enterGame(); localStorage.getItem('epochia-save-1').length");
+  await g.run('kontoJetztSichern()');
+  await g.run("(async () => { konto = null; $('konto-mail').value = 'a@b.de'; $('konto-pass').value = 'geheim1'; await kontoAnmelden(); })()");
+  ok(/Keine Verbindung/.test(g.run('kontoMeldung')), 'Keine Meldung: ' + g.run('kontoMeldung'));
+  ok(g.run('konto') === null, 'Ohne Antwort angemeldet');
+  ok(g.run("localStorage.getItem('epochia-save-1').length") > 0 && vorher > 0, 'Spielstand weg');
+  noErrors(g);
+});
+
+await testAsync('Konto: falsches Passwort wird verständlich gemeldet, Registrieren erkennt vergebene E-Mail', async () => {
+  const g = kontoSpiel();
+  await g.run("(async () => { $('konto-mail').value = 'a@b.de'; $('konto-pass').value = 'falsch'; await kontoAnmelden(); })()");
+  ok(/stimmt nicht/.test(g.run('kontoMeldung')) && g.run('konto') === null, 'Meldung: ' + g.run('kontoMeldung'));
+  await g.run(`(async () => { const alt = fetch; globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => ({ id: 'x', identities: [] }) }); $('konto-pass').value = 'geheim1'; await kontoRegistrieren(); globalThis.fetch = alt; })()`);
+  ok(/schon vergeben/.test(g.run('kontoMeldung')), 'Meldung: ' + g.run('kontoMeldung'));
+  await g.run(`(async () => { const alt = fetch; globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => ({ id: 'x', identities: [{}] }) }); await kontoRegistrieren(); globalThis.fetch = alt; })()`);
+  ok(/Mail geschickt/.test(g.run('kontoMeldung')), 'Meldung: ' + g.run('kontoMeldung'));
+  noErrors(g);
+});
+
+await testAsync('Konto: leere Cloud bekommt den Stand; unterschiedlicher Stand fragt nach und überschreibt nie still', async () => {
+  const g = kontoSpiel();
+  g.run('anmeldenFake()');
+  ok(await g.run('kontoAbgleich(1)') === 'hoch' && g.run('server.stand.version') === 1, 'Leere Cloud nicht gefüllt');
+  noErrors(g);
+  // zweites Gerät: kennt die Cloud-Version nicht
+  const h = kontoSpiel();
+  const lokal = h.run("anmeldenFake(); server.stand = { daten: cloudStand(40, Date.now() - 1000), version: 5 }; localStorage.getItem('epochia-save-1')");
+  ok(await h.run('kontoAbgleich(1)') === 'frage', 'Keine Rückfrage');
+  ok(h.run('dialogOpen') && /Welcher Spielstand/.test(h.run("$('dialog-box').innerHTML")), 'Kein Fenster');
+  ok(h.run('schreiben()') === 0 && h.run("localStorage.getItem('epochia-save-1')") === lokal, 'Still überschrieben');
+  h.run('kontoLetzterVersuch = 0; saveGame()');
+  ok(h.run('schreiben()') === 0, 'Upload trotz offener Frage');
+  // Cloud laden: Gerätestand wird aufgehoben, Spiel läuft mit dem Cloud-Stand
+  const zuletzt = h.run("localStorage.getItem('epochia-save-1')");
+  ok(h.run('kontoCloudLaden()') === true, 'Laden fehlgeschlagen');
+  ok(h.run("localStorage.getItem('epochia-save-1-vorher')") === zuletzt, 'Gerätestand nicht aufgehoben');
+  ok(h.run('state.pop') === 40 && h.run('konto.basis[1]') === 5 && h.run('schreiben()') === 0, 'Cloud-Stand nicht geladen');
+  noErrors(h);
+});
+
+await testAsync('Konto: „Dieses Gerät behalten“ ersetzt nur die gesehene Version; anderes Gerät dazwischen fragt wieder', async () => {
+  const g = kontoSpiel();
+  g.run('anmeldenFake(); server.stand = { daten: cloudStand(40, 111), version: 5 }');
+  await g.run('kontoAbgleich(1)');
+  await g.run('kontoGeraetBehalten()');
+  ok(g.run('server.stand.version') === 6 && g.run('JSON.parse(server.stand.daten).pop') === 6, 'Nicht hochgeladen');
+  // ein anderes Gerät sichert unbemerkt: Upload findet die Version nicht mehr → Rückfrage statt Überschreiben
+  g.run('server.stand = { daten: cloudStand(70, 222), version: 9 }; kontoLetzterVersuch = 0; saveGame()');
+  await g.run('new Promise(r => r())'); await new Promise(r => setImmediate(r));
+  ok(g.run('JSON.parse(server.stand.daten).pop') === 70, 'Fremder Stand überschrieben');
+  ok(g.run('kontoKonflikt && kontoKonflikt.version') === 9, 'Keine Rückfrage nach fremder Sicherung');
+  noErrors(g);
+});
+
+await testAsync('Konto: kaputter Cloud-Stand zerstört nichts; neu begonnenes Spiel überschreibt längeres nicht still', async () => {
+  const g = kontoSpiel();
+  const lokal = g.run("anmeldenFake(); server.stand = { daten: '{kaputt', version: 2 }; kontoKonflikt = { slot: 1, daten: '{kaputt', version: 2 }; localStorage.getItem('epochia-save-1')");
+  ok(g.run('kontoCloudLaden()') === false && g.run("localStorage.getItem('epochia-save-1')") === lokal && g.run('state.pop') === 6, 'Kaputter Stand geladen');
+  noErrors(g);
+  const h = kontoSpiel();
+  h.run('anmeldenFake({ 1: 3 }); server.stand = { daten: cloudStand(90, 333, 99999), version: 3 }');   // Gerät kennt Version 3, spielt aber neu von vorn
+  ok(await h.run('kontoAbgleich(1)') === 'frage', 'Rückschritt nicht bemerkt');
+  noErrors(h);
+});
+
+await testAsync('Konto: Sicherung gedrosselt, nur für verglichene Plätze', async () => {
+  const g = kontoSpiel();
+  g.run('anmeldenFake(); kontoLetzterVersuch = 0; saveGame()');
+  ok(g.run('schreiben()') === 0, 'Upload vor dem Vergleich');
+  await g.run('kontoAbgleich(1)');
+  const nachVergleich = g.run('schreiben()');
+  g.run('kontoLetzterVersuch = Date.now(); for (let k = 0; k < 10; k++) saveGame()');
+  await new Promise(r => setImmediate(r));
+  ok(g.run('schreiben()') === nachVergleich, 'Nicht gedrosselt');
+  g.run('kontoLetzterVersuch = Date.now() - KONTO_TAKT - 1; for (let k = 0; k < 10; k++) saveGame()');
+  await new Promise(r => setImmediate(r));
+  ok(g.run('schreiben()') === nachVergleich + 1, 'Takt falsch: ' + g.run('schreiben()'));
+  noErrors(g);
+});
+
+await testAsync('Konto: Abmelden löscht nur die Sitzung; alter Spielstand des alten Spiels bleibt unberührt', async () => {
+  const altes = '{"altes":"spiel"}';
+  const g = kontoSpiel({ 'stadtaufbau-save-1': altes });
+  const lokal = g.run("anmeldenFake(); kontoMerken(); saveGame(); localStorage.getItem('epochia-save-1')");
+  ok(g.run("localStorage.getItem('epochia-konto')"), 'Sitzung nicht gespeichert');
+  await g.run('kontoAbgleich(1)');
+  g.run('kontoAbmelden()');
+  ok(g.run('konto') === null && g.run("localStorage.getItem('epochia-konto')") === null, 'Sitzung nicht gelöscht');
+  ok(g.run("localStorage.getItem('epochia-save-1')") === lokal, 'Spielstand verändert');
+  ok(g.run("localStorage.getItem('stadtaufbau-save-1')") === altes, 'Altes Spiel angefasst');
+  ok(/service_role|secret/.test(fs.readFileSync(new URL('../js/konto.js', import.meta.url), 'utf8')) === false, 'Geheimer Schlüssel im Code?');
   noErrors(g);
 });
 

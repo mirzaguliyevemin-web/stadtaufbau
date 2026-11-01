@@ -43,6 +43,7 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     tutorial: 0,             // Schritt im Einstieg, -1 = fertig/übersprungen
     mapSize: N,              // Kartengröße beim Speichern (alte Stände: 64, werden beim Laden in die Mitte gelegt)
     torches: true,           // Wege haben schon Fackeln bekommen (alte Stände: einmal beim Laden nachholen)
+    mapGen: 2,               // Art der Kartenerzeugung: 2 = breiter, kurviger Fluss (alte Stände: 1 = bleibt, wie sie war)
     savedAt: Date.now(),
   };
 }
@@ -167,13 +168,188 @@ function generateTerrain(seed) {
   return t;
 }
 
+// ---------------------------------------------------------------------
+// Karte ab Epochia 52 (mapGen 2): breiter Fluss in großen Schleifen, Engstellen, Wasserfall an einer Felsstufe.
+// Alte Spielstände behalten generateTerrain (oben) – sonst stünden ihre Gebäude plötzlich im Wasser.
+// ---------------------------------------------------------------------
+
+let mapFeatures = { fall: null };   // Wasserfall: { x, y, ux, uy, w } (Mitte, Fließrichtung, halbe Breite)
+
+// Mittellinie des Flusses: Die Richtung schwingt hin und her (so mäandern echte Flüsse).
+// Ergebnis: Punkte { x, y, ux, uy, w } im Abstand 0,5 Felder, oder null, wenn die Kurve nicht auf die Karte passt.
+function riverCurve(rng) {
+  const c = N / 2 - 0.5;
+  const a1 = 1.2 + rng() * 0.25, l1 = 56 + rng() * 22, p1 = rng() * 6.28;
+  const a2 = 0.25 + rng() * 0.2, l2 = 22 + rng() * 12, p2 = rng() * 6.28;
+  const pw1 = rng() * 6.28, pw2 = rng() * 6.28, narrow = 40 + rng() * 25;
+  const pts = [];
+  let x = 0, y = -12, sn = 0;
+  while (y < N + 12 && sn < 2400) {
+    const s = sn * 0.5;
+    const th = a1 * Math.sin(6.283 * s / l1 + p1) + a2 * Math.sin(6.283 * s / l2 + p2);
+    const ux = Math.sin(th), uy = Math.cos(th);
+    let w = 3.3 + 1.1 * Math.sin(s * 0.047 + pw1) + 0.5 * Math.sin(s * 0.13 + pw2);
+    const nq = ((s % narrow) / narrow - 0.5) * 2;   // regelmäßig eine Engstelle – dort lohnt sich die Brücke
+    w = Math.max(1.8, w - 1.9 * Math.exp(-nq * nq * 40));
+    pts.push({ x, y, ux, uy, w });
+    x += ux * 0.5; y += uy * 0.5; sn++;
+  }
+  if (y < N + 12) return null;
+  // Waagrecht so schieben, dass der Fluss rechts neben dem Lager vorbeifließt: Abstand zum Ufer mindestens clear
+  const clear = 8.5 + rng() * 1.5;
+  const cross = pts.reduce((a, q) => (Math.abs(q.y - c) < Math.abs(a.y - c) ? q : a), pts[0]);
+  let ox = c + 6 - cross.x;
+  for (let k = 0; k < 200; k++, ox += 0.5)
+    if (pts.every(q => Math.hypot(q.x + ox - c, q.y - c) - q.w >= clear)) break;
+  for (const q of pts) q.x += ox;
+  for (const q of pts) if (q.y >= 0 && q.y < N && (q.x < 8 || q.x > N - 8)) return null;
+  return pts;
+}
+
+// Stelle für den Wasserfall: abseits des Lagers, wo der Fluss im Bild nach unten fließt
+function chooseFall(pts) {
+  const c = N / 2 - 0.5;
+  let best = null, bestScore = 0.65;
+  for (const q of pts) {
+    if (q.y < 8 || q.y > N - 8 || q.x < 12 || q.x > N - 12) continue;
+    const d = Math.hypot(q.x - c, q.y - c);
+    if (d < 24 || d > 52) continue;
+    const score = (q.ux + q.uy) / Math.SQRT2 + (q.y < c ? 0.08 : 0);
+    if (score > bestScore) { best = q; bestScore = score; }
+  }
+  return best;
+}
+
+function generateTerrain2(seed) {
+  const rng = seededRng((seed ^ 0x2f6e2b1) >>> 0);
+  const curveRng = seededRng((seed ^ 0x51ed27) >>> 0);
+  let pts = null;
+  for (let k = 0; k < 60 && !pts; k++) pts = riverCurve(curveRng);
+  if (!pts) {   // sollte kaum vorkommen: sanfte Kurve rechts vom Lager
+    pts = [];
+    for (let y = -12; y < N + 12; y += 0.5) pts.push({ x: N / 2 + 18 + Math.sin(y * 0.09) * 6, y, ux: 0, uy: 1, w: 3 });
+  }
+  const fall = chooseFall(pts);
+  if (fall) for (const q of pts) {   // am Wasserfall wird der Fluss enger (Felsstufe)
+    const d = Math.hypot(q.x - fall.x, q.y - fall.y);
+    q.w = Math.min(q.w, 2.4 + Math.min(1, d / 10) * 3);
+  }
+  // Abstand jedes Feldes zum Ufer: negativ = im Wasser
+  const field = new Float32Array(N * N).fill(99);
+  for (const q of pts) {
+    const r = Math.ceil(q.w + 5);
+    for (let y = Math.max(0, Math.floor(q.y) - r); y <= Math.min(N - 1, Math.floor(q.y) + r); y++)
+      for (let x = Math.max(0, Math.floor(q.x) - r); x <= Math.min(N - 1, Math.floor(q.x) + r); x++) {
+        const v = Math.hypot(x + 0.5 - q.x, y + 0.5 - q.y) - q.w;
+        if (v < field[y * N + x]) field[y * N + x] = v;
+      }
+  }
+  const bank = makeNoise(rng, 5), beach = makeNoise(rng, 9);
+  const forest = makeNoise(rng, 11), forest2 = makeNoise(rng, 5), rocks = makeNoise(rng, 8), ridge = makeNoise(rng, 10);
+  const mountains = [
+    { L: 34 + Math.floor(rng() * 10), w: 4 + rng() * 2 },
+    { L: 2 * N - 40 - Math.floor(rng() * 10), w: 3.5 + rng() * 2 },
+  ];
+  const t = new Uint8Array(N * N);
+  const mid = N / 2;
+  for (let y = 0; y < N; y++)
+    for (let x = 0; x < N; x++) {
+      const i = y * N + x;
+      const f = field[i] + (bank(x, y) - 0.5) * 1.3;   // Ufer unregelmäßig
+      const nearCamp = Math.hypot(x - mid, y - mid) < 7;
+      let berg = -99;   // (die alte Karte begann hier bei 0 – deshalb lagen dort außerhalb der Mitte viel zu viele Felsen)
+      for (const m of mountains) {
+        const dist = Math.abs(x + y - m.L + (ridge(x, y) - 0.5) * 18) / Math.SQRT2;
+        berg = Math.max(berg, m.w - dist);
+      }
+      if (f < 0) t[i] = TERRAIN.wasser.id;
+      else if (f < 0.9 + beach(x, y) * 2.2) t[i] = TERRAIN.sand.id;   // mal schmaler, mal breiter Strand
+      else if (nearCamp) t[i] = TERRAIN.gras.id;
+      else if (berg > 0) t[i] = TERRAIN.berg.id;
+      else if (berg > -2.5 && rng() < 0.45 + berg * 0.15) t[i] = TERRAIN.fels.id;
+      else if (forest(x, y) * 0.75 + forest2(x, y) * 0.25 > 0.6) t[i] = TERRAIN.wald.id;
+      else if (rocks(x, y) > 0.8 && rng() < 0.55) t[i] = TERRAIN.fels.id;
+      else if (rng() < 0.03) t[i] = TERRAIN.wald.id;
+      else t[i] = TERRAIN.gras.id;
+    }
+  // Felsgruppe nahe beim Lager (links oben), wie bisher
+  const fx = Math.floor(mid - 10 + rng() * 4), fy = Math.floor(mid - 9 + rng() * 4);
+  for (let y = fy - 2; y <= fy + 2; y++)
+    for (let x = fx - 2; x <= fx + 2; x++)
+      if (Math.hypot(x - fx, y - fy) < 2.3 && rng() < 0.7 && t[y * N + x] !== TERRAIN.wasser.id) t[y * N + x] = TERRAIN.fels.id;
+  // Wasserfall: links und rechts der Stufe Gebirge (wird nie abgebaut)
+  mapFeatures = { fall: null };
+  if (fall) {
+    const px = fall.uy, py = -fall.ux;   // quer zum Fluss
+    const w = Math.min(fall.w, 2.4);
+    for (const side of [-1, 1])
+      for (let a = w + 0.8; a < w + 5; a += 0.5)
+        for (let b = -2.2; b <= 1.2; b += 0.5) {
+          const x = Math.floor(fall.x + side * px * a + fall.ux * b), y = Math.floor(fall.y + side * py * a + fall.uy * b);
+          if (inMap(x, y) && t[y * N + x] !== TERRAIN.wasser.id && a - w + Math.abs(b) < 4.6) t[y * N + x] = TERRAIN.berg.id;
+        }
+    mapFeatures.fall = { x: fall.x, y: fall.y, ux: fall.ux, uy: fall.uy, w: w + 0.6 };
+  }
+  return t;
+}
+
+// Wassertiefe (nur fürs Aussehen): Abstand zum Ufer in Feldern, mit Sandbänken und tieferen Rinnen. 0 = kein Wasser.
+let waterDepth = null;
+let waterShoal = null;   // Sandbank in der Flussmitte, 0–1 (nur Optik – Wasser bleibt Wasser)
+function computeWaterDepth() {
+  const dist = new Float32Array(N * N);
+  const q = [];
+  for (let y = 0; y < N; y++)
+    for (let x = 0; x < N; x++) {
+      if (terrain[y * N + x] !== TERRAIN.wasser.id) continue;
+      let shore = false;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]])
+        if (inMap(x + dx, y + dy) && terrain[(y + dy) * N + x + dx] !== TERRAIN.wasser.id) shore = true;
+      if (shore) { dist[y * N + x] = 1; q.push(y * N + x); }
+    }
+  for (let h = 0; h < q.length; h++) {
+    const i = q[h], x = i % N, y = Math.floor(i / N);
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      if (!inMap(x + dx, y + dy)) continue;
+      const k = (y + dy) * N + x + dx;
+      if (terrain[k] === TERRAIN.wasser.id && !dist[k]) { dist[k] = dist[i] + 1; q.push(k); }
+    }
+  }
+  // weich machen (dreimal mitteln), damit keine eckigen Stufen zu sehen sind
+  let cur = dist;
+  for (let pass = 0; pass < 3; pass++) {
+    const nx = new Float32Array(N * N);
+    for (let y = 1; y < N - 1; y++)
+      for (let x = 1; x < N - 1; x++) {
+        const i = y * N + x;
+        if (!dist[i]) continue;
+        nx[i] = (cur[i] * 2 + cur[i - 1] + cur[i + 1] + cur[i - N] + cur[i + N]) / 6;
+      }
+    cur = nx;
+  }
+  const rng = seededRng((state.seed ^ 0x3c6ef372) >>> 0);
+  const deep = makeNoise(rng, 7), shoal = makeNoise(rng, 6);
+  waterDepth = new Float32Array(N * N);
+  waterShoal = new Float32Array(N * N);
+  const step = (a, b, v) => { const k = Math.max(0, Math.min(1, (v - a) / (b - a))); return k * k * (3 - 2 * k); };
+  for (let y = 0; y < N; y++)
+    for (let x = 0; x < N; x++) {
+      const i = y * N + x;
+      if (!dist[i]) continue;
+      waterDepth[i] = cur[i] * (0.75 + deep(x, y) * 0.5);
+      waterShoal[i] = step(0.68, 0.8, shoal(x, y)) * step(1.6, 2.6, cur[i]);   // Sandbank mitten im breiten Fluss
+    }
+}
+
 let baseTerrain = null;   // Gelände, wie es aus der Spielstand-Zahl entsteht (ohne Fällen und Pflanzen)
 
 let terrainVersion = 0;   // zählt Geländeänderungen (für gemerkte Werte wie terrainBonus)
 function buildTerrain() {
   terrainVersion++;
-  baseTerrain = generateTerrain(state.seed);
+  mapFeatures = { fall: null };
+  baseTerrain = state.mapGen === 2 ? generateTerrain2(state.seed) : generateTerrain(state.seed);
   terrain = baseTerrain.slice();
+  computeWaterDepth();
   for (const i of state.cleared) if (i >= 0 && i < N * N) terrain[i] = TERRAIN.gras.id;
   for (const i of state.planted) if (i >= 0 && i < N * N) terrain[i] = TERRAIN.wald.id;
   if (typeof chunks !== 'undefined') chunks = [];   // andere Karte: Boden ganz neu

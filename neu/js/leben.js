@@ -264,6 +264,16 @@ function frontSpot(b, k = 0) {
 }
 
 // Nächstes passendes Geländefeld in der Nähe eines Gebäudes, dazu ein freier Standplatz daneben
+// Geländearten, an denen gearbeitet wird: an Felsen auch das Gebirge (unerschöpflich, Felsen werden abgebaut)
+const targetIds = kind => kind === 'fels' ? [TERRAIN.fels.id, TERRAIN.berg.id] : [TERRAIN[kind].id];
+// Ist das Ziel noch da? (Baum gefällt, Felsen abgebaut → neues Ziel suchen)
+function targetGone(w) {
+  const k = w.kind.target;
+  if (!TERRAIN[k]) return false;
+  const x = Math.floor(w.tx), y = Math.floor(w.ty);
+  return inMap(x, y) && !targetIds(k).includes(terrain[y * N + x]);
+}
+
 function workSpot(b, kind, far, k = 0) {
   const s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
   if (kind === 'self') {   // arbeitet direkt vor dem Haus, das Werkstück liegt daneben (nach außen)
@@ -292,11 +302,11 @@ function workSpot(b, kind, far, k = 0) {
     const sx = b.x + s + 0.6 + r(k, 3) * 1.5, sy = b.y + r(4, k) * s;
     return walkable(Math.floor(sx), Math.floor(sy)) ? { tx: sx - 0.6, ty: sy, sx, sy } : null;
   }
-  const id = TERRAIN[kind].id, max = far ? 10 : 7;
+  const ids = targetIds(kind), max = far ? 10 : 7;
   let best = null, bestD = Infinity;
   for (let y = Math.floor(cy - max); y <= cy + max; y++)
     for (let x = Math.floor(cx - max); x <= cx + max; x++) {
-      if (!inMap(x, y) || terrain[y * N + x] !== id) continue;
+      if (!inMap(x, y) || !ids.includes(terrain[y * N + x])) continue;
       const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + hash(x + b.x + k * 13, y - b.y + k * 7) * (far ? 4 : 2.5);   // nicht alle zum selben Baum
       if (d >= bestD) continue;
       for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
@@ -391,6 +401,7 @@ function updateWorkers(dt) {
       if (!route) { w.t = 8; continue; }   // nur übers Wasser erreichbar: später nochmal (anderer Baum)
       Object.assign(w, spot, { phase: 'go', route });
     } else if (w.phase === 'go' || w.phase === 'back') {
+      if (w.phase === 'go' && targetGone(w)) { w.phase = 'rest'; w.t = 0.5; w.route = null; continue; }   // Ziel verschwunden: neues suchen
       if (!w.route || !w.route.length) w.route = [w.phase === 'go' ? [w.sx, w.sy] : [w.home.x, w.home.y]];
       const [gx, gy] = w.route[0];
       const dx = gx - w.x, dy = gy - w.y, d = Math.hypot(dx, dy);
@@ -438,7 +449,9 @@ function drawWorker(w, t) {
   if (!walking && w.kind.boat && w.k === 1 && images.einbaum) return drawBoat(w, t);
   // Werkstück vor dem Haus (Fell, Steinknolle, Topf) – liegt hinter der Figur
   if (!walking && w.kind.thing && images[w.kind.thing]) {
-    const q = tileToScreen(w.tx, w.ty), s = 15 * z;
+    // Fell liegt nicht auf dem Boden: die Fellmacherin hält es vor sich in den Händen und schabt es
+    const held = w.kind.swing === 'scrape', pw = tileToScreen(w.x, w.y);
+    const q = held ? { x: pw.x - 8 * z * w.face, y: pw.y - 9 * z } : tileToScreen(w.tx, w.ty), s = (held ? 13 : 15) * z;
     const grow = w.kind.swing === 'pot' ? 0.6 + 0.4 * Math.min(1, (WORK_SECONDS - w.t) / WORK_SECONDS) : 1;   // der Topf wächst
     ctx.drawImage(images[w.kind.thing], q.x - s * grow / 2, q.y - s * grow * 0.8, s * grow, s * grow);
   }
@@ -519,7 +532,8 @@ function drawWorker(w, t) {
     ctx.beginPath(); ctx.moveTo(hand.x, hand.y); ctx.lineTo(hand.x - (6 + dab * 2) * z * w.face, hand.y - (5 + dab * 3) * z); ctx.stroke();
   }
   if (!walking && (swing === 'scrape' || swing === 'knap' || swing === 'pot')) {   // Hände über dem Werkstück
-    const q = tileToScreen(w.tx, w.ty);
+    const pw = tileToScreen(w.x, w.y);
+    const q = swing === 'scrape' ? { x: pw.x - 8 * z * w.face, y: pw.y - 3 * z } : tileToScreen(w.tx, w.ty);
     const m = swing === 'knap' ? Math.abs(Math.sin(t * 4 + w.ph)) : (Math.sin(t * 3 + w.ph) + 1) / 2;
     const hx = q.x + (swing === 'scrape' ? (m - 0.5) * 10 * z : 0), hy = q.y - 8 * z - (swing === 'knap' ? m * 7 * z : 2 * z);
     ctx.fillStyle = swing === 'knap' ? '#8a8478' : '#c99a6e';
@@ -933,4 +947,5 @@ function resetLife() {
 }
 
 // Holzsammler hat genug Holz für einen Baum beisammen: der Baum kippt sichtbar um
+on('rockMined', t => { if ((typeof gameRunning === 'undefined' || gameRunning) && !offlineRunning) addFelled(t.x, t.y, 'fels'); });
 on('treeFelled', t => { if ((typeof gameRunning === 'undefined' || gameRunning) && !offlineRunning) addFelled(t.x, t.y, 'wald'); });

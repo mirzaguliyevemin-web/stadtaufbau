@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 47;
+const APP_VERSION = 48;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -25,6 +25,10 @@ const CONFIG = {
   bonusRadius: 3,         // Umkreis für Geländebonus (Wald, Felsen)
   maxOfflineHours: 2,     // so lange läuft das Spiel offline weiter (Emin: höchstens 2 Stunden)
   refundShare: 0.5,       // beim Abreißen gibt es die Hälfte zurück
+  rocks: {                // Felsen abbauen (Emin, 01.11.): kleine Felsen verschwinden, das Gebirge ist unerschöpflich
+    stonePerRock: 40,     // so viel Stein bringt ein Felsfeld – dann ist es abgebaut (im Umkreis rockRadius)
+    rockRadius: 6,
+  },
   trees: {                // Bäume fällen und nachpflanzen (Emin, 31.10.)
     woodPerTree: 20,      // so viel Holz bringt ein Baum – dann fällt ihn der Holzsammler (im Umkreis treeRadius)
     treeRadius: 6,
@@ -234,14 +238,15 @@ const BUILDINGS = {
     info: 'Fällt Bäume und sammelt Holz. Am Wald viel mehr – aber die Bäume werden weniger. Eine Pflanzerin setzt neue.',
   },
   pflanzerin: {
-    name: 'Pflanzerin', icon: '🌱', size: 2, line: 'pflanzen', tier: 0, stage: 'alt', bild: '1-pflanzerin',
+    name: 'Pflanzerin', icon: '🌱', size: 2, line: 'pflanzen', tier: 0, stage: 'alt', bild: '1-pflanzerin', views: ['r2'],
     color: '#6a9a3a', cost: { holz: 20, stein: 5 }, time: 40, workers: 1, plants: true,
     info: 'Sammelt Samen und pflanzt Setzlinge im Umkreis. Nach 10 Minuten ist daraus ein Baum gewachsen.',
   },
   steinsammler: {
     name: 'Steinsammler', icon: '⛏️', size: 2, line: 'stein', tier: 0, stage: 'alt', bild: '1-steinsammler', views: ['r2'],
     color: '#8a8a8a', cost: { holz: 15 }, time: 30, workers: 2, produces: { stein: 6 },
-    bonus: { terrain: 'fels', perTile: 0.06, max: 0.6 }, info: 'Sammelt Steine. An Felsen viel mehr.',
+    bonus: { terrain: ['fels', 'berg'], perTile: 0.06, max: 0.6 }, minesRocks: true,
+    info: 'Sammelt Steine. An Felsen und am Gebirge viel mehr. Felsen in der Nähe werden nach und nach abgebaut – am Gebirge gibt es Stein ohne Ende.',
   },
   hoehlenmaler: {
     name: 'Höhlenmaler', icon: '🎨', size: 2, line: 'wissen', tier: 0, stage: 'alt', bild: '1-hoehlenmaler', views: ['r2'],

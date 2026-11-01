@@ -583,6 +583,9 @@ function closeAllPages() {
   popEntries(n);
 }
 
+// Namen der Geländearten für den Bonus (eine oder mehrere, z. B. „Felsen, Gebirge“)
+const terrainNames = t => [].concat(t).map(k => TERRAIN[k].name).join(', ');
+
 // ---------------------------------------------------------------------
 // Gebäude-Fenster
 // ---------------------------------------------------------------------
@@ -620,7 +623,7 @@ function showBuildingWindow(i) {
     if (def.consumes) lines.push('Braucht: ' + Object.entries(def.consumes).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n * outputFactor(i))}/min`).join(', '));
     for (const id of Object.keys(def.consumes || {})) if ((state.res[id] || 0) < 0.5) lines.push(`❗ Fehlt: ${RESOURCES[id].name} – darum steht es still${sourceText(id)}`);
     const tb = terrainBonus(b);
-    if (def.bonus) lines.push(`🌲 Geländebonus (${TERRAIN[def.bonus.terrain].name}): +${Math.round(tb * 100)} %`);
+    if (def.bonus) lines.push(`🌲 Geländebonus (${terrainNames(def.bonus.terrain)}): +${Math.round(tb * 100)} %`);
     if (SEASON_FACTORS[b.type]) lines.push(`${season().icon} ${season().name}: ${Math.round(SEASON_FACTORS[b.type][seasonIndex()] * 100)} %`);
   }
   if (def.warmth) lines.push(`🔥 Wärme im Umkreis von ${warmthRadius(def)} Feldern`);
@@ -683,7 +686,7 @@ function buildingDetailsHtml(i) {
       [`${season().icon} Jahreszeit`, seasonF, season().name],
       [`${currentWeather().icon} Wetter${state.disaster ? ' & ' + DISASTERS[state.disaster.id].name : ''}`, effectFactor(b.type), ''],
       ['😊 Zufriedenheit', happinessFactor(), `${stats.happiness} %`],
-      ...(def.bonus ? [[`🌲 Gelände (${TERRAIN[def.bonus.terrain].name})`, 1 + terrainBonus(b), `höchstens +${Math.round(def.bonus.max * 100)} %`]] : []),
+      ...(def.bonus ? [[`🌲 Gelände (${terrainNames(def.bonus.terrain)})`, 1 + terrainBonus(b), `höchstens +${Math.round(def.bonus.max * 100)} %`]] : []),
       ['📜 Forschung', 1 + techSum('bonus', b.type), ''],
     ];
     const base = Object.entries(def.produces).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n)}`).join(' ');

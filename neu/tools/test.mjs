@@ -688,6 +688,43 @@ test('Bäume: Holzsammler fällen sie nach und nach, Pflanzerin setzt Setzlinge,
   noErrors(g);
 });
 
+test('Felsen: Steinsammler bauen sie nach und nach ab, das Gebirge nie; bleibt gespeichert, alte Stände laden', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const count = id => { let k = 0; for (let i = 0; i < N * N; i++) if (terrain[i] === id) k++; return k; };
+    for (let i = 0; i < state.plots.length; i++) state.plots[i] = 1;   // alles Land gekauft (Felsen liegen am Gebirgsrand)
+    // freier Platz mit möglichst vielen Felsen und Gebirge in der Nähe
+    let best = null, most = -1;
+    for (let y = 4; y < N - 6; y += 2) for (let x = 4; x < N - 6; x += 2) {
+      if (placeProblem('steinsammler', x, y)) continue;
+      const n = countTerrainNear(x, y, 2, TERRAIN.fels.id, 3);
+      if (n > most && countTerrainNear(x, y, 2, TERRAIN.berg.id, 3) > 0) { most = n; best = { x, y }; }
+    }
+    if (!best) return 'kein Platz';
+    state.res.holz = 999; state.pop = 20;
+    placeBuilding('steinsammler', best.x, best.y);
+    const k = state.buildings.length - 1, b = state.buildings[k];
+    finishBuilding(b); isConnected = () => true; recalcStats();   // Wege sind hier egal
+    const rocks0 = count(TERRAIN.fels.id), berg0 = count(TERRAIN.berg.id), bonus0 = terrainBonus(b);
+    for (let i = 0; i < 40 * 60; i++) { state.res.stein = 0; update(1); }
+    const rocks1 = count(TERRAIN.fels.id), berg1 = count(TERRAIN.berg.id);
+    b.mine = 12.5;
+    const data = JSON.parse(serialize());
+    loadFromText(JSON.stringify(data));
+    const kept = count(TERRAIN.fels.id) === rocks1, mineKept = state.buildings.some(x => x.type === 'steinsammler' && x.mine === 12.5);
+    data.buildings.forEach(x => delete x.mine);   // alter Stand ohne das neue Feld
+    const oldOk = loadFromText(JSON.stringify(data)) !== false && state.buildings.some(x => x.type === 'steinsammler');
+    return { most, rocks0, rocks1, berg0, berg1, bonus0, kept, mineKept, oldOk };
+  })()`);
+  ok(typeof r === 'object', 'Testaufbau: ' + r);
+  ok(r.bonus0 > 0, 'kein Bonus an Felsen/Gebirge: ' + JSON.stringify(r));
+  ok(r.rocks0 - r.rocks1 >= 2, 'Steinsammler baut keine Felsen ab: ' + JSON.stringify(r));
+  ok(r.berg1 === r.berg0, 'Gebirge wurde abgebaut: ' + JSON.stringify(r));
+  ok(r.kept && r.mineKept, 'Abbau nicht gespeichert: ' + JSON.stringify(r));
+  ok(r.oldOk, 'alter Spielstand ohne Abbau-Feld lädt nicht: ' + JSON.stringify(r));
+  noErrors(g);
+});
+
 test('Drehen: vier Richtungen, alte Stände (true) werden 1, Fischerplatz dreht sich selbst zum Wasser', () => {
   const g = fresh();
   const r = g.run(`(() => {

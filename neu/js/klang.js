@@ -224,3 +224,4 @@ on('placed', b => { if (!BUILDINGS[b.type].isPath) playSound('bauen'); });
 on('finished', b => { if (!offlineRunning && BUILDINGS[b.type].time > 0 && !BUILDINGS[b.type].isPath) playSound('fertig'); });
 on('researchDone', () => playSound('forschung'));
 on('treeFelled', () => { if (gameRunning && !offlineRunning) playSound('baumfall'); });
+on('rockMined', () => { if (gameRunning && !offlineRunning) playSound('klirren'); });

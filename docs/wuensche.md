@@ -16,11 +16,12 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Gebäude 4× drehen (Emin, 31.10.): noch offen Rückansicht Pflanzerin – danach Winterbilder aller Rückansichten (Canva-Pause auf Emins Wunsch).
+- Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten (2 von 21 fertig) (Canva-Pause auf Emins Wunsch).
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-01, Epochia Version 48 – Wunsch Emin: Steinsammler bauen kleine Felsen in der Nähe nach und nach ab (alle 40 Stein ein Felsfeld, zerbröselt sichtbar), das Gebirge gibt Stein ohne Ende und zählt für den Bonus. Fehler: Fellmacherinnen legten das Fell auf den Boden – jetzt halten sie es in den Händen. Rückansicht Pflanzerin, erste Winterbilder der Rückansichten (Wohnhöhle, Fellzelt).
 - 2026-11-01, Epochia Version 47 – Fehler von Emin: Waren blieben bei 199 von 200 hängen (Verbrauch nahm nach dem Auffüllen gleich wieder etwas weg), Forschungen für 200 waren nie bezahlbar – volles Lager mit Überschuss bleibt jetzt bei 200. Rückansichten (Canva) für Vorratsspeicher, Steinkreis, Lagerfeuer.
 - 2026-11-01, Epochia Version 46 – Fehler von Emin: Fischer hielt den Speer waagrecht wie ein Gewehr – jetzt sticht er steil von oben ins Wasser (mit Steinspitze). Fischerplatz, Tongrube und Pfahlbau stehen halb im Fluss ohne Erdsockel, das Wasser im Bild geht in den Fluss über (alte Gebäude bleiben, wo sie sind). Rückansichten (Canva) für Ziegengehege, Fellmacherin, Steinschläger, Ahnenplatz, Töpferei.
 - 2026-11-01, Epochia Version 45 – Letzte drei Arbeiterbilder (Canva): Bäuerin mit Grabstock unten (Acker gräbt jetzt im Wechsel), Hirte mit Hirtenstab am Ziegengehege, Pflanzerin kniet beim Setzen; Rückansicht Acker.

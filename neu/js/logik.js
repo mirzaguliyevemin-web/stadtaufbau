@@ -524,7 +524,7 @@ function terrainBonus(b) {
   if (!bonus) return 0;
   const m = bonusMemo.get(b);
   if (m && m.v === terrainVersion && m.x === b.x && m.y === b.y && m.type === b.type) return m.value;
-  const n = countTerrainNear(b.x, b.y, BUILDINGS[b.type].size, TERRAIN[bonus.terrain].id, CONFIG.bonusRadius);
+  const n = [].concat(bonus.terrain).reduce((a, t) => a + countTerrainNear(b.x, b.y, BUILDINGS[b.type].size, TERRAIN[t].id, CONFIG.bonusRadius), 0);
   const value = Math.min(bonus.max, n * bonus.perTile);
   bonusMemo.set(b, { v: terrainVersion, x: b.x, y: b.y, type: b.type, value });
   return value;
@@ -578,6 +578,32 @@ function chopTrees(b, wood) {
     if (!t) { b.chop = 0; return; }   // kein Baum mehr: nur noch Äste und Fallholz
     clearTile(t[0], t[1], true);
     emit('treeFelled', { x: t[0], y: t[1] });
+  }
+}
+
+// Felsen: Steinsammler bauen kleine Felsen in der Nähe nach und nach ab (das Gebirge bleibt für immer)
+function nearestRock(b, radius) {
+  const s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
+  let best = null, bestD = Infinity;
+  for (let y = Math.floor(cy - radius); y <= cy + radius; y++)
+    for (let x = Math.floor(cx - radius); x <= cx + radius; x++) {
+      if (!inMap(x, y) || terrain[y * N + x] !== TERRAIN.fels.id || occ[y * N + x]) continue;
+      const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + hash(x * 5 + 2, y) * 0.8;
+      if (d < bestD && d <= radius + 0.8) { best = [x, y]; bestD = d; }
+    }
+  return best;
+}
+
+// Stein gesammelt → ist genug für ein Felsfeld zusammen, ist der nächste Felsen abgebaut (wird Wiese)
+function mineRocks(b, stone) {
+  b.mine = (b.mine || 0) + stone;
+  const c = CONFIG.rocks;
+  while (b.mine >= c.stonePerRock) {
+    b.mine -= c.stonePerRock;
+    const r = nearestRock(b, c.rockRadius);
+    if (!r) { b.mine = 0; return; }   // keine Felsen mehr: Grundmenge bzw. Gebirge
+    clearTile(r[0], r[1], true);
+    emit('rockMined', { x: r[0], y: r[1] });
   }
 }
 
@@ -672,6 +698,7 @@ function updateProductionStep(dt) {
     for (const [id, n] of Object.entries(def.produces)) { rates[id] = (rates[id] || 0) + n * f; flow(id, 'in', b.type, n * f); }
     addResources(def.produces, f * dt / 60);
     if (def.fellsTrees) chopTrees(b, (def.produces.holz || 0) * f * dt / 60);
+    if (def.minesRocks) mineRocks(b, (def.produces.stein || 0) * f * dt / 60);
   });
   updateTrees(dt);
   // Einwohner essen und verbrauchen Waren

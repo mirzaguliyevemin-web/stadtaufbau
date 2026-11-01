@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 44;
+const APP_VERSION = 45;
 
 const CONFIG = {
   mapSize: 128,           // Felder je Seite (bis Version 21: 64 – alte Karten liegen jetzt in der Mitte)
@@ -218,7 +218,7 @@ const BUILDINGS = {
     requires: 'einbaum', info: 'Fischer im Einbaum – viel Nahrung. Muss am Wasser stehen.',
   },
   acker: {
-    name: 'Acker', icon: '🌾', size: 3, line: 'feld', tier: 0, stage: 'jung', bild: '1-acker',
+    name: 'Acker', icon: '🌾', size: 3, line: 'feld', tier: 0, stage: 'jung', bild: '1-acker', views: ['r2'],
     color: '#d8b44a', cost: { holz: 40, werkzeug: 5 }, time: 90, workers: 3, produces: { nahrung: 30 },
     requires: 'ackerbau', info: 'Sehr viel Nahrung – im Sommer am meisten, im Winter nichts.',
   },

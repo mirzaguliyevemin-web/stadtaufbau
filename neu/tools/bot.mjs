@@ -1,14 +1,24 @@
 // Epochia – Balancing-Bot: spielt die Steinzeit ohne Browser und misst, wie lange die Stufen dauern.
 // Aufruf: node neu/tools/bot.mjs [Minuten] [Läufe]   (Ziel seit 30.10.: Steinzeit in etwa 6 Stunden, Mittelsteinzeit nach gut 1 Stunde)
+//
+// Der Bot soll sich wie ein vernünftiger Spieler verhalten (seit 01.11.), damit seine Zeiten etwas über echte Spieler sagen:
+// - er plant nach Bedarf: Nahrung nach dem, was die Gebäude schaffen KÖNNTEN (nicht nach der Rate, die bei vollem Lager
+//   auf 0 fällt – daran baute der alte Bot Dutzende Sammlerinnen), Wissen nach den noch offenen Forschungen,
+//   Waren (Felle, Kleidung, Werkzeug, Ton, Töpferwaren) nach Bedürfnissen, Verarbeitern und Forschungskosten;
+// - fehlen Arbeiter, pausiert er Gebäude, deren Waren ohnehin voll im Lager liegen, und baut eher Wohnungen;
+// - Feuerplätze und Ahnenplätze stellt er dorthin, wo Wohnungen noch ohne Wärme bzw. Glauben sind;
+// - er holt Auftrags-Belohnungen ab und jagt Mammuts, wenn eine Herde da ist (mit etwas Verzögerung wie ein Mensch).
+// Er benutzt nur Aktionen, die ein Spieler auch hat (bauen, Weg, Land kaufen, Bäume fällen, Pause, Forschung, Jagd, Aufträge).
 import { loadGame } from './headless.mjs';
 import { fileURLToPath } from 'node:url';
 
 // Der Bot läuft im Spiel selbst (gleiche Funktionen wie die Oberfläche benutzt)
 const BOT_CODE = String.raw`
-var botReport = { mittelsteinzeit: null, jungsteinzeit: null, kupferfund: null, hungerMin: 0, lowHappyMin: 0, pop: [], built: 0, blocked: {} };
+var botReport = { mittelsteinzeit: null, jungsteinzeit: null, kupferfund: null, hungerMin: 0, lowHappyMin: 0, pop: [], built: 0,
+  blocked: {}, missing: {}, wait: {}, log: [], hunts: 0, quests: 0, paused: 0 };
 
 function botCount(type) { return state.buildings.filter(b => b.type === type).length; }
-function botLine(line) { return state.buildings.filter(b => BUILDINGS[b.type].line === line).length; }
+function botLineCount(line) { return state.buildings.filter(b => BUILDINGS[b.type].line === line).length; }
 
 // Wegeraster wie ein Spieler, der Wege mit einplant: jede 5. Reihe und Spalte bleibt für Trampelpfade frei
 function botOnRoadGrid(x, y, s) {
@@ -16,20 +26,29 @@ function botOnRoadGrid(x, y, s) {
   return false;
 }
 
-// Freien Platz suchen: nur im eigenen Land, nah am Lagerfeuer zuerst. Ergebnis merken, bis sich etwas ändert.
+// Freien Platz suchen: nur im eigenen Land, nah an einem Ziel (sonst am Lagerfeuer). Ergebnis merken, bis sich etwas ändert.
 var botSpotCache = {};
-function botSpot(type) {
-  const key = type + ':' + state.buildings.length + ':' + state.plots.join('') + ':' + state.cleared.length;
+function botSpot(type, near, anyGrid) {
+  const c = Math.floor(N / 2), tx = near ? Math.round(near.x) : c, ty = near ? Math.round(near.y) : c;
+  const key = (anyGrid ? '*' : '') + type + ':' + tx + ':' + ty + ':' + state.buildings.length + ':' + state.plots.join('') + ':' + state.cleared.length + ':' + state.saplings.length;
   if (key in botSpotCache) return botSpotCache[key];
-  const c = Math.floor(N / 2);
+  const def = BUILDINGS[type], s = def.size, half = s / 2;
+  // nah an einem Ziel (Wärme/Glaube für eine Wohnung): nur Plätze, von denen aus das Ziel im Umkreis liegt
+  const reach = near ? (def.belief || warmthRadius(def)) : Infinity;
+  const y0 = near ? Math.max(0, Math.floor(ty - reach - s)) : 0, y1 = near ? Math.min(N - 1, Math.ceil(ty + reach)) : N - 1;
+  const x0 = near ? Math.max(0, Math.floor(tx - reach - s)) : 0, x1 = near ? Math.min(N - 1, Math.ceil(tx + reach)) : N - 1;
   let best = null, bestD = Infinity;
-  for (let y = 0; y < N; y++)
-    for (let x = 0; x < N; x++) {
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++) {
       if (!isOwned(x, y)) continue;
-      const d = Math.abs(x - c) + Math.abs(y - c);
-      if (d >= bestD || (!BUILDINGS[type].needsWater && botOnRoadGrid(x, y, BUILDINGS[type].size)) || placeProblem(type, x, y)) continue;
+      const d = Math.abs(x + half - tx) + Math.abs(y + half - ty);
+      if (d >= bestD || near && Math.hypot(x + half - near.x, y + half - near.y) > reach) continue;
+      if ((!def.needsWater && !anyGrid && botOnRoadGrid(x, y, s)) || placeProblem(type, x, y)) continue;
       best = { x, y }; bestD = d;
     }
+  // zwischen den Wohnungen ist alles voll: dann auch auf die freigehaltenen Wegelinien (der Weg geht außen herum)
+  if (!best && near && !anyGrid) best = botSpot(type, near, true);
+  if (Object.keys(botSpotCache).length > 500) botSpotCache = {};
   return (botSpotCache[key] = best);
 }
 
@@ -38,13 +57,27 @@ function botBest(line) {
   return e ? e.type : null;
 }
 
-function botTryBuild(type) {
-  if (!type) return false;
-  if (!canAfford(BUILDINGS[type].cost)) { botReport.blocked[type] = (botReport.blocked[type] || 0) + 1; return false; }
-  const spot = botSpot(type);
+// Wann zuletzt welche Ware zum Bauen fehlte (Spielsekunden) – so merkt der Bot Engpässe wie ein Spieler
+var botShort = {};
+function botNoteMissing(cost) {
+  for (const [id, n] of Object.entries(cost || {})) if ((state.res[id] || 0) < n) botShort[id] = state.playTime;
+}
+function botRecentlyShort(id, sec = 180) { return botShort[id] !== undefined && state.playTime - botShort[id] < sec; }
+
+function botTryBuild(type, near) {
+  if (!type || !isUnlocked(type)) return false;
+  if (!canAfford(BUILDINGS[type].cost)) {
+    botReport.blocked[type] = (botReport.blocked[type] || 0) + 1;
+    for (const [id, n] of Object.entries(BUILDINGS[type].cost)) if ((state.res[id] || 0) < n) botReport.missing[id] = (botReport.missing[id] || 0) + 1;
+    botNoteMissing(BUILDINGS[type].cost);
+    return false;
+  }
+  const spot = botSpot(type, near);
+  if (!spot && near) return false;   // an dieser Wohnung ist kein Platz – nächstes Mal eine andere
   if (!spot) {
     // kein Platz: Land dazukaufen – und wenn das zu teuer ist, wie ein Spieler Bäume fällen, um Platz zu schaffen
     for (let p = 0; p < state.plots.length; p++) if (canBuyPlot(p) && buyPlot(p)) return false;
+    botNoteMissing(plotPrice());
     for (let k = 0; k < 4; k++) botClear('wald');
     return false;
   }
@@ -57,44 +90,210 @@ function botTryBuild(type) {
 function botUpgradeHousing() {
   for (let i = 0; i < state.buildings.length; i++) {
     const b = state.buildings[i];
-    if (BUILDINGS[b.type].housing && upgradeTarget(b) && !upgradeProblem(i)) { upgradeBuilding(i); return true; }
+    if (!BUILDINGS[b.type].housing || !upgradeTarget(b)) continue;
+    if (!upgradeProblem(i)) { upgradeBuilding(i); return true; }
   }
   return false;
 }
 
-function botResearch() {
-  if (state.research) return;
-  const ids = Object.keys(TECHS).filter(id => !researchProblem(id));
-  if (!ids.length) return;
-  ids.sort((a, b) => (TECHS[b].transition ? 1 : 0) - (TECHS[a].transition ? 1 : 0) || TECHS[a].cost.wissen - TECHS[b].cost.wissen);
-  startResearch(ids[0]);
+// ---------------------------------------------------------------------
+// Planung: was die Gebäude schaffen könnten und was gebraucht wird
+// ---------------------------------------------------------------------
+
+// Was ein Gebäude bei voller Besetzung je Minute herstellen würde (Baustellen zählen mit – sie sind schon geplant).
+// season: Jahreszeit (0–3), sonst die jetzige. Wetter zählt nicht (wechselt alle paar Minuten).
+function botPotential(b, res, season) {
+  const def = BUILDINGS[b.type];
+  if (!def.produces || !def.produces[res]) return 0;
+  const sf = SEASON_FACTORS[b.type] ? SEASON_FACTORS[b.type][season === undefined ? seasonIndex() : season] : 1;
+  return def.produces[res] * sf * happinessFactor() * (1 + terrainBonus(b)) * (1 + techSum('bonus', b.type));
 }
+function botSupply(res, season) {
+  let n = 0;
+  for (const b of state.buildings) n += botPotential(b, res, season);
+  return n;
+}
+
+// Laufender Verbrauch je Minute: Einwohner (Nahrung, Waren-Bedürfnisse) und Verarbeiter bei voller Besetzung
+function botUse(res, pop = state.pop) {
+  let n = 0;
+  if (res === 'nahrung') n += pop * CONFIG.foodPerPerson;
+  else if (activeNeeds().some(nd => nd.kind === 'stock' && nd.id === res)) n += pop * CONFIG.goodsPerPerson;
+  for (const b of state.buildings) {
+    const c = BUILDINGS[b.type].consumes;
+    if (c && c[res] && !b.paused) n += c[res];
+  }
+  return n;
+}
+
+// Ziel der laufenden Stufe: der Übergang ins nächste Zeitalter (in der Jungsteinzeit der Kupferfund)
+function botGoal() {
+  const t = Object.keys(TECHS).find(id => TECHS[id].transition && TECHS[id].stage === state.stage && !state.techs[id]);
+  return t || (!state.techs.kupferfund ? 'kupferfund' : null);
+}
+
+// Alle noch offenen Forschungen dieser Stufe (sie werden alle für das Ziel gebraucht) + das Ziel selbst
+function botOpenTechs() {
+  return Object.keys(TECHS).filter(id => !state.techs[id] && (TECHS[id].stage === state.stage || id === botGoal()));
+}
+
+// Was die nächsten Forschungen an einer Ware kosten (größter Einzelbetrag – so viel muss auf einmal im Lager sein)
+function botResearchNeed(res) {
+  let most = 0;
+  for (const id of botOpenTechs()) {
+    if (state.research && state.research.id === id) continue;
+    most = Math.max(most, TECHS[id].cost[res] || 0);
+  }
+  return Math.min(most, storageCap());
+}
+
+// Wissen je Minute, das gebraucht wird, damit die Forschung nie auf Wissen warten muss
+function botKnowledgeRate() {
+  let cost = 0, time = state.research ? state.research.left : 0;
+  for (const id of botOpenTechs()) {
+    if (state.research && state.research.id === id) continue;
+    cost += TECHS[id].cost.wissen || 0;
+    time += TECHS[id].time;
+  }
+  if (!cost) return 0;
+  return Math.max(0, cost - state.res.wissen) / Math.max(5, time / 60);
+}
+
+// Wer stellt eine Ware her (neueste freigeschaltete Stufe)?
+var BOT_MAKER = { holz: 'holz', stein: 'stein', wissen: 'wissen', felle: 'jagen', kleidung: 'kleidung', werkzeug: 'werkzeug', ton: 'ton', toepferwaren: 'toepfern' };
+
+// Braucht eine Ware einen weiteren Hersteller? Vergleicht, was alle Hersteller schaffen könnten, mit dem Bedarf
+// (laufender Verbrauch + Vorrat für die nächste Forschung, aufzufüllen in etwa 15 Minuten).
+function botNeedsMore(res, extra = 0) {
+  const want = botUse(res) * 1.15 + Math.max(0, botResearchNeed(res) - state.res[res]) / 15 + extra;
+  return want > 0.05 && botSupply(res) < want;
+}
+
+// Nahrung: genug für jetzt (und die nächsten Zuzügler) und – ab dem Herbst – für den langen Winter
+function botFoodShort() {
+  const eat = botUse('nahrung', state.pop + 6) * effectFood();
+  const stockNeed = Math.max(0, botResearchNeed('nahrung') - state.res.nahrung) / 20;
+  if (botSupply('nahrung') < eat * 1.15 + 1 + stockNeed) return true;
+  const s = seasonIndex();
+  if (s >= 2) {
+    // im Winter fehlt höchstens so viel, wie der Vorrat für eine Jahreszeit (30 min) hergibt
+    const winterEat = botUse('nahrung', state.pop + 10) * 1.1;
+    const reserve = (s === 3 ? state.res.nahrung : storageCap() * 0.8) / 30;
+    if (botSupply('nahrung', 3) + reserve < winterEat) return true;
+  }
+  return false;
+}
+
+function botFoodType() {
+  // am Anfang die billige Sammlerin; Jäger bringen auch Felle und werden mit der Mammutjagd viel stärker
+  const hunters = botLineCount('jagen');
+  const wantHunters = state.pop < 12 ? 0 : 1 + Math.floor(state.pop / (state.techs.mammutjagd ? 20 : 35));
+  return botBest('feld') || botBest('fischen') || (hunters < wantHunters ? botBest('jagen') : null) || 'sammlerin';
+}
+
+// Wohnung ohne Wärme bzw. Glauben im Umkreis (für die Platzwahl des nächsten Feuer- oder Ahnenplatzes)
+// (die erste, an der noch ein Platz frei ist – sonst null)
+function botUncovered(key, type) {
+  if (!type || !isUnlocked(type)) return null;
+  const sources = state.buildings.filter(b => BUILDINGS[b.type][key]);   // Baustellen zählen mit
+  for (const h of state.buildings) {
+    if (!housingOf(h.type)) continue;
+    const ok = sources.some(s => {
+      const def = BUILDINGS[s.type];
+      const r = key === 'warmth' ? warmthRadius(def) : def.belief;
+      return distance(s, h) <= r + BUILDINGS[h.type].size / 2;
+    });
+    if (!ok && botSpot(type, centerOf(h))) return centerOf(h);
+  }
+  return null;
+}
+
+// Arbeiter fehlen? (Arbeitsplätze, die niemand besetzt)
+function botWorkersShort() { return stats.jobs - stats.workers; }
 
 function botWants() {
   const w = [];
-  const pop = state.pop, food = stats.rates.nahrung || 0;
-  const winterSoon = seasonIndex() >= 2;   // im Herbst schon für den langen Winter vorsorgen
-  const hungry = food < 2 + pop * (winterSoon ? 0.2 : 0.1);
-  const hunters0 = botCount('jaegerlager') + botCount('mammutjaegerlager');
-  const foodType = botBest('feld') || botBest('fischen') || (hunters0 < 3 + Math.floor(pop / 40) ? 'jaegerlager' : null) || 'sammlerin';
-  if (hungry && food < 0) w.push(foodType);   // Hunger: Nahrung vor allem anderen
-  if (stats.housing - pop < 3 && !(hungry && food < 0)) w.push('__house');
-  if (botCount('hoehlenmaler') < 1 + Math.floor(pop / 25)) w.push('hoehlenmaler');
-  if (botCount('holzsammler') < 2 + Math.floor(pop / 12)) w.push('holzsammler');
-  if (botCount('steinsammler') < 1 + Math.floor(pop / 15)) w.push('steinsammler');
-  if (botCount('pflanzerin') < Math.floor(botCount('holzsammler') / 3)) w.push('pflanzerin');
-  if (hungry) w.push(foodType);
-  if ((stats.needs.waerme ?? 1) < 0.9 && botCount('feuerplatz') < 3 + Math.floor(pop / 12)) w.push('feuerplatz');
-  if (stageReached('mittel') && (stats.needs.glaube ?? 1) < 1) w.push('ahnenplatz');
-  if (botCount('jaegerlager') + botCount('mammutjaegerlager') < 1 + Math.floor(pop / 25)) w.push('jaegerlager');
-  if (isUnlocked('steinschlaeger') && botCount('steinschlaeger') < 1 + Math.floor(pop / 30)) w.push('steinschlaeger');
-  if (isUnlocked('fellmacherin') && (botCount('fellmacherin') < 1 || state.res.kleidung < 5 && botCount('fellmacherin') < 1 + Math.floor(pop / 40))) w.push('fellmacherin');
-  if (isUnlocked('tongrube') && botCount('tongrube') < Math.max(1, botCount('toepferei'))) w.push('tongrube');
-  if (isUnlocked('toepferei') && botCount('toepferei') < 1 + Math.floor(pop / 40)) w.push('toepferei');
-  if (isUnlocked('ziegengehege') && botCount('ziegengehege') < 1) w.push('ziegengehege');
-  if (isUnlocked('vorratsspeicher') && Object.values(state.res).some(n => n >= storageCap() - 1) && botCount('vorratsspeicher') < 3) w.push('vorratsspeicher');
-  if (isUnlocked('steinkreis') && botCount('steinkreis') < 1) w.push('steinkreis');
-  return w.filter(Boolean);
+  const pop = state.pop;
+  const labourShort = botWorkersShort() > 2;
+  const food = botFoodShort();
+  const starving = state.res.nahrung < 20 && (stats.rates.nahrung || 0) < 0;
+  if (starving) w.push(['food']);
+  // der erste Höhlenmaler gleich zu Beginn (ohne Wissen keine Forschung)
+  if (botLineCount('wissen') === 0) w.push(['hoehlenmaler']);
+  // Wohnraum: immer ein paar Plätze frei (Zuzug alle 45 s); fehlen Arbeiter, erst recht
+  if (stats.housing - pop < 3 || labourShort && stats.housing - pop < 6) w.push(['house']);
+  if (food) w.push(['food']);
+  // Wissen: so viele Höhlenmaler, dass die Forschung nicht warten muss
+  if (botGoal() && botSupply('wissen') < botKnowledgeRate() * 1.1) w.push(['hoehlenmaler']);
+  // Bedürfnisse Wärme und Glaube
+  if ((stats.needs.waerme ?? 1) < 1) { const h = botUncovered('warmth', botBest('waerme')); if (h) w.push([botBest('waerme'), h]); }
+  if ((stats.needs.glaube ?? 1) < 1) { const h = botUncovered('belief', botBest('glaube')); if (h) w.push([botBest('glaube'), h]); }
+  // Waren für Bedürfnisse, Verarbeiter und Forschung (Verarbeiter zuerst, dann ihre Rohstoffe)
+  for (const res of ['kleidung', 'toepferwaren', 'werkzeug', 'felle', 'ton']) {
+    const type = botBest(BOT_MAKER[res]);
+    if (type && isUnlocked(type) && botNeedsMore(res)) w.push([type]);
+  }
+  // Holz und Stein: Grundbedarf wächst mit dem Stamm. Fehlte es zuletzt beim Bauen oder Forschen (und wird nicht
+  // gerade schon ein Sammler gebaut), kommt ein Sammler dazu – so wie ein Spieler auf leere Lager reagiert.
+  const rawBase = { holz: 3 + pop * 0.12, stein: 2 + pop * 0.08 };
+  for (const res of ['holz', 'stein']) {
+    const type = botBest(BOT_MAKER[res]);
+    const building = state.buildings.some(b => b.build && b.type === type);
+    const short = botRecentlyShort(res, 120) && state.res[res] < 40 && !building && botSupply(res) < 6 + pop * 0.4;
+    if (short || !labourShort && botNeedsMore(res, rawBase[res])) w.push([type]);
+  }
+  if (botCount('pflanzerin') < Math.floor(botCount('holzsammler') / 3)) w.push(['pflanzerin']);
+  // Lager zu klein für die Forschungskosten oder ständig voll
+  if (isUnlocked('vorratsspeicher') && botCount('vorratsspeicher') < 3 &&
+      Object.entries(state.res).some(([id, n]) => !RESOURCES[id].knowledge && n >= storageCap() - 1)) w.push(['vorratsspeicher']);
+  if (isUnlocked('steinkreis') && botCount('steinkreis') < 1) w.push(['steinkreis']);
+  return w;
+}
+
+// Fehlen Arbeiter, pausiert der Spieler Gebäude, deren Waren ohnehin voll im Lager liegen – und lässt sie weiterlaufen,
+// sobald wieder Platz ist (die freien Leute gehen ans nächste Gebäude, das welche braucht)
+function botBalanceWorkers() {
+  const full = (id, share) => (state.res[id] || 0) >= capOf(id) * share;
+  for (let i = 0; i < state.buildings.length; i++) {
+    const b = state.buildings[i], def = BUILDINGS[b.type];
+    if (b.paused && Object.keys(def.produces || {}).some(id => !full(id, 0.85))) togglePause(i);
+  }
+  if (botWorkersShort() <= 0) return;
+  for (let i = 0; i < state.buildings.length; i++) {
+    const b = state.buildings[i], def = BUILDINGS[b.type];
+    if (b.paused || b.build || !def.workers || !def.produces) continue;
+    if (Object.keys(def.produces).every(id => full(id, 0.98))) { togglePause(i); botReport.paused++; return; }
+  }
+}
+
+// Forschung: wie ein Spieler – was gerade geht, zuerst der Übergang, sonst das Günstigste.
+// Wartet sie, merkt sich der Bot, woran es liegt (für den Bericht).
+function botResearch() {
+  if (state.research) return;
+  const open = Object.keys(TECHS).filter(id => techStatus(id) === 'available');
+  if (!open.length) return;
+  open.sort((a, b) => (TECHS[b].transition ? 1 : 0) - (TECHS[a].transition ? 1 : 0) || TECHS[a].cost.wissen - TECHS[b].cost.wissen);
+  const ready = open.find(id => !researchProblem(id));
+  if (ready) { startResearch(ready); botReport.log.push(Math.round(state.playTime / 60) + ':' + ready); return; }
+  // Grund fürs Warten (nur für den Bericht)
+  const t = TECHS[open[0]];
+  let why = 'sonstiges';
+  if (t.population && state.pop < t.population) why = 'Einwohner';
+  else { const miss = Object.keys(t.cost).find(id => (state.res[id] || 0) < t.cost[id]); if (miss) why = RESOURCES[miss].name; }
+  botReport.wait[why] = (botReport.wait[why] || 0) + 3 / 60;
+  botNoteMissing(t.cost);
+}
+
+// Mammutjagd: Zieht eine Herde vorbei, schickt der Spieler die Jäger los – aber nicht sofort, er schaut ja nicht ständig hin
+var botHerdSince = null;
+function botHunt() {
+  if (huntProblem()) { botHerdSince = null; return; }
+  if (botHerdSince === null) botHerdSince = state.playTime;
+  if (state.playTime - botHerdSince >= 90 && !startHunt()) { botReport.hunts++; botHerdSince = null; }
+}
+
+function botQuests() {
+  for (const q of activeQuests()) if (questDone(q) && claimQuest(q.id)) botReport.quests++;
 }
 
 // Notfall wie ein Spieler: Baum fällen oder Felsen abtragen
@@ -134,23 +333,26 @@ function botClearLanes(b) {
 }
 
 function botStep() {
+  botQuests();
+  botHunt();
   botResearch();
   botRoads();
+  botBalanceWorkers();
   if (state.res.holz < 15 && botCount('holzsammler') === 0) botClear('wald');
   if (state.res.stein < 5 && botCount('steinsammler') === 0) botClear('fels');
   if (state.res.holz < 15 && state.res.stein < 5) { botClear('wald'); botClear('fels'); }
   if (constructionCount() >= CONFIG.maxConstructions) return;
-  for (const want of botWants()) {
-    if (want === '__house') {
+  for (const [want, near] of botWants()) {
+    if (want === 'house') {
       if (botUpgradeHousing() || botTryBuild(botBest('wohnen'))) return;
       continue;
     }
-    if (!isUnlocked(want)) continue;
-    if (botTryBuild(want)) return;
+    if (want === 'food') {
+      if (botTryBuild(botFoodType())) return;
+      continue;
+    }
+    if (botTryBuild(want, near)) return;
   }
-  // Jägerlager weiterentwickeln, wenn möglich
-  for (let i = 0; i < state.buildings.length; i++)
-    if (state.buildings[i].type === 'jaegerlager' && !upgradeProblem(i)) { upgradeBuilding(i); return; }
 }
 
 function botRun(minutes, seed) {
@@ -194,5 +396,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.log(`  Bedürfnisse: ${report.final.needs} · Arbeit ${report.final.workers}/${report.final.jobs} · Wohnplätze ${report.final.housing}`);
     console.log(`  Gebäude: ${report.final.counts}`);
     console.log(`  Fehlte oft: ${Object.entries(report.blocked).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t, n]) => t + ' ' + n).join(', ')}`);
+    console.log(`  Dabei fehlte: ${Object.entries(report.missing).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([t, n]) => t + ' ' + n).join(', ')}`);
+    console.log(`  Forschung wartete auf: ${Object.entries(report.wait).sort((a, b) => b[1] - a[1]).map(([t, n]) => t + ' ' + Math.round(n) + ' min').join(', ') || 'nichts'}`);
+    console.log(`  Forschungen (Start in min): ${report.log.join(' ')}`);
+    console.log(`  Mammutjagden ${report.hunts} · Aufträge ${report.quests} · Pausen ${report.paused}`);
   }
 }

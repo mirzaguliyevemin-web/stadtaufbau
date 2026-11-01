@@ -732,7 +732,7 @@ const TOOL_POSES = {
 };
 
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
-const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, 'mensch-mann-leer': 0.62, 'mensch-frau-leer': 0.62, 'mensch-jaeger': 0.62, 'mensch-mann-stein': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };
+const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, 'mensch-mann-leer': 0.62, 'mensch-frau-leer': 0.62, 'mensch-jaeger': 0.62, 'mensch-mann-stein': 0.62, 'mensch-hirte': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };
 
 // Figur mit Schatten zeichnen. Bilder schauen nach links; face = -1 spiegelt nach rechts.
 // step = Laufphase (Bogenmaß) oder null im Stehen: Dann schwingen vordere und hintere Beine gegeneinander.

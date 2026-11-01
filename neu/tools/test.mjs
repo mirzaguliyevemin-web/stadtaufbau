@@ -814,13 +814,13 @@ test('Alte Spielstände (kleine Karte bis Version 21) landen in der Mitte der gr
 
 const quick = process.argv.includes('--quick');
 if (!quick) {
-  // Seit Version 22 (Emin: doppelt so langsam, Jahreszeit 30 min) dauert die Altsteinzeit gut 2 Stunden
-  test('Bot: Altsteinzeit dauert über 75 Minuten, Mittelsteinzeit ist in 4 Spielstunden erreichbar', () => {
+  // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde
+  test('Bot: Altsteinzeit dauert über 45 Minuten, Mittelsteinzeit ist in 4 Spielstunden erreichbar', () => {
     const { report, errors } = runBot(240, 1);
     ok(!errors.length, errors.join('\n'));
     console.log(`   Mittelsteinzeit ${report.mittelsteinzeit} min · Jungsteinzeit ${report.jungsteinzeit} min · Kupferfund ${report.kupferfund} min · ${report.final.pop} Einwohner · Hunger ${report.hungerMin} min`);
     ok(report.mittelsteinzeit !== null, 'Bot kommt nicht bis zur Mittelsteinzeit');
-    ok(report.mittelsteinzeit >= 75, 'Altsteinzeit ist zu schnell vorbei: ' + report.mittelsteinzeit + ' min');
+    ok(report.mittelsteinzeit >= 45, 'Altsteinzeit ist zu schnell vorbei: ' + report.mittelsteinzeit + ' min');
     ok(report.hungerMin <= 20, 'Zu viel Hunger: ' + report.hungerMin + ' min');
   });
 }

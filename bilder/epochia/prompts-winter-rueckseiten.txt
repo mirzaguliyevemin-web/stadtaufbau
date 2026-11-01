@@ -1,0 +1,37 @@
+Epochia – Winterbilder der Rückansichten (für Emin, 01.11.2026)
+=================================================================
+
+Claude macht parallel die noch fehlenden Rückansichten in Canva. Diese Liste hier sind die WINTER-Versionen der
+Rückansichten, die es schon gibt – die kannst du selbst erzeugen.
+
+So geht's (je Bild):
+1. Als Vorlage hochladen: die Datei aus bilder/epochia/quelle/ (Spalte „Vorlage“).
+2. Prompt unten einfügen (immer derselbe).
+3. Fertiges Bild als PNG mit dem Namen aus Spalte „Speichern als“ in bilder/epochia/ legen.
+   (Name ist wichtig, sonst finde ich nicht, wohin es gehört. Falls anders benannt: kurz sagen.)
+
+PROMPT (für alle gleich):
+---------------------------------------------------------------------------------
+The exact same building on the same diamond-shaped grass plate, identical shape, size, position, camera angle
+and art style as the reference image – only change the season to WINTER: a soft layer of fresh white snow on
+the roofs, the ground and the plate, small icicles, bare or snow-covered plants, a light cold blue tint.
+Do not move, add or remove any objects. Plain pure white background, no text.
+---------------------------------------------------------------------------------
+
+Vorlage (bilder/epochia/quelle/)      Speichern als
+1-wohnhoehle-r2.png  (falls fehlt: bilder/epochia/1-wohnhoehle-r2.webp)  → 1-wohnhoehle-r2-winter.png
+1-fellzelt-r2.png                     → 1-fellzelt-r2-winter.png
+1-grubenhaus-r2.png                   → 1-grubenhaus-r2-winter.png
+1-langhaus-r2.png                     → 1-langhaus-r2-winter.png
+1-sammlerin-r2.png                    → 1-sammlerin-r2-winter.png
+1-jaegerlager-r2.png                  → 1-jaegerlager-r2-winter.png
+1-mammutjaegerlager-r2.png            → 1-mammutjaegerlager-r2-winter.png
+1-holzsammler-r2.png                  → 1-holzsammler-r2-winter.png
+1-steinsammler-r2.png                 → 1-steinsammler-r2-winter.png
+1-hoehlenmaler-r2.png                 → 1-hoehlenmaler-r2-winter.png
+1-feuerplatz-r2.png                   → 1-feuerplatz-r2-winter.png
+1-acker-r2.png                        → 1-acker-r2-winter.png
+
+Die Rückansichten, die Claude heute noch erzeugt (Ziegengehege, Fellmacherin, Steinschläger, Ahnenplatz, Töpferei,
+Vorratsspeicher, Steinkreis, Lagerfeuer, Pflanzerin), kommen danach auf dieselbe Weise dazu – ich ergänze sie hier,
+sobald sie fertig sind.

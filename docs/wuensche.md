@@ -16,12 +16,13 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Gebäude 4× drehen (Emin, 31.10.): noch offen Rückansichten für Acker, Ziegengehege, Fellmacherin, Steinschläger, Ahnenplatz,
+- Gebäude 4× drehen (Emin, 31.10.): noch offen Rückansichten für Ziegengehege, Fellmacherin, Steinschläger, Ahnenplatz,
   Töpferei, Vorratsspeicher, Steinkreis, Lagerfeuer, Pflanzerin – danach Winterbilder aller Rückansichten (Canva-Pause auf Emins Wunsch).
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-01, Epochia Version 45 – Letzte drei Arbeiterbilder (Canva): Bäuerin mit Grabstock unten (Acker gräbt jetzt im Wechsel), Hirte mit Hirtenstab am Ziegengehege, Pflanzerin kniet beim Setzen; Rückansicht Acker.
 - 2026-10-31, Epochia Version 44 – Balancing nach Emins Entscheidung: Forschungszeiten halbiert (dafür 50 % mehr Waren), neue Waren-Bedürfnisse mit 10 Min. Schonfrist + 20 Startvorrat, Fellmacherin/Töpferei +25 %, Hunger senkt Laune und lässt Einwohner wegziehen (nie unter 3), 9 neue Aufträge bis 120 Einwohner, Mammutjagd bringt 150 Nahrung, 15 Felle, 10 Wissen.
 - 2026-10-31, Epochia Version 43 – Große Analyse Teil C+D: Zurück-Taste bricht Bauen/Wege-Malen ab, Wege vom Wegende weiterziehen (Tippen löscht), kein Weg beim Zoomen, Menü-Knopf nie unter der Bauleiste, obere Leiste hochkant kompakt, Fenster passen auf iPhone-Safari, kaputter Spielstand wird aufgehoben, Löschen/Import setzen sauber zurück, Hinweise nach Platzwechsel; Arbeiter/Besucher nie in fremden Häusern oder im Wasser, Figuren nur aus freien Einwohnern, Textfehler.
 - 2026-10-31, Epochia Version 42 – Große Analyse Teil A+B: weniger Rechenlast (Wetter/Geländebonus gemerkt, Statistik 4×/s, Bäume außerhalb des Bildes nicht zeichnen, Boden nach Baumfall stückweise neu, Qualität nach Rechenzeit); volles Lager verbraucht nichts mehr, keine Bäume umsonst gefällt, Einwohner ziehen nach und nach aus, Neustart aus 0 Einwohnern, Abriss-Erstattung nach Bezahltem, Jägerlager entwickelt sich sofort, Anzeigen korrigiert.

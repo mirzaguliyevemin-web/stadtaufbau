@@ -16,11 +16,17 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten (4 von 21 fertig), danach Winterbilder für Felsen, Berge, Büsche (Canva-Pause auf Emins Wunsch).
+- Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten (5 von 21 fertig) (Canva-Pause auf Emins Wunsch).
+
+- Fischer im Boot sieht nicht richtig aus (Emin, 01.11.): neues Bild „Fischer im Einbaum“ aus Canva – in Arbeit.
+- Felsen, Berge und Büsche bleiben im Winter grün (Emin, 01.11.): Winterbilder fehlen noch – nach den Rückansichten.
+- Wunderwerke je Zeitalter (Emin, 01.11.): Entwurf `docs/konzept-wunderwerke.md`, wird mit Emin besprochen.
+  → Frage: Zurück-Knopf auf der Aufträge-Seite sei träge – nicht nachstellbar, Emins Spielstand zum Testen nötig.
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-01, Epochia Version 51 – Neues Forschungsfenster (Entwurf C von Emin gewählt, auch Handy quer), bewegtes Feuer und Rauch in den Rückansichten statt gemaltem Rauch, Einwohner-Fenster nennt Leute ohne Arbeit, Winterbilder sauber freigestellt, Winter Sammlerin.
 - 2026-11-01, Epochia Version 50 – Emins Liste: Fellmacherin, Steinschläger, Töpferei arbeiten auf ihrem Grundstück statt davor; Beter knien auf dem Ahnenplatz/Steinkreis; Frauen knien beim Beten (Canva-Bild); Lichter flackern beim Verschieben nicht mehr schneller; weicheres, wärmeres Licht nachts; näher heranzoomen (bis 3,5); lange Brücken sehen durchgehend aus (keine gestapelten Bilder, weiße Streifen weg).
 - 2026-11-01, Epochia Version 49 – Wunsch Emin: Fackeln am Trampelpfad (jedes zweite Feld, das Spiel schaut beim Bauen auf die Nachbarfelder; alte Wege bekommen sie einmalig), nachts warmer Lichtschein; später werden es Laternen (CONFIG.pathLights je Zeitalter). Winterbilder Rückansicht Grubenhaus und Langhaus.
 - 2026-11-01, Epochia Version 48 – Wunsch Emin: Steinsammler bauen kleine Felsen in der Nähe nach und nach ab (alle 40 Stein ein Felsfeld, zerbröselt sichtbar), das Gebirge gibt Stein ohne Ende und zählt für den Bonus. Fehler: Fellmacherinnen legten das Fell auf den Boden – jetzt halten sie es in den Händen. Rückansicht Pflanzerin, erste Winterbilder der Rückansichten (Wohnhöhle, Fellzelt).

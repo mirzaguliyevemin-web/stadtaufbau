@@ -816,6 +816,18 @@ const EFFECTS = {
   '1-steinkreis':        [{ u: 0.51, v: 0.38, feuer: 0.9, rauch: 0.7, rv: 0.34 }],
   '1-langhaus':          [{ u: 0.76, v: 0.25, feuer: 0, rauch: 1.0 }],
   '1-toepferei':         [{ u: 0.75, v: 0.45, feuer: 0.6, rauch: 0 }, { u: 0.78, v: 0.23, feuer: 0, rauch: 1.1 }],
+  // Rückansichten (r2): Feuer und Rauch an den Stellen im jeweiligen Bild
+  '1-lagerfeuer-r2':        [{ u: 0.49, v: 0.36, feuer: 1.5, rauch: 1.2, rv: 0.24 }],
+  '1-feuerplatz-r2':        [{ u: 0.475, v: 0.63, feuer: 1.0, rauch: 0.9, rv: 0.5 }],
+  '1-jaegerlager-r2':       [{ u: 0.50, v: 0.36, feuer: 0.9, rauch: 0.8, rv: 0.31 }],
+  '1-fellzelt-r2':          [{ u: 0.80, v: 0.46, feuer: 0.7, rauch: 0.6, rv: 0.40 }],
+  '1-mammutjaegerlager-r2': [{ u: 0.56, v: 0.20, feuer: 0.7, rauch: 0.6, rv: 0.15 }],
+  '1-ahnenplatz-r2':        [{ u: 0.50, v: 0.33, feuer: 0.7, rauch: 0.6, rv: 0.27 }],
+  '1-hoehlenmaler-r2':      [{ u: 0.495, v: 0.55, feuer: 0.7, rauch: 0 }],
+  '1-steinkreis-r2':        [{ u: 0.50, v: 0.38, feuer: 0.9, rauch: 0.7, rv: 0.33 }],
+  '1-wohnhoehle-r2':        [{ u: 0.55, v: 0.46, feuer: 0.6, rauch: 0 }],
+  '1-langhaus-r2':          [{ u: 0.22, v: 0.28, feuer: 0, rauch: 1.0 }],
+  '1-toepferei-r2':         [{ u: 0.29, v: 0.44, feuer: 0, rauch: 1.1 }],
 };
 
 let smokeQueue = [];   // Rauch wird zuletzt gezeichnet, damit er über allem liegt

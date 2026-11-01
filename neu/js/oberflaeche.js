@@ -189,7 +189,7 @@ function popTip() {
     <div class="info-list">
       <div><span>Einwohner</span><b>${Math.floor(state.pop)}</b></div>
       <div><span>Wohnplätze</span><b>${stats.housing}</b><small>${Object.entries(homes).map(([t, n]) => `${BUILDINGS[t].icon} ${esc(BUILDINGS[t].name)} ${n}`).join(' · ') || '–'}</small></div>
-      <div><span>Arbeit</span><b>${stats.workers} / ${stats.jobs}</b><small>${stats.jobs > stats.workers ? `${stats.jobs - stats.workers} Stellen frei – Gebäude arbeiten langsamer` : 'alle Stellen besetzt'}</small></div>
+      <div><span>Arbeit</span><b>${stats.workers} / ${stats.jobs}</b><small>${stats.jobs > stats.workers ? `${stats.jobs - stats.workers} Stellen frei – Gebäude arbeiten langsamer` : `alle Stellen besetzt · ${Math.floor(state.pop) - stats.workers} Einwohner ohne Arbeit (spazieren, beten, sitzen am Feuer)`}</small></div>
       <div><span>Zuzug</span><small>${esc(why)}</small></div>
       <div><span>🍖 Essen</span><small>Jeder isst ${perMin(CONFIG.foodPerPerson * effectFood())} Nahrung je Minute</small></div>
     </div>
@@ -515,6 +515,7 @@ function onHistoryBack() {
   }
   histDepth = Math.max(0, histDepth - 1);
   if (dialogOpen) closeDialog(true);
+  else if (pageOpen === 'research' && researchSheet) closeTechSheet(true);   // Handy: erst das Detail schließen
   else if (pageOpen) closePage(true);
   else if (toolEntry) { toolEntry = false; cancelGhost(); }   // Bauen bzw. Wege malen abbrechen statt das Spiel zu verlassen
 }
@@ -562,6 +563,7 @@ function openPage(title, html, name) {
 // Eine Seite zurück (Knopf „Zurück“ oder Zurück-Taste des Handys)
 function closePage(fromHistory = false) {
   if (!pageOpen) return;
+  if (researchSheet) { researchSheet = false; if (!fromHistory) popEntries(1); }
   const prev = pageStack.pop();
   pageOpen = null;
   if (!fromHistory) popEntries(1);
@@ -576,7 +578,8 @@ function closePage(fromHistory = false) {
 // Alle Seiten schließen, zurück aufs Spielfeld (z. B. nach dem Wechsel des Spielstands)
 function closeAllPages() {
   if (!pageOpen) return;
-  const n = pageStack.length + 1;
+  const n = pageStack.length + 1 + (researchSheet ? 1 : 0);
+  researchSheet = false;
   pageStack.length = 0;
   pageOpen = null;
   show($('page'), false);
@@ -774,82 +777,74 @@ function techEffectText(id) {
   return out.join(' · ') || '–';
 }
 
-// Kartengröße im Forschungsbaum: am Handy (niedriger Bildschirm) kleiner
-function treeMetrics() {
-  const small = viewH < 520 || viewW < 700;
-  return small ? { w: 138, h: 56, colGap: 44, rowGap: 10, pad: 14 } : { w: 168, h: 66, colGap: 64, rowGap: 14, pad: 22 };
-}
+// Fenster „Liste und Detail“: links die Forschungen geordnet (läuft, jetzt möglich, kommt danach, erforscht),
+// rechts groß die gewählte. Am Handy hochkant öffnet Antippen das Detail als ganze Seite.
+let researchSheet = false;   // Handy hochkant: Detail ist offen
+const researchIsNarrow = () => viewW < 700 && viewH > 520;   // passt zur CSS-Regel für Handy hochkant
 
-// Spalte einer Forschung innerhalb ihres Zeitalters: 0 = braucht nichts aus diesem Zeitalter, sonst eins mehr als die Voraussetzung
-function techDepth(id, memo = {}) {
-  if (id in memo) return memo[id];
-  const t = TECHS[id];
-  const inStage = t.requires.filter(r => TECHS[r].stage === t.stage && !TECHS[r].transition);
-  return (memo[id] = inStage.length ? 1 + Math.max(...inStage.map(r => techDepth(r, memo))) : 0);
-}
-
-// Aufbau eines Zeitalters: Karten in Spalten (nach Reihenfolge), Übergang ganz rechts
-function stageLayout(stage) {
-  const m = treeMetrics();
+// Forschungen eines Zeitalters, die man am sinnvollsten zuerst sieht: läuft, dann die günstigste mögliche, dann die nächste gesperrte
+function bestTechOfStage(stage) {
   const ids = Object.keys(TECHS).filter(id => TECHS[id].stage === stage);
-  const normal = ids.filter(id => !TECHS[id].transition), trans = ids.find(id => TECHS[id].transition);
-  const memo = {};
-  const cols = [];
-  for (const id of normal) (cols[techDepth(id, memo)] ||= []).push(id);
-  cols.forEach(c => c.sort((a, b) => TECHS[a].row - TECHS[b].row));
-  const rows = Math.max(...cols.map(c => c.length));
-  const height = m.pad * 2 + rows * m.h + (rows - 1) * m.rowGap;
-  const pos = {};
-  cols.forEach((c, k) => {
-    // Karten einer Spalte möglichst an ihrer Reihe ausrichten, aber ohne Lücken zu groß zu machen
-    const colH = c.length * m.h + (c.length - 1) * m.rowGap;
-    const top = (height - colH) / 2;
-    c.forEach((id, i) => { pos[id] = { x: m.pad + k * (m.w + m.colGap), y: top + i * (m.h + m.rowGap) }; });
-  });
-  if (trans) pos[trans] = { x: m.pad + cols.length * (m.w + m.colGap), y: (height - m.h) / 2 };
-  const width = m.pad * 2 + (cols.length + (trans ? 1 : 0)) * (m.w + m.colGap) - m.colGap;
-  return { ids, normal, trans, pos, width, height, m };
+  const wissen = id => TECHS[id].cost.wissen || 0;
+  const of = st => ids.filter(id => techStatus(id) === st);
+  return of('running')[0] || of('available').sort((a, b) => wissen(a) - wissen(b))[0] || of('locked')[0] || ids[ids.length - 1] || null;
 }
 
-function treeNodeHtml(id, p, m) {
-  const t = TECHS[id];
-  const status = techStatus(id);
-  const sub = status === 'done' ? 'erforscht'
-    : status === 'running' ? `<span class="nbar"><i style="width:${Math.round((1 - state.research.left / t.time) * 100)}%"></i></span>⏳ ${formatTime(state.research.left)}`
-    : `${costHtml(t.cost)} · ⏱ ${formatTime(t.time)}`;
-  // Voraussetzungen aus einem früheren Zeitalter (ohne Übergänge) stehen als Hinweis auf der Karte
-  const outside = t.transition ? [] : t.requires.filter(r => TECHS[r].stage !== t.stage && !TECHS[r].transition);
-  let extra = outside.length ? `<span class="nreq">+ ${outside.map(r => `${state.techs[r] ? '✔' : '✖'} ${esc(TECHS[r].name)}`).join(', ')}</span>` : '';
-  if (t.transition) {
-    const have = t.requires.filter(r => state.techs[r]).length;
-    extra = `<span class="nreq">braucht alle Forschungen (${have}/${t.requires.length})</span>`;
-  }
-  return `<button class="node ${status}${t.transition ? ' transition' : ''}${researchSelected === id ? ' sel' : ''}" style="left:${p.x}px;top:${p.y}px;width:${m.w}px;height:${m.h}px" onclick="selectTech('${id}')">
-    <span class="medal">${iconHtml(t.bild, t.icon)}${status === 'locked' ? '<i class="lock">🔒</i>' : ''}</span><span class="nname">${esc(t.name)}</span><span class="nsub">${sub}</span>${extra}${status === 'done' ? '<i class="check">✔</i>' : ''}</button>`;
-}
-
-// Pfeile nur zwischen benachbarten Spalten – sie laufen durch die Lücke zwischen den Spalten, nie hinter Karten
-function treeLines(L) {
-  const { pos, m } = L;
-  let svg = '';
-  for (const id of L.normal) {
+// Was fehlt noch bis zum nächsten Zeitalter? Übergangsforschung + alle offenen Voraussetzungen davor
+function researchGoal() {
+  const ids = Object.keys(TECHS).filter(id => TECHS[id].stage === state.stage);
+  // Ziel des Zeitalters: Übergangsforschung, sonst die letzte Forschung, auf die keine andere mehr aufbaut (Kupferfund)
+  const trans = ids.find(id => TECHS[id].transition) || ids.filter(id => !ids.some(o => TECHS[o].requires.includes(id))).sort((a, b) => TECHS[b].requires.length - TECHS[a].requires.length)[0];
+  if (!trans) return null;
+  const e = TECHS[trans].effect || {};
+  const target = e.stage ? STAGES[stageIndex(e.stage)].name : 'Bronzezeit';
+  const open = [], seen = {};
+  (function walk(id) {
     for (const r of TECHS[id].requires) {
-      if (!pos[r] || TECHS[r].transition) continue;
-      const a = pos[r], b = pos[id];
-      const x1 = a.x + m.w, y1 = a.y + m.h / 2, x2 = b.x - 6, y2 = b.y + m.h / 2, mx = (x1 + x2) / 2;
-      const cls = state.techs[r] ? 'done' : techStatus(id) === 'available' ? 'open' : '';
-      svg += `<path d="M${x1} ${y1} C${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}" class="${cls}"/>`;
-      svg += `<path d="M${x2 - 7} ${y2 - 6} L${x2} ${y2} L${x2 - 7} ${y2 + 6}" class="head ${cls}"/>`;
+      if (seen[r] || state.techs[r]) continue;
+      seen[r] = true; walk(r); open.push(r);
     }
+  })(trans);
+  return { trans, target, open };
+}
+
+function researchTopHtml() {
+  const know = `<span class="rs-know">${iconHtml(RESOURCES.wissen.bild, RESOURCES.wissen.icon)}<b>${Math.floor(state.res.wissen)}</b></span>`;
+  const g = researchGoal();
+  if (!g) return `<div class="rs-goal"><div class="rs-gtext"><b>Alles erforscht</b></div>${know}</div>`;
+  const t = TECHS[g.trans], done = state.techs[g.trans];
+  const line = done ? 'Geschafft!' : g.open.length ? `Noch ${g.open.length} ${g.open.length === 1 ? 'Forschung' : 'Forschungen'} bis zum Aufbruch` : 'Alles bereit – jetzt erforschen!';
+  const steps = g.open.map(id => `<button class="rs-step${techStatus(id) === 'running' ? ' run' : ''}" onclick="selectTech('${id}')">${esc(TECHS[id].name)}</button>`).join('');
+  return `<div class="rs-goal"><button class="rs-gmain" onclick="selectTech('${g.trans}')">${iconHtml(t.bild, t.icon)}<span class="rs-gtext"><b>Ziel: ${esc(t.name)} → ${esc(g.target)}</b><small>${line}</small></span></button>
+    <div class="rs-steps">${steps}</div>${know}</div>`;
+}
+
+function researchItemHtml(id) {
+  const t = TECHS[id], status = techStatus(id);
+  let meta;
+  if (status === 'running') {
+    const pct = Math.round((1 - state.research.left / t.time) * 100);
+    meta = `<span class="rs-prog"><i style="width:${pct}%"></i></span><span class="rs-meta">⏳ Läuft – noch <b>${formatTime(state.research.left)}</b></span>`;
+  } else if (status === 'locked') {
+    meta = `<span class="rs-meta rs-lock">🔒 Erst: ${esc(t.requires.filter(r => !state.techs[r]).map(r => TECHS[r].name).join(', '))}</span>`;
+  } else {
+    const fewPeople = t.population && state.pop < t.population;
+    meta = `<span class="rs-meta">${costHtml(t.cost)}<span class="rs-time">⏱ ${formatTime(t.time)}</span>${fewPeople ? `<span class="rs-time bad">👥 ${t.population}</span>` : ''}</span>`;
   }
-  // zum Übergang: eine Klammer aus der letzten Spalte statt vieler Linien
-  if (L.trans) {
-    const b = L.pos[L.trans], have = TECHS[L.trans].requires.every(r => state.techs[r]);
-    const x = b.x - m.colGap / 2, y1 = m.pad + m.h / 2, y2 = L.height - m.pad - m.h / 2, yc = b.y + m.h / 2;
-    svg += `<path d="M${x - 10} ${y1} Q${x} ${y1} ${x} ${y1 + 12} L${x} ${y2 - 12} Q${x} ${y2} ${x - 10} ${y2}" class="${have ? 'done' : ''}"/>`;
-    svg += `<path d="M${x} ${yc} L${b.x - 6} ${yc}" class="${have ? 'done' : ''}"/><path d="M${b.x - 13} ${yc - 6} L${b.x - 6} ${yc} L${b.x - 13} ${yc + 6}" class="head ${have ? 'done' : ''}"/>`;
+  return `<button class="rs-item ${status}${researchSelected === id ? ' sel' : ''}" onclick="selectTech('${id}')">
+    <span class="rs-pic">${iconHtml(t.bild, t.icon)}</span><span class="rs-mid"><span class="rs-name">${esc(t.name)}</span>${meta}</span><span class="rs-arrow">›</span></button>`;
+}
+
+function researchListHtml() {
+  if (researchStage === '__next') {
+    return `<h4>Danach</h4><div class="rs-item sel"><span class="rs-pic"><span class="ic emoji">${NEXT_EPOCH.icon}</span></span><span class="rs-mid"><span class="rs-name">${esc(NEXT_EPOCH.name)}</span><span class="rs-meta rs-lock">Wird als Nächstes gebaut</span></span></div>`;
   }
-  return svg;
+  const ids = Object.keys(TECHS).filter(id => TECHS[id].stage === researchStage);
+  const of = st => ids.filter(id => techStatus(id) === st);
+  const group = (title, list) => list.length ? `<h4>${title}</h4>${list.map(researchItemHtml).join('')}` : '';
+  const done = of('done');
+  return group('Läuft gerade', of('running')) + group('Jetzt möglich', of('available')) + group('Kommt danach', of('locked'))
+    + (done.length ? `<h4>Erforscht</h4><div class="rs-done">${done.map(id => `<button class="rs-chip${researchSelected === id ? ' sel' : ''}" onclick="selectTech('${id}')">${iconHtml(TECHS[id].bild, TECHS[id].icon)}✔ ${esc(TECHS[id].name)}</button>`).join('')}</div>` : '');
 }
 
 function stageTabsHtml() {
@@ -857,123 +852,133 @@ function stageTabsHtml() {
     const ids = Object.keys(TECHS).filter(id => TECHS[id].stage === st.id);
     const done = ids.filter(id => state.techs[id]).length;
     const cls = (researchStage === st.id ? ' active' : '') + (done === ids.length ? ' complete' : '') + (stageReached(st.id) ? '' : ' locked');
-    const pct = Math.round(done / ids.length * 100);
     return `<button class="st-tab${cls}" onclick="showResearchStage('${st.id}')">
       <b>${stageReached(st.id) ? (done === ids.length ? '✔ ' : '') : '🔒 '}${esc(st.name)} <small>${done}/${ids.length}</small></b>
-      <span class="st-bar" style="--p:${pct}%"></span></button>`;
+      <span class="st-bar" style="--p:${Math.round(done / ids.length * 100)}%"></span></button>`;
   });
   tabs.push(`<button class="st-tab locked${researchStage === '__next' ? ' active' : ''}" onclick="showResearchStage('__next')"><b>${NEXT_EPOCH.icon} Bronzezeit <small>bald</small></b><span class="st-bar" style="--p:0%"></span></button>`);
   return tabs.join('');
 }
 
-function researchBoardHtml() {
-  if (researchStage === '__next') {
-    return `<div class="tree-next"><span class="ic emoji big">${NEXT_EPOCH.icon}</span><h3>${esc(NEXT_EPOCH.name)}</h3>
-      <p>Braucht alle Forschungen der Steinzeit, einen Steinkreis und ${NEXT_EPOCH.population} Einwohner.</p>
-      <p>Waren: ${costHtml(NEXT_EPOCH.cost)}</p><p><i>Die Bronzezeit wird als Nächstes gebaut.</i></p></div>`;
-  }
-  const L = stageLayout(researchStage);
-  return `<div class="tree-fit"><div class="tree" style="width:${L.width}px;height:${L.height}px">
-      <svg class="tree-lines" width="${L.width}" height="${L.height}">${treeLines(L)}</svg>
-      ${L.ids.map(id => treeNodeHtml(id, L.pos[id], L.m)).join('')}
-    </div></div>`;
-}
-
-// Baum so verkleinern, dass das ganze Zeitalter auf einmal zu sehen ist (nicht kleiner als 60 %, sonst scrollen)
-function fitTree() {
-  const sc = typeof document !== 'undefined' && $('tree-scroll');
-  const fit = sc && sc.querySelector && sc.querySelector('.tree-fit');
-  if (!fit) return;
-  const tree = fit.firstElementChild;
-  const w = parseFloat(tree.style.width), h = parseFloat(tree.style.height);
-  const k = Math.max(0.6, Math.min(1, (sc.clientWidth - 6) / w, (sc.clientHeight - 6) / h));
-  tree.style.transform = `scale(${k})`;
-  fit.style.width = Math.ceil(w * k) + 'px';
-  fit.style.height = Math.ceil(h * k) + 'px';
-}
-
 function researchPageHtml() {
   if (!researchStage) researchStage = state.stage;
-  return `<div class="research-top" id="research-top">${researchTopHtml()}</div>
-    <div class="stage-tabs">${stageTabsHtml()}</div>
-    <div class="research-main">
-      <div class="tree-scroll" id="tree-scroll">${researchBoardHtml()}</div>
-      <div class="tech-detail${researchSelected ? '' : ' empty'}" id="tech-detail">${techDetailHtml()}</div>
-    </div>`;
+  return `<div class="rs${researchSheet ? ' sheet' : ''}" id="rs">
+    <div id="rs-top">${researchTopHtml()}</div>
+    <div class="stage-tabs" id="rs-tabs">${stageTabsHtml()}</div>
+    <div class="rs-main">
+      <div class="rs-list" id="rs-list">${researchListHtml()}</div>
+      <div class="rs-detail" id="tech-detail">${techDetailHtml()}</div>
+    </div>
+  </div>`;
 }
 
 function showResearchStage(stage) {
   researchStage = stage;
-  researchSelected = stage === '__next' ? '__next' : (researchSelected && TECHS[researchSelected] && TECHS[researchSelected].stage === stage ? researchSelected : null);
+  researchSelected = stage === '__next' ? '__next' : (researchSelected && TECHS[researchSelected] && TECHS[researchSelected].stage === stage ? researchSelected : bestTechOfStage(stage));
   refreshResearchPage();
-  const sc = $('tree-scroll');
-  if (sc) sc.scrollLeft = 0;
+  const list = $('rs-list');
+  if (list) list.scrollTop = 0;
 }
 
-// Oben auf der Forschungsseite nur noch das Wissen – die laufende Forschung zeigt ihre Restzeit auf ihrer Karte
-function researchTopHtml() {
-  const idle = state.research ? '' : '<span class="rt-chip idle">Gerade wird nichts erforscht – tippe eine leuchtende Karte an.</span>';
-  return `<span class="rt-chip">${iconHtml(RESOURCES.wissen.bild, RESOURCES.wissen.icon)} Wissen <b>${Math.floor(state.res.wissen)}</b></span>${idle}`;
-}
-
-// Forschungsseite laufend auffrischen (Wissen, Restzeit und Balken der laufenden Forschung, Kosten rot/schwarz),
-// ohne Scrollstellung und Bilder anzutasten
+// Forschungsseite laufend auffrischen (Wissen, Restzeit und Balken, Kosten rot/schwarz), ohne Scrollstellung und Bilder anzutasten
 function tickResearchPage() {
   if (pageOpen !== 'research') return;
-  patchHtml($('research-top'), researchTopHtml());
-  if (researchStage === '__next') return;
-  const sc = $('tree-scroll');
-  if (sc) { patchHtml(sc, researchBoardHtml()); fitTree(); }
+  patchHtml($('rs-top'), researchTopHtml());
+  patchHtml($('rs-tabs'), stageTabsHtml());
+  patchHtml($('rs-list'), researchListHtml());
   patchHtml($('tech-detail'), techDetailHtml());
+}
+
+// Warum geht es (noch) nicht? Kurz für den Knopf, ausführlicher als Hinweis darüber
+function researchHint(id) {
+  const t = TECHS[id], problem = researchProblem(id);
+  if (!problem) return { label: '📜 Erforschen', hint: '' };
+  const status = techStatus(id);
+  if (status === 'locked') return { label: '🔒 ' + problem, hint: '' };
+  if (state.research) return { label: '⏳ Es läuft schon eine Forschung', hint: problem };
+  if (t.population && state.pop < t.population) return { label: `👥 ${t.population} Einwohner nötig`, hint: 'Baue mehr Wohnungen, dann ziehen mehr Leute zu.' };
+  const fehlt = Math.ceil((t.cost.wissen || 0) - state.res.wissen);
+  if (fehlt > 0) return { label: `📚 Noch ${fehlt} Wissen sammeln`, hint: `Es fehlen noch ${fehlt} Wissen – mehr Höhlenmaler, dann geht es schneller.` };
+  return { label: problem, hint: 'Sieh in der Leiste oben nach, welche Ware knapp ist.' };
 }
 
 function techDetailHtml() {
   const id = researchSelected;
-  if (!id) return '<p>Tippe eine Forschung an, um zu sehen, was sie bringt.</p>';
+  const close = '<button class="rs-close" onclick="closeTechSheet()">← Zur Liste</button>';
+  if (!id) return `${close}<p>Tippe eine Forschung an, um zu sehen, was sie bringt.</p>`;
   if (id === '__next') {
-    return `<h3>${NEXT_EPOCH.icon} ${esc(NEXT_EPOCH.name)}</h3>
-      <p>Braucht alle Forschungen der Steinzeit, einen Steinkreis und ${NEXT_EPOCH.population} Einwohner. Waren: ${costHtml(NEXT_EPOCH.cost)}</p>
-      <p><i>Die Bronzezeit wird als Nächstes gebaut.</i></p>`;
+    return `${close}<div class="rs-dhead"><span class="rs-med"><span class="ic emoji">${NEXT_EPOCH.icon}</span></span><div><h3>${esc(NEXT_EPOCH.name)}</h3>
+      <p>Braucht alle Forschungen der Steinzeit, einen Steinkreis und ${NEXT_EPOCH.population} Einwohner.</p></div></div>
+      <div class="rs-sec"><h4>Waren</h4><div class="rs-costs">${costHtml(NEXT_EPOCH.cost)}</div></div>
+      <p class="rs-soon">Die Bronzezeit wird als Nächstes gebaut.</p>`;
   }
-  const t = TECHS[id];
-  const problem = researchProblem(id);
-  const status = techStatus(id);
-  const req = t.requires.length ? t.requires.map(r => `${state.techs[r] ? '✔' : '✖'} ${TECHS[r].name}`).join(', ') : 'nichts';
-  const effects = techEffectText(id).split(' · ').map(e => `<span class="tag">${esc(e)}</span>`).join('');
-  return `<div class="td-medal ${status}">${iconHtml(t.bild, t.icon, 'big')}</div>
-    <div class="td-main">
-      <h3>${esc(t.name)}</h3>
-      <div class="td-chips">${effects}</div>
-      <p><b>Kosten:</b> ${costHtml(t.cost)} · ⏱ ${formatTime(t.time)}${t.population ? ` · 👥 ${t.population} Einwohner` : ''} · <b>Vorher:</b> ${esc(req)}</p>
-    </div>
-    <div class="td-action">${status === 'done' ? '<span class="tag good">✔ Erforscht</span>'
-      : status === 'running' ? `<span class="tag">⏳ Läuft … noch ${formatTime(state.research.left)}</span>`
-      : `<button class="btn primary" ${problem ? 'disabled' : ''} onclick="doResearch('${id}')">📜 Erforschen</button>${problem ? `<small class="bad">${esc(problem)}</small>` : ''}`}</div>`;
+  const t = TECHS[id], status = techStatus(id);
+  const news = Object.values(BUILDINGS).filter(def => def.requires === id);
+  const others = techEffectText(id).split(' · ').filter(e => e !== '–' && !e.startsWith('Neu:'));
+  const req = t.requires.length ? t.requires.map(r => `${state.techs[r] ? '✔' : '✖'} ${esc(TECHS[r].name)}`).join(', ') : 'nichts';
+  const people = t.population ? `<div class="rs-fact">Einwohner nötig<b>👥 ${t.population} <small class="${state.pop >= t.population ? 'ok' : 'bad'}">(du: ${state.pop})</small></b></div>` : '';
+  const { label, hint } = researchHint(id);
+  const button = status === 'done' ? '<button class="rs-go good" disabled>✔ Erforscht</button>'
+    : status === 'running' ? `<button class="rs-go run" disabled>⏳ Läuft … noch ${formatTime(state.research.left)}</button>`
+    : `<button class="rs-go${label === '📜 Erforschen' ? ' ready' : ''}" ${label === '📜 Erforschen' ? '' : 'disabled'} onclick="doResearch('${id}')">${esc(label)}</button>`;
+  return `${close}<div class="rs-dhead"><span class="rs-med ${status}">${iconHtml(t.bild, t.icon)}</span><div><h3>${esc(t.name)}</h3>
+      ${others.length ? `<div class="rs-effects">${others.map(e => `<span class="tag">${esc(e)}</span>`).join('')}</div>` : ''}</div></div>
+    <div class="rs-facts"><div class="rs-fact">Dauer<b>⏱ ${formatTime(t.time)}</b></div>${people}<div class="rs-fact">Vorher erforscht<b class="rs-req">${req}</b></div></div>
+    ${news.length ? `<div class="rs-sec rs-sec-new"><h4>Neu zum Bauen</h4>${news.map(def => `<div class="rs-new">${iconHtml(def.bild, def.icon)}<div><b>${esc(def.name)}${def.upgradeOnly ? ' <small>(Weiterentwicklung)</small>' : ''}</b><span>${esc(def.info || '')}</span></div></div>`).join('')}</div>` : ''}
+    <div class="rs-sec"><h4>Kostet</h4><div class="rs-costs">${costHtml(t.cost)}</div></div>
+    ${hint && status === 'available' ? `<p class="rs-hint">${esc(hint)}</p>` : ''}
+    <div class="rs-action">${button}</div>`;
 }
 
-function openResearch() {
+// showDetail: von außen gezielt eine Forschung öffnen (z. B. gesperrtes Gebäude in der Bauleiste)
+function openResearch(showDetail = false) {
   closeInfo();
-  if (!researchSelected) researchSelected = state.research ? state.research.id : Object.keys(TECHS).filter(id => techStatus(id) === 'available').sort((a, b) => (TECHS[a].cost.wissen || 0) - (TECHS[b].cost.wissen || 0))[0] || null;
+  if (!showDetail || !researchSelected) {
+    const sel = researchSelected && TECHS[researchSelected];
+    if (!sel || techStatus(researchSelected) === 'done') researchSelected = (state.research && state.research.id) || bestTechOfStage(state.stage);
+  }
   researchStage = researchSelected && TECHS[researchSelected] ? TECHS[researchSelected].stage : state.stage;
-  openPage('📜 Forschung', researchPageHtml(), 'research');
-  fitTree();
+  const wasOpen = pageOpen === 'research';
+  openPage('📜 Forschung', '', 'research');
+  if (!wasOpen) researchSheet = false;
+  if (showDetail && researchIsNarrow() && !researchSheet) { researchSheet = true; pushEntry('sheet'); }
+  $('page-body').innerHTML = researchPageHtml();
+  showActiveStageTab();
   emit('researchOpened');
 }
 
 function refreshResearchPage() {
   if (pageOpen !== 'research') return;
-  const sc = $('tree-scroll');
-  const left = sc ? sc.scrollLeft : 0, top = sc ? sc.scrollTop : 0;
+  const list = $('rs-list'), det = $('tech-detail');
+  const a = list ? list.scrollTop : 0, b = det ? det.scrollTop : 0;
   $('page-body').innerHTML = researchPageHtml();
-  fitTree();
-  const sc2 = $('tree-scroll');
-  if (sc2) { sc2.scrollLeft = left; sc2.scrollTop = top; }
+  const list2 = $('rs-list'), det2 = $('tech-detail');
+  if (list2) list2.scrollTop = a;
+  if (det2) det2.scrollTop = b;
+  showActiveStageTab();
+}
+
+// Am schmalen Handy passen nicht alle Reiter: den aktiven ins Bild holen
+function showActiveStageTab() {
+  const tabs = $('rs-tabs'), a = tabs && tabs.querySelector && tabs.querySelector('.st-tab.active');
+  if (a && a.scrollIntoView) a.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
 
 function selectTech(id) {
   researchSelected = id;
   if (id === '__next') researchStage = '__next';
   else if (TECHS[id]) researchStage = TECHS[id].stage;
+  if (researchIsNarrow() && !researchSheet) { researchSheet = true; pushEntry('sheet'); }
+  refreshResearchPage();
+  const det = $('tech-detail');
+  if (det) det.scrollTop = 0;
+}
+
+// Handy hochkant: Detail schließen, zurück zur Liste (auch über die Zurück-Taste, siehe onHistoryBack)
+function closeTechSheet(fromHistory = false) {
+  if (!researchSheet) return;
+  researchSheet = false;
+  if (!fromHistory) popEntries(1);
   refreshResearchPage();
 }
 

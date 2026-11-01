@@ -366,7 +366,7 @@ function onBarPointerUp(e) {
   if (d.locked) {   // gesperrt: Forschungsfenster mit der nötigen Forschung öffnen
     toast(lockText(d.type) || 'Noch gesperrt');
     const req = BUILDINGS[d.type].requires;
-    if (req && TECHS[req]) { researchSelected = req; openResearch(); }
+    if (req && TECHS[req]) { researchSelected = req; openResearch(true); }
     return;
   }
   beginBuild(d.type);

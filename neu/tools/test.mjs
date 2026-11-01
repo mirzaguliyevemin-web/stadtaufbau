@@ -843,6 +843,48 @@ test('Fackeln: jedes zweite Wegfeld, bleibt gespeichert, alte Stände bekommen s
   noErrors(g);
 });
 
+test('Forschungsfenster: Ziel, Liste, Detail, Forschung starten; Handy hochkant: Detail öffnet und Zurück schließt es', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    for (const id in TECHS) if (TECHS[id].stage !== 'jung') state.techs[id] = true;
+    state.stage = 'jung'; state.pop = 200; state.res.wissen = 999; state.res.nahrung = 999; state.res.stein = 999;
+    openResearch();
+    const goal = researchGoal();
+    const out = { trans: goal.trans, open: goal.open.length, sel: researchSelected, page: pageOpen };
+    out.list = researchListHtml().includes('Jetzt möglich') && researchListHtml().includes('Kommt danach');
+    selectTech('kupferfund');
+    out.locked = techDetailHtml().includes('Erst:');
+    selectTech('ackerbau');
+    out.buy = techDetailHtml().includes('rs-go ready');
+    doResearch('ackerbau');
+    out.running = !!state.research && researchListHtml().includes('Läuft gerade') && techDetailHtml().includes('Läuft');
+    showResearchStage('__next');
+    out.next = techDetailHtml().includes('Bronzezeit');
+    showResearchStage('alt');
+    out.altSel = TECHS[researchSelected].stage === 'alt';
+    closePage();
+    out.closed = pageOpen === null;
+    // Handy hochkant
+    viewW = 390; viewH = 844;
+    researchSelected = null; openResearch();
+    out.noSheet = researchSheet === false;
+    selectTech('sichel');
+    out.sheet = researchSheet === true;
+    onHistoryBack();
+    out.backList = researchSheet === false && pageOpen === 'research';
+    selectTech('sichel'); closeTechSheet();
+    out.closeList = researchSheet === false && pageOpen === 'research';
+    researchSelected = 'sichel'; closePage(); openResearch(true);
+    out.direct = researchSheet === true && researchSelected === 'sichel';
+    closePage();
+    out.end = pageOpen === null && researchSheet === false;
+    return out; })()`);
+  ok(r.trans === 'kupferfund' && r.open > 0, 'Ziel falsch: ' + JSON.stringify(r));
+  ok(r.page === 'research' && r.list && r.locked && r.buy && r.running && r.next && r.altSel && r.closed, 'Fenster falsch: ' + JSON.stringify(r));
+  ok(r.noSheet && r.sheet && r.backList && r.closeList && r.direct && r.end, 'Handy falsch: ' + JSON.stringify(r));
+  noErrors(g);
+});
+
 test('Volles Lager mit Überschuss bleibt bei 200 (nicht ewig 199) – Forschung für 200 bezahlbar', () => {
   const g = fresh();
   const r = g.run(`(() => { const cap = storageCap(); state.res.nahrung = cap - 0.3; state.pop = 10;

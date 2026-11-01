@@ -253,6 +253,13 @@ Gewünscht:
 
 ---
 
+## Stand (2026-11-01, Version 51)
+
+Steinzeit spielbar mit allen Gebäuden, Rückansichten, Musik. Neu seit V44: Wassergebäude halb im Fluss, Felsen werden abgebaut,
+Fackeln am Weg, Arbeit auf dem eigenen Grundstück, neues Forschungsfenster (Liste + Detail). Offen: Winterbilder der Rückansichten,
+Winterbilder Felsen/Berge/Büsche, Bild „Fischer im Einbaum“. Geplant zum Besprechen: Wunderwerke (`docs/konzept-wunderwerke.md`),
+Bronzezeit (`docs/epoche-2-bronzezeit.md`), später Konto (`docs/konzept-konto.md`).
+
 ## Stand (2026-10-28, Fundament gebaut)
 
 **Fundament fertig – Epochia Version 1** unter https://mirzaguliyevemin-web.github.io/stadtaufbau/neu/

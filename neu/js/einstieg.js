@@ -540,7 +540,7 @@ function guideTargetRect(plan) {
 
 function guideFigureSize() {
   const rel = Math.max(0.85, Math.min(1.25, cam.zoom / (defaultZoom() || 1)));
-  return 66 * guideScale() * rel;
+  return 46 * guideScale() * rel;   // klein halten: Emin störte, dass der Älteste viel Platz wegnimmt
 }
 
 function guideBubbleSize() {

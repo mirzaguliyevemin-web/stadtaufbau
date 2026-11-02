@@ -125,8 +125,11 @@ function loop(now) {
   if (canvas && (Math.abs(canvas.clientWidth - viewW) > 0.5 || Math.abs(canvas.clientHeight - viewH) > 0.5 || (window.devicePixelRatio && Math.min(2, window.devicePixelRatio) * renderScale !== dpr))) { resizeCanvas(); renderAll(); }
   const t0 = performance.now();
   update(dt);
-  drawScene(dt);
-  adaptQuality(dt, performance.now() - t0);
+  // Eine Seite (Aufträge, Forschung, Menü) verdeckt die Karte ganz: nicht mitzeichnen, sonst reagieren die Knöpfe dort träge (Emin, 02.11.)
+  if (!pageOpen) {
+    drawScene(dt);
+    adaptQuality(dt, performance.now() - t0);
+  }
   uiTimer += dt;
   if (uiTimer > 0.25) {
     uiTimer = 0;

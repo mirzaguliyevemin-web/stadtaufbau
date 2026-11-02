@@ -19,11 +19,12 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 - Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten (5 von 21 fertig, Rest bis nach dem 27.11.) (Canva-Pause auf Emins Wunsch).
 
 - Wunderwerke je Zeitalter (Emin, 01.11.): Entwurf `docs/konzept-wunderwerke.md`, wird mit Emin besprochen.
-  → Frage: Zurück-Knopf auf der Aufträge-Seite sei träge – nicht nachstellbar, Emins Spielstand zum Testen nötig.
+- Rückseiten Sammlerin und Langhaus neu (Emin, 02.11.): zeigen die Öffnung bzw. den Garten noch vorne. Bilder zwischendurch oder ab 27.11. (Canva), kein Eilfall. Dazu Winterbilder der neuen Rückseiten von Wohnhöhle und Höhlenmaler.
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-02, Epochia Version 59 – Fehler von Emin: Zurück-Knopf auf der Aufträge-Seite träge. Die Karte wurde hinter ganzseitigen Fenstern weitergezeichnet; jetzt ruht sie dort (Messung mit Emins Stand: Zurück etwa halb so lange). Am Handy noch zu bestätigen.
 - 2026-11-02, Epochia Version 58 – Emins Liste: Wohnhöhle und Höhlenmaler haben echte, geschlossene Rückseiten (Canva; vorher zwei Bilder für dieselbe Seite); ein einheitlicher Holzrahmen für alle Fenster und Sprechblasen, Tägliche Belohnung neu mit Warenbildern; gegen „man kann nur noch forschen“: Forschungen verlangen Gebäude, 24 neue Aufträge (gesperrte verstopfen die Liste nicht mehr), Wünsche des Stammes (Waren abgeben → Wissen und kürzere Forschung); Anzeige „Mittelsteinzeit → Mittelsteinzeit“ behoben.
 - 2026-11-01, Epochia Version 57 – Wunsch Emin: See doppelt so breit (neue Spiele, `mapGen 3`). Fehler behoben: Fluss riss bei manchen Karten am Lager ab bzw. lag zu nah am Lager; Stände mit `mapGen 2` behalten ihre Karte.
 - 2026-11-01, Epochia Version 56 – Fischer am Ufer hält den Speer fest in beiden Händen, holt aus und sticht zu, es spritzt (Canva).

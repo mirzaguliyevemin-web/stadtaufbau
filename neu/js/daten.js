@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 63;
+const APP_VERSION = 64;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -426,12 +426,12 @@ const BUILDINGS = {
     info: 'Gräbt Kupfererz. Muss an Felsen oder am Gebirge stehen – am Gebirge bis zu 50 % mehr.',
   },
   koehler: {
-    name: 'Köhler', icon: '⚫', size: 2, line: 'kohle', tier: 0, stage: 'kupfer',
+    name: 'Köhler', icon: '⚫', size: 2, line: 'kohle', tier: 0, stage: 'kupfer', bild: '2-koehler',
     color: '#4a4a4a', cost: { holz: 40, stein: 20 }, time: 60, workers: 2, consumes: { holz: 4 }, produces: { holzkohle: 2 }, requires: 'kupferschmelze',
     info: 'Brennt im Meiler aus 2 Holz 1 Holzkohle.',
   },
   schmelzofen: {
-    name: 'Schmelzofen', icon: '🔥', size: 2, line: 'schmelzen', tier: 0, stage: 'kupfer',
+    name: 'Schmelzofen', icon: '🔥', size: 2, line: 'schmelzen', tier: 0, stage: 'kupfer', bild: '2-schmelzofen',
     color: '#c0602a', cost: { stein: 60, ton: 20 }, time: 120, workers: 2, consumes: { kupfererz: 2, holzkohle: 1 }, produces: { kupfer: 1 }, requires: 'kupferschmelze',
     info: 'Schmilzt aus 2 Kupfererz und 1 Holzkohle 1 Kupfer.',
   },
@@ -478,7 +478,7 @@ const BUILDINGS = {
     info: 'Wäscht Zinnsand aus dem Fluss – nur wenig. Muss am Wasser stehen. Mehr Zinn bringt der Händler.',
   },
   bronzegiesser: {
-    name: 'Bronzegießer', icon: '🥉', size: 2, line: 'bronze', tier: 0, stage: 'frueh',
+    name: 'Bronzegießer', icon: '🥉', size: 2, line: 'bronze', tier: 0, stage: 'frueh', bild: '2-bronzegiesser',
     color: '#b08a3a', cost: { stein: 60, kupfer: 20 }, time: 120, workers: 2, consumes: { kupfer: 2, zinn: 1 }, produces: { bronze: 1 }, requires: 'bronzeguss',
     info: 'Gießt aus 2 Kupfer und 1 Zinn 1 Bronze – härter als alles bisher.',
   },

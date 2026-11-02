@@ -2,6 +2,9 @@
 # und messen, wo die vordere Ecke der Grasplatte liegt (anker = Anteil der Bildhöhe).
 #   python3 neu/tools/bild-einbauen.py quelle.png bilder/epochia/1-lagerfeuer.webp 640
 #   python3 neu/tools/bild-einbauen.py quelle.png bilder/epochia/start.webp 1600 --ganz   (ohne Freistellen)
+#   python3 neu/tools/bild-einbauen.py quelle.png bilder/epochia/x-winter.webp 640 --schnee
+#     Winterbilder: nur genau die Hintergrundfarbe freistellen (sonst frisst das Freistellen den Schnee am Rand).
+#     Dazu --loecher nur bei Bildern ohne Platte (Säulen): entfernt auch eingeschlossenen Hintergrund; auf Schnee würde das Löcher reißen.
 import sys
 from collections import deque
 from PIL import Image, ImageFilter
@@ -18,7 +21,10 @@ w, h = im.size
 mask = Image.new('L', (w, h), 0)
 px, m = im.load(), mask.load()
 q = deque([(x, y) for x in range(w) for y in (0, h - 1)] + [(x, y) for y in range(h) for x in (0, w - 1)])
-white = lambda p: p[0] > 232 and p[1] > 232 and p[2] > 232
+snow = '--schnee' in sys.argv
+corners = sorted(px[c] for c in [(2, 2), (w - 3, 2), (2, h - 3), (w - 3, h - 3)])
+bg = corners[1]
+white = (lambda p: max(abs(p[i] - bg[i]) for i in range(3)) <= 5) if snow else (lambda p: p[0] > 232 and p[1] > 232 and p[2] > 232)
 while q:
     x, y = q.popleft()
     if m[x, y] or not white(px[x, y]):
@@ -28,6 +34,24 @@ while q:
     if x < w - 1: q.append((x + 1, y))
     if y > 0: q.append((x, y - 1))
     if y < h - 1: q.append((x, y + 1))
+if '--loecher' in sys.argv:   # eingeschlossene Flächen in Hintergrundfarbe (ab 300 Punkten)
+    seen = bytearray(w * h)
+    for sy in range(h):
+        for sx in range(w):
+            if seen[sy * w + sx] or m[sx, sy] or not white(px[sx, sy]):
+                continue
+            part, st = [], [(sx, sy)]
+            seen[sy * w + sx] = 1
+            while st:
+                x, y = st.pop()
+                part.append((x, y))
+                for a, b in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+                    if 0 <= a < w and 0 <= b < h and not seen[b * w + a] and not m[a, b] and white(px[a, b]):
+                        seen[b * w + a] = 1
+                        st.append((a, b))
+            if len(part) >= 300:
+                for x, y in part:
+                    m[x, y] = 255
 alpha = Image.eval(mask, lambda v: 255 - v).filter(ImageFilter.GaussianBlur(1.0))
 out = im.convert('RGBA')
 out.putalpha(alpha)

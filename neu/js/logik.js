@@ -14,6 +14,7 @@ function emit(event, data) { (listeners[event] || []).forEach(fn => fn(data)); }
 function storageCap() {
   let cap = 0;
   state.buildings.forEach((b, i) => { if (!b.build && BUILDINGS[b.type].storage && isConnected(i)) cap += BUILDINGS[b.type].storage; });
+  if (stageReached('kupfer')) cap += CONFIG.dorfplatz.storage;   // das Lagerfeuer ist jetzt der Dorfplatz
   return Math.round(Math.max(cap, CONFIG.baseStorage) * (1 + techSum('storage')));
 }
 
@@ -95,7 +96,8 @@ function housingOf(type) {
 }
 
 function warmthRadius(def) {
-  return def.warmth ? def.warmth + techSum('warmth') : 0;
+  if (!def.warmth) return 0;
+  return def.warmth + techSum('warmth') + (def === BUILDINGS.lagerfeuer && stageReached('kupfer') ? CONFIG.dorfplatz.warmth : 0);
 }
 
 // ---------------------------------------------------------------------
@@ -344,7 +346,9 @@ function recalcStats() {
   s.needsHappy = needs.length ? Math.round(100 * sum / needs.length) : 100;
   s.weatherHappy = Math.round(effectHappy());
   s.hungry = (state.hunger || 0) > 30;   // eine halbe Minute ohne Nahrung: die Laune sinkt zusätzlich
-  s.happiness = Math.max(0, Math.min(100, s.needsHappy + s.weatherHappy - (s.hungry ? CONFIG.hunger.unhappy : 0)));
+  // Dorfbrunnen: ein Treffpunkt hebt die Laune (mehrere bringen nicht mehr)
+  s.placeHappy = state.buildings.reduce((m, b, i) => Math.max(m, !b.build && BUILDINGS[b.type].happy && isConnected(i) ? BUILDINGS[b.type].happy : 0), 0);
+  s.happiness = Math.max(0, Math.min(100, s.needsHappy + s.weatherHappy + s.placeHappy - (s.hungry ? CONFIG.hunger.unhappy : 0)));
   stats = s;
   return s;
 }
@@ -809,6 +813,7 @@ function researchProblem(id) {
   const status = techStatus(id);
   if (status === 'done') return 'Schon erforscht';
   if (status === 'running') return 'Wird gerade erforscht';
+  if (t.soon) return `${t.name} kommt mit dem nächsten Ausbau`;
   if (status === 'locked') return 'Erst: ' + t.requires.filter(r => !state.techs[r]).map(r => TECHS[r].name).join(', ');
   if (state.research) return `Es läuft schon „${TECHS[state.research.id].name}“`;
   if (t.population && state.pop < t.population) return `Braucht ${t.population} Einwohner`;
@@ -836,6 +841,7 @@ function updateResearch(dt) {
   state.techs[id] = true;
   const e = TECHS[id].effect || {};
   if (e.stage && stageIndex(e.stage) > stageIndex()) state.stage = e.stage;
+  if (e.gift) addResources(e.gift);
   emit('researchDone', id);
   const changed = evolveBuildings();
   if (changed.length) emit('evolved', changed);
@@ -852,7 +858,8 @@ function evolveBuildings() {
     again = false;
     for (const b of state.buildings) {
       const to = BUILDINGS[b.type].upgradeTo;
-      if (!to || !BUILDINGS[to] || !isUnlocked(to) || BUILDINGS[to].size !== BUILDINGS[b.type].size) continue;
+      // manualUpgrade: braucht neue Zutaten und stünde sonst still – nur per Knopf (Emin, 02.11.)
+      if (!to || !BUILDINGS[to] || !isUnlocked(to) || BUILDINGS[to].size !== BUILDINGS[b.type].size || BUILDINGS[to].manualUpgrade) continue;
       const entry = changed.find(c => c.from === b.type && c.to === to) || (changed.push({ from: b.type, to, count: 0 }), changed[changed.length - 1]);
       entry.count++;
       if (!b.build) state.built[to] = (state.built[to] || 0) + 1;

@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 59;
+const APP_VERSION = 60;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -60,7 +60,7 @@ const CONFIG = {
     researchSeconds: 90,  // so viel kürzer wird die laufende Forschung
     wissen: 8,            // so viel Wissen gibt es dazu (je Zeitalter mehr, siehe stagePlus)
     stagePlus: 0.25,      // je Zeitalter wollen und geben Wünsche 25 % mehr
-    amount: { nahrung: 100, holz: 80, stein: 60, felle: 20, kleidung: 15, werkzeug: 10, ton: 30, toepferwaren: 10 },
+    amount: { nahrung: 100, holz: 80, stein: 60, felle: 20, kleidung: 15, werkzeug: 10, ton: 30, toepferwaren: 10, kupfererz: 30, holzkohle: 20, kupfer: 10 },
     text: {
       nahrung: 'Der Stamm möchte ein großes Festmahl feiern.',
       holz: 'Die Alten wünschen sich ein großes Feuer für die Ahnen.',
@@ -70,8 +70,12 @@ const CONFIG = {
       werkzeug: 'Die Sammlerinnen bitten um bessere Werkzeuge.',
       ton: 'Die Kinder wollen Figuren aus Ton formen.',
       toepferwaren: 'Für die Vorräte fehlen Krüge und Schalen.',
+      kupfererz: 'Die Alten wollen das grüne Gestein genauer ansehen.',
+      holzkohle: 'Die Schmelzer wollen ein besonders heißes Feuer versuchen.',
+      kupfer: 'Der Häuptling wünscht sich ein Zeichen aus glänzendem Kupfer.',
     },
   },
+  dorfplatz: { storage: 100, warmth: 1 },   // beim Aufbruch in die Bronzezeit wird das Lagerfeuer zum Dorfplatz: mehr Lager, größerer Umkreis
   hunt: {                 // Mammutjagd (nach der Forschung „Mammutjagd“, bis zur Jungsteinzeit)
     seconds: 60,          // so lange sind die Jäger unterwegs
     herdWait: 240,        // so lange dauert es nach einer Jagd, bis wieder eine Herde vorbeizieht
@@ -106,6 +110,10 @@ const RESOURCES = {
   werkzeug:     { name: 'Werkzeug',    icon: '🗡️', bild: 'ware-werkzeug',     from: 'mittel' },
   ton:          { name: 'Ton',         icon: '🟤', bild: 'ware-ton',          from: 'jung' },
   toepferwaren: { name: 'Töpferwaren', icon: '🏺', bild: 'ware-toepferwaren', from: 'jung' },
+  // Bronzezeit (Bilder folgen ab 27.11., bis dahin das Zeichen)
+  kupfererz:    { name: 'Kupfererz',   icon: '⛏️', from: 'kupfer' },
+  holzkohle:    { name: 'Holzkohle',   icon: '⚫', from: 'kupfer' },
+  kupfer:       { name: 'Kupfer',      icon: '🟠', from: 'kupfer' },
 };
 
 // Stufen der Steinzeit (Unterteilungen = Abschnitte im Forschungsbaum)
@@ -113,6 +121,7 @@ const STAGES = [
   { id: 'alt',    name: 'Altsteinzeit',    epoch: 'Steinzeit' },
   { id: 'mittel', name: 'Mittelsteinzeit', epoch: 'Steinzeit' },
   { id: 'jung',   name: 'Jungsteinzeit',   epoch: 'Steinzeit' },
+  { id: 'kupfer', name: 'Kupferzeit',      epoch: 'Bronzezeit', theme: 'steinzeit' },   // theme: Leisten-Bilder, bis es eigene gibt (ab 27.11.)
 ];
 
 // Bedürfnisse der Einwohner. kind: 'stock' = Ware im Lager, 'area' = Gebäude im Umkreis der Wohnung
@@ -220,7 +229,7 @@ const BUILDINGS = {
   },
   langhaus: {
     name: 'Langhaus', icon: '🏡', size: 3, line: 'wohnen', tier: 3, stage: 'jung', bild: '1-langhaus', views: ['r2'],
-    color: '#8d5a32', cost: { holz: 100, stein: 50, werkzeug: 10 }, time: 180, housing: 14, requires: 'langhausbau',
+    color: '#8d5a32', cost: { holz: 100, stein: 50, werkzeug: 10 }, time: 180, housing: 14, requires: 'langhausbau', upgradeTo: 'lehmhaus',
     info: 'Großes Haus aus Holz und Lehm – Platz für 14 Menschen.',
   },
   pfahlbau: {
@@ -231,7 +240,7 @@ const BUILDINGS = {
   },
   sammlerin: {
     name: 'Sammlerin', icon: '🫐', size: 2, line: 'sammeln', tier: 0, stage: 'alt', bild: '1-sammlerin', views: ['r2'],
-    color: '#9c5ab8', cost: { holz: 10 }, time: 30, workers: 2, produces: { nahrung: 8 },
+    color: '#9c5ab8', cost: { holz: 10 }, time: 30, workers: 2, produces: { nahrung: 8 }, upgradeTo: 'gemuesegarten',
     bonus: { terrain: 'wald', perTile: 0.04, max: 0.5 },
     info: 'Sammelt Beeren, Pilze und Wurzeln. Am Wald mehr, im Winter wenig.',
   },
@@ -249,7 +258,7 @@ const BUILDINGS = {
   },
   fischerplatz: {
     name: 'Fischerplatz', icon: '🎣', size: 2, line: 'fischen', tier: 0, stage: 'mittel', bild: '1-fischerhuette',
-    color: '#4f86b0', cost: { holz: 30 }, time: 60, workers: 2, produces: { nahrung: 14 }, needsWater: true, stilts: true,
+    color: '#4f86b0', cost: { holz: 30 }, time: 60, workers: 2, produces: { nahrung: 14 }, needsWater: true, stilts: true, upgradeTo: 'fischerhuette',
     requires: 'einbaum', info: 'Fischerhütte auf Säulen, unten liegt das Boot – viel Nahrung. Steht mit den Säulen im Fluss, ein Stück auch an Land.',
   },
   acker: {
@@ -264,7 +273,7 @@ const BUILDINGS = {
   },
   holzsammler: {
     name: 'Holzsammler', icon: '🪓', size: 2, line: 'holz', tier: 0, stage: 'alt', bild: '1-holzsammler', views: ['r2'],
-    color: '#7a5230', cost: { stein: 5 }, time: 30, workers: 2, produces: { holz: 8 },
+    color: '#7a5230', cost: { stein: 5 }, time: 30, workers: 2, produces: { holz: 8 }, upgradeTo: 'holzfaeller',
     bonus: { terrain: 'wald', perTile: 0.04, max: 0.6 }, fellsTrees: true,
     info: 'Fällt Bäume und sammelt Holz. Am Wald viel mehr – aber die Bäume werden weniger. Eine Pflanzerin setzt neue.',
   },
@@ -275,18 +284,18 @@ const BUILDINGS = {
   },
   steinsammler: {
     name: 'Steinsammler', icon: '⛏️', size: 2, line: 'stein', tier: 0, stage: 'alt', bild: '1-steinsammler', views: ['r2'],
-    color: '#8a8a8a', cost: { holz: 15 }, time: 30, workers: 2, produces: { stein: 6 },
+    color: '#8a8a8a', cost: { holz: 15 }, time: 30, workers: 2, produces: { stein: 6 }, upgradeTo: 'steinbruch',
     bonus: { terrain: ['fels', 'berg'], perTile: 0.06, max: 0.6 }, minesRocks: true,
     info: 'Sammelt Steine. An Felsen und am Gebirge viel mehr. Felsen in der Nähe werden nach und nach abgebaut – am Gebirge gibt es Stein ohne Ende.',
   },
   hoehlenmaler: {
     name: 'Höhlenmaler', icon: '🎨', size: 2, line: 'wissen', tier: 0, stage: 'alt', bild: '1-hoehlenmaler', views: ['r2'],
-    color: '#c05a3a', cost: { holz: 15, stein: 15 }, time: 45, workers: 1, produces: { wissen: 4 },
+    color: '#c05a3a', cost: { holz: 15, stein: 15 }, time: 45, workers: 1, produces: { wissen: 4 }, upgradeTo: 'felsritzer',
     bonus: { terrain: 'fels', perTile: 0.05, max: 0.5 }, info: 'Malt Geschichten an Felswände – bringt Wissen für die Forschung.',
   },
   feuerplatz: {
     name: 'Feuerplatz', icon: '🔥', size: 2, line: 'waerme', tier: 0, stage: 'alt', bild: '1-feuerplatz', views: ['r2'],
-    color: '#d0603a', cost: { holz: 15, stein: 10 }, time: 30, warmth: 5,
+    color: '#d0603a', cost: { holz: 15, stein: 10 }, time: 30, warmth: 5, upgradeTo: 'dorfbrunnen',
     info: 'Wärme und Gemeinschaft für Wohnungen im Umkreis.',
   },
   fellmacherin: {
@@ -296,7 +305,7 @@ const BUILDINGS = {
   },
   steinschlaeger: {
     name: 'Steinschläger', icon: '🗡️', size: 2, line: 'werkzeug', tier: 0, stage: 'mittel', bild: '1-steinschlaeger', views: ['r2'],
-    color: '#707880', cost: { holz: 30, stein: 40 }, time: 90, workers: 2, consumes: { stein: 2, holz: 1 }, produces: { werkzeug: 1 },
+    color: '#707880', cost: { holz: 30, stein: 40 }, time: 90, workers: 2, consumes: { stein: 2, holz: 1 }, produces: { werkzeug: 1 }, upgradeTo: 'kupferschmied',
     requires: 'feine_klingen', info: 'Schlägt aus 2 Stein und 1 Holz 1 Werkzeug.',
   },
   ahnenplatz: {
@@ -306,7 +315,7 @@ const BUILDINGS = {
   },
   tongrube: {
     name: 'Tongrube', icon: '🟤', size: 2, line: 'ton', tier: 0, stage: 'jung', bild: '1-tongrube', views: ['r1', 'r2'],
-    color: '#a0603a', cost: { holz: 30, werkzeug: 3 }, time: 60, workers: 2, produces: { ton: 4 }, needsWater: true,
+    color: '#a0603a', cost: { holz: 30, werkzeug: 3 }, time: 60, workers: 2, produces: { ton: 4 }, needsWater: true, upgradeTo: 'lehmgrube',
     requires: 'toepfern', info: 'Gräbt Ton am Ufer. Muss am Wasser stehen.',
   },
   toepferei: {
@@ -323,6 +332,73 @@ const BUILDINGS = {
     name: 'Steinkreis', icon: '🪨', size: 4, line: 'wahrzeichen', tier: 0, stage: 'jung', bild: '1-steinkreis', views: ['r2'],
     color: '#9a9a9a', cost: { stein: 200, holz: 100, werkzeug: 20 }, time: 300, belief: 14, warmth: 14,
     requires: 'sternenkunde', info: 'Wahrzeichen der Steinzeit: Glaube und Wärme im großen Umkreis. Nötig für den Aufbruch.',
+  },
+  // ----- Bronzezeit, Stufe Kupferzeit. Bilder folgen ab 27.11.: Weiterentwicklungen zeigen so lange das Bild der Vorstufe,
+  // neue Gebäude ein Platzhalter-Feld.
+  lehmhaus: {
+    name: 'Lehmhaus', icon: '🧱', size: 3, line: 'wohnen', tier: 4, stage: 'kupfer', bild: '1-langhaus', views: ['r2'],
+    color: '#a8703f', cost: { holz: 120, stein: 60, ton: 30 }, time: 200, housing: 18, requires: 'lehmbau',
+    info: 'Feste Wände aus Lehm – Platz für 18 Menschen.',
+  },
+  gemuesegarten: {
+    name: 'Gemüsegarten', icon: '🥕', size: 2, line: 'sammeln', tier: 1, stage: 'kupfer', bild: '1-sammlerin', views: ['r2'],
+    color: '#7da83f', cost: { holz: 15, stein: 5 }, time: 30, workers: 2, produces: { nahrung: 12 }, requires: 'gartenbau',
+    bonus: { terrain: 'wald', perTile: 0.04, max: 0.5 },
+    info: 'Gemüse und Kräuter direkt am Haus. Bringt mehr als das Sammeln, im Winter wenig.',
+  },
+  fischerhuette: {
+    name: 'Fischerhütte', icon: '🐟', size: 2, line: 'fischen', tier: 1, stage: 'kupfer', bild: '1-fischerhuette',
+    color: '#4f86b0', cost: { holz: 40 }, time: 60, workers: 2, produces: { nahrung: 20 }, needsWater: true, stilts: true, requires: 'netze',
+    info: 'Fischen mit Netzen statt mit dem Speer – viel mehr Fisch.',
+  },
+  holzfaeller: {
+    name: 'Holzfäller', icon: '🪓', size: 2, line: 'holz', tier: 1, stage: 'kupfer', bild: '1-holzsammler', views: ['r2'],
+    color: '#7a5230', cost: { stein: 10 }, time: 30, workers: 2, produces: { holz: 12 }, requires: 'kupferbeil',
+    bonus: { terrain: 'wald', perTile: 0.04, max: 0.6 }, fellsTrees: true,
+    info: 'Mit dem Kupferbeil geht das Fällen viel schneller. Eine Pflanzerin setzt neue Bäume.',
+  },
+  steinbruch: {
+    name: 'Steinbruch', icon: '⛏️', size: 2, line: 'stein', tier: 1, stage: 'kupfer', bild: '1-steinsammler', views: ['r2'],
+    color: '#8a8a8a', cost: { holz: 20 }, time: 30, workers: 2, produces: { stein: 9 }, requires: 'kupferbeil',
+    bonus: { terrain: ['fels', 'berg'], perTile: 0.06, max: 0.6 }, minesRocks: true,
+    info: 'Bricht Steine mit Kupferwerkzeug. An Felsen und am Gebirge viel mehr.',
+  },
+  felsritzer: {
+    name: 'Felsritzer', icon: '🪨', size: 2, line: 'wissen', tier: 1, stage: 'kupfer', bild: '1-hoehlenmaler', views: ['r2'],
+    color: '#c05a3a', cost: { holz: 20, stein: 20 }, time: 45, workers: 1, produces: { wissen: 6 }, requires: 'felsritzungen',
+    bonus: { terrain: 'fels', perTile: 0.05, max: 0.5 }, info: 'Ritzt Geschichten in den Fels – mehr Wissen als das Malen.',
+  },
+  dorfbrunnen: {
+    name: 'Dorfbrunnen', icon: '⛲', size: 2, line: 'waerme', tier: 1, stage: 'kupfer', bild: '1-feuerplatz', views: ['r2'],
+    color: '#6f9ab0', cost: { holz: 20, stein: 15 }, time: 30, warmth: 6, happy: 5, requires: 'brunnenbau',
+    info: 'Hier trifft sich das Dorf: Gemeinschaft im Umkreis und bessere Laune.',
+  },
+  lehmgrube: {
+    name: 'Lehmgrube', icon: '🟤', size: 2, line: 'ton', tier: 1, stage: 'kupfer', bild: '1-tongrube', views: ['r1', 'r2'],
+    color: '#a0603a', cost: { holz: 40, werkzeug: 3 }, time: 60, workers: 2, produces: { ton: 6 }, needsWater: true, requires: 'lehmbau',
+    info: 'Gräbt Lehm und Ton am Ufer. Muss am Wasser stehen.',
+  },
+  kupferschmied: {
+    name: 'Kupferschmied', icon: '🔨', size: 2, line: 'werkzeug', tier: 1, stage: 'kupfer', bild: '1-steinschlaeger', views: ['r2'],
+    color: '#b5683a', cost: { holz: 40, stein: 50, kupfer: 10 }, time: 90, workers: 2, consumes: { kupfer: 1, holz: 1 }, produces: { werkzeug: 2 },
+    requires: 'kupferschmied', manualUpgrade: true,
+    info: 'Schmiedet aus 1 Kupfer und 1 Holz 2 Werkzeuge. Braucht Kupfer – darum nur per Knopf umbauen, wenn es da ist.',
+  },
+  kupfermine: {
+    name: 'Kupfermine', icon: '⛏️', size: 3, line: 'erz', tier: 0, stage: 'kupfer',
+    color: '#9a6a3a', cost: { holz: 80, stein: 40, werkzeug: 10 }, time: 120, workers: 3, produces: { kupfererz: 4 }, needsRock: true, requires: 'bergbau',
+    bonus: { terrain: 'berg', perTile: 0.05, max: 0.5 },
+    info: 'Gräbt Kupfererz. Muss an Felsen oder am Gebirge stehen – am Gebirge bis zu 50 % mehr.',
+  },
+  koehler: {
+    name: 'Köhler', icon: '⚫', size: 2, line: 'kohle', tier: 0, stage: 'kupfer',
+    color: '#4a4a4a', cost: { holz: 40, stein: 20 }, time: 60, workers: 2, consumes: { holz: 4 }, produces: { holzkohle: 2 }, requires: 'kupferschmelze',
+    info: 'Brennt im Meiler aus 2 Holz 1 Holzkohle.',
+  },
+  schmelzofen: {
+    name: 'Schmelzofen', icon: '🔥', size: 2, line: 'schmelzen', tier: 0, stage: 'kupfer',
+    color: '#c0602a', cost: { stein: 60, ton: 20 }, time: 120, workers: 2, consumes: { kupfererz: 2, holzkohle: 1 }, produces: { kupfer: 1 }, requires: 'kupferschmelze',
+    info: 'Schmilzt aus 2 Kupfererz und 1 Holzkohle 1 Kupfer.',
   },
   pfad: {
     name: 'Trampelpfad', icon: '🟫', size: 1, line: 'weg', tier: 0, stage: 'alt',
@@ -371,6 +447,27 @@ const TECHS = {
   vorratshaltung: { name: 'Vorratshaltung', icon: '🛖', stage: 'jung', col: 8, row: 3, requires: ['toepfern', 'langhausbau'], population: 90, cost: { wissen: 130, toepferwaren: 15 }, time: 960, effect: { storage: 0.5 }, bild: 'f-vorrat' },
   sternenkunde:   { name: 'Sternenkunde',   icon: '✨', stage: 'jung', col: 8, row: 4, requires: ['ahnenkult', 'langhausbau'], population: 100, cost: { wissen: 150, kleidung: 20 }, time: 1080, effect: {}, bild: 'f-sterne' },
   kupferfund:     { name: 'Kupferfund',     icon: '🟠', stage: 'jung', col: 9, row: 2, requires: ['sichel', 'viehzucht', 'vorratshaltung', 'sternenkunde'], population: 110, cost: { wissen: 150, werkzeug: 40, toepferwaren: 20 }, time: 2400, effect: {}, bild: 'f-kupfer' },
+  // ----- Aufbruch und Kupferzeit (Entwurf: docs/epoche-2-bronzezeit.md)
+  aufbruch_bronzezeit: {
+    name: 'Aufbruch in die Bronzezeit', icon: '🥉', stage: 'jung', col: 10, row: 2, transition: true, requires: ['kupferfund', 'pfahlbauten'],
+    population: 120, cost: { wissen: 130, holz: 300, stein: 250, nahrung: 300, toepferwaren: 30, werkzeug: 30 }, time: 300,
+    effect: { stage: 'kupfer', gift: { kupfer: 20, kupfererz: 30 } }, bild: 'f-kupfer',
+  },
+  bergbau:        { name: 'Bergbau',        icon: '⛏️', stage: 'kupfer', col: 11, row: 3, requires: ['aufbruch_bronzezeit'], population: 125, cost: { wissen: 130, holz: 100 }, time: 720, effect: {} },
+  kupferschmelze: { name: 'Kupferschmelze', icon: '🔥', stage: 'kupfer', col: 12, row: 3, requires: ['bergbau'], population: 130, cost: { wissen: 140, stein: 100 }, time: 780, effect: {} },
+  kupferbeil:     { name: 'Kupferbeil',     icon: '🪓', stage: 'kupfer', col: 13, row: 3, requires: ['kupferschmelze'], population: 140, cost: { wissen: 150, kupfer: 15 }, time: 840, effect: {} },
+  kupferschmied:  { name: 'Kupferschmied',  icon: '🔨', stage: 'kupfer', col: 13, row: 4, requires: ['kupferschmelze'], population: 140, cost: { wissen: 150, kupfer: 20 }, time: 840, effect: {} },
+  gartenbau:      { name: 'Gartenbau',      icon: '🥕', stage: 'kupfer', col: 11, row: 0, requires: ['aufbruch_bronzezeit'], population: 125, cost: { wissen: 120, nahrung: 120 }, time: 660, effect: {} },
+  netze:          { name: 'Netze',          icon: '🎣', stage: 'kupfer', col: 12, row: 0, requires: ['gartenbau'], population: 135, cost: { wissen: 130, holz: 60 }, time: 720, effect: {} },
+  lehmbau:        { name: 'Lehmbau',        icon: '🧱', stage: 'kupfer', col: 11, row: 2, requires: ['aufbruch_bronzezeit'], population: 130, cost: { wissen: 140, ton: 40 }, time: 720, effect: {} },
+  brunnenbau:     { name: 'Brunnenbau',     icon: '⛲', stage: 'kupfer', col: 12, row: 2, requires: ['lehmbau'], population: 140, cost: { wissen: 140, stein: 80 }, time: 780, effect: {} },
+  felsritzungen:  { name: 'Felsritzungen',  icon: '🪨', stage: 'kupfer', col: 11, row: 4, requires: ['aufbruch_bronzezeit'], population: 125, cost: { wissen: 110 }, time: 600, effect: {} },
+  // Das Ziel der Kupferzeit. soon: lässt sich noch nicht starten – die Frühe Bronzezeit ist der nächste Bauabschnitt.
+  fruehe_bronzezeit: {
+    name: 'Frühe Bronzezeit', icon: '🥉', stage: 'kupfer', col: 14, row: 2, transition: true, soon: true,
+    requires: ['kupferbeil', 'kupferschmied', 'netze', 'brunnenbau', 'felsritzungen'],
+    population: 150, cost: { wissen: 180, nahrung: 200, kupfer: 30 }, time: 1800, effect: {},
+  },
 };
 
 // Forschung verlangt auch Gebäude (Emin, 02.11.): Wer weiterkommen will, muss weiterbauen.
@@ -399,6 +496,14 @@ const TECH_NEEDS = {
   vorratshaltung:  { tongrube: 1, toepferei: 1 },
   sternenkunde:    { ahnenplatz: 2 },
   kupferfund:      { steinkreis: 1, vorratsspeicher: 1, ziegengehege: 1 },
+  aufbruch_bronzezeit: { steinkreis: 1 },
+  kupferschmelze:  { kupfermine: 1 },
+  kupferbeil:      { schmelzofen: 1 },
+  kupferschmied:   { schmelzofen: 1 },
+  netze:           { gemuesegarten: 2 },
+  brunnenbau:      { lehmhaus: 3 },
+  felsritzungen:   { hoehlenmaler: 5 },
+  fruehe_bronzezeit: { kupfermine: 2, koehler: 2, schmelzofen: 2, kupferschmied: 1 },
 };
 
 // Ganz rechts im Baum: Aufbruch in die nächste Epoche (Bronzezeit wird in einem späteren Schritt gebaut)
@@ -420,18 +525,27 @@ const TECH_NEEDS = {
   }
 })(CONFIG.tempo);
 
-const NEXT_EPOCH = {
-  name: 'Aufbruch in die Bronzezeit', icon: '🏺', col: 10, row: 2,
-  requires: Object.keys(TECHS), buildings: ['steinkreis'], population: 120,
-  cost: { holz: 300, stein: 250, nahrung: 300, toepferwaren: 30, werkzeug: 30 }, available: false,
-};
+const NEXT_EPOCH = { name: 'Frühe Bronzezeit', icon: '🥉' };   // der nächste Bauabschnitt: nur Vorschau im Forschungsfenster
+
+// Weiterentwicklungen wirken wie ihre Vorstufe bei Wetter, Jahreszeit, Katastrophen und Forschungs-Boni
+(function inheritEffects() {
+  const of = { gemuesegarten: 'sammlerin', fischerhuette: 'fischerplatz', holzfaeller: 'holzsammler', steinbruch: 'steinsammler',
+    lehmgrube: 'tongrube', felsritzer: 'hoehlenmaler', kupferschmied: 'steinschlaeger' };
+  const copy = map => { if (map) for (const [to, from] of Object.entries(of)) if (map[from] !== undefined && map[to] === undefined) map[to] = map[from]; };
+  for (const w of Object.values(WEATHERS)) copy(w.effect.buildings);
+  for (const d of Object.values(DISASTERS)) copy(d.buildings);
+  copy(SEASON_FACTORS);
+  for (const t of Object.values(TECHS)) copy(t.effect && t.effect.bonus);
+  for (const [to, from] of Object.entries(of)) if (OUTDOOR_WORK.includes(from)) OUTDOOR_WORK.push(to);
+  OUTDOOR_WORK.push('kupfermine');
+})();
 
 // Kategorien der Bauleiste (je Kategorie die Linien aus BUILDINGS)
 const BAR_CATEGORIES = [
   { id: 'wohnen',    name: 'Wohnen',    icon: '🏠', lines: ['wohnen', 'wasserwohnen'] },
   { id: 'nahrung',   name: 'Nahrung',   icon: '🍖', lines: ['sammeln', 'jagen', 'fischen', 'feld', 'tiere'] },
-  { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton'] },
-  { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['kleidung', 'werkzeug', 'toepfern', 'lager'] },
+  { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton', 'erz', 'kohle'] },
+  { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'kleidung', 'werkzeug', 'toepfern', 'lager'] },
   { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['waerme', 'glaube', 'wissen', 'wahrzeichen'] },
   { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg', 'bruecke'] },
 ];
@@ -488,6 +602,12 @@ const QUESTS = [
   { id: 'q_wunsch12',   text: 'Erfülle 12 Wünsche des Stammes', goal: { wishes: 12 }, reward: { wissen: 40 } },
   { id: 'q_steinkreis', text: 'Baue einen Steinkreis',   goal: { build: 'steinkreis', count: 1 }, reward: { holz: 100, nahrung: 100 } },
   { id: 'q_pop120',     text: 'Erreiche 120 Einwohner – bereit für den Aufbruch', goal: { population: 120 }, reward: { holz: 150, nahrung: 150 } },
+  // Kupferzeit
+  { id: 'q_b_aufbruch', text: 'Brich in die Bronzezeit auf', goal: { tech: 'aufbruch_bronzezeit' }, reward: { holz: 100, stein: 100 } },
+  { id: 'q_b_mine',     text: 'Baue eine Kupfermine',    goal: { build: 'kupfermine', count: 1 }, reward: { holz: 60, stein: 40 } },
+  { id: 'q_b_kupfer20', text: 'Habe 20 Kupfer im Lager', goal: { resource: 'kupfer', count: 20 }, reward: { wissen: 40 } },
+  { id: 'q_b_garten3',  text: 'Baue 3 Gemüsegärten',     goal: { build: 'gemuesegarten', count: 3 }, reward: { nahrung: 80 } },
+  { id: 'q_b_pop140',   text: 'Erreiche 140 Einwohner',  goal: { population: 140 }, reward: { holzkohle: 20 } },
 ];
 
 // Tägliche Belohnung: Tag 1–7 hintereinander (Tag 7 ist die große Truhe)

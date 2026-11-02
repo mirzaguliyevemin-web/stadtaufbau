@@ -198,6 +198,8 @@ const SOUNDS = {
 
 // Welches Geräusch gehört zu welchem Gebäude?
 const BUILDING_SOUNDS = {
+  lehmhaus: 'haus', gemuesegarten: 'rascheln', fischerhuette: 'platsch', holzfaeller: 'hacken', steinbruch: 'klirren', felsritzer: 'pinsel',
+  dorfbrunnen: 'matsch', lehmgrube: 'matsch', kupferschmied: 'klopfen', kupfermine: 'klirren', koehler: 'feuer', schmelzofen: 'feuer',
   lagerfeuer: 'feuer', feuerplatz: 'feuer', wohnhoehle: 'hoehle', fellzelt: 'zelt', grubenhaus: 'haus', langhaus: 'haus', pfahlbau: 'pfahl',
   sammlerin: 'rascheln', jaegerlager: 'horn', mammutjaegerlager: 'mammut', fischerplatz: 'platsch', acker: 'korn', ziegengehege: 'ziege',
   holzsammler: 'hacken', pflanzerin: 'graben', steinsammler: 'klirren', hoehlenmaler: 'pinsel', fellmacherin: 'schaben', steinschlaeger: 'klopfen',

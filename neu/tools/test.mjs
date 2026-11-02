@@ -408,6 +408,74 @@ test('Spielstand von Emin (Version 57): lädt, hat zu tun, kommt weiter', () => 
   noErrors(g);
 });
 
+test('Kupferzeit: Aufbruch, Geschenk, Dorfplatz, Weiterentwicklung und Metall-Kette', () => {
+  const g = fresh();
+  g.run(`for (const id of Object.keys(TECH_NEEDS)) delete TECH_NEEDS[id];
+    for (const id in TECHS) if (TECHS[id].stage !== 'kupfer' && id !== 'aufbruch_bronzezeit') state.techs[id] = true;
+    state.stage = 'jung'; state.pop = 130; state.res.wissen = 999;
+    for (const id of ['holz','stein','nahrung','toepferwaren','werkzeug']) state.res[id] = 200;
+    recalcStats();`);
+  ok(g.run(`barEntries().every(e => BUILDINGS[e.type].stage !== 'kupfer' || !e.locked) && !barEntries().some(e => e.type === 'kupfermine')`), 'Kupferzeit-Gebäude vor dem Aufbruch sichtbar');
+  const cap = g.run(`storageCap()`);
+  // alle Kosten des Aufbruchs müssen ins Grundlager passen, sonst käme man nie los
+  ok(g.run(`Object.entries(TECHS.aufbruch_bronzezeit.cost).every(([id, n]) => id === 'wissen' || n <= CONFIG.baseStorage)`), 'Aufbruch teurer als das Lager');
+  ok(g.run(`startResearch('aufbruch_bronzezeit')`) === null, 'Aufbruch startet nicht');
+  g.run(`for (let i = 0; i <= TECHS.aufbruch_bronzezeit.time; i++) update(1);`);
+  ok(g.run(`state.stage`) === 'kupfer', 'Stufe nicht gewechselt');
+  ok(g.run(`state.res.kupfer`) === 20 && g.run(`state.res.kupfererz`) >= 30, 'Geschenk fehlt');
+  ok(g.run(`storageCap()`) === Math.round(cap + g.run(`CONFIG.dorfplatz.storage * (1 + techSum('storage'))`)), 'Dorfplatz bringt kein Lager');
+  ok(g.run(`['gemuesegarten', 'fischerhuette', 'holzfaeller', 'steinbruch', 'felsritzer', 'lehmgrube', 'kupferschmied'].every(t => WORK[t])`), 'Weiterentwicklung ohne Arbeiter');
+  // gleiche Zutaten: von selbst – neue Zutaten: nur per Knopf
+  const y = g.run(`Math.floor(N / 2) + 10`);
+  g.run(`state.buildings.push({ type: 'sammlerin', x: ${y}, y: ${y}, rot: 0, build: 0 }, { type: 'steinschlaeger', x: ${y + 3}, y: ${y}, rot: 0, build: 0 }, { type: 'langhaus', x: ${y + 6}, y: ${y}, rot: 2, build: 0 });
+    rebuildOccupancy();
+    for (const id of ['gartenbau', 'kupferschmied', 'lehmbau']) state.techs[id] = true;
+    evolveBuildings();`);
+  const typ = (dx) => g.run(`state.buildings.find(b => b.x === ${y + dx} && b.y === ${y}).type`);
+  ok(typ(0) === 'gemuesegarten', 'Sammlerin nicht weiterentwickelt: ' + typ(0));
+  ok(typ(6) === 'lehmhaus', 'Langhaus nicht weiterentwickelt: ' + typ(6));
+  ok(typ(3) === 'steinschlaeger', 'Steinschläger darf nicht von selbst umgebaut werden');
+  ok(g.run(`upgradeTarget(state.buildings.find(b => b.x === ${y + 3})) === 'kupferschmied'`), 'Knopf für Kupferschmied fehlt');
+  // Mine: nur an Felsen oder Gebirge
+  const r = g.run(`(() => {
+    state.techs.bergbau = true;
+    let good = null, bad = null;
+    for (let y = landBox.y0; y <= landBox.y1 && !(good && bad); y++) for (let x = landBox.x0; x <= landBox.x1; x++) {
+      const p = placeProblem('kupfermine', x, y);
+      if (!p && !good) good = [x, y];
+      if (p && p.includes('Felsen oder am Gebirge') && !bad) bad = [x, y];
+    }
+    return { good, bad };
+  })()`);
+  ok(r.good && r.bad, 'Mine: Platzregel greift nicht ' + JSON.stringify(r));
+  // Kette: Erz + Kohle → Kupfer
+  g.run(`for (const b of state.buildings) if (b.type === 'pfad') 0;
+    state.res.kupfererz = 100; state.res.holzkohle = 100; state.res.kupfer = 0; state.pop = 150; recalcStats();`);
+  ok(g.run(`BUILDINGS.schmelzofen.consumes.kupfererz === 2 && BUILDINGS.schmelzofen.produces.kupfer === 1`), 'Schmelzofen falsch');
+  ok(g.run(`hasMaker('kupfer') === false`), 'Kupfer ohne Schmelze-Forschung herstellbar');
+  g.run(`state.techs.kupferschmelze = true;`);
+  ok(g.run(`hasMaker('kupfer') && hasMaker('holzkohle')`), 'Kette nicht freigeschaltet');
+  // Das Ziel der Stufe lässt sich noch nicht erforschen
+  g.run(`for (const id in TECHS) if (TECHS[id].stage === 'kupfer' && !TECHS[id].transition) state.techs[id] = true;`);
+  ok(g.run(`researchProblem('fruehe_bronzezeit')`).includes('nächsten Ausbau'), 'Frühe Bronzezeit startbar, obwohl noch nicht gebaut');
+  noErrors(g);
+});
+
+test('Kupferzeit: Spielstand speichern und laden, Oberfläche ohne Bilder', () => {
+  const g = fresh();
+  g.run(`for (const id in TECHS) if (TECHS[id].stage !== 'kupfer') state.techs[id] = true;
+    state.stage = 'kupfer'; state.res.kupfer = 12; state.techs.kupferschmelze = true; state.techs.bergbau = true;
+    const m = Math.floor(N / 2) + 10; state.buildings.push({ type: 'schmelzofen', x: m, y: m, rot: 0, build: 0 });`);
+  const text = g.run(`serialize()`);
+  ok(g.run(`loadFromText(${JSON.stringify(text)})`), 'Lädt nicht');
+  ok(g.run(`state.stage`) === 'kupfer' && g.run(`state.res.kupfer`) === 12, 'Stand verloren');
+  ok(g.run(`state.buildings.some(b => b.type === 'schmelzofen')`), 'Schmelzofen verloren');
+  ok(g.run(`barEntries().some(e => e.type === 'kupfermine' && !e.locked)`), 'Mine fehlt in der Bauleiste');
+  ok(g.run(`BAR_CATEGORIES.flatMap(c => c.lines).includes('schmelzen')`), 'Schmelzen in keiner Kategorie');
+  g.run(`openResearch(); showResearchStage('kupfer'); researchListHtml(); selectTech('kupferbeil'); techDetailHtml(); researchTopHtml(); closePage(); renderAll();`);
+  noErrors(g);
+});
+
 test('Land kaufen: nur neben eigenem Land, Preis steigt', () => {
   const g = fresh();
   ok(!g.run('canBuyPlot(0)'), 'Ecke kaufbar');
@@ -764,7 +832,7 @@ test('Arbeitende Menschen: gehen zum Baum, arbeiten und kommen zurück', () => {
 
 test('Arbeitende Menschen Teil 2: Fischer (auch im Einbaum), Höhlenmaler, Werkstätten vor dem Haus', () => {
   const g = fresh();
-  g.run(`for (const k in state.res) state.res[k] = 999; state.pop = 30; state.stage = 'jung'; for (const id in TECHS) state.techs[id] = true;
+  g.run(`for (const k in state.res) state.res[k] = 999; state.pop = 30; state.stage = 'jung'; for (const id in TECHS) if (TECHS[id].stage !== 'kupfer') state.techs[id] = true;
     for (const t of ['fischerplatz', 'hoehlenmaler', 'fellmacherin', 'steinschlaeger', 'toepferei', 'tongrube']) {
       const sp = findFreeSpot(t, 62 + O, 62 + O); if (!sp) continue; placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
     recalcStats();`);
@@ -1116,7 +1184,7 @@ test('Forschungsfenster: Ziel, Liste, Detail, Forschung starten; Handy hochkant:
     closePage();
     out.end = pageOpen === null && researchSheet === false;
     return out; })()`);
-  ok(r.trans === 'kupferfund' && r.open > 0, 'Ziel falsch: ' + JSON.stringify(r));
+  ok(r.trans === 'aufbruch_bronzezeit' && r.open > 0, 'Ziel falsch: ' + JSON.stringify(r));
   ok(r.page === 'research' && r.list && r.locked && r.buy && r.running && r.next && r.altSel && r.closed, 'Fenster falsch: ' + JSON.stringify(r));
   ok(r.noSheet && r.sheet && r.backList && r.closeList && r.direct && r.end, 'Handy falsch: ' + JSON.stringify(r));
   noErrors(g);

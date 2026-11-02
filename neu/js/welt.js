@@ -664,6 +664,13 @@ function touchesWater(ax, ay, size) {
   return false;
 }
 
+function touchesRock(ax, ay, size) {
+  for (let y = ay - 1; y <= ay + size; y++)
+    for (let x = ax - 1; x <= ax + size; x++)
+      if (inMap(x, y) && (terrain[y * N + x] === TERRAIN.fels.id || terrain[y * N + x] === TERRAIN.berg.id)) return true;
+  return false;
+}
+
 function saplingAt(x, y) {
   const i = y * N + x;
   return state.saplings.some(s => s[0] === i);
@@ -935,6 +942,7 @@ function placeProblem(type, x, y, ignore = -1, rot) {
     return null;
   }
   if (def.needsWater && !touchesWater(x, y, s)) return 'Muss am Wasser stehen';
+  if (def.needsRock && !touchesRock(x, y, s)) return 'Muss an Felsen oder am Gebirge stehen';
   return null;
 }
 

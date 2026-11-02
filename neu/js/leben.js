@@ -275,11 +275,16 @@ function targetGone(w) {
   return inMap(x, y) && !targetIds(k).includes(terrain[y * N + x]);
 }
 
+// Weiterentwicklungen der Kupferzeit arbeiten wie ihre Vorstufe (eigene Figuren folgen mit den Bildern)
+Object.assign(WORK, { gemuesegarten: WORK.sammlerin, fischerhuette: WORK.fischerplatz, holzfaeller: WORK.holzsammler, steinbruch: WORK.steinsammler,
+  felsritzer: WORK.hoehlenmaler, lehmgrube: WORK.tongrube, kupferschmied: WORK.steinschlaeger });
+
 // Arbeitsplatz IN der Werkstatt (auf der Platte, vordere Hälfte, passend zum Bild): [Standplatz u, v, Werkstück u, v]
 // u läuft zur rechten, v zur linken Ecke der Raute (0 … Größe). Gespiegelte Ansicht: u und v tauschen.
 const INSIDE_SPOTS = {
   fellmacherin:   [[1.55, 1.05, 1.25, 0.8], [1.05, 1.55, 0.8, 1.25]],   // vor den Spannrahmen
   steinschlaeger: [[1.6, 1.05, 1.15, 1.25], [1.25, 1.7, 1.1, 1.25]],    // am großen Arbeitsstein
+  kupferschmied:  [[1.6, 1.05, 1.15, 1.25], [1.25, 1.7, 1.1, 1.25]],
   toepferei:      [[1.65, 1.0, 1.35, 1.35], [1.05, 1.65, 1.35, 1.35]],  // zwischen Ofen und Töpfen
 };
 function insideSpot(b, k) {
@@ -640,7 +645,7 @@ function drawBoat(w, t) {
 // Treffpunkte: Am Feuer sitzen die Leute zusammen (abends tanzen sie), am Ahnenplatz und Steinkreis beten sie
 // ---------------------------------------------------------------------
 
-const GATHER = { lagerfeuer: 'feuer', feuerplatz: 'feuer', ahnenplatz: 'beten', steinkreis: 'beten' };
+const GATHER = { lagerfeuer: 'feuer', feuerplatz: 'feuer', dorfbrunnen: 'feuer', ahnenplatz: 'beten', steinkreis: 'beten' };
 life.visitors = [];
 life.visitTimer = 0;
 

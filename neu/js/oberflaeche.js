@@ -118,7 +118,9 @@ function setCssVar(name, value) {
 // Leisten oben und unten im Stil des Zeitalters (Bilder leiste-holz-<epoche>.webp und leiste-leder-<epoche>.webp)
 let themeEpoch = '';
 function applyEpochTheme() {
-  const key = STAGES[stageIndex()].epoch.toLowerCase();
+  const st = STAGES[stageIndex()];
+  BUILDINGS.lagerfeuer.name = stageReached('kupfer') ? 'Dorfplatz' : 'Lagerfeuer';
+  const key = st.theme || st.epoch.toLowerCase();
   if (key === themeEpoch) return;
   themeEpoch = key;
   setCssVar('--bar-wood', `url(${IMAGE_DIR}leiste-holz-${key}.webp)`);
@@ -802,7 +804,7 @@ function researchGoal() {
   const trans = ids.find(id => TECHS[id].transition) || ids.filter(id => !ids.some(o => TECHS[o].requires.includes(id))).sort((a, b) => TECHS[b].requires.length - TECHS[a].requires.length)[0];
   if (!trans) return null;
   const e = TECHS[trans].effect || {};
-  const target = e.stage ? STAGES[stageIndex(e.stage)].name : 'Bronzezeit';
+  const target = e.stage ? STAGES[stageIndex(e.stage)].name : TECHS[trans].name;
   const open = [], seen = {};
   (function walk(id) {
     for (const r of TECHS[id].requires) {
@@ -861,7 +863,7 @@ function stageTabsHtml() {
       <b>${stageReached(st.id) ? (done === ids.length ? '✔ ' : '') : '🔒 '}${esc(st.name)} <small>${done}/${ids.length}</small></b>
       <span class="st-bar" style="--p:${Math.round(done / ids.length * 100)}%"></span></button>`;
   });
-  tabs.push(`<button class="st-tab locked${researchStage === '__next' ? ' active' : ''}" onclick="showResearchStage('__next')"><b>${NEXT_EPOCH.icon} Bronzezeit <small>bald</small></b><span class="st-bar" style="--p:0%"></span></button>`);
+  tabs.push(`<button class="st-tab locked${researchStage === '__next' ? ' active' : ''}" onclick="showResearchStage('__next')"><b>${NEXT_EPOCH.icon} ${esc(NEXT_EPOCH.name)} <small>bald</small></b><span class="st-bar" style="--p:0%"></span></button>`);
   return tabs.join('');
 }
 
@@ -914,9 +916,8 @@ function techDetailHtml() {
   if (!id) return `${close}<p>Tippe eine Forschung an, um zu sehen, was sie bringt.</p>`;
   if (id === '__next') {
     return `${close}<div class="rs-dhead"><span class="rs-med"><span class="ic emoji">${NEXT_EPOCH.icon}</span></span><div><h3>${esc(NEXT_EPOCH.name)}</h3>
-      <p>Braucht alle Forschungen der Steinzeit, einen Steinkreis und ${NEXT_EPOCH.population} Einwohner.</p></div></div>
-      <div class="rs-sec"><h4>Waren</h4><div class="rs-costs">${costHtml(NEXT_EPOCH.cost)}</div></div>
-      <p class="rs-soon">Die Bronzezeit wird als Nächstes gebaut.</p>`;
+      <p>Zinn, Bronze, Händler und Wolle.</p></div></div>
+      <p class="rs-soon">Kommt mit dem nächsten Ausbau.</p>`;
   }
   const t = TECHS[id], status = techStatus(id);
   const news = Object.values(BUILDINGS).filter(def => def.requires === id);
@@ -1152,7 +1153,7 @@ function openMenu() {
   openPage('⚙️ Menü', menuHtml(), 'menu');
 }
 
-const SLOT_PICTURES = { alt: '1-lagerfeuer', mittel: '1-grubenhaus', jung: '1-langhaus' };
+const SLOT_PICTURES = { alt: '1-lagerfeuer', mittel: '1-grubenhaus', jung: '1-langhaus', kupfer: '1-langhaus' };
 
 function slotsHtml(inGame) {
   return '<div class="slots">' + SLOTS.map(slot => {

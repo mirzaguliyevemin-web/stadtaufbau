@@ -6,6 +6,14 @@ feinjustiert wird nach dem Test am Handy und mit dem Bot.
 
 Zeichen: ✅ entschieden · ❓ offene Frage an Emin · 💡 Vorschlag
 
+## Stand des Baus
+
+Kupferzeit gebaut (Version 60), ohne Bilder: Weiterentwicklungen zeigen das Bild der Vorstufe, Kupfermine, Köhler und Schmelzofen einen
+Platzhalter, neue Waren und Forschungen ihr Zeichen. Noch nicht: Häuptling-Bild, Bronzezeit-Leisten, Ereignis Erzader. Abweichung vom Entwurf:
+Der Aufbruch wird auf einmal bezahlt (je Ware höchstens 200 wie alle Forschungen), nicht nach und nach geliefert.
+Die Forschung „Frühe Bronzezeit“ ist sichtbar, lässt sich aber erst mit dem nächsten Bauabschnitt starten.
+Zum Ausprobieren: `neu/teststand-kupferzeit.txt` (erzeugt mit `node neu/tools/teststand-kupferzeit.mjs`).
+
 ## Überblick
 
 Die Bronzezeit hat – wie die Steinzeit – drei Stufen. Jede Stufe öffnet einen neuen Abschnitt im Forschungsbaum
@@ -408,7 +416,7 @@ bleiben. Neue Kleidung für alle später, wenn Zeit ist.
 - ✅ Dauer der Bronzezeit: etwa 6 Stunden reine Forschungszeit.
 - ✅ Steinschläger → Kupferschmied, Fellmacherin → Weberin, Töpferei → Töpferwerkstatt nur per Knopf umbauen, alles andere automatisch.
 - ✅ Wahrzeichen ist der **Fürstenhügel** (statt „Grabhügel“) mit Festplatz, Tod wird nicht gezeigt.
-- ✅ Kupfermine nur direkt am Gebirge, an Erzfelsen +50 %.
+- ✅ Kupfermine an Felsen oder am Gebirge, am Gebirge bis +50 % (geändert: das Gebirge liegt 156–170 Felder vom Feuer entfernt, „nur am Gebirge“ hätte 18–20 Landstücke gekostet). Eigene Erzfelsen entfallen vorerst.
 - ✅ Zinn: Zinnwäscherin (wenig) und Händler (mehr).
 - ✅ Kein Geld: Tausch beim Händler; Geld kommt in der Antike.
 - ✅ Händler kommt nur beim Spielen, nicht offline.

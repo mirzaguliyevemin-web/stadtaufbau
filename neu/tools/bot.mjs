@@ -175,7 +175,7 @@ function botKnowledgeRate() {
 }
 
 // Wer stellt eine Ware her (neueste freigeschaltete Stufe)?
-var BOT_MAKER = { holz: 'holz', stein: 'stein', wissen: 'wissen', felle: 'jagen', kleidung: 'kleidung', werkzeug: 'werkzeug', ton: 'ton', toepferwaren: 'toepfern' };
+var BOT_MAKER = { kupfer: 'schmelzen', holzkohle: 'kohle', kupfererz: 'erz', holz: 'holz', stein: 'stein', wissen: 'wissen', felle: 'jagen', kleidung: 'kleidung', werkzeug: 'werkzeug', ton: 'ton', toepferwaren: 'toepfern' };
 
 // Braucht eine Ware einen weiteren Hersteller? Vergleicht, was alle Hersteller schaffen könnten, mit dem Bedarf
 // (laufender Verbrauch + Vorrat für die nächste Forschung, aufzufüllen in etwa 15 Minuten).
@@ -252,7 +252,7 @@ function botWants() {
   if ((stats.needs.waerme ?? 1) < 1) { const h = botUncovered('warmth', botBest('waerme')); if (h) w.push([botBest('waerme'), h]); }
   if ((stats.needs.glaube ?? 1) < 1) { const h = botUncovered('belief', botBest('glaube')); if (h) w.push([botBest('glaube'), h]); }
   // Waren für Bedürfnisse, Verarbeiter und Forschung (Verarbeiter zuerst, dann ihre Rohstoffe)
-  for (const res of ['kleidung', 'toepferwaren', 'werkzeug', 'felle', 'ton']) {
+  for (const res of ['kupfer', 'kleidung', 'toepferwaren', 'werkzeug', 'felle', 'ton', 'holzkohle', 'kupfererz']) {
     const type = botBest(BOT_MAKER[res]);
     if (type && isUnlocked(type) && botNeedsMore(res)) w.push([type]);
   }

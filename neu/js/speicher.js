@@ -98,6 +98,8 @@ function sanitizeState(data) {
     for (const [id, t] of Object.entries(data.needSince)) if (RESOURCES[id] && Number.isFinite(t)) s.needSince[id] = t;
   for (const key of ['pop', 'yearTime', 'playTime', 'savedAt', 'herdWait', 'disasterCalm', 'hunger', 'wishWait', 'wishesDone', 'huntsDone', 'tradesDone']) if (Number.isFinite(data[key]) && data[key] >= 0) s[key] = data[key];
   s.pop = Math.floor(s.pop);
+  for (const key of ['wishesDone', 'huntsDone', 'tradesDone']) s[key] = Math.floor(s[key]);   // Zähler sind ganze Zahlen (sonst Absturz bei handbearbeiteten Ständen)
+  if (typeof data.researchNext === 'string' && TECHS[data.researchNext] && !s.techs[data.researchNext]) s.researchNext = data.researchNext;
   if (data.trader && typeof data.trader === 'object') {
     const t = data.trader, num = v => (Number.isFinite(v) && v >= 0 ? v : 0);
     s.trader = { wait: num(t.wait), left: num(t.left), visit: Math.floor(num(t.visit)), done: Array.isArray(t.done) ? t.done.filter(id => CONFIG.trader.offers.some(o => o.id === id)) : [] };

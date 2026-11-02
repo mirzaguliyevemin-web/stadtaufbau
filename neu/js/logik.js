@@ -44,6 +44,12 @@ function addResources(amounts, factor = 1) {
   }
 }
 
+// Belohnungen und Tausch dürfen übers Lager hinausgehen (Emin, 02.11.: bei vollem Lager verpufften Jagd und Tagesbelohnung).
+// Herstellen füllt nur bis zur Grenze; was darüber liegt, bleibt, bis es verbraucht wird.
+function addReward(amounts) {
+  for (const [id, n] of Object.entries(amounts || {})) state.res[id] = (state.res[id] || 0) + n;
+}
+
 // Lagerplatz für eine Ware (Wissen hat einen eigenen Speicher)
 function capOf(id) {
   return RESOURCES[id].knowledge ? knowledgeCap() : productionCap !== null ? productionCap : storageCap();
@@ -688,6 +694,15 @@ function foodPerHead() {
   return upkeepPerHead('nahrung') * CONFIG.foodSeason[seasonIndex()] * effectFood();
 }
 
+// So viel Metall bleibt für Bauen und Forschung liegen: mindestens die Reserve, mehr, wenn eine startbare Forschung mehr kostet
+function metalReserve(id) {
+  let most = CONFIG.metalReserve[id] || 0;
+  for (const tid of Object.keys(TECHS)) {
+    if (!TECHS[tid].soon && techStatus(tid) === 'available' && (TECHS[tid].cost[id] || 0) > most) most = TECHS[tid].cost[id];
+  }
+  return most;
+}
+
 let productionCap = null;   // während eines Produktionsschritts nur einmal ausrechnen (bei vielen Gebäuden spürbar)
 
 function updateProduction(dt) {
@@ -700,6 +715,12 @@ function updateProductionStep(dt) {
   // flows[Ware] = { in: { Gebäudetyp: je Minute }, out: { Verbraucher: je Minute } } – für das Info-Fenster
   const flows = {};
   const flow = (id, dir, who, n) => { const f = (flows[id] ||= { in: {}, out: {} }); f[dir][who] = (f[dir][who] || 0) + n; };
+  const reserve = {};      // Metall, das Werkstätten liegen lassen (einmal je Schritt ausrechnen)
+  const available = id => {
+    if (!CONFIG.metalReserve[id]) return state.res[id] || 0;
+    if (reserve[id] === undefined) reserve[id] = metalReserve(id);
+    return Math.max(0, (state.res[id] || 0) - reserve[id]);
+  };
   const inputShare = [];   // je Gebäude: welcher Anteil läuft trotz Rohstoffmangel (1 = alles da)
   const throttled = new Set();   // Waren, deren Herstellung wegen vollem Lager gebremst wurde
   const potential = {};          // je Ware: was alle Gebäude ohne Lagergrenze je Minute herstellen könnten
@@ -723,7 +744,7 @@ function updateProductionStep(dt) {
       const before = f;
       for (const [id, n] of Object.entries(def.consumes)) {
         const need = n * f * dt / 60;
-        if (need > 0) f = Math.min(f, f * (state.res[id] || 0) / need);
+        if (need > 0) f = Math.min(f, f * available(id) / need);
       }
       inputShare[i] = before > 0 ? f / before : 1;
       for (const [id, n] of Object.entries(def.consumes)) {
@@ -847,12 +868,40 @@ function startResearch(id) {
   if (problem) return problem;
   payCost(TECHS[id].cost);
   state.research = { id, left: TECHS[id].time };
+  if (state.researchNext === id) state.researchNext = null;
   emit('researchStarted', id);
   return null;
 }
 
+// Eine Forschung vormerken (Emin, 02.11.): Sie startet von selbst, sobald die laufende fertig und alles dafür da ist – auch offline.
+// Bezahlt wird erst beim Start. Es gibt nur einen Platz. Vorgemerkt werden kann, was gleich danach dran sein kann.
+function queueProblem(id) {
+  const t = TECHS[id];
+  if (!t || !state.research) return 'Gerade läuft keine Forschung';
+  if (state.techs[id] || state.research.id === id) return 'Schon erforscht oder in Arbeit';
+  if (t.soon) return `${t.name} kommt mit dem nächsten Ausbau`;
+  const open = t.requires.filter(r => !state.techs[r] && state.research.id !== r);
+  if (open.length) return 'Erst: ' + open.map(r => TECHS[r].name).join(', ');
+  return null;
+}
+
+function toggleQueue(id) {
+  if (state.researchNext === id) { state.researchNext = null; return null; }
+  const problem = queueProblem(id);
+  if (problem) return problem;
+  state.researchNext = id;
+  return null;
+}
+
+function updateQueue() {
+  const id = state.researchNext;
+  if (!id || state.research) return;
+  if (!TECHS[id] || state.techs[id]) { state.researchNext = null; return; }
+  if (!researchProblem(id)) startResearch(id);   // fehlt noch etwas: bleibt vorgemerkt und startet, sobald es da ist
+}
+
 function updateResearch(dt) {
-  if (!state.research) return;
+  if (!state.research) { updateQueue(); return; }
   state.research.left -= dt;
   if (state.research.left > 0) return;
   const id = state.research.id;
@@ -860,7 +909,7 @@ function updateResearch(dt) {
   state.techs[id] = true;
   const e = TECHS[id].effect || {};
   if (e.stage && stageIndex(e.stage) > stageIndex()) state.stage = e.stage;
-  if (e.gift) addResources(e.gift);
+  if (e.gift) addReward(e.gift);
   emit('researchDone', id);
   const changed = evolveBuildings();
   if (changed.length) emit('evolved', changed);
@@ -939,7 +988,7 @@ function updateHunt(dt) {
     if (state.hunt.left > 0) return;
     // Jägerlager inzwischen abgerissen: niemand bringt die Beute heim
     const reward = huntCamps().length ? huntReward() : {};
-    addResources(reward);
+    addReward(reward);
     state.hunt = null;
     state.huntsDone++;
     state.herdWait = CONFIG.hunt.herdWait;
@@ -962,7 +1011,7 @@ function updateTrader(dt) {
   const t = state.trader;
   if (t.left > 0) {
     t.left = Math.max(0, t.left - dt);
-    if (t.left === 0) { t.wait = CONFIG.trader.every - techSum('traderFaster'); emit('traderLeft'); }
+    if (t.left === 0) { t.wait = Math.max(0, CONFIG.trader.every - techSum('traderFaster') - CONFIG.trader.stay); emit('traderLeft'); }
     return;
   }
   if (!tradePosts().length) return;
@@ -998,7 +1047,7 @@ function doTrade(id) {
   if (problem) return problem;
   const o = CONFIG.trader.offers.find(x => x.id === id);
   payCost(o.give);
-  addResources(o.get);
+  addReward(o.get);
   state.trader.done.push(id);
   state.tradesDone++;
   emit('traded', o);
@@ -1025,9 +1074,14 @@ function questProgress(q) {
 }
 
 // Kann man an diesem Auftrag gerade nichts tun, weil erst eine Forschung fehlt?
+function questImpossible(q) {
+  return !!q.goal.hunts && mammothsExtinct() && !questDone(q);   // die Mammuts sind ausgestorben, bevor man auf die Jagd ging
+}
+
 function questBlocked(q) {
   const g = q.goal;
   if (q.requires && !state.techs[q.requires]) return true;
+  if (questImpossible(q)) return true;
   if (g.tech) return true;   // Fernziel: nimmt erst einen Platz ein, wenn sonst nichts zu tun ist
   if (g.build) return !isUnlocked(g.build);
   if (g.resource) return !hasMaker(g.resource);
@@ -1037,9 +1091,16 @@ function questBlocked(q) {
 // Höchstens 3 sichtbar: zuerst, was fertig ist oder was man jetzt angehen kann (Emin, 02.11.: gesperrte Aufträge
 // verstopften die Liste, und es gab nichts mehr zu tun), danach Fernziele.
 function activeQuests() {
-  const open = QUESTS.filter(q => !state.quests[q.id]);
+  const open = QUESTS.filter(q => !state.quests[q.id] && !questImpossible(q));
   const now = open.filter(q => questDone(q) || !questBlocked(q));
-  return [...now, ...open.filter(q => !now.includes(q))].slice(0, 3);
+  // höchstens ein Wunsch-Auftrag auf einmal (sonst belegten sie alle 3 Plätze, Analyse 02.11.)
+  let wish = false;
+  return [...now, ...open.filter(q => !now.includes(q))].filter(q => {
+    if (!q.goal.wishes) return true;
+    if (wish) return false;
+    wish = true;
+    return true;
+  }).slice(0, 3);
 }
 
 // ---------------------------------------------------------------------
@@ -1059,9 +1120,12 @@ function updateWishes(dt) {
 function currentWish() {
   if (state.wishWait > 0 || state.tutorial >= 0) return null;
   const w = CONFIG.wishes;
-  const goods = Object.keys(w.amount).filter(hasMaker);
+  // nur Waren, für die schon ein Hersteller steht; ein offener Wunsch wechselt nach einer Weile
+  const made = new Set();
+  for (const b of state.buildings) if (!b.build) for (const res of Object.keys(BUILDINGS[b.type].produces || {})) made.add(res);
+  const goods = Object.keys(w.amount).filter(res => made.has(res));
   if (!goods.length) return null;
-  const id = goods[(state.wishesDone + (state.seed >>> 0)) % goods.length];
+  const id = goods[(state.wishesDone + (state.seed >>> 0) + Math.floor(state.playTime / w.change)) % goods.length];
   const k = 1 + w.stagePlus * stageIndex();
   const amount = Math.max(5, Math.round(Math.min(w.amount[id] * k, capOf(id) * 0.6) / 5) * 5);
   return { id, amount, text: w.text[id], wissen: Math.round(w.wissen * k) };
@@ -1072,7 +1136,7 @@ function fulfillWish() {
   const wish = currentWish();
   if (!wish || !canAfford({ [wish.id]: wish.amount })) return null;
   payCost({ [wish.id]: wish.amount });
-  addResources({ wissen: wish.wissen });
+  addReward({ wissen: wish.wissen });
   const faster = state.research ? Math.min(CONFIG.wishes.researchSeconds, Math.max(0, state.research.left - 1)) : 0;
   if (state.research) state.research.left -= faster;
   state.wishesDone++;
@@ -1090,7 +1154,7 @@ function claimQuest(id) {
   const q = QUESTS.find(x => x.id === id);
   if (!q || state.quests[id] || !activeQuests().includes(q) || !questDone(q)) return false;
   state.quests[id] = true;
-  addResources(q.reward);
+  addReward(q.reward);
   emit('questClaimed', q);
   return true;
 }
@@ -1115,7 +1179,7 @@ function claimDailyReward() {
   const day = state.daily.pending;
   if (!day) return null;
   const reward = DAILY_REWARDS[day - 1];
-  addResources(reward);
+  addReward(reward);
   state.daily.pending = 0;
   return reward;
 }
@@ -1148,6 +1212,7 @@ function update(dt) {
 // Während offline nachgerechnet wird: keine Fenster öffnen, sondern Wichtiges für „Willkommen zurück“ sammeln
 let offlineRunning = false, offlineEvents = [];
 on('disaster', id => { if (offlineRunning) offlineEvents.push(`${DISASTERS[id].icon} ${DISASTERS[id].name}: ${DISASTERS[id].text}`); });
+on('researchStarted', id => { if (offlineRunning) offlineEvents.push(`📌 Von selbst gestartet: ${TECHS[id].name}`); });
 on('researchDone', id => { if (offlineRunning) offlineEvents.push(`📜 Erforscht: ${TECHS[id].name}${TECHS[id].effect && TECHS[id].effect.stage ? ' – ein neues Zeitalter beginnt!' : ''}`); });
 
 function applyOfflineProgress(savedAt, now = Date.now()) {

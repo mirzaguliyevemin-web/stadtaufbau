@@ -21,9 +21,10 @@ Abweichungen vom Entwurf:
 - Das erste Angebot bringt immer Zinn, Bernstein kommt erst mit der Späten Bronzezeit.
 - Neu festgelegt (im Entwurf offen): Bronzeschmied verbraucht 1 Bronze + 1 Holz, ist wie die anderen Gebäude mit neuen Zutaten nur per Knopf umzubauen.
 - Schmuck: Der Entwurf wollte 0,02 Schmuck je Einwohner und Minute (280 Einwohner: 5,6 je Minute), Bernstein gibt es aber nur beim Händler.
-  Darum: Bedarf 0,005 je Einwohner und Minute, 1 Bronze + 1 Bernstein → 2 Schmuck, Angebote 15 Kleidung → 10 Bernstein und 10 Bronze → 12 Bernstein, ab der „Bernsteinstraße“ beide bei jedem Besuch.
+  Darum (seit Version 72, nach der Analyse vom 02.11.): Bedarf 0,003 je Einwohner und Minute, 1 Bronze + 1 Bernstein → 2 Schmuck, Angebote 15 Kleidung → 10 Bernstein und 10 Bronze → 12 Bernstein, ab der „Bernsteinstraße“ beide bei jedem Besuch.
 - Das Sonnwendfest lässt die Menschen am Dorfplatz tanzen, spielt Musik und hebt die Laune um 15; es ergibt sich aus der Jahreszeit und muss nicht gespeichert werden.
 - Der Aufbruch in die Eisenzeit verlangt nicht jedes Bronzezeit-Gebäude, sondern eine feste Liste in `TECH_NEEDS`; er lässt sich noch nicht starten.
+- Seit Version 72: Der Händler kommt wirklich alle 20 (15) Minuten von Ankunft zu Ankunft. Werkstätten lassen Kupfer und Bronze liegen (mindestens 30, mehr, wenn eine startbare Forschung mehr kostet), sonst blieb nichts für Bauen und Forschung.
 - Forschung verlangt Gebäude: siehe `TECH_NEEDS` in `neu/js/daten.js`.
 
 Der „Aufbruch in die Eisenzeit“ ist sichtbar, lässt sich aber erst starten, wenn die Eisenzeit einen eigenen Entwurf hat und gebaut ist.

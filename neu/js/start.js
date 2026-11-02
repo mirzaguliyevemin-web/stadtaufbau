@@ -103,16 +103,17 @@ let qualityTime = 0, qualityFrames = 0;
 // nur 30 Bilder pro Sekunde, das Spiel ist dabei aber gar nicht überlastet)
 let qualityBusy = 0;
 function adaptQuality(dt, busyMs) {
-  if (!(dt > 0)) return;
+  if (!(dt > 0)) return false;
   qualityTime += dt; qualityFrames++; qualityBusy += busyMs || 0;
-  if (qualityTime < 2) return;
+  if (qualityTime < 2) return false;
   const busy = qualityBusy / qualityFrames;
   qualityTime = 0; qualityFrames = 0; qualityBusy = 0;
   const native = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
   if (busy > 12 && native * renderScale > 1) renderScale = Math.max(1 / native, renderScale - 0.15);
   else if (busy < 6 && renderScale < 1) renderScale = Math.min(1, renderScale + 0.05);
-  else return;
+  else return false;
   resizeCanvas();
+  return true;   // die Karte ist jetzt leer und muss gleich neu gezeichnet werden
 }
 
 function loop(now) {
@@ -128,7 +129,7 @@ function loop(now) {
   // Eine Seite (Aufträge, Forschung, Menü) verdeckt die Karte ganz: nicht mitzeichnen, sonst reagieren die Knöpfe dort träge (Emin, 02.11.)
   if (!pageOpen) {
     drawScene(dt);
-    adaptQuality(dt, performance.now() - t0);
+    if (adaptQuality(dt, performance.now() - t0)) drawScene(0);
   }
   uiTimer += dt;
   if (uiTimer > 0.25) {

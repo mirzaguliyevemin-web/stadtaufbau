@@ -26,6 +26,7 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     saplings: [],            // Setzlinge: [Feld, Alter in Sekunden]
     techs: {},
     research: null,          // { id, left }
+    researchNext: null,      // vorgemerkte Forschung (startet von selbst)
     hunt: null,              // Mammutjagd unterwegs: { left, cx, cy, x, y }
     disaster: null,          // Naturkatastrophe gerade: { id, left } (Sekunden)
     disasterCalm: 0,         // Sekunden seit der letzten Katastrophe (bzw. seit Spielbeginn)

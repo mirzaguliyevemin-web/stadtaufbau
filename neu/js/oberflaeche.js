@@ -164,7 +164,7 @@ function resourceTip(id) {
   const rows = (obj, sign) => Object.entries(obj).filter(([, n]) => n > 0.005).sort((a, b) => b[1] - a[1])
     .map(([k, n]) => `<div><span>${who(k)}</span><b class="${sign === '+' ? 'good' : 'bad'}">${sign}${perMin(n)}</b></div>`).join('') || '<div><small>nichts</small></div>';
   const net = stats.rates[id] || 0, stock = state.res[id] || 0, cap = storageCap();
-  const when = net < -0.01 ? `leer in ${formatTime(stock / -net * 60)}` : net > 0.01 && stock < (r.knowledge ? knowledgeCap() : cap) ? `voll in ${formatTime(((r.knowledge ? knowledgeCap() : cap) - stock) / net * 60)}` : '';
+  const when = stock >= (r.knowledge ? knowledgeCap() : cap) ? 'Lager voll' : net < -0.01 ? `leer in ${formatTime(stock / -net * 60)}` : net > 0.01 && stock < (r.knowledge ? knowledgeCap() : cap) ? `voll in ${formatTime(((r.knowledge ? knowledgeCap() : cap) - stock) / net * 60)}` : '';
   const makers = Object.keys(BUILDINGS).filter(t => (BUILDINGS[t].produces || {})[id] !== undefined);
   const touches = e => makers.some(t => { const b = e.effect.buildings || {}; return b[t] !== undefined || (e.effect.outdoor !== undefined && OUTDOOR_WORK.includes(t)) || (e.effect.water !== undefined && BUILDINGS[t].needsWater) || e.effect.workers !== undefined; })
     || (id === 'nahrung' && e.effect.food);
@@ -847,7 +847,7 @@ function researchItemHtml(id) {
     meta = `<span class="rs-meta">${costHtml(t.cost)}<span class="rs-time">⏱ ${formatTime(t.time)}</span>${fewPeople ? `<span class="rs-time bad">👥 ${t.population}</span>` : ''}${techBuildGaps(id).length ? `<span class="rs-time bad">🔨 ${techBuildGaps(id).reduce((n, g) => n + g.need - g.have, 0)}</span>` : ''}</span>`;
   }
   return `<button class="rs-item ${status}${researchSelected === id ? ' sel' : ''}" onclick="selectTech('${id}')">
-    <span class="rs-pic">${iconHtml(t.bild, t.icon)}</span><span class="rs-mid"><span class="rs-name">${esc(t.name)}</span>${meta}</span><span class="rs-arrow">›</span></button>`;
+    <span class="rs-pic">${iconHtml(t.bild, t.icon)}</span><span class="rs-mid"><span class="rs-name">${esc(t.name)}${state.researchNext === id ? ' <small>📌 Danach</small>' : ''}</span>${meta}</span><span class="rs-arrow">›</span></button>`;
 }
 
 function researchListHtml() {
@@ -937,13 +937,15 @@ function techDetailHtml() {
   const { label, hint } = researchHint(id);
   const button = status === 'done' ? '<button class="rs-go good" disabled>✔ Erforscht</button>'
     : status === 'running' ? `<button class="rs-go run" disabled>⏳ Läuft … noch ${formatTime(state.research.left)}</button>`
+    : state.researchNext === id ? `<button class="rs-go ready" onclick="doQueue('${id}')">📌 Vormerkung aufheben</button>`
+    : state.research && !queueProblem(id) ? `<button class="rs-go ready" onclick="doQueue('${id}')">📌 Danach erforschen</button>`
     : `<button class="rs-go${label === '📜 Erforschen' ? ' ready' : ''}" ${label === '📜 Erforschen' ? '' : 'disabled'} onclick="doResearch('${id}')">${esc(label)}</button>`;
   return `${close}<div class="rs-dhead"><span class="rs-med ${status}">${iconHtml(t.bild, t.icon)}</span><div><h3>${esc(t.name)}</h3>
       ${others.length ? `<div class="rs-effects">${others.map(e => `<span class="tag">${esc(e)}</span>`).join('')}</div>` : ''}</div></div>
     <div class="rs-facts"><div class="rs-fact">Dauer<b>⏱ ${formatTime(t.time)}</b></div>${people}<div class="rs-fact">Vorher erforscht<b class="rs-req">${req}</b></div></div>
     ${news.length ? `<div class="rs-sec rs-sec-new"><h4>Neu zum Bauen</h4>${news.map(def => `<div class="rs-new">${iconHtml(def.bild, def.icon)}<div><b>${esc(def.name)}${def.upgradeOnly ? ' <small>(Weiterentwicklung)</small>' : ''}</b><span>${esc(def.info || '')}</span></div></div>`).join('')}</div>` : ''}
     ${buildSec}<div class="rs-sec"><h4>Kostet</h4><div class="rs-costs">${costHtml(t.cost)}</div></div>
-    ${hint && status === 'available' ? `<p class="rs-hint">${esc(hint)}</p>` : ''}
+    ${state.researchNext === id ? `<p class="rs-hint neutral">Startet von selbst, sobald die laufende Forschung fertig und alles dafür da ist – auch wenn das Spiel zu ist. Bezahlt wird beim Start.${researchProblem(id) && !state.research ? ' Gerade fehlt: ' + esc(researchProblem(id)) : ''}</p>` : hint && status === 'available' && !(state.research && !queueProblem(id)) ? `<p class="rs-hint">${esc(hint)}</p>` : ''}
     <div class="rs-action">${button}</div>`;
 }
 
@@ -996,6 +998,13 @@ function closeTechSheet(fromHistory = false) {
   if (!researchSheet) return;
   researchSheet = false;
   if (!fromHistory) popEntries(1);
+  refreshResearchPage();
+}
+
+function doQueue(id) {
+  const problem = toggleQueue(id);
+  if (problem) { toast(problem); return; }
+  toast(state.researchNext === id ? `📌 ${TECHS[id].name} startet danach von selbst` : '📌 Vormerkung aufgehoben');
   refreshResearchPage();
 }
 
@@ -1076,9 +1085,10 @@ function traderCardHtml() {
 }
 
 function questsHtml() {
-  const doneCount = Object.keys(state.quests).length;
-  const head = `<div class="quest-sum"><span>🏆 Erledigt <b>${doneCount}</b> von ${QUESTS.length}</span>
-    <span class="q-bar thin"><i style="width:${Math.round(100 * doneCount / QUESTS.length)}%"></i></span></div>`;
+  const total = QUESTS.filter(q => state.quests[q.id] || !questImpossible(q)).length;
+  const doneCount = QUESTS.filter(q => state.quests[q.id]).length;
+  const head = `<div class="quest-sum"><span>🏆 Erledigt <b>${doneCount}</b> von ${total}</span>
+    <span class="q-bar thin"><i style="width:${Math.round(100 * doneCount / total)}%"></i></span></div>`;
   const list = activeQuests();
   if (!list.length) return `<div class="quests">${head}${traderCardHtml()}${wishHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p></div>`;
   return `<div class="quests">${head}${traderCardHtml()}${wishHtml()}` + list.map(q => {

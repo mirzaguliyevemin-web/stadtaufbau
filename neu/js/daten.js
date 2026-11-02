@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 71;
+const APP_VERSION = 72;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -57,6 +57,7 @@ const CONFIG = {
   // bringt etwas Wissen und verkürzt die laufende Forschung. Es wartet immer höchstens ein Wunsch.
   wishes: {
     pause: 300,           // so viele Sekunden nach einem erfüllten Wunsch kommt der nächste
+    change: 600,          // ein offener Wunsch wechselt nach 10 Minuten zu einer anderen Ware (sonst hing er bis zu 70 Minuten fest)
     researchSeconds: 90,  // so viel kürzer wird die laufende Forschung
     wissen: 8,            // so viel Wissen gibt es dazu (je Zeitalter mehr, siehe stagePlus)
     stagePlus: 0.25,      // je Zeitalter wollen und geben Wünsche 25 % mehr
@@ -83,7 +84,7 @@ const CONFIG = {
   // Händler (Emin, 02.11.): kommt nur, solange man spielt, kein Geld – Waren gegen Waren. Jedes Angebot geht einmal je Besuch.
   trader: {
     firstWait: 60,        // so bald nach dem ersten Handelsplatz kommt der erste Händler
-    every: 1200,          // danach alle 20 Minuten (mit „Rad und Wagen“ alle 15, siehe traderFaster)
+    every: 1200,          // von Ankunft zu Ankunft 20 Minuten (mit „Rad und Wagen“ 15, siehe traderFaster)
     stay: 300,            // er bleibt 5 Minuten
     count: 3,             // so viele Angebote zeigt er (mit der „Bernsteinstraße“ eines mehr, siehe traderOffers)
     offers: [             // das erste Angebot ist immer eines für Zinn (damit Handel sich lohnt)
@@ -101,6 +102,9 @@ const CONFIG = {
       { id: 'bronze_bernstein', give: { bronze: 10 },   get: { bernstein: 12 }, requires: 'bernsteinstrasse' },
     ],
   },
+  // Werkstätten lassen so viel Metall liegen (mindestens; mehr, wenn eine startbare Forschung mehr kostet), sonst verbrauchen
+  // Gießer und Schmiede alles und man kommt nie auf die Kosten für Bauen und Forschung (Analyse 02.11.: bis 12 Stunden Stillstand)
+  metalReserve: { kupfer: 30, bronze: 30 },
   fest: { happy: 15, seconds: 300 },   // Sonnwendfest (nach der „Himmelsscheibe“): mitten im Sommer 5 Minuten Fest, Laune +15
   hunt: {                 // Mammutjagd (nach der Forschung „Mammutjagd“, bis zur Jungsteinzeit)
     seconds: 60,          // so lange sind die Jäger unterwegs
@@ -165,7 +169,7 @@ const NEEDS = [
   { id: 'glaube',       name: 'Glaube',               icon: '🗿', from: 'mittel', kind: 'area' },
   { id: 'toepferwaren', name: 'Töpferwaren',          icon: '🏺', from: 'jung',   kind: 'stock' },
   { id: 'werkzeug',     name: 'Werkzeug',             icon: '🗡️', from: 'frueh',  kind: 'stock', perPerson: 0.01 },   // perPerson: je Einwohner und Minute, sonst CONFIG.goodsPerPerson
-  { id: 'schmuck',      name: 'Schmuck',              icon: '💍', from: 'spaet',  kind: 'stock', perPerson: 0.005 },   // Bernstein gibt es nur beim Händler: darf nicht mehr verlangen, als er bringt
+  { id: 'schmuck',      name: 'Schmuck',              icon: '💍', from: 'spaet',  kind: 'stock', perPerson: 0.003 },   // Bernstein gibt es nur beim Händler: darf nicht mehr verlangen, als er bringt
 ];
 
 const SEASONS = [
@@ -336,7 +340,7 @@ const BUILDINGS = {
   fellmacherin: {
     name: 'Fellmacherin', icon: '🧥', size: 2, line: 'kleidung', tier: 0, stage: 'mittel', bild: '1-fellmacherin', views: ['r2'],
     color: '#a8784a', cost: { holz: 40, stein: 20 }, time: 90, workers: 2, consumes: { felle: 4 }, produces: { kleidung: 2.5 }, upgradeTo: 'weberin',
-    requires: 'fellbearbeitung', info: 'Näht aus 2 Fellen 1 Kleidung.',
+    requires: 'fellbearbeitung', info: 'Näht aus Fellen Kleidung: aus 8 Fellen werden 5 Kleidung.',
   },
   steinschlaeger: {
     name: 'Steinschläger', icon: '🗡️', size: 2, line: 'werkzeug', tier: 0, stage: 'mittel', bild: '1-steinschlaeger', views: ['r2'],
@@ -356,7 +360,7 @@ const BUILDINGS = {
   toepferei: {
     name: 'Töpferei', icon: '🏺', size: 2, line: 'toepfern', tier: 0, stage: 'jung', bild: '1-toepferei', views: ['r2'],
     color: '#b8643a', cost: { holz: 50, stein: 40 }, time: 120, workers: 2, consumes: { ton: 2, holz: 1 }, produces: { toepferwaren: 1.25 }, upgradeTo: 'toepferwerkstatt',
-    requires: 'toepfern', info: 'Formt und brennt aus 2 Ton und 1 Holz 1 Töpferware.',
+    requires: 'toepfern', info: 'Formt und brennt aus Ton und Holz Töpferwaren: aus 8 Ton und 4 Holz werden 5 Töpferwaren.',
   },
   vorratsspeicher: {
     name: 'Vorratsspeicher', icon: '🛖', size: 3, line: 'lager', tier: 0, stage: 'jung', bild: '1-vorratsspeicher', views: ['r2'],
@@ -417,7 +421,7 @@ const BUILDINGS = {
     name: 'Kupferschmied', icon: '🔨', size: 2, line: 'werkzeug', tier: 1, stage: 'kupfer', bild: '1-steinschlaeger', views: ['r2'],
     color: '#b5683a', cost: { holz: 40, stein: 50, kupfer: 10 }, time: 90, workers: 2, consumes: { kupfer: 1, holz: 1 }, produces: { werkzeug: 2 },
     requires: 'kupferschmied', manualUpgrade: true, upgradeTo: 'bronzeschmied',
-    info: 'Schmiedet aus 1 Kupfer und 1 Holz 2 Werkzeuge. Braucht Kupfer – darum nur per Knopf umbauen, wenn es da ist.',
+    info: 'Schmiedet aus 1 Kupfer und 1 Holz 2 Werkzeuge. Lässt etwas Kupfer für Bauen und Forschung liegen. Braucht Kupfer – darum nur per Knopf umbauen, wenn es da ist.',
   },
   kupfermine: {
     name: 'Kupfermine', icon: '⛏️', size: 3, line: 'erz', tier: 0, stage: 'kupfer', bild: '2-kupfermine',
@@ -465,7 +469,7 @@ const BUILDINGS = {
   bronzeschmied: {
     name: 'Bronzeschmied', icon: '⚒️', size: 2, line: 'werkzeug', tier: 2, stage: 'frueh', bild: '1-steinschlaeger', views: ['r2'],
     color: '#b5683a', cost: { holz: 40, stein: 60, bronze: 10 }, time: 90, workers: 2, consumes: { bronze: 1, holz: 1 }, produces: { werkzeug: 3 }, requires: 'bronzewerkzeug', manualUpgrade: true,
-    info: 'Schmiedet aus 1 Bronze und 1 Holz 3 Werkzeuge. Braucht Bronze: darum nur per Knopf umbauen, wenn sie da ist.',
+    info: 'Schmiedet aus 1 Bronze und 1 Holz 3 Werkzeuge. Lässt etwas Bronze für Bauen und Forschung liegen. Braucht Bronze: darum nur per Knopf umbauen, wenn sie da ist.',
   },
   toepferwerkstatt: {
     name: 'Töpferwerkstatt', icon: '🏺', size: 2, line: 'toepfern', tier: 1, stage: 'frueh', bild: '1-toepferei', views: ['r2'],
@@ -480,7 +484,7 @@ const BUILDINGS = {
   bronzegiesser: {
     name: 'Bronzegießer', icon: '🥉', size: 2, line: 'bronze', tier: 0, stage: 'frueh', bild: '2-bronzegiesser',
     color: '#b08a3a', cost: { stein: 60, kupfer: 20 }, time: 120, workers: 2, consumes: { kupfer: 2, zinn: 1 }, produces: { bronze: 1 }, requires: 'bronzeguss',
-    info: 'Gießt aus 2 Kupfer und 1 Zinn 1 Bronze – härter als alles bisher.',
+    info: 'Gießt aus 2 Kupfer und 1 Zinn 1 Bronze – härter als alles bisher. Lässt etwas Kupfer für Bauen und Forschung liegen.',
   },
   handelsplatz: {
     name: 'Handelsplatz', icon: '🤝', size: 3, line: 'handel', tier: 0, stage: 'frueh', bild: '2-handelsplatz',
@@ -516,7 +520,7 @@ const BUILDINGS = {
   schmuckmacherin: {
     name: 'Schmuckmacherin', icon: '💍', size: 2, line: 'schmuck', tier: 0, stage: 'spaet', bild: '2-schmuckmacherin',
     color: '#c79a3a', cost: { holz: 60, stein: 40, bronze: 15 }, time: 120, workers: 2, consumes: { bronze: 1, bernstein: 1 }, produces: { schmuck: 2 }, requires: 'schmuckkunst',
-    info: 'Macht aus 1 Bronze und 1 Bernstein 2 Stück Schmuck. Bernstein bringt nur der Händler.',
+    info: 'Macht aus 1 Bronze und 1 Bernstein 2 Stück Schmuck. Bernstein bringt nur der Händler. Lässt etwas Bronze für Bauen und Forschung liegen.',
   },
   fuerstenhuegel: {
     name: 'Fürstenhügel', icon: '⛰️', size: 4, line: 'wahrzeichen', tier: 1, stage: 'spaet', bild: '2-fuerstenhuegel',
@@ -813,7 +817,7 @@ const TUTORIAL = [
   { id: 'sammlerin', ruf: 'Hier wächst viel!', text: 'Zieh die *Sammlerin* her.', ok: 'Gut!', belohnung: { nahrung: 5 },
     hilfe: 'Finger auf die *Sammlerin*, ziehen, dann ✔ tippen.', target: 'bar:sammlerin' },
   { id: 'pfad', ruf: 'Oje, kein Weg!', text: 'Wähl unten den *Trampelpfad*.', ok: 'Der Weg steht!',
-    hilfe: 'Oder tipp die Baustelle an, dann „Weg bauen“.', target: 'bar:pfad' },
+    hilfe: 'Oder tipp die Baustelle an, dann „Mehr“ und „Weg bauen“.', target: 'bar:pfad' },
   { id: 'antippen', ruf: 'Sie ist fertig.', text: 'Tipp sie an!', ok: 'So siehst du alles über sie.',
     hilfe: 'Bis zu 2 Baustellen gehen gleichzeitig.' },
   { id: 'holzsammler', ruf: 'Mir wird kalt. Wir brauchen Holz!', text: 'Bau den *Holzsammler* am Wald.', ok: 'Am Wald sammelt er mehr.', belohnung: { holz: 5 },

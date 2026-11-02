@@ -269,7 +269,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .bar-item .txt { display: flex; flex-direction: column; align-items: center; max-width: 100%; }
 .bar-item .name { font-size: 11px; font-weight: bold; text-align: center; line-height: 1.1; }
-.bar-item .costs { font-size: 10px; white-space: nowrap; overflow: hidden; max-width: 100%; }
+.bar-item .costs { font-size: 10px; white-space: normal; text-align: center; line-height: 1.15; max-width: 100%; }   /* umbrechen statt abschneiden (Handy hochkant) */
 .bar-item.locked { filter: grayscale(0.9); opacity: 0.6; }
 .bar-item.poor .ic { opacity: 0.7; }
 .bar-item .new { position: absolute; top: -5px; right: -3px; background: var(--red); color: #fff; font-size: 10px; font-weight: bold; border-radius: 8px; padding: 1px 6px; }
@@ -895,3 +895,4 @@ details.more[open] summary { margin-bottom: 4px; }
 }
 .wish-card.later { border-color: #ead3a3; background: #fffdf6; opacity: 0.85; }
 .wish-card .q-main > span:not(.q-reward) { font-size: 14px; }
+.rs-hint.neutral { color: #6b4a2b; }

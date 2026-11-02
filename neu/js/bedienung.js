@@ -362,7 +362,7 @@ function onBarPointerDown(e, type, locked) {
 function onBarPointerMove(e) {
   if (!barDrag || barDrag.id !== e.pointerId) return;
   const dx = e.clientX - barDrag.x, dy = e.clientY - barDrag.y;
-  if (!barDrag.dragging && !barDrag.locked && dy < -12 && Math.abs(dy) > Math.abs(dx)) {
+  if (!barDrag.dragging && !barDrag.locked && dy < -10 && Math.abs(dy) > 0.6 * Math.abs(dx)) {   // auch schräg nach oben (Handy quer)
     barDrag.dragging = true;
     beginBuild(barDrag.type, 0, 0);
   }

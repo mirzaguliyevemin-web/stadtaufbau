@@ -16,7 +16,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten (5 von 21 fertig, Rest bis nach dem 27.11.) (Canva-Pause auf Emins Wunsch).
+- Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten von Feuerplatz, Fellmacherin, Steinschläger, Ahnenplatz, Töpferei, Vorratsspeicher (Canva, das Spiel legt bis dahin selbst Schnee drauf). Bei Canva Option `--schnee` beim Einbauen; Prompt ohne „Fenster“.
 
 - Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, noch ohne Bilder (ab 27.11.). Offen: Erzader, Bronzezeit-Waren in der täglichen Belohnung. Plan: `docs/epoche-2-bronzezeit.md`.
 
@@ -26,6 +26,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-02, Epochia Version 72 – Wunsch Emin nach der großen Analyse: Forschung vormerken (startet von selbst, auch offline), Belohnungen und Tausch gehen übers Lager hinaus, Händler-Abstand richtig, Schmuck-Bedarf 0,003, Werkstätten lassen Metall liegen; Fehler behoben: Mammut-Auftrag hing, Wünsche hingen, Wunsch-Aufträge verstopften die Liste, leere Karte beim Wechsel der Qualität, falsche Anzeige „leer in …“, schräges Ziehen aus der Bauleiste, Texte, abgeschnittene Kosten.
+- 2026-11-02, Epochia Version 63–71 – Bilder: 8 Bronzezeit-Gebäude (nur Vorderansicht), 13 von 19 fehlenden Winterbildern der Steinzeit; Freistellen lässt Schnee ganz (`--schnee`).
 - 2026-11-02, Epochia Version 62 – Wunsch Emin: Späte Bronzezeit (Bernstein vom Händler, Schmuck, Hallenhaus, Fischerhaus, Sternkundiger, Heiliger Hain, Kornspeicher, Fürstenhügel, Sonnwendfest), ohne Bilder.
 - 2026-11-02, Epochia Version 61 – Wunsch Emin: Frühe Bronzezeit (Zinn, Bronze, Wolle, Händler, Bedürfnis Werkzeug, Weiterentwicklungen), ohne Bilder.
 - 2026-11-02, Epochia Version 60 – Wunsch Emin: Kupferzeit als erste Stufe der Bronzezeit (Aufbruch, Dorfplatz, Kupfermine, Köhler, Schmelzofen, 9 Weiterentwicklungen, 10 Forschungen, 4 neue Aufträge), noch mit Platzhaltern statt Bildern.

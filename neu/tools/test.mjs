@@ -362,6 +362,7 @@ test('Aufträge: gesperrte verstopfen die Liste nicht, Fernziel rückt nach', ()
 
 test('Wünsche des Stammes: Waren abgeben bringt Wissen und kürzere Forschung, dann Pause', () => {
   const g = fresh();
+  g.run(`{ const m = Math.floor(N / 2) + 12; state.buildings.push({ type: 'sammlerin', x: m, y: m, rot: 0, build: 0 }); rebuildOccupancy(); }`);
   const w = g.run(`currentWish()`);
   ok(w && w.amount > 0 && w.text, 'Kein Wunsch da');
   ok(g.run(`RESOURCES[currentWish().id] && hasMaker(currentWish().id)`), 'Wunsch nach einer Ware, die niemand herstellt');
@@ -540,7 +541,7 @@ test('Metall-Kette läuft wirklich: Erz + Kohle → Kupfer, Kupfer + Zinn → Br
     rebuildOccupancy();
     state.pop = 30; recalcStats();
     const verbunden = state.buildings.map((b, i) => [b.type, isConnected(i)]).filter(a => !a[1] && a[0] !== 'pfad' && a[0] !== 'bruecke').map(a => a[0]);
-    state.res.nahrung = 1000; state.res.kupfererz = 0; state.res.holzkohle = 0; state.res.kupfer = 0; state.res.zinn = 0; state.res.bronze = 0; state.res.werkzeug = 0; state.res.holz = 300;
+    state.res.nahrung = 1000; state.res.kupfererz = 0; state.res.holzkohle = 0; state.res.kupfer = 0; state.res.zinn = 0; state.res.bronze = 60; state.res.werkzeug = 0; state.res.holz = 300;
     for (let i = 0; i < 1800; i++) { state.res.holz = Math.max(state.res.holz, 300); state.res.nahrung = Math.max(state.res.nahrung, 500); update(1); }
     return { built, verbunden, res: { ...state.res }, flows: Object.fromEntries(['kupfererz', 'holzkohle', 'kupfer', 'zinn', 'bronze', 'werkzeug'].map(id => [id, stats.flows[id] || null])), staff: stats.staff.filter(n => n === 0).length };
   })()`);
@@ -587,10 +588,10 @@ test('Händler: kommt nur mit Handelsplatz, bleibt, tauscht einmal je Angebot, k
   ok(g.run(`state.trader.left`) === w, 'Händler läuft offline weiter');
   // Er geht; danach kommt er nach 20 Minuten wieder, mit Rad nach 15
   g.run(`for (let i = 0; i < CONFIG.trader.stay + 1; i++) update(1);`);
-  ok(!g.run(`traderHere()`) && g.run(`state.trader.wait`) > 1100, 'Händler bleibt zu lange');
+  ok(!g.run(`traderHere()`) && g.run(`state.trader.wait`) <= CONFIG_WAIT(g, false) && g.run(`state.trader.wait`) > CONFIG_WAIT(g, false) - 320, 'Händler bleibt zu lange oder kommt falsch wieder');
   ok(g.run(`doTrade('${offers[2]}')`) !== null, 'Tausch ohne Händler');
   g.run(`state.techs.rad = true; state.trader.left = 1; update(2);`);
-  ok(g.run(`state.trader.wait`) <= 900, 'Rad macht den Händler nicht schneller');
+  ok(g.run(`state.trader.wait`) === CONFIG_WAIT(g, true), 'Rad macht den Händler nicht schneller');
   noErrors(g);
 });
 
@@ -676,6 +677,99 @@ test('Sonnwendfest: nur mit Himmelsscheibe, mitten im Sommer, hebt die Laune', (
   g.run(`for (let i = 0; i < 400; i++) update(1);`);
   ok(g.run(`festNow()`) === false, 'Fest endet nicht');
   ok(g.run(`__l`) === 1, 'Fest wird mehrfach gemeldet');
+  noErrors(g);
+});
+
+// Von Ankunft zu Ankunft: 20 Minuten, mit Rad 15 (der Besuch zählt mit)
+function CONFIG_WAIT(g, rad) { return g.run(`CONFIG.trader.every - ${rad ? 'TECHS.rad.effect.traderFaster' : 0} - CONFIG.trader.stay`); }
+
+test('Vormerken: nächste Forschung startet von selbst, auch offline, bezahlt erst beim Start', () => {
+  const g = fresh();
+  g.run(`for (const id of Object.keys(TECH_NEEDS)) delete TECH_NEEDS[id];
+    state.tutorial = -1; state.res.wissen = 100; state.res.holz = 0; state.pop = 20;`);
+  ok(g.run(`queueProblem('faustkeil')`) !== null, 'Vormerken ohne laufende Forschung');
+  ok(g.run(`startResearch('flechtkoerbe')`) === null, 'Start geht nicht');
+  // auch eine Forschung, die erst durch die laufende frei wird: hier die laufende Voraussetzung
+  ok(g.run(`queueProblem('flechtkoerbe')`) !== null, 'Laufende Forschung vorgemerkt');
+  ok(g.run(`queueProblem('mittelsteinzeit')`) !== null, 'Gesperrte Forschung vorgemerkt');
+  const w0 = g.run(`state.res.wissen`);
+  ok(g.run(`toggleQueue('faustkeil')`) === null, 'Vormerken geht nicht');
+  ok(g.run(`state.res.wissen`) === w0, 'Vormerken kostet schon etwas');
+  ok(g.run(`toggleQueue('faustkeil') === null && state.researchNext === null`), 'Aufheben geht nicht');
+  g.run(`toggleQueue('faustkeil');`);
+  // Speichern und Laden behält die Vormerkung
+  const text = g.run(`serialize()`);
+  ok(g.run(`loadFromText(${JSON.stringify(text)})`), 'Lädt nicht');
+  ok(g.run(`state.researchNext`) === 'faustkeil', 'Vormerkung verloren');
+  // offline: die laufende wird fertig, die vorgemerkte startet, bezahlt und wird gemeldet
+  const r = g.run(`(() => { const before = state.res.wissen, cost = TECHS.faustkeil.cost.wissen; state.res.wissen = 100; const o = applyOfflineProgress(Date.now() - 3600 * 1000); return { done: !!state.techs.flechtkoerbe, next: state.researchNext, cost, events: o.events }; })()`);
+  ok(r.done && r.next === null, 'Vormerkung startet nicht: ' + JSON.stringify(r));
+  ok(g.run(`!!state.techs.faustkeil || (state.research && state.research.id === 'faustkeil')`), 'Falsche Forschung gestartet');
+  ok(r.events.some(e => e.includes('Von selbst gestartet')), 'Offline-Start nicht gemeldet: ' + r.events);
+  // fehlt noch etwas: bleibt vorgemerkt und startet, sobald es da ist
+  g.run(`state.research = { id: 'feuer_hueten', left: 1 }; delete state.techs.feuer_hueten; delete state.techs.hoehlenmalerei; state.researchNext = 'hoehlenmalerei'; state.res.wissen = 0; update(2); update(2);`);
+  ok(g.run(`state.researchNext`) === 'hoehlenmalerei' && g.run(`!state.research || state.research.id !== 'hoehlenmalerei'`), 'Startet ohne Wissen');
+  g.run(`state.res.wissen = 500; state.pop = 20; update(1); update(1);`);
+  ok(g.run(`state.research && state.research.id === 'hoehlenmalerei' && state.researchNext === null`), 'Startet nicht, als es bezahlbar wurde');
+  // Oberfläche
+  g.run(`state.research = { id: 'hoehlenmalerei', left: 500 }; openResearch(); selectTech('speerspitzen'); techDetailHtml(); doQueue('speerspitzen'); researchListHtml(); techDetailHtml(); doQueue('speerspitzen'); closePage(); renderAll();`);
+  noErrors(g);
+});
+
+test('Belohnungen gehen übers Lager hinaus, Herstellen nicht', () => {
+  const g = fresh();
+  const cap = g.run(`storageCap()`);
+  g.run(`state.res.nahrung = ${cap}; state.res.holz = ${cap}; state.daily.pending = 7; state.tutorial = -1;`);
+  g.run(`claimDailyReward();`);
+  ok(g.run(`state.res.holz`) === cap + g.run(`DAILY_REWARDS[6].holz`), 'Tagesbelohnung verpufft');
+  g.run(`addResources({ holz: 50 });`);
+  ok(g.run(`state.res.holz`) === cap + g.run(`DAILY_REWARDS[6].holz`), 'Herstellen geht übers Lager');
+  noErrors(g);
+});
+
+test('Aufträge und Wünsche: nichts verstopft die Liste', () => {
+  const g = fresh();
+  g.run(`for (const q of QUESTS) if (!q.goal.wishes && q.id !== 'q_jagd1') state.quests[q.id] = true; state.tutorial = -1; recalcStats();`);
+  // höchstens ein Wunsch-Auftrag auf einmal
+  ok(g.run(`activeQuests().filter(q => q.goal.wishes).length`) === 1, 'Mehrere Wunsch-Aufträge sichtbar');
+  // Mammutjagd ist ab der Jungsteinzeit nicht mehr machbar und verschwindet
+  g.run(`state.techs.mammutjagd = true;`);
+  ok(g.run(`activeQuests().some(q => q.id === 'q_jagd1')`), 'Jagd-Auftrag fehlt');
+  g.run(`state.stage = 'jung';`);
+  ok(!g.run(`activeQuests().some(q => q.id === 'q_jagd1')`), 'Unmöglicher Auftrag bleibt in der Liste');
+  g.run(`openQuests(); closePage();`);
+  // Wunsch nur für Waren mit fertigem Hersteller, und er wechselt mit der Zeit
+  const g2 = fresh();
+  g2.run(`state.tutorial = -1; state.techs.mammutjagd = true; state.buildings = state.buildings.filter(b => BUILDINGS[b.type].line === 'mitte'); rebuildOccupancy();`);
+  ok(g2.run(`currentWish()`) === null, 'Wunsch ohne Hersteller');
+  g2.run(`const m = Math.floor(N / 2) + 12; state.buildings.push({ type: 'holzsammler', x: m, y: m, rot: 0, build: 0 }, { type: 'steinsammler', x: m + 3, y: m, rot: 0, build: 0 }, { type: 'jaegerlager', x: m + 6, y: m, rot: 0, build: 50 }); rebuildOccupancy();`);
+  ok(g2.run(`currentWish().id !== 'felle'`) && g2.run(`currentWish().id !== 'nahrung'`), 'Wunsch für Baustelle');
+  const seen = g2.run(`(() => { const s = {}; for (let i = 0; i < 4; i++) { state.playTime = i * CONFIG.wishes.change; s[currentWish().id] = 1; } return Object.keys(s).length; })()`);
+  ok(seen === 2, 'Wunsch wechselt nicht: ' + seen);
+  // Handbearbeiteter Stand mit krummem Zähler stürzt nicht ab
+  const bad = g2.run(`(() => { const d = JSON.parse(serialize()); d.wishesDone = 1.5; d.researchNext = 'gibtsnicht'; return JSON.stringify(d); })()`);
+  ok(g2.run(`loadFromText(${JSON.stringify(bad)})`), 'Krummer Stand lädt nicht');
+  ok(g2.run(`state.wishesDone === 1 && state.researchNext === null && currentWish() !== undefined`), 'Krumme Werte bleiben');
+  noErrors(g); noErrors(g2);
+});
+
+test('Werkstätten lassen Metall für Bauen und Forschung liegen', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    for (const id in TECHS) if (!TECHS[id].soon && !['spaet'].includes(TECHS[id].stage)) state.techs[id] = true;
+    delete state.techs.spaete_bronzezeit;
+    state.stage = 'frueh'; state.pop = 30; state.tutorial = -1;
+    const sp = findFreeSpot('bronzegiesser', N / 2, N / 2), k = state.buildings.length;
+    state.buildings.push({ type: 'bronzegiesser', x: sp.x, y: sp.y, rot: 0, build: 0 });
+    rebuildOccupancy(); buildRoute(k); recalcStats();
+    Object.assign(state.res, { kupfer: 200, zinn: 200, bronze: 0, nahrung: 500 });
+    for (let i = 0; i < 7200; i++) { state.res.nahrung = 500; update(1); }
+    return { kupfer: state.res.kupfer, bronze: state.res.bronze, reserve: metalReserve('kupfer') };
+  })()`);
+  ok(r.bronze > 50, 'Gießer arbeitet nicht: ' + JSON.stringify(r));
+  ok(Math.abs(r.kupfer - r.reserve) < 2 && r.reserve >= 30, 'Reserve hält nicht: ' + JSON.stringify(r));
+  // Eine startbare Forschung, die mehr kostet, hebt die Reserve
+  ok(g.run(`(() => { TECHS.bronzeguss.cost.kupfer = 90; delete state.techs.bronzeguss; return metalReserve('kupfer'); })()`) === 90, 'Forschung hebt die Reserve nicht');
   noErrors(g);
 });
 

@@ -1818,7 +1818,11 @@ function drawBridgeSprite(img, b, snow) {
   ctx.fillStyle = 'rgba(20, 40, 60, 0.25)';   // Schatten im Wasser
   ctx.beginPath(); ctx.ellipse(3 * z, 5 * z, w * 0.42, h * 0.2, 0, 0, 7); ctx.fill();
   ctx.drawImage(img, -w / 2, -h * 0.58, w, h);
-  if (snow > 0.3) {   // ein Hauch Schnee auf den Stämmen
+  const winter = snow > 0 && images['bruecke-winter'];
+  if (winter) {   // Schneebild blendet über, solange die Schneedecke wächst oder schmilzt
+    ctx.globalAlpha = snow;
+    ctx.drawImage(winter, -w / 2, -h * 0.58, w, h);
+  } else if (snow > 0.3) {   // ein Hauch Schnee auf den Stämmen, solange das Bild nicht geladen ist
     ctx.globalAlpha = 0.3 * snow;
     ctx.globalCompositeOperation = 'lighter';
     ctx.drawImage(img, -w / 2, -h * 0.58, w, h);

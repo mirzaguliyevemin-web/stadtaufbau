@@ -3,6 +3,16 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-11-02 – Täglicher Lauf (Version 72)
+
+- Alle 20 Tests bestanden (inkl. 72 Epochia-Tests). Bot (3 Läufe à 90 min), Durchschnitt: Kleinstadt 5,7 min · 50 Einw. 18,7 ·
+  Stadt 22,8 · 150 Einw. 30,8 · 200 Einw. 35,5 · Antike 16,6 · Mittelalter 49,2 · Kathedrale ~53 · Hunger 0 · Frost 0.
+  Zielwerte eingehalten (identisch zum Vortag, Bot ist deterministisch).
+- `wuensche.md`: nichts Neues; Ruckel-Fehler (mit Emin), Wunsch „Gebäude 4× drehen“ (Winterbilder, Canva-Pause) und Wunderwerke
+  (Besprechung mit Emin) bleiben offen – nicht angefasst. Epochia-Bot nicht ausgewertet (Aufbau läuft).
+- Codebereich gelesen: `updateConstruction` / `buildingOutput` / Steuern und Marktpreise / `trade` (game.js ~2338–2470) – keine Fehler gefunden.
+- Keine Änderung nötig, keine Versionserhöhung.
+
 ## 2026-11-01 – Täglicher Lauf (Version 72)
 
 - Alle 20 Tests bestanden (inkl. 48 Epochia-Tests). Bot (3 Läufe à 90 min), Durchschnitt: Kleinstadt 5,7 min · 50 Einw. 18,7 ·

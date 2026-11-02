@@ -202,6 +202,7 @@ const BUILDING_SOUNDS = {
   dorfbrunnen: 'matsch', lehmgrube: 'matsch', kupferschmied: 'klopfen', kupfermine: 'klirren', koehler: 'feuer', schmelzofen: 'feuer',
   jagdhuette: 'horn', feld: 'korn', viehhof: 'ziege', baumgaertnerin: 'graben', weberin: 'schaben', bronzeschmied: 'klopfen', toepferwerkstatt: 'toepfern',
   zinnwaescherin: 'platsch', bronzegiesser: 'klopfen', handelsplatz: 'knarzen',
+  hallenhaus: 'haus', fischerhaus: 'pfahl', sternkundiger: 'pinsel', heiliger_hain: 'trommel', kornspeicher: 'knarzen', schmuckmacherin: 'klopfen', fuerstenhuegel: 'steinkreis',
   lagerfeuer: 'feuer', feuerplatz: 'feuer', wohnhoehle: 'hoehle', fellzelt: 'zelt', grubenhaus: 'haus', langhaus: 'haus', pfahlbau: 'pfahl',
   sammlerin: 'rascheln', jaegerlager: 'horn', mammutjaegerlager: 'mammut', fischerplatz: 'platsch', acker: 'korn', ziegengehege: 'ziege',
   holzsammler: 'hacken', pflanzerin: 'graben', steinsammler: 'klirren', hoehlenmaler: 'pinsel', fellmacherin: 'schaben', steinschlaeger: 'klopfen',

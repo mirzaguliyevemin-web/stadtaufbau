@@ -353,7 +353,7 @@ function recalcStats() {
   s.hungry = (state.hunger || 0) > 30;   // eine halbe Minute ohne Nahrung: die Laune sinkt zusätzlich
   // Dorfbrunnen: ein Treffpunkt hebt die Laune (mehrere bringen nicht mehr)
   s.placeHappy = state.buildings.reduce((m, b, i) => Math.max(m, !b.build && BUILDINGS[b.type].happy && isConnected(i) ? BUILDINGS[b.type].happy : 0), 0);
-  s.happiness = Math.max(0, Math.min(100, s.needsHappy + s.weatherHappy + s.placeHappy - (s.hungry ? CONFIG.hunger.unhappy : 0)));
+  s.happiness = Math.max(0, Math.min(100, s.needsHappy + s.weatherHappy + s.placeHappy + (festNow() ? CONFIG.fest.happy : 0) - (s.hungry ? CONFIG.hunger.unhappy : 0)));
   stats = s;
   return s;
 }
@@ -478,6 +478,19 @@ function effectFactor(type) {
     f *= 1 + (g - 1) * k;
   }
   return f;
+}
+
+// Sonnwendfest: ergibt sich aus der Jahreszeit (mitten im Sommer), muss nicht gespeichert werden
+function festNow() {
+  if (!state.techs.himmelsscheibe) return false;
+  return Math.abs(state.yearTime - CONFIG.yearSeconds * 3 / 8) <= CONFIG.fest.seconds / 2;
+}
+
+let festWas = false;
+function updateFest() {
+  const now = festNow();
+  if (now && !festWas && !offlineRunning) emit('fest');
+  festWas = now;
 }
 
 function effectHappy() { return activeEffects().reduce((sum, { effect: e, k }) => sum + (e.happy || 0) * k, 0); }
@@ -965,9 +978,10 @@ function updateTrader(dt) {
 function traderOffers() {
   const c = CONFIG.trader;
   const mix = o => hash(state.trader.visit * 13 + o.id.length * 7 + o.id.charCodeAt(0), (state.seed % 9973) + o.id.charCodeAt(o.id.length - 1));
-  const open = c.offers.filter(o => Object.keys(o.give).every(hasMaker)).map(o => [mix(o), o]).sort((a, b) => a[0] - b[0]).map(a => a[1]);
-  const first = open.find(o => o.get.zinn);
-  return (first ? [first, ...open.filter(o => o !== first)] : open).slice(0, c.count);
+  const open = c.offers.filter(o => (!o.requires || state.techs[o.requires]) && Object.keys(o.give).every(hasMaker)).map(o => [mix(o), o]).sort((a, b) => a[0] - b[0]).map(a => a[1]);
+  const zinn = open.find(o => o.get.zinn);
+  const fest = [...(zinn ? [zinn] : []), ...open.filter(o => o.get.bernstein)];   // immer dabei: Zinn und Bernstein
+  return [...fest, ...open.filter(o => !fest.includes(o))].slice(0, c.count + techSum('traderOffers'));
 }
 
 function tradeProblem(id) {
@@ -1125,6 +1139,7 @@ function update(dt) {
   updateResearch(dt);
   updateHunt(dt);
   updateTrader(dt);
+  updateFest();
   updateDisaster(dt);
   updateWishes(dt);
 }

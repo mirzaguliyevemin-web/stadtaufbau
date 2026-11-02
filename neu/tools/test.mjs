@@ -411,7 +411,7 @@ test('Spielstand von Emin (Version 57): lädt, hat zu tun, kommt weiter', () => 
 test('Kupferzeit: Aufbruch, Geschenk, Dorfplatz, Weiterentwicklung und Metall-Kette', () => {
   const g = fresh();
   g.run(`for (const id of Object.keys(TECH_NEEDS)) delete TECH_NEEDS[id];
-    for (const id in TECHS) if (!['kupfer', 'frueh'].includes(TECHS[id].stage) && id !== 'aufbruch_bronzezeit') state.techs[id] = true;
+    for (const id in TECHS) if (!['kupfer', 'frueh', 'spaet'].includes(TECHS[id].stage) && id !== 'aufbruch_bronzezeit') state.techs[id] = true;
     state.stage = 'jung'; state.pop = 130; state.res.wissen = 999;
     for (const id of ['holz','stein','nahrung','toepferwaren','werkzeug']) state.res[id] = 200;
     recalcStats();`);
@@ -460,7 +460,7 @@ test('Kupferzeit: Aufbruch, Geschenk, Dorfplatz, Weiterentwicklung und Metall-Ke
 
 test('Kupferzeit: Spielstand speichern und laden, Oberfläche ohne Bilder', () => {
   const g = fresh();
-  g.run(`for (const id in TECHS) if (!['kupfer', 'frueh'].includes(TECHS[id].stage)) state.techs[id] = true;
+  g.run(`for (const id in TECHS) if (!['kupfer', 'frueh', 'spaet'].includes(TECHS[id].stage)) state.techs[id] = true;
     state.stage = 'kupfer'; state.res.kupfer = 12; state.techs.kupferschmelze = true; state.techs.bergbau = true;
     const m = Math.floor(N / 2) + 10; state.buildings.push({ type: 'schmelzofen', x: m, y: m, rot: 0, build: 0 });`);
   const text = g.run(`serialize()`);
@@ -476,7 +476,7 @@ test('Kupferzeit: Spielstand speichern und laden, Oberfläche ohne Bilder', () =
 test('Frühe Bronzezeit: Übergang, Werkzeug-Bedürfnis, Weiterentwicklung, Ziel noch gesperrt', () => {
   const g = fresh();
   g.run(`for (const id of Object.keys(TECH_NEEDS)) delete TECH_NEEDS[id];
-    for (const id in TECHS) if (TECHS[id].stage !== 'frueh' && id !== 'fruehe_bronzezeit') state.techs[id] = true;
+    for (const id in TECHS) if (!['frueh', 'spaet'].includes(TECHS[id].stage) && id !== 'fruehe_bronzezeit') state.techs[id] = true;
     state.stage = 'kupfer'; state.pop = 160; state.res.wissen = 999; state.res.nahrung = 300; state.res.kupfer = 60; state.res.werkzeug = 50;
     const m = Math.floor(N / 2) + 12;
     state.buildings.push({ type: 'acker', x: m, y: m, rot: 0, build: 0 }, { type: 'fellmacherin', x: m + 4, y: m, rot: 0, build: 0 }, { type: 'pflanzerin', x: m + 7, y: m, rot: 0, build: 0 }, { type: 'kupferschmied', x: m + 10, y: m, rot: 0, build: 0 });
@@ -503,9 +503,6 @@ test('Frühe Bronzezeit: Übergang, Werkzeug-Bedürfnis, Weiterentwicklung, Ziel
   ok(g.run(`Object.values(BUILDINGS).every(d => !d.upgradeTo || BUILDINGS[d.upgradeTo])`), 'Weiterentwicklung zeigt ins Leere');
   // alle Forschungskosten passen ins Grundlager, alle verlangten Gebäude gibt es
   ok(g.run(`Object.values(TECHS).every(t => Object.entries(t.cost).every(([id, n]) => RESOURCES[id] && (id === 'wissen' || n <= CONFIG.baseStorage)))`), 'Forschung passt nicht ins Lager');
-  // Das Ziel der Stufe lässt sich noch nicht erforschen
-  g.run(`for (const id in TECHS) if (TECHS[id].stage === 'frueh' && !TECHS[id].transition) state.techs[id] = true;`);
-  ok(g.run(`researchProblem('spaete_bronzezeit')`).includes('nächsten Ausbau'), 'Späte Bronzezeit startbar, obwohl noch nicht gebaut');
   noErrors(g);
 });
 
@@ -524,7 +521,7 @@ test('Frühe Bronzezeit: Daten passen zusammen', () => {
 test('Metall-Kette läuft wirklich: Erz + Kohle → Kupfer, Kupfer + Zinn → Bronze, Bronze → Werkzeug', () => {
   const g = fresh();
   const r = g.run(`(() => {
-    for (const id in TECHS) if (id !== 'spaete_bronzezeit') state.techs[id] = true;
+    for (const id in TECHS) if (!['frueh', 'spaet'].includes(TECHS[id].stage) || TECHS[id].stage === 'frueh' && !TECHS[id].transition) state.techs[id] = true;
     state.stage = 'frueh';
     for (const k in RESOURCES) state.res[k] = 0;
     Object.assign(state.res, { nahrung: 500, holz: 300, stein: 300, werkzeug: 100, bronze: 50, kupfer: 40, ton: 50 });
@@ -557,8 +554,8 @@ test('Metall-Kette läuft wirklich: Erz + Kohle → Kupfer, Kupfer + Zinn → Br
 
 test('Händler: kommt nur mit Handelsplatz, bleibt, tauscht einmal je Angebot, kommt nicht offline', () => {
   const g = fresh();
-  g.run(`for (const id in TECHS) if (TECHS[id].stage !== 'frueh' || id === 'tauschhandel') state.techs[id] = true;
-    delete state.techs.spaete_bronzezeit; state.stage = 'frueh'; state.pop = 20;
+  g.run(`for (const id in TECHS) if (!['frueh', 'spaet'].includes(TECHS[id].stage) || id === 'tauschhandel') state.techs[id] = true;
+    state.stage = 'frueh'; state.pop = 20;
     for (const id in RESOURCES) state.res[id] = 200;`);
   g.run(`for (let i = 0; i < 300; i++) { update(1); state.res.nahrung = 200; }`);
   ok(g.run(`state.trader.visit`) === 0 && !g.run(`traderHere()`), 'Händler kommt ohne Handelsplatz');
@@ -609,6 +606,76 @@ test('Rad und Wagen: Bauen geht schneller; alte Stände ohne Händler laden', ()
   const bad = g.run(`(() => { const d = JSON.parse(serialize()); d.trader = { wait: 'x', left: -4, visit: null, done: ['gibtsnicht', 7] }; return JSON.stringify(d); })()`);
   ok(g.run(`loadFromText(${JSON.stringify(bad)})`), 'Kaputter Händler verhindert das Laden');
   ok(g.run(`state.trader.left === 0 && state.trader.done.length === 0`), 'Kaputte Werte bleiben');
+  noErrors(g);
+});
+
+test('Späte Bronzezeit: Übergang, Schmuck-Bedürfnis, Weiterentwicklung, Ziel noch gesperrt', () => {
+  const g = fresh();
+  g.run(`for (const id of Object.keys(TECH_NEEDS)) delete TECH_NEEDS[id];
+    for (const id in TECHS) if (TECHS[id].stage !== 'spaet' && id !== 'spaete_bronzezeit') state.techs[id] = true;
+    state.stage = 'frueh'; state.pop = 210; state.res.wissen = 999; state.res.bronze = 100; state.res.kleidung = 100; state.res.nahrung = 500;
+    const m = Math.floor(N / 2) + 12;
+    state.buildings.push({ type: 'lehmhaus', x: m, y: m, rot: 0, build: 0 }, { type: 'ahnenplatz', x: m + 4, y: m, rot: 0, build: 0 }, { type: 'vorratsspeicher', x: m + 8, y: m, rot: 0, build: 0 }, { type: 'felsritzer', x: m + 12, y: m, rot: 0, build: 0 });
+    rebuildOccupancy(); recalcStats();`);
+  ok(g.run(`researchProblem('spaete_bronzezeit')`) === null, 'Späte Bronzezeit startet nicht: ' + g.run(`researchProblem('spaete_bronzezeit')`));
+  g.run(`startResearch('spaete_bronzezeit'); for (let i = 0; i <= TECHS.spaete_bronzezeit.time; i++) { state.res.nahrung = 500; update(1); }`);
+  ok(g.run(`state.stage`) === 'spaet', 'Stufe nicht gewechselt');
+  ok(g.run(`activeNeeds().every(n => n.id !== 'schmuck')`), 'Schmuck-Bedürfnis vor der Schmuckkunst');
+  g.run(`for (const id of ['hallenhaus', 'heiliger_hain', 'kornspeicher', 'himmelsscheibe']) state.techs[id] = true; evolveBuildings(); recalcStats();`);
+  const typ = dx => g.run(`state.buildings.find(b => b.x === Math.floor(N / 2) + 12 + ${dx} && b.y === Math.floor(N / 2) + 12).type`);
+  ok(typ(0) === 'hallenhaus' && typ(4) === 'heiliger_hain' && typ(8) === 'kornspeicher' && typ(12) === 'sternkundiger', 'Weiterentwicklung fehlt: ' + [typ(0), typ(4), typ(8), typ(12)]);
+  ok(g.run(`barEntries().some(e => e.type === 'hallenhaus' && !e.locked)`), 'Hallenhaus fehlt in der Bauleiste');
+  g.run(`state.techs.schmuckkunst = true; state.res.schmuck = 0; recalcStats();`);
+  ok(g.run(`activeNeeds().some(n => n.id === 'schmuck')`), 'Schmuck-Bedürfnis fehlt');
+  // Der Fürstenhügel steht ohne Forschung nicht in der Bauleiste; das Ziel lässt sich noch nicht erforschen
+  ok(g.run(`isUnlocked('fuerstenhuegel')`) === false, 'Fürstenhügel zu früh');
+  g.run(`for (const id in TECHS) if (TECHS[id].stage === 'spaet' && !TECHS[id].transition) state.techs[id] = true;`);
+  ok(g.run(`researchProblem('aufbruch_eisenzeit')`).includes('nächsten Ausbau'), 'Eisenzeit startbar, obwohl noch nicht gebaut');
+  // Oberfläche
+  g.run(`openResearch(); showResearchStage('spaet'); researchListHtml(); selectTech('eisenfund'); techDetailHtml(); selectTech('himmelsscheibe'); techDetailHtml(); researchTopHtml(); showResearchStage('__next'); researchListHtml(); closePage(); renderAll(); drawScene(0.05);`);
+  noErrors(g);
+});
+
+test('Bernstein: nur vom Händler, Schmuck-Bedarf lässt sich damit decken', () => {
+  const g = fresh();
+  ok(g.run(`hasMaker('bernstein')`) === false && g.run(`Object.values(BUILDINGS).every(d => !d.produces || !d.produces.bernstein)`), 'Bernstein wird hergestellt');
+  // Rechnung bei 280 Einwohnern, Händler mit Rad alle 15 Minuten und beiden Bernstein-Angeboten
+  const r = g.run(`(() => {
+    const perVisit = CONFIG.trader.offers.filter(o => o.get.bernstein).reduce((a, o) => a + o.get.bernstein, 0);
+    const bernsteinJeMin = perVisit / ((CONFIG.trader.every - TECHS.rad.effect.traderFaster) / 60);
+    const d = BUILDINGS.schmuckmacherin;
+    return { machbar: bernsteinJeMin * d.produces.schmuck / d.consumes.bernstein, bedarf: 280 * NEEDS.find(n => n.id === 'schmuck').perPerson };
+  })()`);
+  ok(r.machbar >= r.bedarf, 'Schmuck-Bedarf höher, als Bernstein hergibt: ' + JSON.stringify(r));
+  // Händler zeigt Bernstein erst nach der Forschung, dann immer, und ein Angebot mehr
+  const o = g.run(`(() => {
+    for (const id in TECHS) if (!['frueh', 'spaet'].includes(TECHS[id].stage) || id === 'tauschhandel') state.techs[id] = true;
+    state.stage = 'frueh'; state.techs.bronzeguss = true; state.trader.visit = 3;
+    const vorher = traderOffers().map(o => o.id);
+    state.techs.bernsteinstrasse = true; state.stage = 'spaet';
+    const seen = [];
+    for (let v = 1; v < 30; v++) { state.trader.visit = v; const l = traderOffers(); seen.push(l.length === 4 && l.filter(o => o.get.bernstein).length === 2 && !!l[0].get.zinn); }
+    return { vorher, immer: seen.every(Boolean) };
+  })()`);
+  ok(o.vorher.length === 3 && !o.vorher.some(id => id.includes('bernstein')), 'Bernstein zu früh: ' + o.vorher);
+  ok(o.immer, 'Angebote ab der Bernsteinstraße falsch');
+  noErrors(g);
+});
+
+test('Sonnwendfest: nur mit Himmelsscheibe, mitten im Sommer, hebt die Laune', () => {
+  const g = fresh();
+  const mid = g.run(`CONFIG.yearSeconds * 3 / 8`);
+  g.run(`state.yearTime = ${mid}; recalcStats();`);
+  ok(g.run(`festNow()`) === false, 'Fest ohne Himmelsscheibe');
+  g.run(`var __l = 0; on('fest', () => __l++); state.yearTime = ${mid} - 200; state.techs.himmelsscheibe = true; update(1); recalcStats();`);
+  ok(g.run(`festNow()`) === false && g.run(`seasonIndex()`) === 1, 'Fest zu früh');
+  const ohne = g.run(`stats.happiness`);
+  g.run(`for (let i = 0; i < 60; i++) update(1); recalcStats();`);
+  ok(g.run(`festNow()`) === true && g.run(`__l`) === 1, 'Fest beginnt nicht');
+  ok(g.run(`stats.happiness`) >= Math.min(100, ohne), 'Fest senkt die Laune');
+  g.run(`for (let i = 0; i < 400; i++) update(1);`);
+  ok(g.run(`festNow()`) === false, 'Fest endet nicht');
+  ok(g.run(`__l`) === 1, 'Fest wird mehrfach gemeldet');
   noErrors(g);
 });
 
@@ -968,7 +1035,7 @@ test('Arbeitende Menschen: gehen zum Baum, arbeiten und kommen zurück', () => {
 
 test('Arbeitende Menschen Teil 2: Fischer (auch im Einbaum), Höhlenmaler, Werkstätten vor dem Haus', () => {
   const g = fresh();
-  g.run(`for (const k in state.res) state.res[k] = 999; state.pop = 30; state.stage = 'jung'; for (const id in TECHS) if (!['kupfer', 'frueh'].includes(TECHS[id].stage)) state.techs[id] = true;
+  g.run(`for (const k in state.res) state.res[k] = 999; state.pop = 30; state.stage = 'jung'; for (const id in TECHS) if (!['kupfer', 'frueh', 'spaet'].includes(TECHS[id].stage)) state.techs[id] = true;
     for (const t of ['fischerplatz', 'hoehlenmaler', 'fellmacherin', 'steinschlaeger', 'toepferei', 'tongrube']) {
       const sp = findFreeSpot(t, 62 + O, 62 + O); if (!sp) continue; placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
     recalcStats();`);
@@ -1300,7 +1367,7 @@ test('Forschungsfenster: Ziel, Liste, Detail, Forschung starten; Handy hochkant:
     doResearch('ackerbau');
     out.running = !!state.research && researchListHtml().includes('Läuft gerade') && techDetailHtml().includes('Läuft');
     showResearchStage('__next');
-    out.next = techDetailHtml().includes('Bronzezeit');
+    out.next = techDetailHtml().includes('Eisenzeit');
     showResearchStage('alt');
     out.altSel = TECHS[researchSelected].stage === 'alt';
     closePage();

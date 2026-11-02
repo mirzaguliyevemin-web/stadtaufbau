@@ -18,7 +18,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 <!-- Hier Veränderungswünsche eintragen -->
 - Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten (5 von 21 fertig, Rest bis nach dem 27.11.) (Canva-Pause auf Emins Wunsch).
 
-- Bronzezeit (Emin, 02.11.): Kupferzeit gebaut; es folgen Frühe und Späte Bronzezeit, in Sitzungen mit Emin. Bilder ab 27.11. (Plan: `docs/epoche-2-bronzezeit.md`).
+- Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, noch ohne Bilder (ab 27.11.). Offen: Erzader, Bronzezeit-Waren in der täglichen Belohnung. Plan: `docs/epoche-2-bronzezeit.md`.
 
 - Wunderwerke je Zeitalter (Emin, 01.11.): Entwurf `docs/konzept-wunderwerke.md`, wird mit Emin besprochen.
 - Rückseiten Sammlerin und Langhaus neu (Emin, 02.11.): zeigen die Öffnung bzw. den Garten noch vorne. Bilder zwischendurch oder ab 27.11. (Canva), kein Eilfall. Dazu Winterbilder der neuen Rückseiten von Wohnhöhle und Höhlenmaler.
@@ -26,6 +26,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-02, Epochia Version 62 – Wunsch Emin: Späte Bronzezeit (Bernstein vom Händler, Schmuck, Hallenhaus, Fischerhaus, Sternkundiger, Heiliger Hain, Kornspeicher, Fürstenhügel, Sonnwendfest), ohne Bilder.
+- 2026-11-02, Epochia Version 61 – Wunsch Emin: Frühe Bronzezeit (Zinn, Bronze, Wolle, Händler, Bedürfnis Werkzeug, Weiterentwicklungen), ohne Bilder.
 - 2026-11-02, Epochia Version 60 – Wunsch Emin: Kupferzeit als erste Stufe der Bronzezeit (Aufbruch, Dorfplatz, Kupfermine, Köhler, Schmelzofen, 9 Weiterentwicklungen, 10 Forschungen, 4 neue Aufträge), noch mit Platzhaltern statt Bildern.
 - 2026-11-02, Epochia Version 59 – Fehler von Emin: Zurück-Knopf auf der Aufträge-Seite träge. Die Karte wurde hinter ganzseitigen Fenstern weitergezeichnet; jetzt ruht sie dort (Messung mit Emins Stand: Zurück etwa halb so lange). Am Handy noch zu bestätigen.
 - 2026-11-02, Epochia Version 58 – Emins Liste: Wohnhöhle und Höhlenmaler haben echte, geschlossene Rückseiten (Canva; vorher zwei Bilder für dieselbe Seite); ein einheitlicher Holzrahmen für alle Fenster und Sprechblasen, Tägliche Belohnung neu mit Warenbildern; gegen „man kann nur noch forschen“: Forschungen verlangen Gebäude, 24 neue Aufträge (gesperrte verstopfen die Liste nicht mehr), Wünsche des Stammes (Waren abgeben → Wissen und kürzere Forschung); Anzeige „Mittelsteinzeit → Mittelsteinzeit“ behoben.

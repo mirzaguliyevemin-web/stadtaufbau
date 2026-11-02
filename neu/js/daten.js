@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 61;
+const APP_VERSION = 62;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -60,7 +60,7 @@ const CONFIG = {
     researchSeconds: 90,  // so viel kürzer wird die laufende Forschung
     wissen: 8,            // so viel Wissen gibt es dazu (je Zeitalter mehr, siehe stagePlus)
     stagePlus: 0.25,      // je Zeitalter wollen und geben Wünsche 25 % mehr
-    amount: { nahrung: 100, holz: 80, stein: 60, felle: 20, kleidung: 15, werkzeug: 10, ton: 30, toepferwaren: 10, kupfererz: 30, holzkohle: 20, kupfer: 10, zinn: 8, bronze: 5, wolle: 20 },
+    amount: { nahrung: 100, holz: 80, stein: 60, felle: 20, kleidung: 15, werkzeug: 10, ton: 30, toepferwaren: 10, kupfererz: 30, holzkohle: 20, kupfer: 10, zinn: 8, bronze: 5, wolle: 20, schmuck: 5 },
     text: {
       nahrung: 'Der Stamm möchte ein großes Festmahl feiern.',
       holz: 'Die Alten wünschen sich ein großes Feuer für die Ahnen.',
@@ -76,6 +76,7 @@ const CONFIG = {
       zinn: 'Die Gießer wollen ausprobieren, wie viel Zinn die Bronze verträgt.',
       bronze: 'Zum Fest soll ein Ring aus Bronze über dem Dorfplatz hängen.',
       wolle: 'Die Alten frieren und wünschen sich weiche Wolldecken.',
+      schmuck: 'Zur Hochzeit im Dorf soll die Braut etwas Schönes tragen.',
     },
   },
   dorfplatz: { storage: 100, warmth: 1 },   // beim Aufbruch in die Bronzezeit wird das Lagerfeuer zum Dorfplatz: mehr Lager, größerer Umkreis
@@ -84,7 +85,7 @@ const CONFIG = {
     firstWait: 60,        // so bald nach dem ersten Handelsplatz kommt der erste Händler
     every: 1200,          // danach alle 20 Minuten (mit „Rad und Wagen“ alle 15, siehe traderFaster)
     stay: 300,            // er bleibt 5 Minuten
-    count: 3,             // so viele Angebote zeigt er
+    count: 3,             // so viele Angebote zeigt er (mit der „Bernsteinstraße“ eines mehr, siehe traderOffers)
     offers: [             // das erste Angebot ist immer eines für Zinn (damit Handel sich lohnt)
       { id: 'toepfer_zinn', give: { toepferwaren: 20 }, get: { zinn: 8 } },
       { id: 'felle_zinn',   give: { felle: 30 },        get: { zinn: 10 } },
@@ -95,8 +96,12 @@ const CONFIG = {
       { id: 'ton_kohle',    give: { ton: 30 },          get: { holzkohle: 10 } },
       { id: 'nahrung_wolle', give: { nahrung: 40 },     get: { wolle: 8 } },
       { id: 'felle_wolle',  give: { felle: 20 },        get: { wolle: 10 } },
+      // Bernstein gibt es nur hier: Ab der „Bernsteinstraße“ zeigt er beide Angebote immer
+      { id: 'kleid_bernstein',  give: { kleidung: 15 }, get: { bernstein: 10 }, requires: 'bernsteinstrasse' },
+      { id: 'bronze_bernstein', give: { bronze: 10 },   get: { bernstein: 12 }, requires: 'bernsteinstrasse' },
     ],
   },
+  fest: { happy: 15, seconds: 300 },   // Sonnwendfest (nach der „Himmelsscheibe“): mitten im Sommer 5 Minuten Fest, Laune +15
   hunt: {                 // Mammutjagd (nach der Forschung „Mammutjagd“, bis zur Jungsteinzeit)
     seconds: 60,          // so lange sind die Jäger unterwegs
     herdWait: 240,        // so lange dauert es nach einer Jagd, bis wieder eine Herde vorbeizieht
@@ -138,6 +143,8 @@ const RESOURCES = {
   zinn:         { name: 'Zinn',        icon: '⚪', from: 'frueh' },
   bronze:       { name: 'Bronze',      icon: '🥉', from: 'frueh' },
   wolle:        { name: 'Wolle',       icon: '🐑', from: 'frueh' },
+  bernstein:    { name: 'Bernstein',   icon: '🟡', from: 'spaet' },
+  schmuck:      { name: 'Schmuck',     icon: '💍', from: 'spaet' },
 };
 
 // Stufen der Steinzeit (Unterteilungen = Abschnitte im Forschungsbaum)
@@ -147,6 +154,7 @@ const STAGES = [
   { id: 'jung',   name: 'Jungsteinzeit',   epoch: 'Steinzeit' },
   { id: 'kupfer', name: 'Kupferzeit',      epoch: 'Bronzezeit', theme: 'steinzeit' },   // theme: Leisten-Bilder, bis es eigene gibt (ab 27.11.)
   { id: 'frueh',  name: 'Frühe Bronzezeit', epoch: 'Bronzezeit', theme: 'steinzeit' },
+  { id: 'spaet',  name: 'Späte Bronzezeit', epoch: 'Bronzezeit', theme: 'steinzeit' },
 ];
 
 // Bedürfnisse der Einwohner. kind: 'stock' = Ware im Lager, 'area' = Gebäude im Umkreis der Wohnung
@@ -157,6 +165,7 @@ const NEEDS = [
   { id: 'glaube',       name: 'Glaube',               icon: '🗿', from: 'mittel', kind: 'area' },
   { id: 'toepferwaren', name: 'Töpferwaren',          icon: '🏺', from: 'jung',   kind: 'stock' },
   { id: 'werkzeug',     name: 'Werkzeug',             icon: '🗡️', from: 'frueh',  kind: 'stock', perPerson: 0.01 },   // perPerson: je Einwohner und Minute, sonst CONFIG.goodsPerPerson
+  { id: 'schmuck',      name: 'Schmuck',              icon: '💍', from: 'spaet',  kind: 'stock', perPerson: 0.005 },   // Bernstein gibt es nur beim Händler: darf nicht mehr verlangen, als er bringt
 ];
 
 const SEASONS = [
@@ -261,7 +270,7 @@ const BUILDINGS = {
   pfahlbau: {
     name: 'Pfahlbau', icon: '🏘️', size: 3, line: 'wasserwohnen', tier: 0, stage: 'jung', bild: '1-pfahlbau', views: ['r1', 'r2'],
     color: '#7d6040', cost: { holz: 120, werkzeug: 10 }, time: 180, housing: 12, needsWater: true,
-    produces: { nahrung: 2 }, requires: 'pfahlbauten',
+    produces: { nahrung: 2 }, requires: 'pfahlbauten', upgradeTo: 'fischerhaus',
     info: 'Häuser auf Pfählen am Wasser – Platz für 12 Menschen, dazu etwas Fisch.',
   },
   sammlerin: {
@@ -336,7 +345,7 @@ const BUILDINGS = {
   },
   ahnenplatz: {
     name: 'Ahnenplatz', icon: '🗿', size: 3, line: 'glaube', tier: 0, stage: 'mittel', bild: '1-ahnenplatz', views: ['r2'],
-    color: '#8a7a6a', cost: { holz: 60, stein: 60 }, time: 120, belief: 8, requires: 'ahnenkult',
+    color: '#8a7a6a', cost: { holz: 60, stein: 60 }, time: 120, belief: 8, requires: 'ahnenkult', upgradeTo: 'heiliger_hain',
     info: 'Hier ehrt der Stamm die Ahnen – Glaube für Wohnungen im Umkreis.',
   },
   tongrube: {
@@ -351,7 +360,7 @@ const BUILDINGS = {
   },
   vorratsspeicher: {
     name: 'Vorratsspeicher', icon: '🛖', size: 3, line: 'lager', tier: 0, stage: 'jung', bild: '1-vorratsspeicher', views: ['r2'],
-    color: '#b09060', cost: { holz: 80, stein: 40 }, time: 120, storage: 150, requires: 'vorratshaltung',
+    color: '#b09060', cost: { holz: 80, stein: 40 }, time: 120, storage: 150, requires: 'vorratshaltung', upgradeTo: 'kornspeicher',
     info: 'Mehr Lagerplatz für alle Waren.',
   },
   steinkreis: {
@@ -363,7 +372,7 @@ const BUILDINGS = {
   // neue Gebäude ein Platzhalter-Feld.
   lehmhaus: {
     name: 'Lehmhaus', icon: '🧱', size: 3, line: 'wohnen', tier: 4, stage: 'kupfer', bild: '1-langhaus', views: ['r2'],
-    color: '#a8703f', cost: { holz: 120, stein: 60, ton: 30 }, time: 200, housing: 18, requires: 'lehmbau',
+    color: '#a8703f', cost: { holz: 120, stein: 60, ton: 30 }, time: 200, housing: 18, requires: 'lehmbau', upgradeTo: 'hallenhaus',
     info: 'Feste Wände aus Lehm – Platz für 18 Menschen.',
   },
   gemuesegarten: {
@@ -392,7 +401,7 @@ const BUILDINGS = {
   felsritzer: {
     name: 'Felsritzer', icon: '🪨', size: 2, line: 'wissen', tier: 1, stage: 'kupfer', bild: '1-hoehlenmaler', views: ['r2'],
     color: '#c05a3a', cost: { holz: 20, stein: 20 }, time: 45, workers: 1, produces: { wissen: 6 }, requires: 'felsritzungen',
-    bonus: { terrain: 'fels', perTile: 0.05, max: 0.5 }, info: 'Ritzt Geschichten in den Fels – mehr Wissen als das Malen.',
+    bonus: { terrain: 'fels', perTile: 0.05, max: 0.5 }, upgradeTo: 'sternkundiger', info: 'Ritzt Geschichten in den Fels – mehr Wissen als das Malen.',
   },
   dorfbrunnen: {
     name: 'Dorfbrunnen', icon: '⛲', size: 2, line: 'waerme', tier: 1, stage: 'kupfer', bild: '1-feuerplatz', views: ['r2'],
@@ -478,6 +487,42 @@ const BUILDINGS = {
     color: '#c79a4a', cost: { holz: 120, stein: 60, bronze: 10 }, time: 180, requires: 'tauschhandel',
     info: 'Hierher kommt regelmäßig ein Händler mit dem Ochsenkarren und tauscht Waren gegen Waren – aber nur, solange du spielst.',
   },
+  // ----- Bronzezeit, Stufe Späte Bronzezeit (Bilder folgen, wie bei den anderen Stufen)
+  hallenhaus: {
+    name: 'Hallenhaus', icon: '🏛️', size: 3, line: 'wohnen', tier: 5, stage: 'spaet', bild: '1-langhaus', views: ['r2'],
+    color: '#a8703f', cost: { holz: 160, stein: 80, bronze: 10 }, time: 220, housing: 24, requires: 'hallenhaus',
+    info: 'Ein großes, stolzes Haus mit langem Dach – Platz für 24 Menschen.',
+  },
+  fischerhaus: {
+    name: 'Fischerhaus', icon: '🛶', size: 3, line: 'wasserwohnen', tier: 1, stage: 'spaet', bild: '1-pfahlbau', views: ['r1', 'r2'],
+    color: '#7d6040', cost: { holz: 150, werkzeug: 12, bronze: 3 }, time: 180, housing: 16, needsWater: true, produces: { nahrung: 4 }, requires: 'plankenboote',
+    info: 'Häuser am Wasser mit Plankenbooten – Platz für 16 Menschen und mehr Fisch.',
+  },
+  sternkundiger: {
+    name: 'Sternkundiger', icon: '🌙', size: 2, line: 'wissen', tier: 2, stage: 'spaet', bild: '1-hoehlenmaler', views: ['r2'],
+    color: '#5a6aa0', cost: { holz: 25, stein: 25, bronze: 2 }, time: 60, workers: 1, produces: { wissen: 9 }, requires: 'himmelsscheibe',
+    bonus: { terrain: 'fels', perTile: 0.05, max: 0.5 }, info: 'Liest mit der Himmelsscheibe Sonne, Mond und Sterne – noch mehr Wissen.',
+  },
+  heiliger_hain: {
+    name: 'Heiliger Hain', icon: '🌳', size: 3, line: 'glaube', tier: 1, stage: 'spaet', bild: '1-ahnenplatz', views: ['r2'],
+    color: '#5f8a4a', cost: { holz: 80, stein: 70, bronze: 3 }, time: 120, belief: 11, requires: 'heiliger_hain',
+    info: 'Ein Kreis alter Eichen – Glaube für Wohnungen in einem größeren Umkreis.',
+  },
+  kornspeicher: {
+    name: 'Kornspeicher', icon: '🌾', size: 3, line: 'lager', tier: 1, stage: 'spaet', bild: '1-vorratsspeicher', views: ['r2'],
+    color: '#b09060', cost: { holz: 100, stein: 50, bronze: 3 }, time: 120, storage: 250, requires: 'kornspeicher',
+    info: 'Ein großer Speicher auf Steinfüßen – viel mehr Lagerplatz für alle Waren.',
+  },
+  schmuckmacherin: {
+    name: 'Schmuckmacherin', icon: '💍', size: 2, line: 'schmuck', tier: 0, stage: 'spaet',
+    color: '#c79a3a', cost: { holz: 60, stein: 40, bronze: 15 }, time: 120, workers: 2, consumes: { bronze: 1, bernstein: 1 }, produces: { schmuck: 2 }, requires: 'schmuckkunst',
+    info: 'Macht aus 1 Bronze und 1 Bernstein 2 Stück Schmuck. Bernstein bringt nur der Händler.',
+  },
+  fuerstenhuegel: {
+    name: 'Fürstenhügel', icon: '⛰️', size: 4, line: 'wahrzeichen', tier: 1, stage: 'spaet',
+    color: '#6f9a4a', cost: { stein: 300, holz: 150, bronze: 30 }, time: 360, belief: 18, happy: 10, requires: 'fuerstenhuegel',
+    info: 'Wahrzeichen der Bronzezeit: ein grüner Hügel mit Steinkranz, Fahnen und Festplatz. Glaube im großen Umkreis und bessere Laune. Nötig für den Aufbruch.',
+  },
   pfad: {
     name: 'Trampelpfad', icon: '🟫', size: 1, line: 'weg', tier: 0, stage: 'alt',
     color: '#b89a6a', cost: { holz: 1 }, time: 0, isPath: true,
@@ -554,11 +599,24 @@ const TECHS = {
   bronzewerkzeug: { name: 'Bronzewerkzeug', icon: '⚒️', stage: 'frueh', col: 17, row: 3, requires: ['bronzeguss'], population: 180, cost: { wissen: 200, bronze: 15 }, time: 960, effect: {} },
   tauschhandel:   { name: 'Tauschhandel',   icon: '🤝', stage: 'frueh', col: 17, row: 4, requires: ['bronzeguss'], population: 155, cost: { wissen: 160, toepferwaren: 20 }, time: 780, effect: {} },
   rad:            { name: 'Rad und Wagen',  icon: '🛞', stage: 'frueh', col: 18, row: 4, requires: ['tauschhandel'], population: 170, cost: { wissen: 190, holz: 150 }, time: 900, effect: { buildFaster: 0.15, traderFaster: 300 } },
-  // Das Ziel der Frühen Bronzezeit. soon: lässt sich noch nicht starten – die Späte Bronzezeit ist der nächste Bauabschnitt.
   spaete_bronzezeit: {
-    name: 'Späte Bronzezeit', icon: '🏅', stage: 'frueh', col: 19, row: 2, transition: true, soon: true,
+    name: 'Späte Bronzezeit', icon: '🏅', stage: 'frueh', col: 19, row: 2, transition: true,
     requires: ['hakenpflug', 'webstuhl', 'brennofen', 'bronzewerkzeug', 'rad'],
-    population: 200, cost: { wissen: 240, bronze: 30, kleidung: 40 }, time: 2100, effect: {},
+    population: 200, cost: { wissen: 240, bronze: 30, kleidung: 40 }, time: 2100, effect: { stage: 'spaet' },
+  },
+  plankenboote:     { name: 'Plankenboote',    icon: '🛶', stage: 'spaet', col: 20, row: 0, requires: ['spaete_bronzezeit'], population: 215, cost: { wissen: 220, holz: 120 }, time: 960, effect: {} },
+  hallenhaus:       { name: 'Hallenhaus',      icon: '🏛️', stage: 'spaet', col: 20, row: 2, requires: ['spaete_bronzezeit'], population: 210, cost: { wissen: 230, holz: 150, bronze: 10 }, time: 960, effect: {} },
+  kornspeicher:     { name: 'Kornspeicher',    icon: '🌾', stage: 'spaet', col: 21, row: 2, requires: ['spaete_bronzezeit'], population: 220, cost: { wissen: 230, toepferwaren: 25 }, time: 1020, effect: { storage: 0.5 } },
+  bernsteinstrasse: { name: 'Bernsteinstraße', icon: '🟡', stage: 'spaet', col: 20, row: 3, requires: ['spaete_bronzezeit'], population: 205, cost: { wissen: 220, bronze: 20 }, time: 960, effect: { traderOffers: 1 } },
+  schmuckkunst:     { name: 'Schmuckkunst',    icon: '💍', stage: 'spaet', col: 21, row: 3, requires: ['bernsteinstrasse'], population: 215, cost: { wissen: 240, bronze: 20, bernstein: 10 }, time: 1020, effect: {} },
+  himmelsscheibe:   { name: 'Himmelsscheibe',  icon: '🌙', stage: 'spaet', col: 20, row: 4, requires: ['spaete_bronzezeit'], population: 210, cost: { wissen: 210, bronze: 10 }, time: 960, effect: {} },
+  heiliger_hain:    { name: 'Heiliger Hain',   icon: '🌳', stage: 'spaet', col: 21, row: 4, requires: ['spaete_bronzezeit'], population: 220, cost: { wissen: 240, toepferwaren: 30 }, time: 1020, effect: {} },
+  fuerstenhuegel:   { name: 'Fürstenhügel',    icon: '⛰️', stage: 'spaet', col: 22, row: 3, requires: ['schmuckkunst', 'heiliger_hain'], population: 240, cost: { wissen: 250, schmuck: 15 }, time: 1080, effect: {} },
+  eisenfund:        { name: 'Eisenfund',       icon: '🔩', stage: 'spaet', col: 23, row: 2, requires: ['plankenboote', 'hallenhaus', 'kornspeicher', 'fuerstenhuegel', 'himmelsscheibe'], population: 250, cost: { wissen: 280, bronze: 40, schmuck: 20 }, time: 2400, effect: {} },
+  // Das Ziel der Bronzezeit. soon: lässt sich noch nicht starten – die Eisenzeit bekommt einen eigenen Entwurf.
+  aufbruch_eisenzeit: {
+    name: 'Aufbruch in die Eisenzeit', icon: '🔩', stage: 'spaet', col: 24, row: 2, transition: true, soon: true, requires: ['eisenfund'],
+    population: 280, cost: { wissen: 280, holz: 400, stein: 300, nahrung: 400, bronze: 60, schmuck: 30, werkzeug: 50 }, time: 300, effect: {},
   },
 };
 
@@ -606,6 +664,15 @@ const TECH_NEEDS = {
   webstuhl:        { viehhof: 2 },
   brennofen:       { koehler: 3 },
   spaete_bronzezeit: { bronzegiesser: 2, weberin: 2, bronzeschmied: 1, toepferwerkstatt: 1, handelsplatz: 1 },
+  plankenboote:    { fischerhuette: 3 },
+  hallenhaus:      { lehmhaus: 8 },
+  kornspeicher:    { vorratsspeicher: 2 },
+  bernsteinstrasse: { bronzegiesser: 3 },
+  himmelsscheibe:  { felsritzer: 6 },
+  heiliger_hain:   { ahnenplatz: 3 },
+  fuerstenhuegel:  { schmuckmacherin: 1, heiliger_hain: 1 },
+  eisenfund:       { fuerstenhuegel: 1, hallenhaus: 5 },
+  aufbruch_eisenzeit: { fuerstenhuegel: 1, sternkundiger: 2, kornspeicher: 1, jagdhuette: 2, feld: 2, viehhof: 2, kupfermine: 2, schmelzofen: 2, zinnwaescherin: 1, handelsplatz: 1, schmuckmacherin: 1 },
 };
 
 // Ganz rechts im Baum: Aufbruch in die nächste Epoche (Bronzezeit wird in einem späteren Schritt gebaut)
@@ -627,13 +694,13 @@ const TECH_NEEDS = {
   }
 })(CONFIG.tempo);
 
-const NEXT_EPOCH = { name: 'Späte Bronzezeit', icon: '🏅', text: 'Bernstein, Schmuck, Himmelsscheibe und der Fürstenhügel.' };   // der nächste Bauabschnitt: nur Vorschau im Forschungsfenster
+const NEXT_EPOCH = { name: 'Eisenzeit', icon: '🔩', text: 'Eisenerz, Schmiede und befestigte Siedlungen.' };   // der nächste Bauabschnitt: nur Vorschau im Forschungsfenster
 
 // Weiterentwicklungen wirken wie ihre Vorstufe bei Wetter, Jahreszeit, Katastrophen und Forschungs-Boni
 (function inheritEffects() {
   const of = { gemuesegarten: 'sammlerin', fischerhuette: 'fischerplatz', holzfaeller: 'holzsammler', steinbruch: 'steinsammler',
     lehmgrube: 'tongrube', felsritzer: 'hoehlenmaler', kupferschmied: 'steinschlaeger', jagdhuette: 'mammutjaegerlager', feld: 'acker', viehhof: 'ziegengehege',
-    weberin: 'fellmacherin', bronzeschmied: 'steinschlaeger', toepferwerkstatt: 'toepferei', baumgaertnerin: 'pflanzerin' };
+    weberin: 'fellmacherin', bronzeschmied: 'steinschlaeger', toepferwerkstatt: 'toepferei', baumgaertnerin: 'pflanzerin', sternkundiger: 'hoehlenmaler' };
   const copy = map => { if (map) for (const [to, from] of Object.entries(of)) if (map[from] !== undefined && map[to] === undefined) map[to] = map[from]; };
   for (const w of Object.values(WEATHERS)) copy(w.effect.buildings);
   for (const d of Object.values(DISASTERS)) copy(d.buildings);
@@ -648,7 +715,7 @@ const BAR_CATEGORIES = [
   { id: 'wohnen',    name: 'Wohnen',    icon: '🏠', lines: ['wohnen', 'wasserwohnen'] },
   { id: 'nahrung',   name: 'Nahrung',   icon: '🍖', lines: ['sammeln', 'jagen', 'fischen', 'feld', 'tiere'] },
   { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton', 'erz', 'kohle', 'zinn'] },
-  { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'bronze', 'kleidung', 'werkzeug', 'toepfern', 'lager', 'handel'] },
+  { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'bronze', 'kleidung', 'werkzeug', 'toepfern', 'schmuck', 'lager', 'handel'] },
   { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['waerme', 'glaube', 'wissen', 'wahrzeichen'] },
   { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg', 'bruecke'] },
 ];
@@ -718,6 +785,12 @@ const QUESTS = [
   { id: 'q_b_bronze20', text: 'Habe 20 Bronze im Lager', goal: { resource: 'bronze', count: 20 }, reward: { wissen: 60 } },
   { id: 'q_b_viehhof2', text: 'Baue 2 Viehhöfe',         goal: { build: 'viehhof', count: 2 }, reward: { nahrung: 100 } },
   { id: 'q_b_pop180',   text: 'Erreiche 180 Einwohner',  goal: { population: 180 }, reward: { werkzeug: 20 } },
+  { id: 'q_b_spaet',    text: 'Erreiche die Späte Bronzezeit', goal: { tech: 'spaete_bronzezeit' }, reward: { bronze: 20 } },
+  // Späte Bronzezeit
+  { id: 'q_b_schmuck20', text: 'Habe 20 Schmuck im Lager', goal: { resource: 'schmuck', count: 20 }, reward: { wissen: 80 } },
+  { id: 'q_b_pop230',   text: 'Erreiche 230 Einwohner',  goal: { population: 230 }, reward: { holz: 150, stein: 100 } },
+  { id: 'q_b_fuerstenhuegel', text: 'Baue den Fürstenhügel', goal: { build: 'fuerstenhuegel', count: 1 }, reward: { bronze: 30, nahrung: 150 } },
+  { id: 'q_b_pop280',   text: 'Erreiche 280 Einwohner – bereit für den Aufbruch', goal: { population: 280 }, reward: { holz: 200, nahrung: 200 } },
 ];
 
 // Tägliche Belohnung: Tag 1–7 hintereinander (Tag 7 ist die große Truhe)

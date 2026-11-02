@@ -320,7 +320,7 @@ function targetGone(w) {
 Object.assign(WORK, { gemuesegarten: WORK.sammlerin, fischerhuette: WORK.fischerplatz, holzfaeller: WORK.holzsammler, steinbruch: WORK.steinsammler,
   felsritzer: WORK.hoehlenmaler, lehmgrube: WORK.tongrube, kupferschmied: WORK.steinschlaeger,
   jagdhuette: WORK.mammutjaegerlager, feld: WORK.acker, viehhof: WORK.ziegengehege, baumgaertnerin: WORK.pflanzerin, weberin: WORK.fellmacherin,
-  bronzeschmied: WORK.steinschlaeger, toepferwerkstatt: WORK.toepferei });
+  bronzeschmied: WORK.steinschlaeger, toepferwerkstatt: WORK.toepferei, sternkundiger: WORK.hoehlenmaler });
 
 // Arbeitsplatz IN der Werkstatt (auf der Platte, vordere Hälfte, passend zum Bild): [Standplatz u, v, Werkstück u, v]
 // u läuft zur rechten, v zur linken Ecke der Raute (0 … Größe). Gespiegelte Ansicht: u und v tauschen.
@@ -788,7 +788,7 @@ function drawVisitor(v, t) {
   ctx.globalAlpha = v.alpha;
   const z = cam.zoom, step = t * 9 + v.ph;
   if (v.phase !== 'stay') drawCreature(personImg(v.img, 'leer'), v.x, v.y, 32, v.face, Math.abs(Math.sin(step)) * 1.2 * z, '🧍', step);
-  else if (v.kind === 'feuer' && darkness() > 0.3) {   // abends: Tanz ums Feuer – hüpfen und drehen
+  else if (v.kind === 'feuer' && (darkness() > 0.3 || festNow())) {   // abends und beim Sonnwendfest: Tanz ums Feuer – hüpfen und drehen
     const hop = Math.abs(Math.sin(t * 4 + v.ph)) * 6 * z;
     drawCreature(personImg(v.img, 'leer'), v.x, v.y, 32, Math.sin(t * 1.3 + v.ph) > 0 ? 1 : -1, hop, '💃', t * 8 + v.ph);
   } else if (v.kind === 'feuer') drawSitting(v, t);

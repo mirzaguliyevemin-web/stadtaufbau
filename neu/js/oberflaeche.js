@@ -372,7 +372,9 @@ function infoText(i) {
 // Woher kommt eine Ware? (für Hinweise wie „Es fehlt Felle – kommt vom Jägerlager“)
 function sourceText(id) {
   const from = Object.keys(BUILDINGS).filter(t => BUILDINGS[t].produces && BUILDINGS[t].produces[id] && (isUnlocked(t) || stageReached(BUILDINGS[t].stage)));
-  return from.length ? ' – kommt von: ' + from.map(t => BUILDINGS[t].name).join(', ') + (id === 'felle' && !mammothsExtinct() && state.techs.mammutjagd ? ', Mammutjagd' : '') : '';
+  const trader = CONFIG.trader.offers.some(o => o.get[id] && (!o.requires || state.techs[o.requires])) && stageReached('frueh') ? ['Händler'] : [];
+  const names = [...from.map(t => BUILDINGS[t].name), ...trader];
+  return names.length ? ' – kommt von: ' + names.join(', ') + (id === 'felle' && !mammothsExtinct() && state.techs.mammutjagd ? ', Mammutjagd' : '') : '';
 }
 
 function infoPopHtml(i) {
@@ -781,6 +783,9 @@ function techEffectText(id) {
   if (e.storage) out.push(`Lagerplatz +${Math.round(e.storage * 100)} %`);
   if (e.stage) out.push(`Öffnet die ${STAGES[stageIndex(e.stage)].name}`);
   if (id === 'kupferfund') out.push('Macht den Aufbruch in die Bronzezeit möglich');
+  if (id === 'eisenfund') out.push('Macht den Aufbruch in die Eisenzeit möglich');
+  if (id === 'himmelsscheibe') out.push(`Sonnwendfest mitten im Sommer: Laune +${CONFIG.fest.happy}`);
+  if (e.traderOffers) out.push('Der Händler bringt Bernstein und ein Angebot mehr');
   if (e.buildFaster) out.push(`Bauzeiten −${Math.round(e.buildFaster * 100)} %`);
   if (e.traderFaster) out.push(`Händler kommt alle ${Math.round((CONFIG.trader.every - e.traderFaster) / 60)} statt ${Math.round(CONFIG.trader.every / 60)} Minuten`);
   if (id === 'tauschhandel') out.push('Der Händler kommt zum Handelsplatz');

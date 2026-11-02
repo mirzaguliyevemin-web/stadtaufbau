@@ -8,11 +8,11 @@ Zeichen: ✅ entschieden · ❓ offene Frage an Emin · 💡 Vorschlag
 
 ## Stand des Baus
 
-Gebaut, ohne Bilder: **Kupferzeit** (Version 60) und **Frühe Bronzezeit** (Version 61). Weiterentwicklungen zeigen das Bild der Vorstufe,
-neue Gebäude (Kupfermine, Köhler, Schmelzofen, Zinnwäscherin, Bronzegießer, Handelsplatz) einen Platzhalter, neue Waren und Forschungen ihr Zeichen.
+Gebaut, ohne Bilder: **Kupferzeit** (Version 60), **Frühe Bronzezeit** (Version 61) und **Späte Bronzezeit** (Version 62). Weiterentwicklungen zeigen das Bild der Vorstufe,
+neue Gebäude (Kupfermine, Köhler, Schmelzofen, Zinnwäscherin, Bronzegießer, Handelsplatz, Schmuckmacherin, Fürstenhügel) einen Platzhalter, neue Waren und Forschungen ihr Zeichen.
 Der Händler ist eine Figur mit Ochsen-Zeichen und einer Blase zum Antippen, bis es Bilder gibt.
 
-Noch nicht gebaut: Späte Bronzezeit, Häuptling-Bild, Bronzezeit-Leisten, Ereignis Erzader, Bronzezeit-Waren in der täglichen Belohnung.
+Noch nicht gebaut: Häuptling-Bild, Bronzezeit-Leisten, Ereignis Erzader, Bronzezeit-Waren in der täglichen Belohnung.
 
 Abweichungen vom Entwurf:
 - Der Aufbruch wird auf einmal bezahlt (je Ware höchstens 200 wie alle Forschungen), nicht nach und nach geliefert.
@@ -20,11 +20,15 @@ Abweichungen vom Entwurf:
 - Der Handelsplatz hat keine Arbeiter. Der erste Händler kommt 1 Minute nach dem ersten Handelsplatz, danach alle 20 (mit Rad 15) Minuten.
 - Das erste Angebot bringt immer Zinn, Bernstein kommt erst mit der Späten Bronzezeit.
 - Neu festgelegt (im Entwurf offen): Bronzeschmied verbraucht 1 Bronze + 1 Holz, ist wie die anderen Gebäude mit neuen Zutaten nur per Knopf umzubauen.
+- Schmuck: Der Entwurf wollte 0,02 Schmuck je Einwohner und Minute (280 Einwohner: 5,6 je Minute), Bernstein gibt es aber nur beim Händler.
+  Darum: Bedarf 0,005 je Einwohner und Minute, 1 Bronze + 1 Bernstein → 2 Schmuck, Angebote 15 Kleidung → 10 Bernstein und 10 Bronze → 12 Bernstein, ab der „Bernsteinstraße“ beide bei jedem Besuch.
+- Das Sonnwendfest lässt die Menschen am Dorfplatz tanzen, spielt Musik und hebt die Laune um 15; es ergibt sich aus der Jahreszeit und muss nicht gespeichert werden.
+- Der Aufbruch in die Eisenzeit verlangt nicht jedes Bronzezeit-Gebäude, sondern eine feste Liste in `TECH_NEEDS`; er lässt sich noch nicht starten.
 - Forschung verlangt Gebäude: siehe `TECH_NEEDS` in `neu/js/daten.js`.
 
-Die Forschung „Späte Bronzezeit“ ist sichtbar, lässt sich aber erst mit dem nächsten Bauabschnitt starten.
+Der „Aufbruch in die Eisenzeit“ ist sichtbar, lässt sich aber erst starten, wenn die Eisenzeit einen eigenen Entwurf hat und gebaut ist.
 
-Zum Ausprobieren: `neu/teststand-kupferzeit.txt`, `neu/teststand-fruehbronze.txt` (erzeugt mit `node neu/tools/teststand-kupferzeit.mjs`).
+Zum Ausprobieren: `neu/teststand-kupferzeit.txt`, `neu/teststand-fruehbronze.txt`, `neu/teststand-spaetbronze.txt` (erzeugt mit `node neu/tools/teststand-kupferzeit.mjs`).
 Durchspielen ab der Kupferzeit: `node neu/tools/bot-bronze.mjs [Minuten]`.
 
 ## Überblick
@@ -36,7 +40,7 @@ Die Bronzezeit hat – wie die Steinzeit – drei Stufen. Jede Stufe öffnet ein
 |---|---|---|
 | **Kupferzeit** | erstes Metall: Kupfer aus dem Berg, Schmelzofen, Lehmhäuser, Gärten | aus dem Dorf wird ein Handwerkerdorf, Rauch über dem Ofen |
 | **Frühe Bronzezeit** | Kupfer + Zinn = Bronze, Händler, Rad und Wagen, Pflug, Schafe und Wolle | Ochsenkarren kommen, das Dorf ist mit der Welt verbunden |
-| **Späte Bronzezeit** | Bernstein, Schmuck, Himmelsscheibe, große Hallenhäuser, Grabhügel | ein reiches, stolzes Dorf mit einem Häuptling |
+| **Späte Bronzezeit** | Bernstein, Schmuck, Himmelsscheibe, große Hallenhäuser, Fürstenhügel | ein reiches, stolzes Dorf mit einem Häuptling |
 
 ✅ (02.11., siehe Liste unten) **Wie lange soll die Bronzezeit dauern?** 💡 Vorschlag: etwas länger als die Steinzeit, weil mehr Ketten dazukommen –
 etwa **6 Stunden reine Forschungszeit** im Spiel (die Steinzeit hat heute etwa 4 Stunden). Mit Offline-Zeit (bis 2 h)
@@ -85,7 +89,7 @@ Die Bauleiste zeigt jede Linie nur einmal, in der neuesten Stufe.
 | Ton | Tongrube (4) | **Lehmgrube** | 2×2 | Kupfer | 6 Ton |
 | Töpfern | Töpferei | **Töpferwerkstatt** mit Brennofen | 2×2 | Früh | 2 Töpferwaren statt 1,25 |
 | Lager | Vorratsspeicher | **Kornspeicher** | 3×3 | Spät | Lager +150 → +250 |
-| Wahrzeichen | Steinkreis | bleibt stehen; neu: **Grabhügel** | 4×4 | Spät | eigenes Wahrzeichen der Bronzezeit |
+| Wahrzeichen | Steinkreis | bleibt stehen; neu: **Fürstenhügel** | 4×4 | Spät | eigenes Wahrzeichen der Bronzezeit |
 | Weg / Brücke | Trampelpfad, Brücke | bleiben (💡 Bohlenweg siehe Extras) | 1×1 | – | – |
 
 Anmerkung: In der Steinzeit-Datei stand einmal „Feuerplatz → Dorfplatz“, in der Linien-Tabelle „Lagerfeuer → Dorfplatz“
@@ -190,7 +194,7 @@ KUPFERZEIT                             FRÜHE BRONZEZEIT                        
 Nahrung:  Gartenbau ─ Netze            Hakenpflug · Schafzucht ─ Webstuhl        Plankenboote
 Wohnen:   Lehmbau ─ Brunnenbau         Brennofen                                 Hallenhaus · Kornspeicher
 Handwerk: Bergbau ─ Kupferschmelze ─┬─ Zinnseifen ─ Bronzeguss ─ Bronzewerkzeug  Schmuckkunst ─┐
-                    Kupferbeil      │                                                          ├─ Grabhügel ─► Eisenfund ─► [Aufbruch Eisenzeit]
+                    Kupferbeil      │                                                          ├─ Fürstenhügel ─► Eisenfund ─► [Aufbruch Eisenzeit]
                     Kupferschmied   │                                                          │
 Wissen:   Felsritzungen ────────────┴► [Frühe BZ] Tauschhandel ─ Rad ─► [Späte BZ] Bernsteinstraße, Himmelsscheibe, Heiliger Hain ┘
 ```
@@ -227,7 +231,7 @@ Steinzeit zum Vergleich: Jungsteinzeit-Forschungen 100–150 Wissen, 14–18 min
 | 25 | 🛶 Plankenboote (`plankenboote`) | Spät | 20 | 215 | 220 Wissen, 120 Holz | 16 min | Pfahlbau → Fischerhaus |
 | 26 | 🌳 Heiliger Hain (`heiliger_hain`) | Spät | 20 | 220 | 240 Wissen, 30 Töpferwaren | 17 min | Ahnenplatz → Heiliger Hain |
 | 27 | 🌾 Kornspeicher (`kornspeicher`) | Spät | 20 | 220 | 230 Wissen, 25 Töpferwaren | 17 min | Vorratsspeicher → Kornspeicher, Lager +50 % |
-| 28 | ⛰️ Grabhügel (`grabhuegel`) | Spät | 22, 26 | 240 | 250 Wissen, 15 Schmuck | 18 min | Grabhügel (Wahrzeichen) |
+| 28 | ⛰️ Fürstenhügel (`fuerstenhuegel`) | Spät | 22, 26 | 240 | 250 Wissen, 15 Schmuck | 18 min | Fürstenhügel (Wahrzeichen) |
 | 29 | 🔩 Eisenfund (`eisenfund`) | Spät | 21–28 | 250 | 280 Wissen, 40 Bronze, 20 Schmuck | 40 min | macht den Aufbruch in die Eisenzeit möglich |
 
 Das sind 27 Forschungen und 2 Übergänge (Steinzeit: 22 + 2). Reine Forschungszeit im Spiel: etwa **6 Stunden**
@@ -237,7 +241,7 @@ das prüft der Bot.
 ## Aufbruch in die Eisenzeit
 
 Bedingungen (wie beim Aufbruch in die Bronzezeit, ganz rechts im Baum):
-- alle Forschungen der Bronzezeit, **Grabhügel** gebaut, jedes Bronzezeit-Gebäude einmal gebaut
+- alle Forschungen der Bronzezeit, **Fürstenhügel** gebaut, jedes Bronzezeit-Gebäude einmal gebaut
   (ohne Gebäude, die besonderes Gelände brauchen, wenn es auf der Karte fehlt)
 - **280 Einwohner**
 - Waren: 400 Holz, 300 Stein, 400 Nahrung, 60 Bronze, 30 Schmuck, 50 Werkzeug (werden nach und nach geliefert)
@@ -262,7 +266,7 @@ Bedingungen (wie beim Aufbruch in die Bronzezeit, ganz rechts im Baum):
 | `q_b_spaet` | Erreiche die Späte Bronzezeit | 20 Bronze |
 | `q_b_schmuck20` | Habe 20 Schmuck im Lager | 80 Wissen |
 | `q_b_pop230` | Erreiche 230 Einwohner | 150 Holz, 100 Stein |
-| `q_b_grabhuegel` | Baue den Grabhügel | 30 Bronze, 150 Nahrung |
+| `q_b_fuerstenhuegel` | Baue den Fürstenhügel | 30 Bronze, 150 Nahrung |
 | `q_b_pop280` | Erreiche 280 Einwohner – bereit für den Aufbruch | 200 Holz, 200 Nahrung |
 
 💡 **Tägliche Belohnung**: gleiche 7-Tage-Reihe, ab der Bronzezeit mit Bronzezeit-Waren (z. B. Tag 7: 100 Holz, 80 Stein,
@@ -274,7 +278,7 @@ Bedingungen (wie beim Aufbruch in die Bronzezeit, ganz rechts im Baum):
 |---|---|---|
 | 🛒 Händler | mit Handelsplatz, alle 20 (15) min | Ochsenkarren kommt, 3–4 Tauschangebote (siehe „Handel“) |
 | ✨ Erzader | selten, an einem Fels am Gebirge | ein Fels glitzert; antippen → ein Bergmann geht hin, bringt nach 1 min 40 Kupfererz (wie die Mammutjagd) |
-| ☀️ Sonnwendfest | Mitte Sommer, nach „Himmelsscheibe“ | 5 min Fest am Dorfplatz/Grabhügel: Musik, Menschen tanzen, Zufriedenheit +15 |
+| ☀️ Sonnwendfest | Mitte Sommer, nach „Himmelsscheibe“ | 5 min Fest am Dorfplatz/Fürstenhügel: Musik, Menschen tanzen, Zufriedenheit +15 |
 | 🌦️ Wetter, Naturkatastrophen | wie bisher | neue Gebäude bekommen passende Wirkungen (Feld wie Acker, Gemüsegarten wie Sammlerin, Fischerhütte wie Fischerplatz); Kupfermine und Werkstätten arbeiten drinnen |
 
 💡 Keine neuen Katastrophen – ruhiges Spiel bleibt ruhig. Mammuts gibt es nicht mehr; neu ziehen **Schafe, Rinder und
@@ -362,7 +366,7 @@ Gebäude am Wasser (Fischerhütte, Lehmgrube, Zinnwäscherin, Fischerhaus) brauc
 | `2-bronzegiesser` | Bronzegießer | 2×2 | A bronze caster's workshop: a glowing furnace, clay moulds, a crucible pouring golden bronze, shiny finished bronze axes, small plot (2x2) |
 | `2-handelsplatz` | Handelsplatz | 3×3 | A cheerful trading place: a wooden stall with a cloth roof, an ox cart full of goods, bales, clay jars, amber and bronze rings on a table, medium plot (3x3) |
 | `2-schmuckmacherin` | Schmuckmacherin | 2×2 | A small jeweler's hut: a workbench with bronze bracelets, neck rings and amber beads, tiny tools, a colorful cloth awning, small plot (2x2) |
-| `2-grabhuegel` | Grabhügel | 4×4 | A big round friendly green hill mound with a ring of standing stones at its foot, flowers, colorful banners on poles and a small festive square with a fire bowl in front, large plot (4x4) |
+| `2-fuerstenhuegel` | Fürstenhügel | 4×4 | A big round friendly green hill mound with a ring of standing stones at its foot, flowers, colorful banners on poles and a small festive square with a fire bowl in front, large plot (4x4) |
 
 Je Gebäude 4 Bilder (normal, Winter, r2, r2-Winter), die 4 Gebäude am Wasser 6 – zusammen **124 Gebäudebilder**.
 
@@ -393,7 +397,7 @@ Je Gebäude 4 Bilder (normal, Winter, r2, r2-Winter), die 4 Gebäude am Wasser 6
 `f-spaete-bronzezeit` a sunrise over a green hill mound with banners · `f-bernsteinstrasse` amber stones on a winding road ·
 `f-schmuckkunst` a bronze neck ring with amber · `f-himmelsscheibe` a green-and-gold sky disc with sun, moon and stars ·
 `f-hallenhaus` a big hall house with a long thatched roof · `f-plankenboote` a wooden plank boat with paddles · `f-heiliger-hain` an old oak tree with a sun disc ·
-`f-kornspeicher` a granary on stone feet · `f-grabhuegel` a green hill mound with standing stones · `f-eisenfund` a dark reddish iron ore lump with a glint
+`f-kornspeicher` a granary on stone feet · `f-fuerstenhuegel` a green hill mound with standing stones · `f-eisenfund` a dark reddish iron ore lump with a glint
 
 ### Figuren, Tiere, Sonstiges
 
@@ -418,7 +422,7 @@ bleiben. Neue Kleidung für alle später, wenn Zeit ist.
 - Neue Gebäude-IDs (nie wieder umbenennen): `dorfplatz`, `lehmhaus`, `hallenhaus`, `fischerhaus`, `gemuesegarten`, `jagdhuette`,
   `fischerhuette`, `feld`, `viehhof`, `holzfaeller`, `baumgaertnerin`, `steinbruch`, `felsritzer`, `sternkundiger`, `dorfbrunnen`,
   `weberin`, `kupferschmied`, `bronzeschmied`, `heiliger_hain`, `lehmgrube`, `toepferwerkstatt`, `kornspeicher`, `kupfermine`,
-  `koehler`, `schmelzofen`, `zinnwaescherin`, `bronzegiesser`, `handelsplatz`, `schmuckmacherin`, `grabhuegel`.
+  `koehler`, `schmelzofen`, `zinnwaescherin`, `bronzegiesser`, `handelsplatz`, `schmuckmacherin`, `fuerstenhuegel`.
 - Neue Felder im Spielstand (Händler, Erzader) in `sanitizeState` mit Standardwert; Steinzeit-Spielstände laden weiter.
 - `WEATHERS`, `DISASTERS`, `SEASON_FACTORS`, `OUTDOOR_WORK` um die neuen Gebäude ergänzen; Bot lernt Mine, Schmelze, Handel.
 - Größe: grob 500–800 Zeilen (Daten, Handel, Erz am Gebirge, Fenster) – wird in mehreren Schritten mit dir gebaut.

@@ -71,6 +71,8 @@ Gewünscht: Ab einer bestimmten Epoche wählt man eine Religion; danach ändern 
 - 💡 Nur die religiösen Gebäude (und vielleicht ein paar Schmuckstücke) ändern sich, nicht jedes Haus –
   sonst bräuchte jede Religion einen kompletten eigenen Bildersatz (Bildanzahl × Religionen).
 
+✅ 2026-11-02: Wechseln darf man die Religion nur beim Aufbruch in ein neues Zeitalter.
+
 ✅ 2026-10-28: **A – echte Weltreligionen.** Die Möglichkeiten waren:
 - **A – echte Weltreligionen** (z. B. Christentum, Islam, Judentum, Buddhismus, Hinduismus). Dann gestalten wir
   alles respektvoll und gleichwertig, kein Glaube ist „besser“; die Vorteile sind nur kleine Spielunterschiede.

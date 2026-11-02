@@ -1,6 +1,6 @@
 # Epochia – Epoche 2: Bronzezeit (Entwurf)
 
-Entwurf von Claude, 2026-11-01 – **zum Besprechen**, noch nicht gebaut. Gehört zu `docs/konzept-neu.md`.
+Entwurf von Claude, 2026-11-01; offene Fragen am 2026-11-02 mit Emin entschieden, noch nicht gebaut. Gehört zu `docs/konzept-neu.md`.
 Alle Zahlen sind Startwerte, abgeleitet aus der Steinzeit, wie sie heute in `neu/js/daten.js` gebaut ist (Version 44);
 feinjustiert wird nach dem Test am Handy und mit dem Bot.
 
@@ -17,7 +17,7 @@ Die Bronzezeit hat – wie die Steinzeit – drei Stufen. Jede Stufe öffnet ein
 | **Frühe Bronzezeit** | Kupfer + Zinn = Bronze, Händler, Rad und Wagen, Pflug, Schafe und Wolle | Ochsenkarren kommen, das Dorf ist mit der Welt verbunden |
 | **Späte Bronzezeit** | Bernstein, Schmuck, Himmelsscheibe, große Hallenhäuser, Grabhügel | ein reiches, stolzes Dorf mit einem Häuptling |
 
-❓ **Wie lange soll die Bronzezeit dauern?** 💡 Vorschlag: etwas länger als die Steinzeit, weil mehr Ketten dazukommen –
+✅ (02.11., siehe Liste unten) **Wie lange soll die Bronzezeit dauern?** 💡 Vorschlag: etwas länger als die Steinzeit, weil mehr Ketten dazukommen –
 etwa **6 Stunden reine Forschungszeit** im Spiel (die Steinzeit hat heute etwa 4 Stunden). Mit Offline-Zeit (bis 2 h)
 fühlt sich das wie 2–3 Abende an.
 
@@ -70,7 +70,7 @@ Die Bauleiste zeigt jede Linie nur einmal, in der neuesten Stufe.
 Anmerkung: In der Steinzeit-Datei stand einmal „Feuerplatz → Dorfplatz“, in der Linien-Tabelle „Lagerfeuer → Dorfplatz“
 und „Feuerplatz → Dorfbrunnen“. Dieser Entwurf nimmt die Linien-Tabelle.
 
-❓ **Gebäude, die nach der Weiterentwicklung andere Zutaten brauchen** (Steinschläger → Kupferschmied braucht Kupfer,
+✅ (02.11., siehe Liste unten) **Gebäude, die nach der Weiterentwicklung andere Zutaten brauchen** (Steinschläger → Kupferschmied braucht Kupfer,
 Fellmacherin → Weberin braucht Wolle, Töpferei → Töpferwerkstatt braucht Holzkohle): Sollen die auch von selbst umgebaut
 werden? Dann stünden sie still, bis die neue Ware da ist.
 💡 Vorschlag: Gebäude mit **gleichen Zutaten** entwickeln sich wie bisher von selbst; Gebäude mit **neuen Zutaten** nur per
@@ -87,16 +87,16 @@ Knopf „Weiterentwickeln“ im Info-Fenster (wie Grubenhaus → Langhaus). Neu 
 | 🥉 Bronzegießer | Bronze | 2×2 | Früh | 2 min | 60 Stein, 20 Kupfer | 2 Kupfer + 1 Zinn → 1 Bronze |
 | 🤝 Handelsplatz | Handel | 3×3 | Früh | 3 min | 120 Holz, 60 Stein, 10 Bronze | ein Händler kommt regelmäßig (siehe „Handel“) |
 | 💍 Schmuckmacherin | Schmuck | 2×2 | Spät | 2 min | 60 Holz, 40 Stein, 15 Bronze | 1 Bronze + 1 Bernstein → 1 Schmuck |
-| ⛰️ Grabhügel | Wahrzeichen | 4×4 | Spät | 6 min | 300 Stein, 150 Holz, 30 Bronze | Glaube und Zufriedenheit im großen Umkreis, Pflicht für den Aufbruch |
+| ⛰️ Fürstenhügel | Wahrzeichen | 4×4 | Spät | 6 min | 300 Stein, 150 Holz, 30 Bronze | Glaube und Zufriedenheit im großen Umkreis, Pflicht für den Aufbruch |
 
 Die weiterentwickelten Gebäude (Tabelle oben) kosten beim Neubau etwa das 1,3-Fache der Steinzeit-Stufe, ab der Frühen
 Bronzezeit zusätzlich ein wenig Bronze (z. B. Lehmhaus 120 Holz, 60 Stein, 30 Ton; Hallenhaus 160 Holz, 80 Stein, 10 Bronze).
 
-❓ **Grabhügel in einem fröhlichen Spiel?** Historisch das typische Bauwerk der Bronzezeit (Fürstengräber), aber es geht um Tod.
+✅ (02.11., siehe Liste unten) **Grabhügel in einem fröhlichen Spiel?** Historisch das typische Bauwerk der Bronzezeit (Fürstengräber), aber es geht um Tod.
 💡 Vorschlag: als **„Fürstenhügel“** zeigen – ein runder grüner Hügel mit Steinkranz, Blumen, Fahnen und einem Festplatz davor;
 im Spiel ist er ein Ort der Ahnen und Feste, Tod wird nicht gezeigt. Alternative: „Häuptlingshalle“ als Wahrzeichen.
 
-❓ **Kupfermine nur am Gebirge?** 💡 Ja: Sie muss (wie der Fischer am Wasser) direkt am Gebirge stehen; an den neuen
+✅ (02.11., siehe Liste unten) **Kupfermine nur am Gebirge?** 💡 Ja: Sie muss (wie der Fischer am Wasser) direkt am Gebirge stehen; an den neuen
 Erzfelsen gibt es +50 %. Das macht die großen Berge auf der Karte endlich wichtig.
 
 ## Waren
@@ -125,11 +125,11 @@ Viehhof ─ Wolle ─► Weberin ─ Kleidung          Lehmgrube ─ Ton ─┐
                                                 Köhler ─ Holzkohle ┴► Töpferwerkstatt ─ Töpferwaren
 ```
 
-❓ **Woher kommt das Zinn?** (Zinn war in der echten Bronzezeit selten und kam von weit her.)
+✅ (02.11., siehe Liste unten) **Woher kommt das Zinn?** (Zinn war in der echten Bronzezeit selten und kam von weit her.)
 💡 Vorschlag: beides – die **Zinnwäscherin** am Fluss liefert wenig (1 je Minute), der **Händler** bringt mehr.
 So bleibt das Spiel auch ohne Handel spielbar, aber Handel lohnt sich.
 
-❓ **Geld schon in der Bronzezeit?** 💡 Nein, noch kein Geld – Tausch beim Händler. Geld (Münzen) kommt in der Antike.
+✅ (02.11., siehe Liste unten) **Geld schon in der Bronzezeit?** 💡 Nein, noch kein Geld – Tausch beim Händler. Geld (Münzen) kommt in der Antike.
 
 ## Handel (neu)
 
@@ -140,7 +140,7 @@ So bleibt das Spiel auch ohne Handel spielbar, aber Handel lohnt sich.
   20 Töpferwaren → 8 Zinn · 30 Felle → 10 Zinn · 60 Nahrung → 20 Kupfererz · 15 Kleidung → 5 Bernstein · 10 Bronze → 6 Bernstein.
 - Jedes Angebot geht einmal je Besuch. Die Angebote wechseln.
 
-❓ **Soll der Händler auch offline kommen und tauschen?** 💡 Nein – der Händler kommt nur, solange man spielt (wie die Mammutherde);
+✅ (02.11., siehe Liste unten) **Soll der Händler auch offline kommen und tauschen?** 💡 Nein – der Händler kommt nur, solange man spielt (wie die Mammutherde);
 offline läuft die Wirtschaft wie bisher weiter.
 
 ## Bedürfnisse der Einwohner
@@ -154,9 +154,9 @@ offline läuft die Wirtschaft wie bisher weiter.
 Neue Bedürfnisse zählen wie heute erst nach 10 Minuten Schonfrist und mit einem kleinen Startvorrat.
 In der Kupferzeit kommt **kein** neues Bedürfnis – dort baut man erst die Metall-Kette auf.
 
-❓ **Neue Bedürfnisse Werkzeug und Schmuck – passt das?** 💡 Ja, so wird Bronze nicht nur Baustoff, sondern die Leute wollen sie auch.
+✅ (02.11., siehe Liste unten) **Neue Bedürfnisse Werkzeug und Schmuck – passt das?** 💡 Ja, so wird Bronze nicht nur Baustoff, sondern die Leute wollen sie auch.
 
-❓ **Einwohnerstufen** (z. B. Bauern → Handwerker → Edle, wie in anderen Aufbauspielen)? 💡 Noch nicht – das ist ein großer Umbau.
+✅ (02.11., siehe Liste unten) **Einwohnerstufen** (z. B. Bauern → Handwerker → Edle, wie in anderen Aufbauspielen)? 💡 Noch nicht – das ist ein großer Umbau.
 Erst in der Antike überlegen; in der Bronzezeit reichen bessere Häuser und neue Bedürfnisse.
 
 ## Forschungsbaum
@@ -276,7 +276,7 @@ Der Stammesälteste ist jetzt **Häuptling** (gleicher Mann, prächtiger gekleid
 
 ## Kleine Extras
 
-❓ **Baumgärtnerin und Bohlenweg** – brauchen wir die? 💡 **Baumgärtnerin ja** (Pflanzerin pflanzt schneller, nötig weil
+✅ (02.11., siehe Liste unten) **Baumgärtnerin und Bohlenweg** – brauchen wir die? 💡 **Baumgärtnerin ja** (Pflanzerin pflanzt schneller, nötig weil
 Holzfäller und Köhler viel Holz brauchen; kommt mit „Kupferbeil“). **Bohlenweg später** (wäre nur Optik).
 
 ## Bilder (Prompts)
@@ -345,7 +345,7 @@ Gebäude am Wasser (Fischerhütte, Lehmgrube, Zinnwäscherin, Fischerhaus) brauc
 
 Je Gebäude 4 Bilder (normal, Winter, r2, r2-Winter), die 4 Gebäude am Wasser 6 – zusammen **124 Gebäudebilder**.
 
-❓ **Neue Baustellen-Bilder für die Bronzezeit?** 💡 Nein, die drei Steinzeit-Baustellen passen weiter.
+✅ (02.11., siehe Liste unten) **Neue Baustellen-Bilder für die Bronzezeit?** 💡 Nein, die drei Steinzeit-Baustellen passen weiter.
 
 ### Waren (rund, klein) – Ende wie bei den Steinzeit-Waren („Style: round game icon …“)
 
@@ -386,7 +386,7 @@ Je Gebäude 4 Bilder (normal, Winter, r2, r2-Winter), die 4 Gebäude am Wasser 6
 | `schaf`, `rind`, `pferd` | a cute sheep / a cute brown cow / a cute small brown horse, walking to the left |
 | `leiste-holz-bronzezeit`, `leiste-leder-bronzezeit` | wie die Steinzeit-Leisten, mit Bronze-Nieten und Kupferbeschlägen |
 
-❓ **Brauchen alle Menschen neue Kleidung** (Wolle statt Fell)? Das wären alle ~16 Menschenbilder noch einmal.
+✅ (02.11., siehe Liste unten) **Brauchen alle Menschen neue Kleidung** (Wolle statt Fell)? Das wären alle ~16 Menschenbilder noch einmal.
 💡 Vorschlag: Erst nur **Häuptling + 3 neue Berufe** (Bergmann, Schmied, Händler) und die Tiere; die Steinzeit-Menschen
 bleiben. Neue Kleidung für alle später, wenn Zeit ist.
 
@@ -404,16 +404,20 @@ bleiben. Neue Kleidung für alle später, wenn Zeit ist.
 
 ## Offene Fragen an Emin (Sammlung)
 
-- ❓ Dauer der Bronzezeit – 💡 etwa 6 Stunden reine Forschungszeit.
-- ❓ Weiterentwicklung bei neuen Zutaten – 💡 nur per Knopf, sonst automatisch.
-- ❓ Grabhügel – 💡 als fröhlicher „Fürstenhügel“ mit Festplatz.
-- ❓ Kupfermine nur am Gebirge – 💡 ja, an Erzfelsen +50 %.
-- ❓ Woher kommt Zinn – 💡 Zinnwäscherin (wenig) + Händler (mehr).
-- ❓ Geld schon jetzt – 💡 nein, Tausch; Geld in der Antike.
-- ❓ Händler auch offline – 💡 nein, nur beim Spielen.
-- ❓ Neue Bedürfnisse Werkzeug und Schmuck – 💡 ja.
-- ❓ Einwohnerstufen – 💡 noch nicht, frühestens Antike.
-- ❓ Baumgärtnerin und Bohlenweg – 💡 Baumgärtnerin ja, Bohlenweg später.
-- ❓ Neue Baustellen-Bilder – 💡 nein.
-- ❓ Neue Kleidung für alle Menschen – 💡 erst Häuptling + 3 Berufe.
-- ❓ (aus der Steinzeit, weiter offen) Wann darf man die Religion wechseln?
+✅ **Von Emin am 2026-11-02 entschieden** (jeweils der Vorschlag):
+- ✅ Dauer der Bronzezeit: etwa 6 Stunden reine Forschungszeit.
+- ✅ Steinschläger → Kupferschmied, Fellmacherin → Weberin, Töpferei → Töpferwerkstatt nur per Knopf umbauen, alles andere automatisch.
+- ✅ Wahrzeichen ist der **Fürstenhügel** (statt „Grabhügel“) mit Festplatz, Tod wird nicht gezeigt.
+- ✅ Kupfermine nur direkt am Gebirge, an Erzfelsen +50 %.
+- ✅ Zinn: Zinnwäscherin (wenig) und Händler (mehr).
+- ✅ Kein Geld: Tausch beim Händler; Geld kommt in der Antike.
+- ✅ Händler kommt nur beim Spielen, nicht offline.
+- ✅ Neue Bedürfnisse Werkzeug und Schmuck.
+- ✅ Keine Einwohnerstufen, frühestens in der Antike wieder besprechen.
+- ✅ Baumgärtnerin ja, Bohlenweg später.
+- ✅ Keine neuen Baustellen-Bilder.
+- ✅ Neue Bilder erst für Häuptling, Bergmann, Schmied, Händler und die Tiere; übrige Menschen bleiben vorerst.
+- ✅ Religion: eine Wahl beim Aufbruch in die Antike, neu wählen nur beim Aufbruch in ein neues Zeitalter.
+
+Seit Epochia Version 58 gilt auch für die Bronzezeit: Forschungen verlangen Gebäude (`TECH_NEEDS`), Aufträge je Stufe,
+Wünsche des Stammes auch mit den neuen Waren (`CONFIG.wishes`).

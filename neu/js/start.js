@@ -165,6 +165,8 @@ on('researchDone', id => {
   }
 });
 on('huntDone', reward => { if (gameRunning) toast(Object.keys(reward).length ? `🦣 Die Jäger sind zurück: +${formatAmounts(reward)}` : '🦣 Die Jäger fanden ihr Lager nicht mehr – die Beute ist verloren'); });
+on('traderCame', () => { if (gameRunning) { toast('🤝 Der Händler ist da! Tippe die Blase am Handelsplatz an.'); playSound('muenze'); renderAll(); } });
+on('traderLeft', () => { if (gameRunning) { toast('🤝 Der Händler zieht weiter.'); if (pageOpen === 'trader') closePage(); renderAll(); } });
 on('placed', b => { (state.seen ||= {})[b.type] = true; });
 on('needStarted', id => {
   if (gameRunning && !offlineRunning) toast(`${RESOURCES[id].icon} Deine Leute brauchen jetzt ${RESOURCES[id].name} – ${CONFIG.needGift} gibt es geschenkt, ${Math.round(CONFIG.needGrace / 60)} Minuten Zeit`);

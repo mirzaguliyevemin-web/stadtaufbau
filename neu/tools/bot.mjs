@@ -133,7 +133,7 @@ function botSupply(res, season) {
 function botUse(res, pop = state.pop, season = seasonIndex()) {
   let n = pop * upkeepPerHead(res, pop);
   if (res === 'nahrung') n *= CONFIG.foodSeason[season];
-  else if (activeNeeds().some(nd => nd.kind === 'stock' && nd.id === res)) n += pop * CONFIG.goodsPerPerson;
+  else if (activeNeeds().some(nd => nd.kind === 'stock' && nd.id === res)) n += pop * (activeNeeds().find(nd => nd.id === res).perPerson || CONFIG.goodsPerPerson);
   for (const b of state.buildings) {
     const c = BUILDINGS[b.type].consumes;
     if (c && c[res] && !b.paused) n += c[res];
@@ -175,7 +175,7 @@ function botKnowledgeRate() {
 }
 
 // Wer stellt eine Ware her (neueste freigeschaltete Stufe)?
-var BOT_MAKER = { kupfer: 'schmelzen', holzkohle: 'kohle', kupfererz: 'erz', holz: 'holz', stein: 'stein', wissen: 'wissen', felle: 'jagen', kleidung: 'kleidung', werkzeug: 'werkzeug', ton: 'ton', toepferwaren: 'toepfern' };
+var BOT_MAKER = { bronze: 'bronze', zinn: 'zinn', wolle: 'tiere', kupfer: 'schmelzen', holzkohle: 'kohle', kupfererz: 'erz', holz: 'holz', stein: 'stein', wissen: 'wissen', felle: 'jagen', kleidung: 'kleidung', werkzeug: 'werkzeug', ton: 'ton', toepferwaren: 'toepfern' };
 
 // Braucht eine Ware einen weiteren Hersteller? Vergleicht, was alle Hersteller schaffen könnten, mit dem Bedarf
 // (laufender Verbrauch + Vorrat für die nächste Forschung, aufzufüllen in etwa 15 Minuten).
@@ -252,7 +252,7 @@ function botWants() {
   if ((stats.needs.waerme ?? 1) < 1) { const h = botUncovered('warmth', botBest('waerme')); if (h) w.push([botBest('waerme'), h]); }
   if ((stats.needs.glaube ?? 1) < 1) { const h = botUncovered('belief', botBest('glaube')); if (h) w.push([botBest('glaube'), h]); }
   // Waren für Bedürfnisse, Verarbeiter und Forschung (Verarbeiter zuerst, dann ihre Rohstoffe)
-  for (const res of ['kupfer', 'kleidung', 'toepferwaren', 'werkzeug', 'felle', 'ton', 'holzkohle', 'kupfererz']) {
+  for (const res of ['bronze', 'kupfer', 'zinn', 'wolle', 'kleidung', 'toepferwaren', 'werkzeug', 'felle', 'ton', 'holzkohle', 'kupfererz']) {
     const type = botBest(BOT_MAKER[res]);
     if (type && isUnlocked(type) && botNeedsMore(res)) w.push([type]);
   }
@@ -316,6 +316,15 @@ function botHunt() {
   if (state.playTime - botHerdSince >= 90 && !startHunt()) { botReport.hunts++; botHerdSince = null; }
 }
 
+// Händler: tauscht, was er kann, wenn danach noch genug von der Ware übrig bleibt
+function botTrade() {
+  if (!traderHere()) return;
+  for (const o of traderOffers()) {
+    const spare = Object.entries(o.give).every(([id, n]) => (state.res[id] || 0) >= n * 2);
+    if (spare && !doTrade(o.id)) botReport.trades = (botReport.trades || 0) + 1;
+  }
+}
+
 function botQuests() {
   for (const q of activeQuests()) if (questDone(q) && claimQuest(q.id)) botReport.quests++;
 }
@@ -359,6 +368,7 @@ function botClearLanes(b) {
 function botStep() {
   botQuests();
   botHunt();
+  botTrade();
   botResearch();
   botRoads();
   botBalanceWorkers();

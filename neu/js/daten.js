@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 60;
+const APP_VERSION = 61;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -60,7 +60,7 @@ const CONFIG = {
     researchSeconds: 90,  // so viel kürzer wird die laufende Forschung
     wissen: 8,            // so viel Wissen gibt es dazu (je Zeitalter mehr, siehe stagePlus)
     stagePlus: 0.25,      // je Zeitalter wollen und geben Wünsche 25 % mehr
-    amount: { nahrung: 100, holz: 80, stein: 60, felle: 20, kleidung: 15, werkzeug: 10, ton: 30, toepferwaren: 10, kupfererz: 30, holzkohle: 20, kupfer: 10 },
+    amount: { nahrung: 100, holz: 80, stein: 60, felle: 20, kleidung: 15, werkzeug: 10, ton: 30, toepferwaren: 10, kupfererz: 30, holzkohle: 20, kupfer: 10, zinn: 8, bronze: 5, wolle: 20 },
     text: {
       nahrung: 'Der Stamm möchte ein großes Festmahl feiern.',
       holz: 'Die Alten wünschen sich ein großes Feuer für die Ahnen.',
@@ -73,9 +73,30 @@ const CONFIG = {
       kupfererz: 'Die Alten wollen das grüne Gestein genauer ansehen.',
       holzkohle: 'Die Schmelzer wollen ein besonders heißes Feuer versuchen.',
       kupfer: 'Der Häuptling wünscht sich ein Zeichen aus glänzendem Kupfer.',
+      zinn: 'Die Gießer wollen ausprobieren, wie viel Zinn die Bronze verträgt.',
+      bronze: 'Zum Fest soll ein Ring aus Bronze über dem Dorfplatz hängen.',
+      wolle: 'Die Alten frieren und wünschen sich weiche Wolldecken.',
     },
   },
   dorfplatz: { storage: 100, warmth: 1 },   // beim Aufbruch in die Bronzezeit wird das Lagerfeuer zum Dorfplatz: mehr Lager, größerer Umkreis
+  // Händler (Emin, 02.11.): kommt nur, solange man spielt, kein Geld – Waren gegen Waren. Jedes Angebot geht einmal je Besuch.
+  trader: {
+    firstWait: 60,        // so bald nach dem ersten Handelsplatz kommt der erste Händler
+    every: 1200,          // danach alle 20 Minuten (mit „Rad und Wagen“ alle 15, siehe traderFaster)
+    stay: 300,            // er bleibt 5 Minuten
+    count: 3,             // so viele Angebote zeigt er
+    offers: [             // das erste Angebot ist immer eines für Zinn (damit Handel sich lohnt)
+      { id: 'toepfer_zinn', give: { toepferwaren: 20 }, get: { zinn: 8 } },
+      { id: 'felle_zinn',   give: { felle: 30 },        get: { zinn: 10 } },
+      { id: 'kleid_zinn',   give: { kleidung: 15 },     get: { zinn: 6 } },
+      { id: 'nahrung_erz',  give: { nahrung: 60 },      get: { kupfererz: 20 } },
+      { id: 'holz_erz',     give: { holz: 80 },         get: { kupfererz: 25 } },
+      { id: 'stein_kohle',  give: { stein: 60 },        get: { holzkohle: 15 } },
+      { id: 'ton_kohle',    give: { ton: 30 },          get: { holzkohle: 10 } },
+      { id: 'nahrung_wolle', give: { nahrung: 40 },     get: { wolle: 8 } },
+      { id: 'felle_wolle',  give: { felle: 20 },        get: { wolle: 10 } },
+    ],
+  },
   hunt: {                 // Mammutjagd (nach der Forschung „Mammutjagd“, bis zur Jungsteinzeit)
     seconds: 60,          // so lange sind die Jäger unterwegs
     herdWait: 240,        // so lange dauert es nach einer Jagd, bis wieder eine Herde vorbeizieht
@@ -114,6 +135,9 @@ const RESOURCES = {
   kupfererz:    { name: 'Kupfererz',   icon: '⛏️', from: 'kupfer' },
   holzkohle:    { name: 'Holzkohle',   icon: '⚫', from: 'kupfer' },
   kupfer:       { name: 'Kupfer',      icon: '🟠', from: 'kupfer' },
+  zinn:         { name: 'Zinn',        icon: '⚪', from: 'frueh' },
+  bronze:       { name: 'Bronze',      icon: '🥉', from: 'frueh' },
+  wolle:        { name: 'Wolle',       icon: '🐑', from: 'frueh' },
 };
 
 // Stufen der Steinzeit (Unterteilungen = Abschnitte im Forschungsbaum)
@@ -122,6 +146,7 @@ const STAGES = [
   { id: 'mittel', name: 'Mittelsteinzeit', epoch: 'Steinzeit' },
   { id: 'jung',   name: 'Jungsteinzeit',   epoch: 'Steinzeit' },
   { id: 'kupfer', name: 'Kupferzeit',      epoch: 'Bronzezeit', theme: 'steinzeit' },   // theme: Leisten-Bilder, bis es eigene gibt (ab 27.11.)
+  { id: 'frueh',  name: 'Frühe Bronzezeit', epoch: 'Bronzezeit', theme: 'steinzeit' },
 ];
 
 // Bedürfnisse der Einwohner. kind: 'stock' = Ware im Lager, 'area' = Gebäude im Umkreis der Wohnung
@@ -131,6 +156,7 @@ const NEEDS = [
   { id: 'kleidung',     name: 'Kleidung',             icon: '🧥', from: 'mittel', kind: 'stock' },
   { id: 'glaube',       name: 'Glaube',               icon: '🗿', from: 'mittel', kind: 'area' },
   { id: 'toepferwaren', name: 'Töpferwaren',          icon: '🏺', from: 'jung',   kind: 'stock' },
+  { id: 'werkzeug',     name: 'Werkzeug',             icon: '🗡️', from: 'frueh',  kind: 'stock', perPerson: 0.01 },   // perPerson: je Einwohner und Minute, sonst CONFIG.goodsPerPerson
 ];
 
 const SEASONS = [
@@ -253,7 +279,7 @@ const BUILDINGS = {
   mammutjaegerlager: {
     name: 'Mammutjägerlager', icon: '🦣', size: 3, line: 'jagen', tier: 1, stage: 'alt', bild: '1-mammutjaegerlager', views: ['r2'],
     color: '#6f5030', cost: { holz: 60, stein: 40 }, time: 120, workers: 4, produces: { nahrung: 20, felle: 2 },
-    bonus: { terrain: 'wald', perTile: 0.03, max: 0.5 }, requires: 'mammutjagd', upgradeOnly: true,
+    bonus: { terrain: 'wald', perTile: 0.03, max: 0.5 }, requires: 'mammutjagd', upgradeOnly: true, upgradeTo: 'jagdhuette',
     info: 'Doppelt so viel Nahrung und Felle wie das Jägerlager.',
   },
   fischerplatz: {
@@ -263,12 +289,12 @@ const BUILDINGS = {
   },
   acker: {
     name: 'Acker', icon: '🌾', size: 3, line: 'feld', tier: 0, stage: 'jung', bild: '1-acker', views: ['r2'],
-    color: '#d8b44a', cost: { holz: 40, werkzeug: 5 }, time: 90, workers: 3, produces: { nahrung: 30 },
+    color: '#d8b44a', cost: { holz: 40, werkzeug: 5 }, time: 90, workers: 3, produces: { nahrung: 30 }, upgradeTo: 'feld',
     requires: 'ackerbau', info: 'Sehr viel Nahrung – im Sommer am meisten, im Winter nichts.',
   },
   ziegengehege: {
     name: 'Ziegengehege', icon: '🐐', size: 3, line: 'tiere', tier: 0, stage: 'jung', bild: '1-ziegengehege', views: ['r2'],
-    color: '#c8b48a', cost: { holz: 60, werkzeug: 5 }, time: 120, workers: 2, produces: { nahrung: 10, felle: 2 },
+    color: '#c8b48a', cost: { holz: 60, werkzeug: 5 }, time: 120, workers: 2, produces: { nahrung: 10, felle: 2 }, upgradeTo: 'viehhof',
     requires: 'viehzucht', info: 'Ziegen geben Milch, Fleisch und Felle – das ganze Jahr.',
   },
   holzsammler: {
@@ -279,7 +305,7 @@ const BUILDINGS = {
   },
   pflanzerin: {
     name: 'Pflanzerin', icon: '🌱', size: 2, line: 'pflanzen', tier: 0, stage: 'alt', bild: '1-pflanzerin', views: ['r2'],
-    color: '#6a9a3a', cost: { holz: 20, stein: 5 }, time: 40, workers: 1, plants: true,
+    color: '#6a9a3a', cost: { holz: 20, stein: 5 }, time: 40, workers: 1, plants: true, upgradeTo: 'baumgaertnerin',
     info: 'Sammelt Samen und pflanzt Setzlinge im Umkreis. Nach 10 Minuten ist daraus ein Baum gewachsen.',
   },
   steinsammler: {
@@ -300,7 +326,7 @@ const BUILDINGS = {
   },
   fellmacherin: {
     name: 'Fellmacherin', icon: '🧥', size: 2, line: 'kleidung', tier: 0, stage: 'mittel', bild: '1-fellmacherin', views: ['r2'],
-    color: '#a8784a', cost: { holz: 40, stein: 20 }, time: 90, workers: 2, consumes: { felle: 4 }, produces: { kleidung: 2.5 },
+    color: '#a8784a', cost: { holz: 40, stein: 20 }, time: 90, workers: 2, consumes: { felle: 4 }, produces: { kleidung: 2.5 }, upgradeTo: 'weberin',
     requires: 'fellbearbeitung', info: 'Näht aus 2 Fellen 1 Kleidung.',
   },
   steinschlaeger: {
@@ -320,7 +346,7 @@ const BUILDINGS = {
   },
   toepferei: {
     name: 'Töpferei', icon: '🏺', size: 2, line: 'toepfern', tier: 0, stage: 'jung', bild: '1-toepferei', views: ['r2'],
-    color: '#b8643a', cost: { holz: 50, stein: 40 }, time: 120, workers: 2, consumes: { ton: 2, holz: 1 }, produces: { toepferwaren: 1.25 },
+    color: '#b8643a', cost: { holz: 50, stein: 40 }, time: 120, workers: 2, consumes: { ton: 2, holz: 1 }, produces: { toepferwaren: 1.25 }, upgradeTo: 'toepferwerkstatt',
     requires: 'toepfern', info: 'Formt und brennt aus 2 Ton und 1 Holz 1 Töpferware.',
   },
   vorratsspeicher: {
@@ -381,7 +407,7 @@ const BUILDINGS = {
   kupferschmied: {
     name: 'Kupferschmied', icon: '🔨', size: 2, line: 'werkzeug', tier: 1, stage: 'kupfer', bild: '1-steinschlaeger', views: ['r2'],
     color: '#b5683a', cost: { holz: 40, stein: 50, kupfer: 10 }, time: 90, workers: 2, consumes: { kupfer: 1, holz: 1 }, produces: { werkzeug: 2 },
-    requires: 'kupferschmied', manualUpgrade: true,
+    requires: 'kupferschmied', manualUpgrade: true, upgradeTo: 'bronzeschmied',
     info: 'Schmiedet aus 1 Kupfer und 1 Holz 2 Werkzeuge. Braucht Kupfer – darum nur per Knopf umbauen, wenn es da ist.',
   },
   kupfermine: {
@@ -399,6 +425,58 @@ const BUILDINGS = {
     name: 'Schmelzofen', icon: '🔥', size: 2, line: 'schmelzen', tier: 0, stage: 'kupfer',
     color: '#c0602a', cost: { stein: 60, ton: 20 }, time: 120, workers: 2, consumes: { kupfererz: 2, holzkohle: 1 }, produces: { kupfer: 1 }, requires: 'kupferschmelze',
     info: 'Schmilzt aus 2 Kupfererz und 1 Holzkohle 1 Kupfer.',
+  },
+  // ----- Bronzezeit, Stufe Frühe Bronzezeit (Bilder folgen, wie bei der Kupferzeit)
+  jagdhuette: {
+    name: 'Jagdhütte', icon: '🦌', size: 3, line: 'jagen', tier: 2, stage: 'frueh', bild: '1-mammutjaegerlager', views: ['r2'],
+    color: '#6f5030', cost: { holz: 80, stein: 50, bronze: 3 }, time: 120, workers: 4, produces: { nahrung: 26, felle: 3 }, requires: 'bronzewerkzeug',
+    bonus: { terrain: 'wald', perTile: 0.03, max: 0.5 },
+    info: 'Jäger mit Pfeilspitzen aus Bronze: mehr Fleisch und mehr Felle. Am Wald mehr.',
+  },
+  feld: {
+    name: 'Feld', icon: '🐂', size: 3, line: 'feld', tier: 1, stage: 'frueh', bild: '1-acker', views: ['r2'],
+    color: '#d8b44a', cost: { holz: 55, werkzeug: 8 }, time: 90, workers: 3, produces: { nahrung: 45 }, requires: 'hakenpflug',
+    info: 'Mit Ochse und Hakenpflug – sehr viel Nahrung. Im Sommer am meisten, im Winter nichts.',
+  },
+  viehhof: {
+    name: 'Viehhof', icon: '🐑', size: 3, line: 'tiere', tier: 1, stage: 'frueh', bild: '1-ziegengehege', views: ['r2'],
+    color: '#c8b48a', cost: { holz: 80, werkzeug: 6 }, time: 120, workers: 2, produces: { nahrung: 14, wolle: 4, felle: 1 }, requires: 'schafzucht',
+    info: 'Schafe und Rinder geben Fleisch, Milch und Wolle – das ganze Jahr.',
+  },
+  baumgaertnerin: {
+    name: 'Baumgärtnerin', icon: '🌳', size: 2, line: 'pflanzen', tier: 1, stage: 'frueh', bild: '1-pflanzerin', views: ['r2'],
+    color: '#6a9a3a', cost: { holz: 25, stein: 8 }, time: 40, workers: 1, plants: true, plantSeconds: 40, requires: 'kupferbeil',
+    info: 'Zieht Setzlinge und pflanzt schneller als die Pflanzerin. Holzfäller und Köhler brauchen viel Holz.',
+  },
+  weberin: {
+    name: 'Weberin', icon: '🧶', size: 2, line: 'kleidung', tier: 1, stage: 'frueh', bild: '1-fellmacherin', views: ['r2'],
+    color: '#a8784a', cost: { holz: 50, stein: 25, bronze: 2 }, time: 90, workers: 2, consumes: { wolle: 4 }, produces: { kleidung: 4 }, requires: 'webstuhl', manualUpgrade: true,
+    info: 'Webt aus Wolle Kleidung – mehr, als die Fellmacherin aus Fellen näht. Braucht Wolle: darum nur per Knopf umbauen, wenn sie da ist.',
+  },
+  bronzeschmied: {
+    name: 'Bronzeschmied', icon: '⚒️', size: 2, line: 'werkzeug', tier: 2, stage: 'frueh', bild: '1-steinschlaeger', views: ['r2'],
+    color: '#b5683a', cost: { holz: 40, stein: 60, bronze: 10 }, time: 90, workers: 2, consumes: { bronze: 1, holz: 1 }, produces: { werkzeug: 3 }, requires: 'bronzewerkzeug', manualUpgrade: true,
+    info: 'Schmiedet aus 1 Bronze und 1 Holz 3 Werkzeuge. Braucht Bronze: darum nur per Knopf umbauen, wenn sie da ist.',
+  },
+  toepferwerkstatt: {
+    name: 'Töpferwerkstatt', icon: '🏺', size: 2, line: 'toepfern', tier: 1, stage: 'frueh', bild: '1-toepferei', views: ['r2'],
+    color: '#b8643a', cost: { holz: 65, stein: 50, bronze: 2 }, time: 120, workers: 2, consumes: { ton: 2, holzkohle: 1 }, produces: { toepferwaren: 2 }, requires: 'brennofen', manualUpgrade: true,
+    info: 'Der Brennofen mit Holzkohle macht aus 2 Ton und 1 Holzkohle 2 Töpferwaren. Braucht Holzkohle: darum nur per Knopf umbauen.',
+  },
+  zinnwaescherin: {
+    name: 'Zinnwäscherin', icon: '⚪', size: 2, line: 'zinn', tier: 0, stage: 'frueh',
+    color: '#8fa3ad', cost: { holz: 40, werkzeug: 5 }, time: 90, workers: 2, produces: { zinn: 1 }, needsWater: true, requires: 'zinnseifen',
+    info: 'Wäscht Zinnsand aus dem Fluss – nur wenig. Muss am Wasser stehen. Mehr Zinn bringt der Händler.',
+  },
+  bronzegiesser: {
+    name: 'Bronzegießer', icon: '🥉', size: 2, line: 'bronze', tier: 0, stage: 'frueh',
+    color: '#b08a3a', cost: { stein: 60, kupfer: 20 }, time: 120, workers: 2, consumes: { kupfer: 2, zinn: 1 }, produces: { bronze: 1 }, requires: 'bronzeguss',
+    info: 'Gießt aus 2 Kupfer und 1 Zinn 1 Bronze – härter als alles bisher.',
+  },
+  handelsplatz: {
+    name: 'Handelsplatz', icon: '🤝', size: 3, line: 'handel', tier: 0, stage: 'frueh',
+    color: '#c79a4a', cost: { holz: 120, stein: 60, bronze: 10 }, time: 180, requires: 'tauschhandel',
+    info: 'Hierher kommt regelmäßig ein Händler mit dem Ochsenkarren und tauscht Waren gegen Waren – aber nur, solange du spielst.',
   },
   pfad: {
     name: 'Trampelpfad', icon: '🟫', size: 1, line: 'weg', tier: 0, stage: 'alt',
@@ -462,11 +540,25 @@ const TECHS = {
   lehmbau:        { name: 'Lehmbau',        icon: '🧱', stage: 'kupfer', col: 11, row: 2, requires: ['aufbruch_bronzezeit'], population: 130, cost: { wissen: 140, ton: 40 }, time: 720, effect: {} },
   brunnenbau:     { name: 'Brunnenbau',     icon: '⛲', stage: 'kupfer', col: 12, row: 2, requires: ['lehmbau'], population: 140, cost: { wissen: 140, stein: 80 }, time: 780, effect: {} },
   felsritzungen:  { name: 'Felsritzungen',  icon: '🪨', stage: 'kupfer', col: 11, row: 4, requires: ['aufbruch_bronzezeit'], population: 125, cost: { wissen: 110 }, time: 600, effect: {} },
-  // Das Ziel der Kupferzeit. soon: lässt sich noch nicht starten – die Frühe Bronzezeit ist der nächste Bauabschnitt.
   fruehe_bronzezeit: {
-    name: 'Frühe Bronzezeit', icon: '🥉', stage: 'kupfer', col: 14, row: 2, transition: true, soon: true,
+    name: 'Frühe Bronzezeit', icon: '🥉', stage: 'kupfer', col: 14, row: 2, transition: true,
     requires: ['kupferbeil', 'kupferschmied', 'netze', 'brunnenbau', 'felsritzungen'],
-    population: 150, cost: { wissen: 180, nahrung: 200, kupfer: 30 }, time: 1800, effect: {},
+    population: 150, cost: { wissen: 180, nahrung: 200, kupfer: 30 }, time: 1800, effect: { stage: 'frueh' },
+  },
+  hakenpflug:     { name: 'Hakenpflug',     icon: '🐂', stage: 'frueh', col: 15, row: 0, requires: ['fruehe_bronzezeit'], population: 160, cost: { wissen: 180, kupfer: 20 }, time: 840, effect: {} },
+  schafzucht:     { name: 'Schafzucht',     icon: '🐑', stage: 'frueh', col: 15, row: 1, requires: ['fruehe_bronzezeit'], population: 160, cost: { wissen: 180, nahrung: 150 }, time: 840, effect: {} },
+  webstuhl:       { name: 'Webstuhl',       icon: '🧶', stage: 'frueh', col: 16, row: 1, requires: ['schafzucht'], population: 170, cost: { wissen: 190, wolle: 20 }, time: 900, effect: {} },
+  brennofen:      { name: 'Brennofen',      icon: '🏺', stage: 'frueh', col: 15, row: 2, requires: ['fruehe_bronzezeit'], population: 160, cost: { wissen: 170, holzkohle: 30 }, time: 840, effect: {} },
+  zinnseifen:     { name: 'Zinnseifen',     icon: '⚪', stage: 'frueh', col: 15, row: 3, requires: ['fruehe_bronzezeit'], population: 155, cost: { wissen: 160, werkzeug: 20 }, time: 780, effect: {} },
+  bronzeguss:     { name: 'Bronzeguss',     icon: '🥉', stage: 'frueh', col: 16, row: 3, requires: ['zinnseifen'], population: 165, cost: { wissen: 190, kupfer: 30, zinn: 10 }, time: 900, effect: {} },
+  bronzewerkzeug: { name: 'Bronzewerkzeug', icon: '⚒️', stage: 'frueh', col: 17, row: 3, requires: ['bronzeguss'], population: 180, cost: { wissen: 200, bronze: 15 }, time: 960, effect: {} },
+  tauschhandel:   { name: 'Tauschhandel',   icon: '🤝', stage: 'frueh', col: 17, row: 4, requires: ['bronzeguss'], population: 155, cost: { wissen: 160, toepferwaren: 20 }, time: 780, effect: {} },
+  rad:            { name: 'Rad und Wagen',  icon: '🛞', stage: 'frueh', col: 18, row: 4, requires: ['tauschhandel'], population: 170, cost: { wissen: 190, holz: 150 }, time: 900, effect: { buildFaster: 0.15, traderFaster: 300 } },
+  // Das Ziel der Frühen Bronzezeit. soon: lässt sich noch nicht starten – die Späte Bronzezeit ist der nächste Bauabschnitt.
+  spaete_bronzezeit: {
+    name: 'Späte Bronzezeit', icon: '🏅', stage: 'frueh', col: 19, row: 2, transition: true, soon: true,
+    requires: ['hakenpflug', 'webstuhl', 'brennofen', 'bronzewerkzeug', 'rad'],
+    population: 200, cost: { wissen: 240, bronze: 30, kleidung: 40 }, time: 2100, effect: {},
   },
 };
 
@@ -504,6 +596,16 @@ const TECH_NEEDS = {
   brunnenbau:      { lehmhaus: 3 },
   felsritzungen:   { hoehlenmaler: 5 },
   fruehe_bronzezeit: { kupfermine: 2, koehler: 2, schmelzofen: 2, kupferschmied: 1 },
+  zinnseifen:      { kupferschmied: 2 },
+  bronzeguss:      { zinnwaescherin: 1 },
+  bronzewerkzeug:  { bronzegiesser: 1 },
+  tauschhandel:    { bronzegiesser: 1 },
+  rad:             { handelsplatz: 1 },
+  hakenpflug:      { acker: 4 },
+  schafzucht:      { ziegengehege: 2 },
+  webstuhl:        { viehhof: 2 },
+  brennofen:       { koehler: 3 },
+  spaete_bronzezeit: { bronzegiesser: 2, weberin: 2, bronzeschmied: 1, toepferwerkstatt: 1, handelsplatz: 1 },
 };
 
 // Ganz rechts im Baum: Aufbruch in die nächste Epoche (Bronzezeit wird in einem späteren Schritt gebaut)
@@ -525,27 +627,28 @@ const TECH_NEEDS = {
   }
 })(CONFIG.tempo);
 
-const NEXT_EPOCH = { name: 'Frühe Bronzezeit', icon: '🥉' };   // der nächste Bauabschnitt: nur Vorschau im Forschungsfenster
+const NEXT_EPOCH = { name: 'Späte Bronzezeit', icon: '🏅', text: 'Bernstein, Schmuck, Himmelsscheibe und der Fürstenhügel.' };   // der nächste Bauabschnitt: nur Vorschau im Forschungsfenster
 
 // Weiterentwicklungen wirken wie ihre Vorstufe bei Wetter, Jahreszeit, Katastrophen und Forschungs-Boni
 (function inheritEffects() {
   const of = { gemuesegarten: 'sammlerin', fischerhuette: 'fischerplatz', holzfaeller: 'holzsammler', steinbruch: 'steinsammler',
-    lehmgrube: 'tongrube', felsritzer: 'hoehlenmaler', kupferschmied: 'steinschlaeger' };
+    lehmgrube: 'tongrube', felsritzer: 'hoehlenmaler', kupferschmied: 'steinschlaeger', jagdhuette: 'mammutjaegerlager', feld: 'acker', viehhof: 'ziegengehege',
+    weberin: 'fellmacherin', bronzeschmied: 'steinschlaeger', toepferwerkstatt: 'toepferei', baumgaertnerin: 'pflanzerin' };
   const copy = map => { if (map) for (const [to, from] of Object.entries(of)) if (map[from] !== undefined && map[to] === undefined) map[to] = map[from]; };
   for (const w of Object.values(WEATHERS)) copy(w.effect.buildings);
   for (const d of Object.values(DISASTERS)) copy(d.buildings);
   copy(SEASON_FACTORS);
   for (const t of Object.values(TECHS)) copy(t.effect && t.effect.bonus);
   for (const [to, from] of Object.entries(of)) if (OUTDOOR_WORK.includes(from)) OUTDOOR_WORK.push(to);
-  OUTDOOR_WORK.push('kupfermine');
+  OUTDOOR_WORK.push('kupfermine', 'zinnwaescherin');
 })();
 
 // Kategorien der Bauleiste (je Kategorie die Linien aus BUILDINGS)
 const BAR_CATEGORIES = [
   { id: 'wohnen',    name: 'Wohnen',    icon: '🏠', lines: ['wohnen', 'wasserwohnen'] },
   { id: 'nahrung',   name: 'Nahrung',   icon: '🍖', lines: ['sammeln', 'jagen', 'fischen', 'feld', 'tiere'] },
-  { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton', 'erz', 'kohle'] },
-  { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'kleidung', 'werkzeug', 'toepfern', 'lager'] },
+  { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton', 'erz', 'kohle', 'zinn'] },
+  { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'bronze', 'kleidung', 'werkzeug', 'toepfern', 'lager', 'handel'] },
   { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['waerme', 'glaube', 'wissen', 'wahrzeichen'] },
   { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg', 'bruecke'] },
 ];
@@ -608,6 +711,13 @@ const QUESTS = [
   { id: 'q_b_kupfer20', text: 'Habe 20 Kupfer im Lager', goal: { resource: 'kupfer', count: 20 }, reward: { wissen: 40 } },
   { id: 'q_b_garten3',  text: 'Baue 3 Gemüsegärten',     goal: { build: 'gemuesegarten', count: 3 }, reward: { nahrung: 80 } },
   { id: 'q_b_pop140',   text: 'Erreiche 140 Einwohner',  goal: { population: 140 }, reward: { holzkohle: 20 } },
+  { id: 'q_b_frueh',    text: 'Erreiche die Frühe Bronzezeit', goal: { tech: 'fruehe_bronzezeit' }, reward: { holz: 100, kupfer: 20 } },
+  // Frühe Bronzezeit
+  { id: 'q_b_handel',   text: 'Baue einen Handelsplatz', goal: { build: 'handelsplatz', count: 1 }, reward: { toepferwaren: 15 } },
+  { id: 'q_b_tausch3',  text: 'Tausche 3-mal mit dem Händler', goal: { trades: 3 }, requires: 'tauschhandel', reward: { zinn: 10 } },
+  { id: 'q_b_bronze20', text: 'Habe 20 Bronze im Lager', goal: { resource: 'bronze', count: 20 }, reward: { wissen: 60 } },
+  { id: 'q_b_viehhof2', text: 'Baue 2 Viehhöfe',         goal: { build: 'viehhof', count: 2 }, reward: { nahrung: 100 } },
+  { id: 'q_b_pop180',   text: 'Erreiche 180 Einwohner',  goal: { population: 180 }, reward: { werkzeug: 20 } },
 ];
 
 // Tägliche Belohnung: Tag 1–7 hintereinander (Tag 7 ist die große Truhe)

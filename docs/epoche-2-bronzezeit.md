@@ -1,6 +1,6 @@
 # Epochia – Epoche 2: Bronzezeit (Entwurf)
 
-Entwurf von Claude, 2026-11-01; offene Fragen am 2026-11-02 mit Emin entschieden, noch nicht gebaut. Gehört zu `docs/konzept-neu.md`.
+Entwurf von Claude, 2026-11-01; offene Fragen am 2026-11-02 mit Emin entschieden, wird in Stufen gebaut (siehe „Stand des Baus“). Gehört zu `docs/konzept-neu.md`.
 Alle Zahlen sind Startwerte, abgeleitet aus der Steinzeit, wie sie heute in `neu/js/daten.js` gebaut ist (Version 44);
 feinjustiert wird nach dem Test am Handy und mit dem Bot.
 
@@ -8,11 +8,24 @@ Zeichen: ✅ entschieden · ❓ offene Frage an Emin · 💡 Vorschlag
 
 ## Stand des Baus
 
-Kupferzeit gebaut (Version 60), ohne Bilder: Weiterentwicklungen zeigen das Bild der Vorstufe, Kupfermine, Köhler und Schmelzofen einen
-Platzhalter, neue Waren und Forschungen ihr Zeichen. Noch nicht: Häuptling-Bild, Bronzezeit-Leisten, Ereignis Erzader. Abweichung vom Entwurf:
-Der Aufbruch wird auf einmal bezahlt (je Ware höchstens 200 wie alle Forschungen), nicht nach und nach geliefert.
-Die Forschung „Frühe Bronzezeit“ ist sichtbar, lässt sich aber erst mit dem nächsten Bauabschnitt starten.
-Zum Ausprobieren: `neu/teststand-kupferzeit.txt` (erzeugt mit `node neu/tools/teststand-kupferzeit.mjs`).
+Gebaut, ohne Bilder: **Kupferzeit** (Version 60) und **Frühe Bronzezeit** (Version 61). Weiterentwicklungen zeigen das Bild der Vorstufe,
+neue Gebäude (Kupfermine, Köhler, Schmelzofen, Zinnwäscherin, Bronzegießer, Handelsplatz) einen Platzhalter, neue Waren und Forschungen ihr Zeichen.
+Der Händler ist eine Figur mit Ochsen-Zeichen und einer Blase zum Antippen, bis es Bilder gibt.
+
+Noch nicht gebaut: Späte Bronzezeit, Häuptling-Bild, Bronzezeit-Leisten, Ereignis Erzader, Bronzezeit-Waren in der täglichen Belohnung.
+
+Abweichungen vom Entwurf:
+- Der Aufbruch wird auf einmal bezahlt (je Ware höchstens 200 wie alle Forschungen), nicht nach und nach geliefert.
+- „Tauschhandel“ kommt nach „Bronzeguss“ statt direkt nach dem Übergang: Der Handelsplatz kostet Bronze, vorher könnte man ihn gar nicht bauen.
+- Der Handelsplatz hat keine Arbeiter. Der erste Händler kommt 1 Minute nach dem ersten Handelsplatz, danach alle 20 (mit Rad 15) Minuten.
+- Das erste Angebot bringt immer Zinn, Bernstein kommt erst mit der Späten Bronzezeit.
+- Neu festgelegt (im Entwurf offen): Bronzeschmied verbraucht 1 Bronze + 1 Holz, ist wie die anderen Gebäude mit neuen Zutaten nur per Knopf umzubauen.
+- Forschung verlangt Gebäude: siehe `TECH_NEEDS` in `neu/js/daten.js`.
+
+Die Forschung „Späte Bronzezeit“ ist sichtbar, lässt sich aber erst mit dem nächsten Bauabschnitt starten.
+
+Zum Ausprobieren: `neu/teststand-kupferzeit.txt`, `neu/teststand-fruehbronze.txt` (erzeugt mit `node neu/tools/teststand-kupferzeit.mjs`).
+Durchspielen ab der Kupferzeit: `node neu/tools/bot-bronze.mjs [Minuten]`.
 
 ## Überblick
 

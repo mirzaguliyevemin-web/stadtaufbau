@@ -327,7 +327,7 @@ function renderActionBar() {
     const problem = ghostProblem();
     const s = def.size;
     const road = ghost.from >= 0 ? touchesNetwork(ghost.x, ghost.y, s) || state.buildings[ghost.from].type === 'lagerfeuer' : touchesNetwork(ghost.x, ghost.y, s);
-    const title = ghost.from < 0 ? `${def.icon} ${esc(def.name)} · ${costHtml(def.cost)} · ⏱ ${formatTime(def.time)}` : `${def.icon} ${esc(def.name)} verschieben`;
+    const title = ghost.from < 0 ? `${def.icon} ${esc(def.name)} · ${costHtml(def.cost)} · ⏱ ${formatTime(buildTimeOf(ghost.type))}` : `${def.icon} ${esc(def.name)} verschieben`;
     html = `<div class="action-text">${title}<small class="${problem ? 'bad' : road ? 'good' : 'warn'}">${esc(problem || (road ? (ghost.from < 0 ? 'Passt! Mit ✔ bauen' : 'Passt! Mit ✔ abstellen') : 'Passt – danach einen Trampelpfad zum Lagerfeuer legen'))}</small></div>
       <button class="round no" onclick="cancelGhost()">✖</button>
       <button class="round turn" onclick="rotateGhost()">↻</button>
@@ -648,7 +648,7 @@ function showBuildingWindow(i) {
     upgrade = `<div class="upgrade">
       <h3>Weiterentwickeln zu ${t.icon} ${esc(t.name)}</h3>
       <p>${esc(t.info)}</p>
-      <p>${costHtml(t.cost)} · ⏱ ${formatTime(t.time)}${t.size > def.size ? ` · braucht ${t.size}×${t.size} Felder` : ''}</p>
+      <p>${costHtml(t.cost)} · ⏱ ${formatTime(buildTimeOf(to))}${t.size > def.size ? ` · braucht ${t.size}×${t.size} Felder` : ''}</p>
       <button class="btn primary" ${problem ? 'disabled' : ''} onclick="doUpgrade(${i})">⬆ Weiterentwickeln</button>
       ${problem ? `<small class="bad">${esc(problem)}</small>` : ''}
     </div>`;
@@ -781,6 +781,9 @@ function techEffectText(id) {
   if (e.storage) out.push(`Lagerplatz +${Math.round(e.storage * 100)} %`);
   if (e.stage) out.push(`Öffnet die ${STAGES[stageIndex(e.stage)].name}`);
   if (id === 'kupferfund') out.push('Macht den Aufbruch in die Bronzezeit möglich');
+  if (e.buildFaster) out.push(`Bauzeiten −${Math.round(e.buildFaster * 100)} %`);
+  if (e.traderFaster) out.push(`Händler kommt alle ${Math.round((CONFIG.trader.every - e.traderFaster) / 60)} statt ${Math.round(CONFIG.trader.every / 60)} Minuten`);
+  if (id === 'tauschhandel') out.push('Der Händler kommt zum Handelsplatz');
   return out.join(' · ') || '–';
 }
 
@@ -916,7 +919,7 @@ function techDetailHtml() {
   if (!id) return `${close}<p>Tippe eine Forschung an, um zu sehen, was sie bringt.</p>`;
   if (id === '__next') {
     return `${close}<div class="rs-dhead"><span class="rs-med"><span class="ic emoji">${NEXT_EPOCH.icon}</span></span><div><h3>${esc(NEXT_EPOCH.name)}</h3>
-      <p>Zinn, Bronze, Händler und Wolle.</p></div></div>
+      <p>${esc(NEXT_EPOCH.text)}</p></div></div>
       <p class="rs-soon">Kommt mit dem nächsten Ausbau.</p>`;
   }
   const t = TECHS[id], status = techStatus(id);
@@ -1012,6 +1015,7 @@ function questIcon(q) {
   if (g.plots) return '<span class="ic emoji big">🗺️</span>';
   if (g.wishes) return '<span class="ic emoji big">🤲</span>';
   if (g.hunts) return '<span class="ic emoji big">🦣</span>';
+  if (g.trades) return '<span class="ic emoji big">🤝</span>';
   return '<span class="ic emoji big">📜</span>';
 }
 
@@ -1038,13 +1042,41 @@ function doWish() {
   renderAll();
 }
 
+// Händler: Waren gegen Waren, jedes Angebot einmal je Besuch
+function traderHtml() {
+  if (!traderHere()) return '<div class="quests"><p class="empty-note">Der Händler ist weitergezogen.</p></div>';
+  const rows = traderOffers().map(o => {
+    const taken = state.trader.done.includes(o.id);
+    const problem = taken ? null : tradeProblem(o.id);
+    return `<div class="quest-card${taken ? ' done' : ''}">
+      <div class="q-main"><b>Du gibst ${costHtml(o.give)}</b><span class="q-reward">Du bekommst ${rewardChips(o.get)}</span>${problem ? `<small class="bad">${esc(problem)}</small>` : ''}</div>
+      ${taken ? '<span class="q-pct">✔</span>' : `<button class="btn primary" ${problem ? 'disabled' : ''} onclick="tradeNow('${o.id}')">🤝 Tauschen</button>`}
+    </div>`;
+  }).join('');
+  return `<div class="quests"><div class="wish-card later"><span class="q-medal"><span class="ic emoji big">🐂</span></span><div class="q-main"><b>Der Händler ist da</b><span>Er tauscht Waren gegen Waren und zieht in ${formatTime(state.trader.left)} weiter.</span></div></div>${rows}</div>`;
+}
+
+function openTrader() { openPage('🤝 Händler', traderHtml(), 'trader'); }
+
+function tradeNow(id) {
+  const err = doTrade(id);
+  if (err) toast(err); else playSound('muenze');
+  if (pageOpen === 'trader') $('page-body').innerHTML = traderHtml();
+  renderAll();
+}
+
+function traderCardHtml() {
+  if (!traderHere()) return '';
+  return `<div class="wish-card"><span class="q-medal"><span class="ic emoji big">🐂</span></span><div class="q-main"><b>Der Händler ist da</b><span>Noch ${formatTime(state.trader.left)}.</span></div><button class="btn primary" onclick="openTrader()">🤝 Tauschen</button></div>`;
+}
+
 function questsHtml() {
   const doneCount = Object.keys(state.quests).length;
   const head = `<div class="quest-sum"><span>🏆 Erledigt <b>${doneCount}</b> von ${QUESTS.length}</span>
     <span class="q-bar thin"><i style="width:${Math.round(100 * doneCount / QUESTS.length)}%"></i></span></div>`;
   const list = activeQuests();
-  if (!list.length) return `<div class="quests">${head}${wishHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p></div>`;
-  return `<div class="quests">${head}${wishHtml()}` + list.map(q => {
+  if (!list.length) return `<div class="quests">${head}${traderCardHtml()}${wishHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p></div>`;
+  return `<div class="quests">${head}${traderCardHtml()}${wishHtml()}` + list.map(q => {
     const p = questProgress(q);
     const done = p.have >= p.need;
     const pct = Math.round(100 * p.have / p.need);

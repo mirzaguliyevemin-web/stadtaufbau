@@ -1,38 +1,59 @@
-// Epochia – erzeugt einen Spielstand zum Ausprobieren der Kupferzeit, ohne die ganze Steinzeit zu spielen.
-// Der Bot baut mit vollem Lager ein Dorf auf. Aufruf: node neu/tools/teststand-kupferzeit.mjs [Datei]
+// Epochia – erzeugt Spielstände zum Ausprobieren der Bronzezeit, ohne die ganze Steinzeit zu spielen.
+// Der Bot baut mit vollem Lager ein Dorf auf. Aufruf: node neu/tools/teststand-kupferzeit.mjs
+// Ergebnis: neu/teststand-kupferzeit.txt (Beginn der Kupferzeit), neu/teststand-fruehbronze.txt (Beginn der Frühen Bronzezeit)
 import fs from 'node:fs';
 import { loadGame } from './headless.mjs';
 import { BOT_CODE } from './bot.mjs';
 
-const game = loadGame({ seed: 1 });
-game.run(BOT_CODE);
-const out = game.run(`(() => {
-  startNewGame(20261102);
-  state.tutorial = -1;
-  for (const id in TECHS) if (TECHS[id].stage !== 'kupfer') state.techs[id] = true;
-  state.stage = 'kupfer';
-  evolveBuildings();
-  // ein Dorf, wie es am Ende der Steinzeit etwa dasteht (Linie → Anzahl)
-  const DORF = { wohnen: 6, holz: 3, stein: 3, wissen: 4, waerme: 3, sammeln: 3, jagen: 3, feld: 2, tiere: 1, pflanzen: 1, werkzeug: 1, kleidung: 1, toepfern: 1, ton: 1, glaube: 1, lager: 1, wahrzeichen: 1 };
-  const vollmachen = () => { for (const id of Object.keys(RESOURCES)) if (id !== 'kupfer' && id !== 'kupfererz' && id !== 'holzkohle') state.res[id] = Math.max(state.res[id] || 0, storageCap()); };
-  for (let sec = 0; sec < 120 * 60 && state.pop < 135; sec++) {
-    if (sec % 3 === 0) {
-      vollmachen(); botRoads();
-      if (constructionCount() < CONFIG.maxConstructions) {
-        const fehlt = Object.entries(DORF).find(([line, n]) => botLineCount(line) < n);
-        if (fehlt && !botTryBuild(botBest(fehlt[0]))) DORF[fehlt[0]] = 0;
-        else if (!fehlt && stats.housing - state.pop < 6) botTryBuild(botBest('wohnen'));
+function erzeuge({ stage, techStufen, einwohner, dorf, vorrat, questsOffen }) {
+  const game = loadGame({ seed: 1 });
+  game.run(BOT_CODE);
+  const out = game.run(`(() => {
+    startNewGame(20261102);
+    state.tutorial = -1;
+    for (const id in TECHS) if (${JSON.stringify(techStufen)}.includes(TECHS[id].stage) && !TECHS[id].soon) state.techs[id] = true;
+    state.stage = ${JSON.stringify(stage)};
+    evolveBuildings();
+    // ein Dorf, wie es am Ende der Stufe davor etwa dasteht (Linie → Anzahl)
+    const DORF = ${JSON.stringify(dorf)};
+    const VORRAT = ${JSON.stringify(vorrat)};
+    const vollmachen = () => { for (const id of Object.keys(RESOURCES)) if (!(id in VORRAT)) state.res[id] = Math.max(state.res[id] || 0, storageCap()); };
+    for (let sec = 0; sec < 240 * 60 && state.pop < ${einwohner}; sec++) {
+      if (sec % 3 === 0) {
+        vollmachen(); botRoads();
+        if (constructionCount() < CONFIG.maxConstructions) {
+          const fehlt = Object.entries(DORF).find(([line, n]) => botLineCount(line) < n);
+          if (fehlt && !botTryBuild(botBest(fehlt[0]))) DORF[fehlt[0]] = 0;
+          else if (!fehlt && stats.housing - state.pop < 6) botTryBuild(botBest('wohnen'));
+        }
       }
+      update(1);
     }
-    update(1);
-  }
-  vollmachen();
-  state.res.kupfer = 20; state.res.kupfererz = 30;
-  state.research = null;
-  state.quests = Object.fromEntries(QUESTS.filter(q => !q.id.startsWith('q_b_') || q.id === 'q_b_aufbruch').map(q => [q.id, true]));
-  return { pop: state.pop, gebaeude: state.buildings.length, text: btoa(unescape(encodeURIComponent(serialize()))) };
-})()`);
-const ziel = process.argv[2] || new URL('../teststand-kupferzeit.txt', import.meta.url);
-fs.writeFileSync(ziel, out.text + '\n');
-console.log(`${out.pop} Einwohner, ${out.gebaeude} Gebäude, ${out.text.length} Zeichen`);
-if (game.errors.length) { console.log(game.errors.join('\n')); process.exit(1); }
+    vollmachen();
+    Object.assign(state.res, VORRAT);
+    state.research = null;
+    state.quests = Object.fromEntries(QUESTS.filter(q => !${JSON.stringify(questsOffen)}.includes(q.id)).map(q => [q.id, true]));
+    return { pop: state.pop, stage: state.stage, gebaeude: state.buildings.length, text: btoa(unescape(encodeURIComponent(serialize()))) };
+  })()`);
+  if (game.errors.length) { console.log(game.errors.join('\n')); process.exit(1); }
+  return out;
+}
+
+const bronzeQuests = ['q_b_mine', 'q_b_kupfer20', 'q_b_garten3', 'q_b_pop140', 'q_b_frueh', 'q_b_handel', 'q_b_tausch3', 'q_b_bronze20', 'q_b_viehhof2', 'q_b_pop180'];
+const stande = {
+  'teststand-kupferzeit.txt': {
+    stage: 'kupfer', techStufen: ['alt', 'mittel', 'jung'], einwohner: 135,
+    dorf: { wohnen: 6, holz: 6, stein: 4, wissen: 4, waerme: 3, sammeln: 3, jagen: 3, feld: 4, tiere: 1, pflanzen: 2, werkzeug: 1, kleidung: 1, toepfern: 1, ton: 1, glaube: 1, lager: 1, wahrzeichen: 1 },
+    vorrat: { kupfer: 20, kupfererz: 30, holzkohle: 0, zinn: 0, bronze: 0, wolle: 0 }, questsOffen: bronzeQuests,
+  },
+  'teststand-fruehbronze.txt': {
+    stage: 'frueh', techStufen: ['alt', 'mittel', 'jung', 'kupfer'], einwohner: 155,
+    dorf: { wohnen: 6, holz: 7, stein: 4, wissen: 5, waerme: 3, sammeln: 3, jagen: 3, feld: 4, tiere: 2, pflanzen: 2, erz: 2, kohle: 2, schmelzen: 2, werkzeug: 2, kleidung: 1, toepfern: 1, ton: 1, glaube: 1, lager: 1, wahrzeichen: 1 },
+    vorrat: { kupfer: 60, kupfererz: 60, holzkohle: 40, zinn: 0, bronze: 0, wolle: 0 }, questsOffen: bronzeQuests.slice(5),
+  },
+};
+for (const [datei, opt] of Object.entries(stande)) {
+  const out = erzeuge(opt);
+  fs.writeFileSync(new URL('../' + datei, import.meta.url), out.text + '\n');
+  console.log(`${datei}: ${out.stage}, ${out.pop} Einwohner, ${out.gebaeude} Gebäude, ${out.text.length} Zeichen`);
+}

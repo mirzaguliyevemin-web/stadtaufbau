@@ -247,6 +247,11 @@ function upgradeProblem(i) {
   return null;
 }
 
+// Bauzeit mit Forschung („Rad und Wagen“: Material ist schneller da)
+function buildTimeOf(type) {
+  return Math.round((BUILDINGS[type].time || 0) * (1 - techSum('buildFaster')));
+}
+
 function upgradeBuilding(i) {
   const problem = upgradeProblem(i);
   if (problem) return problem;
@@ -256,7 +261,7 @@ function upgradeBuilding(i) {
   setOccupied(b, 0);
   b.type = to;
   delete b.from;   // bezahlt: Erstattung nach dem neuen Gebäude
-  b.build = BUILDINGS[to].time;
+  b.build = buildTimeOf(to);
   setOccupied(b, i + 1);
   emit('placed', b);
   return null;
@@ -619,8 +624,9 @@ function updateTrees(dt) {
     const def = BUILDINGS[b.type];
     if (!def.plants || b.build || b.paused || !isConnected(i)) return;
     b.plant = (b.plant || 0) + dt * outputFactor(i);
-    if (b.plant < c.plantSeconds) return;
-    b.plant -= c.plantSeconds;
+    const every = def.plantSeconds || c.plantSeconds;
+    if (b.plant < every) return;
+    b.plant -= every;
     const spot = plantSpot(b, c.plantRadius);
     if (spot !== null) { state.saplings.push([spot, 0]); emit('planted', spot); }
     else b.plant = 0;
@@ -726,7 +732,7 @@ function updateProductionStep(dt) {
   flow('nahrung', 'out', '__pop', eat);
   for (const n of activeNeeds()) {
     if (n.kind !== 'stock' || n.id === 'nahrung') continue;
-    const use = state.pop * CONFIG.goodsPerPerson;
+    const use = state.pop * (n.perPerson || CONFIG.goodsPerPerson);
     state.res[n.id] = Math.max(0, (state.res[n.id] || 0) - use * dt / 60);
     rates[n.id] = (rates[n.id] || 0) - use;
     flow(n.id, 'out', '__pop', use);
@@ -929,6 +935,63 @@ function updateHunt(dt) {
 }
 
 // ---------------------------------------------------------------------
+// Händler: kommt zum Handelsplatz und tauscht Waren gegen Waren – nur, solange man spielt
+// ---------------------------------------------------------------------
+
+function tradePosts() {
+  return state.buildings.map((b, i) => i).filter(i => { const b = state.buildings[i]; return BUILDINGS[b.type].line === 'handel' && !b.build && isConnected(i); });
+}
+
+function traderHere() { return state.trader.left > 0 && tradePosts().length > 0; }
+
+function updateTrader(dt) {
+  if (offlineRunning) return;   // Emin, 02.11.: offline kommt kein Händler (wer da ist, wartet)
+  const t = state.trader;
+  if (t.left > 0) {
+    t.left = Math.max(0, t.left - dt);
+    if (t.left === 0) { t.wait = CONFIG.trader.every - techSum('traderFaster'); emit('traderLeft'); }
+    return;
+  }
+  if (!tradePosts().length) return;
+  t.wait = Math.max(0, t.wait - dt);
+  if (t.wait > 0) return;
+  t.visit++;
+  t.left = CONFIG.trader.stay;
+  t.done = [];
+  emit('traderCame');
+}
+
+// Die Angebote dieses Besuchs: nur Waren, die der Stamm schon herstellen kann; gewürfelt aus Besuch und Spielstand-Zahl
+function traderOffers() {
+  const c = CONFIG.trader;
+  const mix = o => hash(state.trader.visit * 13 + o.id.length * 7 + o.id.charCodeAt(0), (state.seed % 9973) + o.id.charCodeAt(o.id.length - 1));
+  const open = c.offers.filter(o => Object.keys(o.give).every(hasMaker)).map(o => [mix(o), o]).sort((a, b) => a[0] - b[0]).map(a => a[1]);
+  const first = open.find(o => o.get.zinn);
+  return (first ? [first, ...open.filter(o => o !== first)] : open).slice(0, c.count);
+}
+
+function tradeProblem(id) {
+  const o = CONFIG.trader.offers.find(x => x.id === id);
+  if (!o || !traderHere() || !traderOffers().includes(o)) return 'Gerade ist kein Händler da';
+  if (state.trader.done.includes(id)) return 'Das hat er schon getauscht';
+  if (!canAfford(o.give)) return missingText(o.give);
+  return null;
+}
+
+// Gibt einen Fehlertext zurück oder null
+function doTrade(id) {
+  const problem = tradeProblem(id);
+  if (problem) return problem;
+  const o = CONFIG.trader.offers.find(x => x.id === id);
+  payCost(o.give);
+  addResources(o.get);
+  state.trader.done.push(id);
+  state.tradesDone++;
+  emit('traded', o);
+  return null;
+}
+
+// ---------------------------------------------------------------------
 // Aufträge und tägliche Belohnung
 // ---------------------------------------------------------------------
 
@@ -943,6 +1006,7 @@ function questProgress(q) {
   if (g.plots) return { have: Math.min(plotsBought(), g.plots), need: g.plots };
   if (g.wishes) return { have: Math.min(state.wishesDone, g.wishes), need: g.wishes };
   if (g.hunts) return { have: Math.min(state.huntsDone, g.hunts), need: g.hunts };
+  if (g.trades) return { have: Math.min(state.tradesDone, g.trades), need: g.trades };
   return { have: 0, need: 1 };
 }
 
@@ -1060,6 +1124,7 @@ function update(dt) {
   updatePopulation(dt);
   updateResearch(dt);
   updateHunt(dt);
+  updateTrader(dt);
   updateDisaster(dt);
   updateWishes(dt);
 }

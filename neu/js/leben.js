@@ -115,7 +115,7 @@ function updateAnimals(dt) {
   for (const a of life.animals) if (a.flee) a.flee -= dt;
   life.animals = life.animals.filter(a => !(a.flee <= 0));
   // Ziegen: zwei an jedem fertigen Ziegengehege
-  const pens = state.buildings.filter(b => b.type === 'ziegengehege' && !b.build);
+  const pens = state.buildings.filter(b => (b.type === 'ziegengehege' || b.type === 'viehhof') && !b.build);
   const goats = life.animals.filter(a => a.kind === 'ziege');
   if (goats.length < pens.length * 2) {
     const pen = pens[Math.floor(goats.length / 2)];
@@ -207,6 +207,47 @@ function hunterObjects(inView, t) {
   return out;
 }
 
+// Händler am Handelsplatz: eine Figur mit Ochsen (Bilder folgen) und eine Blase zum Antippen
+function traderSpot() {
+  if (!traderHere()) return null;
+  const b = state.buildings[tradePosts()[0]], s = BUILDINGS[b.type].size;
+  return { b, x: b.x + s + 0.5, y: b.y + s / 2, bx: b.x + s / 2, by: b.y + s / 2 };
+}
+
+function traderObjects(inView, t) {
+  const p = traderSpot();
+  if (!p) return [];
+  const out = [];
+  if (inView(p.x, p.y)) out.push({ d: p.x + p.y - 0.5, kind: 'leben', draw: () => {
+    drawCreature(personImg('mensch-mann', 'leer'), p.x, p.y, 32, 1, 0, '🧍', null);
+    const q = tileToScreen(p.x, p.y + 1), z = cam.zoom;
+    ctx.font = `${Math.round(24 * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = '#000';
+    ctx.fillText('🐂', q.x, q.y);
+  } });
+  out.push({ d: p.bx + p.by + 100, kind: 'leben', draw: () => {
+    const q = traderBubble(p), z = cam.zoom, r = (15 + Math.sin(t * 3) * 1.5) * z;
+    ctx.fillStyle = 'rgba(255,250,235,0.95)'; ctx.strokeStyle = '#6b4a2b'; ctx.lineWidth = 2 * z;
+    ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.font = `${Math.round(17 * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#000';
+    ctx.fillText('🤝', q.x, q.y + z);
+    ctx.textBaseline = 'alphabetic';
+  } });
+  return out;
+}
+
+function traderBubble(p) {
+  const q = tileToScreen(p.bx, p.by), z = cam.zoom;
+  return { x: q.x, y: q.y - 70 * z };
+}
+
+// Liegt unter dem Finger die Blase oder die Figur des Händlers?
+function traderAtScreen(sx, sy) {
+  const p = traderSpot();
+  if (!p) return false;
+  const z = cam.zoom, q = traderBubble(p), f = tileToScreen(p.x, p.y);
+  return Math.hypot(sx - q.x, sy - q.y) <= 26 * z || (Math.abs(sx - f.x) <= 22 * z && sy <= f.y + 8 * z && sy >= f.y - 40 * z);
+}
+
 // Liegt unter dem Finger ein Mammut? Gibt das Tier zurück oder null.
 function mammothAtScreen(sx, sy) {
   const z = cam.zoom;
@@ -277,7 +318,9 @@ function targetGone(w) {
 
 // Weiterentwicklungen der Kupferzeit arbeiten wie ihre Vorstufe (eigene Figuren folgen mit den Bildern)
 Object.assign(WORK, { gemuesegarten: WORK.sammlerin, fischerhuette: WORK.fischerplatz, holzfaeller: WORK.holzsammler, steinbruch: WORK.steinsammler,
-  felsritzer: WORK.hoehlenmaler, lehmgrube: WORK.tongrube, kupferschmied: WORK.steinschlaeger });
+  felsritzer: WORK.hoehlenmaler, lehmgrube: WORK.tongrube, kupferschmied: WORK.steinschlaeger,
+  jagdhuette: WORK.mammutjaegerlager, feld: WORK.acker, viehhof: WORK.ziegengehege, baumgaertnerin: WORK.pflanzerin, weberin: WORK.fellmacherin,
+  bronzeschmied: WORK.steinschlaeger, toepferwerkstatt: WORK.toepferei });
 
 // Arbeitsplatz IN der Werkstatt (auf der Platte, vordere Hälfte, passend zum Bild): [Standplatz u, v, Werkstück u, v]
 // u läuft zur rechten, v zur linken Ecke der Raute (0 … Größe). Gespiegelte Ansicht: u und v tauschen.
@@ -285,6 +328,9 @@ const INSIDE_SPOTS = {
   fellmacherin:   [[1.55, 1.05, 1.25, 0.8], [1.05, 1.55, 0.8, 1.25]],   // vor den Spannrahmen
   steinschlaeger: [[1.6, 1.05, 1.15, 1.25], [1.25, 1.7, 1.1, 1.25]],    // am großen Arbeitsstein
   kupferschmied:  [[1.6, 1.05, 1.15, 1.25], [1.25, 1.7, 1.1, 1.25]],
+  bronzeschmied:  [[1.6, 1.05, 1.15, 1.25], [1.25, 1.7, 1.1, 1.25]],
+  weberin:        [[1.55, 1.05, 1.25, 0.8], [1.05, 1.55, 0.8, 1.25]],
+  toepferwerkstatt: [[1.65, 1.0, 1.35, 1.35], [1.05, 1.65, 1.35, 1.35]],
   toepferei:      [[1.65, 1.0, 1.35, 1.35], [1.05, 1.65, 1.35, 1.35]],  // zwischen Ofen und Töpfen
 };
 function insideSpot(b, k) {
@@ -864,6 +910,7 @@ function lifeObjects(range) {
   const t = frameTime;
   out.push(...felledObjects(lifeDt));
   out.push(...hunterObjects(inView, t));
+  out.push(...traderObjects(inView, t));
   out.push(...workerObjects(inView, t));
   out.push(...visitorObjects(inView, t));
   for (const w of life.walkers) {

@@ -35,6 +35,8 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     wishWait: 0,             // Sekunden, bis der nächste Wunsch des Stammes kommt
     wishesDone: 0,           // so viele Wünsche wurden erfüllt
     huntsDone: 0,            // so oft waren die Jäger auf Mammutjagd
+    trader: { wait: CONFIG.trader.firstWait, left: 0, visit: 0, done: [] },   // Händler: Sekunden bis er kommt, bis er geht, Besuch Nr., schon getauschte Angebote
+    tradesDone: 0,           // so oft wurde mit dem Händler getauscht
     stage: 'alt',
     pop: CONFIG.start.population,
     yearTime: 0,
@@ -770,7 +772,7 @@ function buyPlot(p) {
 
 function addBuilding(type, x, y, rot = false, finished = false) {
   const def = BUILDINGS[type];
-  const b = { type, x, y, rot: (Number(rot) || 0) & 3, build: finished ? 0 : def.time || 0 };
+  const b = { type, x, y, rot: (Number(rot) || 0) & 3, build: finished ? 0 : buildTimeOf(type) };
   if (def.isPath) removeSapling(x, y);   // ein Pfad tritt den Setzling nieder
   state.buildings.push(b);
   return b;

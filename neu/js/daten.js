@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 62;
+const APP_VERSION = 63;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -420,7 +420,7 @@ const BUILDINGS = {
     info: 'Schmiedet aus 1 Kupfer und 1 Holz 2 Werkzeuge. Braucht Kupfer – darum nur per Knopf umbauen, wenn es da ist.',
   },
   kupfermine: {
-    name: 'Kupfermine', icon: '⛏️', size: 3, line: 'erz', tier: 0, stage: 'kupfer',
+    name: 'Kupfermine', icon: '⛏️', size: 3, line: 'erz', tier: 0, stage: 'kupfer', bild: '2-kupfermine',
     color: '#9a6a3a', cost: { holz: 80, stein: 40, werkzeug: 10 }, time: 120, workers: 3, produces: { kupfererz: 4 }, needsRock: true, requires: 'bergbau',
     bonus: { terrain: 'berg', perTile: 0.05, max: 0.5 },
     info: 'Gräbt Kupfererz. Muss an Felsen oder am Gebirge stehen – am Gebirge bis zu 50 % mehr.',
@@ -483,7 +483,7 @@ const BUILDINGS = {
     info: 'Gießt aus 2 Kupfer und 1 Zinn 1 Bronze – härter als alles bisher.',
   },
   handelsplatz: {
-    name: 'Handelsplatz', icon: '🤝', size: 3, line: 'handel', tier: 0, stage: 'frueh',
+    name: 'Handelsplatz', icon: '🤝', size: 3, line: 'handel', tier: 0, stage: 'frueh', bild: '2-handelsplatz',
     color: '#c79a4a', cost: { holz: 120, stein: 60, bronze: 10 }, time: 180, requires: 'tauschhandel',
     info: 'Hierher kommt regelmäßig ein Händler mit dem Ochsenkarren und tauscht Waren gegen Waren – aber nur, solange du spielst.',
   },

@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 64;
+const APP_VERSION = 65;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -473,7 +473,7 @@ const BUILDINGS = {
     info: 'Der Brennofen mit Holzkohle macht aus 2 Ton und 1 Holzkohle 2 Töpferwaren. Braucht Holzkohle: darum nur per Knopf umbauen.',
   },
   zinnwaescherin: {
-    name: 'Zinnwäscherin', icon: '⚪', size: 2, line: 'zinn', tier: 0, stage: 'frueh',
+    name: 'Zinnwäscherin', icon: '⚪', size: 2, line: 'zinn', tier: 0, stage: 'frueh', bild: '2-zinnwaescherin',
     color: '#8fa3ad', cost: { holz: 40, werkzeug: 5 }, time: 90, workers: 2, produces: { zinn: 1 }, needsWater: true, requires: 'zinnseifen',
     info: 'Wäscht Zinnsand aus dem Fluss – nur wenig. Muss am Wasser stehen. Mehr Zinn bringt der Händler.',
   },
@@ -514,12 +514,12 @@ const BUILDINGS = {
     info: 'Ein großer Speicher auf Steinfüßen – viel mehr Lagerplatz für alle Waren.',
   },
   schmuckmacherin: {
-    name: 'Schmuckmacherin', icon: '💍', size: 2, line: 'schmuck', tier: 0, stage: 'spaet',
+    name: 'Schmuckmacherin', icon: '💍', size: 2, line: 'schmuck', tier: 0, stage: 'spaet', bild: '2-schmuckmacherin',
     color: '#c79a3a', cost: { holz: 60, stein: 40, bronze: 15 }, time: 120, workers: 2, consumes: { bronze: 1, bernstein: 1 }, produces: { schmuck: 2 }, requires: 'schmuckkunst',
     info: 'Macht aus 1 Bronze und 1 Bernstein 2 Stück Schmuck. Bernstein bringt nur der Händler.',
   },
   fuerstenhuegel: {
-    name: 'Fürstenhügel', icon: '⛰️', size: 4, line: 'wahrzeichen', tier: 1, stage: 'spaet',
+    name: 'Fürstenhügel', icon: '⛰️', size: 4, line: 'wahrzeichen', tier: 1, stage: 'spaet', bild: '2-fuerstenhuegel',
     color: '#6f9a4a', cost: { stein: 300, holz: 150, bronze: 30 }, time: 360, belief: 18, happy: 10, requires: 'fuerstenhuegel',
     info: 'Wahrzeichen der Bronzezeit: ein grüner Hügel mit Steinkranz, Fahnen und Festplatz. Glaube im großen Umkreis und bessere Laune. Nötig für den Aufbruch.',
   },

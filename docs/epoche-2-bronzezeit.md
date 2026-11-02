@@ -9,7 +9,7 @@ Zeichen: ✅ entschieden · ❓ offene Frage an Emin · 💡 Vorschlag
 ## Stand des Baus
 
 Gebaut, ohne Bilder: **Kupferzeit** (Version 60), **Frühe Bronzezeit** (Version 61) und **Späte Bronzezeit** (Version 62). Weiterentwicklungen zeigen das Bild der Vorstufe,
-neue Gebäude (Kupfermine, Köhler, Schmelzofen, Zinnwäscherin, Bronzegießer, Handelsplatz, Schmuckmacherin, Fürstenhügel) einen Platzhalter, neue Waren und Forschungen ihr Zeichen.
+neue Waren und Forschungen ihr Zeichen. Die 8 neuen Gebäude (Kupfermine, Köhler, Schmelzofen, Zinnwäscherin, Bronzegießer, Handelsplatz, Schmuckmacherin, Fürstenhügel) haben seit Version 65 ein Bild, aber nur die Vorderansicht (beim Drehen gespiegelt, Schnee legt das Spiel selbst darüber).
 Der Händler ist eine Figur mit Ochsen-Zeichen und einer Blase zum Antippen, bis es Bilder gibt.
 
 Noch nicht gebaut: Häuptling-Bild, Bronzezeit-Leisten, Ereignis Erzader, Bronzezeit-Waren in der täglichen Belohnung.

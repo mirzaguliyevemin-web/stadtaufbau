@@ -238,6 +238,14 @@ function botWants() {
   // Wohnraum: immer ein paar Plätze frei (Zuzug alle 45 s); fehlen Arbeiter, erst recht
   if (stats.housing - pop < 3 || labourShort && stats.housing - pop < 6) w.push(['house']);
   if (food) w.push(['food']);
+  // Was die nächsten Forschungen an Gebäuden verlangen
+  for (const id of Object.keys(TECHS)) {
+    if (techStatus(id) !== 'available') continue;
+    for (const g of techBuildGaps(id)) {
+      const type = botBest(BUILDINGS[g.type].line);
+      if (type) w.push([type]);
+    }
+  }
   // Wissen: so viele Höhlenmaler, dass die Forschung nicht warten muss
   if (botGoal() && botSupply('wissen') < botKnowledgeRate() * 1.1) w.push(['hoehlenmaler']);
   // Bedürfnisse Wärme und Glaube
@@ -294,6 +302,7 @@ function botResearch() {
   const t = TECHS[open[0]];
   let why = 'sonstiges';
   if (t.population && state.pop < t.population) why = 'Einwohner';
+  else if (techBuildGaps(open[0]).length) why = 'Gebäude';
   else { const miss = Object.keys(t.cost).find(id => (state.res[id] || 0) < t.cost[id]); if (miss) why = RESOURCES[miss].name; }
   botReport.wait[why] = (botReport.wait[why] || 0) + 3 / 60;
   botNoteMissing(t.cost);

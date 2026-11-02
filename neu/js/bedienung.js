@@ -119,7 +119,11 @@ function confirmGhost() {
 }
 
 function rotateGhost() {
-  if (ghost) { ghost.rot = ((Number(ghost.rot) || 0) + 1) & 3; ghost.manualRot = true; }   // vier Richtungen
+  if (!ghost) return;
+  // vier Richtungen, wenn es eine echte Rückseite gibt – sonst nur vorne und gespiegelt (nie zwei Bilder für dieselbe Seite)
+  const steps = BUILDINGS[ghost.type].views ? 4 : 2;
+  ghost.rot = ((Number(ghost.rot) || 0) + 1) % steps;
+  ghost.manualRot = true;
 }
 
 function cancelGhost() {

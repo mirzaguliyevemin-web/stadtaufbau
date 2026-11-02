@@ -127,6 +127,7 @@ test('Bauleiste: je Linie nur die neueste Stufe, Gesperrtes mit Schloss', () => 
 
 test('Forschung: kostet Wissen, nur eine gleichzeitig, Übergang öffnet die nächste Stufe', () => {
   const g = fresh();
+  g.run(`for (const id of Object.keys(TECH_NEEDS)) delete TECH_NEEDS[id];`);   // Gebäude-Bedingung hat ihren eigenen Test
   ok(g.run(`startResearch('feuer_hueten')`).includes('Es fehlt'), 'ohne Wissen erlaubt');
   g.run(`state.res.wissen = 100;`);
   ok(g.run(`startResearch('speerspitzen')`).startsWith('Erst'), 'Voraussetzung ignoriert');
@@ -310,6 +311,101 @@ test('Aufträge: Fortschritt und Abholen', () => {
   ok(g.run('state.res.holz') === 20, 'Belohnung fehlt');
   ok(!g.run(`claimQuest('q_sammlerin2')`), 'zweimal abgeholt');
   ok(g.run(`activeQuests().length`) === 3, 'Drei Aufträge sichtbar erwartet');
+});
+
+test('Forschung verlangt Gebäude: Bedingungen sind erreichbar, sperren und zählen die ganze Linie', () => {
+  const g = fresh();
+  // Jedes verlangte Gebäude muss vor dieser Forschung freigeschaltet sein (sonst käme man nie weiter)
+  const bad = g.run(`(() => {
+    const before = id => { const seen = new Set(); (function walk(t) { for (const r of TECHS[t].requires) if (!seen.has(r)) { seen.add(r); walk(r); } })(id); return seen; };
+    const out = [];
+    for (const [id, needs] of Object.entries(TECH_NEEDS)) {
+      if (!TECHS[id]) { out.push('unbekannt ' + id); continue; }
+      for (const type of Object.keys(needs)) {
+        if (!BUILDINGS[type]) { out.push(id + ': ' + type); continue; }
+        const req = BUILDINGS[type].requires;
+        if (req && !before(id).has(req)) out.push(id + ' braucht ' + type + ', das erst ' + req + ' freischaltet');
+      }
+    }
+    return out;
+  })()`);
+  ok(bad.length === 0, bad.join('; '));
+  g.run(`state.techs.faustkeil = true; state.res.wissen = 500; state.res.holz = 200; state.pop = 20;`);
+  ok(g.run(`startResearch('speerspitzen')`).includes('Jägerlager'), 'Forschung ohne Jägerlager gestartet');
+  const y = g.run(`Math.floor(N / 2) + 12`);
+  g.run(`state.buildings.push({ type: 'jaegerlager', x: ${y}, y: ${y}, rot: 0, build: 0 }, { type: 'jaegerlager', x: ${y + 4}, y: ${y}, rot: 0, build: 1 });`);
+  ok(g.run(`researchProblem('speerspitzen')`).includes('1 × Jägerlager'), 'Baustelle darf nicht zählen');
+  g.run(`state.buildings[state.buildings.length - 1].build = 0;`);
+  ok(g.run(`researchProblem('speerspitzen')`) === null, 'Mit 2 Jägerlagern muss es gehen');
+  // Ein Mammutjägerlager zählt auch als Jägerlager
+  g.run(`state.buildings[state.buildings.length - 1].type = 'mammutjaegerlager';`);
+  ok(g.run(`researchProblem('speerspitzen')`) === null, 'Weiterentwicklung zählt nicht mit');
+  noErrors(g);
+});
+
+test('Aufträge: gesperrte verstopfen die Liste nicht, Fernziel rückt nach', () => {
+  const g = fresh();
+  const blocked = g.run(`(() => {
+    for (const q of QUESTS) if (!(q.goal.build && !isUnlocked(q.goal.build)) && !q.goal.tech && !q.requires && !q.goal.resource) state.quests[q.id] = true;
+    state.quests.q_holz100 = true;
+    return activeQuests().map(q => q.id);
+  })()`);
+  ok(blocked.length === 3, 'Es sollen weiter 3 Aufträge zu sehen sein: ' + blocked.join());
+  g.run(`state.quests = {};`);
+  const start = g.run(`activeQuests().map(q => q.id)`);
+  ok(!start.includes('q_zelte3') && !start.includes('q_mittel'), 'Gesperrtes vorne: ' + start.join());
+  ok(new Set(g.run(`QUESTS.map(q => q.id)`)).size === g.run(`QUESTS.length`), 'Auftrags-IDs doppelt');
+  // Alle Ziele müssen eine Anzeige ergeben, kein NaN
+  ok(g.run(`QUESTS.every(q => { const p = questProgress(q); return p.need > 0 && Number.isFinite(p.have) && !questIcon(q).includes('undefined'); })`), 'Auftrag ohne Fortschritt');
+  noErrors(g);
+});
+
+test('Wünsche des Stammes: Waren abgeben bringt Wissen und kürzere Forschung, dann Pause', () => {
+  const g = fresh();
+  const w = g.run(`currentWish()`);
+  ok(w && w.amount > 0 && w.text, 'Kein Wunsch da');
+  ok(g.run(`RESOURCES[currentWish().id] && hasMaker(currentWish().id)`), 'Wunsch nach einer Ware, die niemand herstellt');
+  g.run(`state.res[currentWish().id] = 0;`);
+  ok(g.run(`fulfillWish()`) === null, 'Wunsch ohne Waren erfüllt');
+  g.run(`state.res.wissen = 100; state.techs = {}; startResearch('feuer_hueten'); state.research.left = 500; state.res[currentWish().id] = 150;`);
+  const before = g.run(`state.res.wissen`);
+  const r = g.run(`fulfillWish()`);
+  ok(r && r.faster === g.run(`CONFIG.wishes.researchSeconds`), 'Forschung nicht kürzer');
+  ok(g.run(`state.research.left`) === 500 - r.faster, 'Restzeit falsch');
+  ok(g.run(`state.res.wissen`) === before + r.wissen, 'Wissen fehlt');
+  ok(g.run(`state.wishesDone`) === 1 && g.run(`currentWish()`) === null, 'Pause fehlt');
+  g.run(`for (let i = 0; i <= CONFIG.wishes.pause; i++) updateWishes(1);`);
+  ok(g.run(`currentWish() !== null`), 'Nächster Wunsch kommt nicht');
+  // Forschung kurz vor Schluss: wird nicht negativ
+  g.run(`state.research.left = 10; state.res[currentWish().id] = 150; fulfillWish();`);
+  ok(g.run(`state.research.left`) === 1, 'Restzeit nicht bei 1 s gestoppt');
+  noErrors(g);
+});
+
+test('Drehen: nur echte Seiten, keine zwei Bilder für dieselbe Seite', () => {
+  const g = fresh();
+  const steps = type => g.run(`(() => { ghost = { type: '${type}', x: 1, y: 1, rot: 0, from: -1 }; const seen = []; for (let i = 0; i < 4; i++) { seen.push(ghost.rot); rotateGhost(); } ghost = null; return new Set(seen).size; })()`);
+  ok(steps('wohnhoehle') === 4, 'Wohnhöhle hat eine echte Rückseite');
+  ok(steps('hoehlenmaler') === 4, 'Höhlenmaler hat eine echte Rückseite');
+  ok(steps('fischerplatz') === 2, 'Fischerplatz ohne Rückseite: nur 2 Richtungen');
+  ok(g.run(`typeof EFFECTS['1-wohnhoehle-r2'] === 'undefined' && typeof EFFECTS['1-hoehlenmaler-r2'] === 'undefined'`), 'Feuer auf der geschlossenen Rückseite');
+  noErrors(g);
+});
+
+test('Spielstand von Emin (Version 57): lädt, hat zu tun, kommt weiter', () => {
+  const g = fresh();
+  const fx = fs.readFileSync(new URL('./alter-stand-v57.json', import.meta.url), 'utf8');
+  ok(g.run(`loadFromText(${JSON.stringify(fx)})`), 'Stand lädt nicht');
+  ok(g.run(`state.pop`) === 21 && g.run(`state.wishesDone`) === 0 && g.run(`state.huntsDone`) === 0, 'Neue Felder ohne Standardwert');
+  // alles, was er gebaut hat, bleibt; seine erledigten Aufträge bleiben erledigt
+  ok(g.run(`state.buildings.filter(b => b.type === 'wohnhoehle').length`) === 7, 'Gebäude verloren');
+  ok(g.run(`state.quests.q_pop15 === true`), 'Erledigter Auftrag verloren');
+  // Früher: alle 3 sichtbaren Aufträge gesperrt. Jetzt: nichts davon gesperrt, und ein Wunsch wartet
+  ok(g.run(`activeQuests().filter(q => questBlocked(q) && !questDone(q)).length`) === 0, 'Gesperrte Aufträge sichtbar');
+  ok(g.run(`currentWish() !== null`), 'Kein Wunsch');
+  ok(g.run(`researchProblem('mittelsteinzeit') !== null`), 'Mittelsteinzeit darf noch nicht gehen');
+  g.run(`for (let i = 0; i < 60; i++) update(1);`);
+  noErrors(g);
 });
 
 test('Land kaufen: nur neben eigenem Land, Preis steigt', () => {
@@ -546,6 +642,7 @@ test('Pause: Arbeiter wechseln zu einem anderen Gebäude, Pause wird gespeichert
 
 test('Zeitalter: erforschte Stufe baut alte Gebäude gleicher Größe um, auch beim Laden', () => {
   const g = fresh();
+  g.run(`for (const id of Object.keys(TECH_NEEDS)) delete TECH_NEEDS[id];`);   // Gebäude-Bedingung hat ihren eigenen Test
   ok(g.run(`state.buildings.filter(b => b.type === 'wohnhoehle').length`) === 2, 'Start ohne 2 Wohnhöhlen');
   g.run(`state.res.wissen = 150; state.res.felle = 150; state.pop = 20; state.techs.faustkeil = true; startResearch('fellzelte'); for (let i = 0; i <= TECHS.fellzelte.time; i++) update(1);`);
   ok(g.run(`state.buildings.filter(b => b.type === 'fellzelt').length`) === 2, 'Wohnhöhlen wurden keine Fellzelte');
@@ -984,6 +1081,7 @@ test('Fackeln: jedes zweite Wegfeld, bleibt gespeichert, alte Stände bekommen s
 
 test('Forschungsfenster: Ziel, Liste, Detail, Forschung starten; Handy hochkant: Detail öffnet und Zurück schließt es', () => {
   const g = fresh();
+  g.run(`for (const id of Object.keys(TECH_NEEDS)) delete TECH_NEEDS[id];`);   // Gebäude-Bedingung hat ihren eigenen Test
   const r = g.run(`(() => {
     for (const id in TECHS) if (TECHS[id].stage !== 'jung') state.techs[id] = true;
     state.stage = 'jung'; state.pop = 200; state.res.wissen = 999; state.res.nahrung = 999; state.res.stein = 999;

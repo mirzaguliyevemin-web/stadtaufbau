@@ -234,7 +234,8 @@ function renderSideButtons() {
     if (label) label.textContent = r ? formatTime(r.left) : 'Forschung';
     if (bar) { bar.style.width = r ? Math.round((1 - r.left / TECHS[r.id].time) * 100) + '%' : '0'; show(bar.parentNode, !!r); }
   }
-  const ready = activeQuests().filter(questDone).length;
+  const wish = currentWish();
+  const ready = activeQuests().filter(questDone).length + (wish && canAfford({ [wish.id]: wish.amount }) ? 1 : 0);
   $('quest-badge').textContent = ready || '';
   show($('quest-badge'), ready > 0);
   const canResearch = !r && Object.keys(TECHS).some(id => !researchProblem(id));
@@ -819,7 +820,7 @@ function researchTopHtml() {
   const t = TECHS[g.trans], done = state.techs[g.trans];
   const line = done ? 'Geschafft!' : g.open.length ? `Noch ${g.open.length} ${g.open.length === 1 ? 'Forschung' : 'Forschungen'} bis zum Aufbruch` : 'Alles bereit – jetzt erforschen!';
   const steps = g.open.map(id => `<button class="rs-step${techStatus(id) === 'running' ? ' run' : ''}" onclick="selectTech('${id}')">${esc(TECHS[id].name)}</button>`).join('');
-  return `<div class="rs-goal"><button class="rs-gmain" onclick="selectTech('${g.trans}')">${iconHtml(t.bild, t.icon)}<span class="rs-gtext"><b>Ziel: ${esc(t.name)} → ${esc(g.target)}</b><small>${line}</small></span></button>
+  return `<div class="rs-goal"><button class="rs-gmain" onclick="selectTech('${g.trans}')">${iconHtml(t.bild, t.icon)}<span class="rs-gtext"><b>Ziel: ${esc(t.name === g.target ? t.name : t.name + ' → ' + g.target)}</b><small>${line}</small></span></button>
     <div class="rs-steps">${steps}</div>${know}</div>`;
 }
 
@@ -833,7 +834,7 @@ function researchItemHtml(id) {
     meta = `<span class="rs-meta rs-lock">🔒 Erst: ${esc(t.requires.filter(r => !state.techs[r]).map(r => TECHS[r].name).join(', '))}</span>`;
   } else {
     const fewPeople = t.population && state.pop < t.population;
-    meta = `<span class="rs-meta">${costHtml(t.cost)}<span class="rs-time">⏱ ${formatTime(t.time)}</span>${fewPeople ? `<span class="rs-time bad">👥 ${t.population}</span>` : ''}</span>`;
+    meta = `<span class="rs-meta">${costHtml(t.cost)}<span class="rs-time">⏱ ${formatTime(t.time)}</span>${fewPeople ? `<span class="rs-time bad">👥 ${t.population}</span>` : ''}${techBuildGaps(id).length ? `<span class="rs-time bad">🔨 ${techBuildGaps(id).reduce((n, g) => n + g.need - g.have, 0)}</span>` : ''}</span>`;
   }
   return `<button class="rs-item ${status}${researchSelected === id ? ' sel' : ''}" onclick="selectTech('${id}')">
     <span class="rs-pic">${iconHtml(t.bild, t.icon)}</span><span class="rs-mid"><span class="rs-name">${esc(t.name)}</span>${meta}</span><span class="rs-arrow">›</span></button>`;
@@ -901,6 +902,7 @@ function researchHint(id) {
   if (status === 'locked') return { label: '🔒 ' + problem, hint: '' };
   if (state.research) return { label: '⏳ Es läuft schon eine Forschung', hint: problem };
   if (t.population && state.pop < t.population) return { label: `👥 ${t.population} Einwohner nötig`, hint: 'Baue mehr Wohnungen, dann ziehen mehr Leute zu.' };
+  if (techBuildGaps(id).length) return { label: '🔨 Erst bauen', hint: problem };
   const fehlt = Math.ceil((t.cost.wissen || 0) - state.res.wissen);
   if (fehlt > 0) return { label: `📚 Noch ${fehlt} Wissen sammeln`, hint: `Es fehlen noch ${fehlt} Wissen – mehr Höhlenmaler, dann geht es schneller.` };
   return { label: problem, hint: 'Sieh in der Leiste oben nach, welche Ware knapp ist.' };
@@ -921,6 +923,8 @@ function techDetailHtml() {
   const others = techEffectText(id).split(' · ').filter(e => e !== '–' && !e.startsWith('Neu:'));
   const req = t.requires.length ? t.requires.map(r => `${state.techs[r] ? '✔' : '✖'} ${esc(TECHS[r].name)}`).join(', ') : 'nichts';
   const people = t.population ? `<div class="rs-fact">Einwohner nötig<b>👥 ${t.population} <small class="${state.pop >= t.population ? 'ok' : 'bad'}">(du: ${state.pop})</small></b></div>` : '';
+  const buildNeeds = techBuildNeeds(id);
+  const buildSec = buildNeeds.length && status !== 'done' ? `<div class="rs-sec"><h4>Dafür bauen</h4><div class="rs-costs">${buildNeeds.map(g => `<span class="cost${g.have < g.need ? ' short' : ''}">${iconHtml(BUILDINGS[g.type].bild, BUILDINGS[g.type].icon, 'mini')}${esc(BUILDINGS[g.type].name)} ${g.have}/${g.need}</span>`).join(' ')}</div></div>` : '';
   const { label, hint } = researchHint(id);
   const button = status === 'done' ? '<button class="rs-go good" disabled>✔ Erforscht</button>'
     : status === 'running' ? `<button class="rs-go run" disabled>⏳ Läuft … noch ${formatTime(state.research.left)}</button>`
@@ -929,7 +933,7 @@ function techDetailHtml() {
       ${others.length ? `<div class="rs-effects">${others.map(e => `<span class="tag">${esc(e)}</span>`).join('')}</div>` : ''}</div></div>
     <div class="rs-facts"><div class="rs-fact">Dauer<b>⏱ ${formatTime(t.time)}</b></div>${people}<div class="rs-fact">Vorher erforscht<b class="rs-req">${req}</b></div></div>
     ${news.length ? `<div class="rs-sec rs-sec-new"><h4>Neu zum Bauen</h4>${news.map(def => `<div class="rs-new">${iconHtml(def.bild, def.icon)}<div><b>${esc(def.name)}${def.upgradeOnly ? ' <small>(Weiterentwicklung)</small>' : ''}</b><span>${esc(def.info || '')}</span></div></div>`).join('')}</div>` : ''}
-    <div class="rs-sec"><h4>Kostet</h4><div class="rs-costs">${costHtml(t.cost)}</div></div>
+    ${buildSec}<div class="rs-sec"><h4>Kostet</h4><div class="rs-costs">${costHtml(t.cost)}</div></div>
     ${hint && status === 'available' ? `<p class="rs-hint">${esc(hint)}</p>` : ''}
     <div class="rs-action">${button}</div>`;
 }
@@ -1002,7 +1006,11 @@ function questIcon(q) {
   const g = q.goal;
   if (g.build) return iconHtml(BUILDINGS[g.build].bild, BUILDINGS[g.build].icon, 'big');
   if (g.resource) return iconHtml(RESOURCES[g.resource].bild, RESOURCES[g.resource].icon, 'big');
+  if (g.line) return iconHtml(BUILDINGS[g.type].bild, BUILDINGS[g.type].icon, 'big');
   if (g.population) return '<span class="ic emoji big">👥</span>';
+  if (g.plots) return '<span class="ic emoji big">🗺️</span>';
+  if (g.wishes) return '<span class="ic emoji big">🤲</span>';
+  if (g.hunts) return '<span class="ic emoji big">🦣</span>';
   return '<span class="ic emoji big">📜</span>';
 }
 
@@ -1010,13 +1018,32 @@ function rewardChips(reward) {
   return Object.entries(reward).map(([id, n]) => `<span class="tag">${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')} ${n}</span>`).join('');
 }
 
+// Wunsch des Stammes: steht über den Aufträgen
+function wishHtml() {
+  const w = currentWish();
+  if (!w) return state.tutorial >= 0 ? '' : `<div class="wish-card later"><span class="q-medal"><span class="ic emoji big">🤲</span></span><div class="q-main"><b>Wunsch des Stammes</b><span>Der nächste Wunsch kommt in ${formatTime(state.wishWait)}.</span></div></div>`;
+  const can = canAfford({ [w.id]: w.amount });
+  const res = RESOURCES[w.id];
+  return `<div class="wish-card"><span class="q-medal">${iconHtml(res.bild, res.icon, 'big')}</span>
+    <div class="q-main"><b>Wunsch des Stammes</b><span>${esc(w.text)}</span>
+      <span class="q-reward">Gib ${costHtml({ [w.id]: w.amount })} – dafür ${rewardChips({ wissen: w.wissen })}${state.research ? `<span class="tag">⏱ Forschung ${formatTime(CONFIG.wishes.researchSeconds)} kürzer</span>` : ''}</span></div>
+    <button class="btn primary" ${can ? '' : 'disabled'} onclick="doWish()">🤲 Geben</button></div>`;
+}
+
+function doWish() {
+  const r = fulfillWish();
+  if (r) { toast(`🤲 Der Stamm dankt dir! +${r.wissen} Wissen${r.faster ? ` · Forschung ${formatTime(r.faster)} kürzer` : ''}`); playSound('muenze'); }
+  if (pageOpen === 'quests') $('page-body').innerHTML = questsHtml();
+  renderAll();
+}
+
 function questsHtml() {
   const doneCount = Object.keys(state.quests).length;
   const head = `<div class="quest-sum"><span>🏆 Erledigt <b>${doneCount}</b> von ${QUESTS.length}</span>
     <span class="q-bar thin"><i style="width:${Math.round(100 * doneCount / QUESTS.length)}%"></i></span></div>`;
   const list = activeQuests();
-  if (!list.length) return `<div class="quests">${head}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p></div>`;
-  return `<div class="quests">${head}` + list.map(q => {
+  if (!list.length) return `<div class="quests">${head}${wishHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p></div>`;
+  return `<div class="quests">${head}${wishHtml()}` + list.map(q => {
     const p = questProgress(q);
     const done = p.have >= p.need;
     const pct = Math.round(100 * p.have / p.need);
@@ -1051,11 +1078,15 @@ function doClaim(id) {
 function showDailyReward() {
   const day = state.daily.pending;
   if (!day) return;
-  const boxes = DAILY_REWARDS.map((r, k) => `<div class="day${k + 1 === day ? ' today' : k + 1 < day ? ' past' : ''}"><b>Tag ${k + 1}</b><small>${formatAmounts(r)}</small></div>`).join('');
-  openDialog(`<div class="daily-chest">${iconHtml('truhe', '🎁', 'big')}</div><h2>Tägliche Belohnung</h2>
-    <p>Tag ${day} von 7 – komm jeden Tag wieder, am 7. Tag gibt es die große Truhe!</p>
+  const goods = r => Object.entries(r).map(([id, n]) => `<span>${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')}${n}</span>`).join('');
+  const boxes = DAILY_REWARDS.map((r, k) => {
+    const cls = (k + 1 === day ? ' today' : k + 1 < day ? ' past' : '') + (k === DAILY_REWARDS.length - 1 ? ' chest' : '');
+    return `<div class="day${cls}"><b>Tag ${k + 1}</b>${k === DAILY_REWARDS.length - 1 ? iconHtml('truhe', '🎁', 'big') : ''}<div class="day-goods">${goods(r)}</div></div>`;
+  }).join('');
+  openDialog(`<div class="daily-head">${iconHtml('truhe', '🎁', 'big')}<div><h2>Tägliche Belohnung</h2>
+    <p>Tag ${day} von 7 – am 7. Tag gibt es die große Truhe!</p></div></div>
     <div class="days">${boxes}</div>
-    <div class="buttons"><button class="btn primary" onclick="doClaimDaily()">Abholen</button></div>`);
+    <div class="buttons"><button class="btn primary" onclick="doClaimDaily()">🎁 Abholen</button></div>`);
 }
 
 function doClaimDaily() {

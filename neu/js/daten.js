@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 57;
+const APP_VERSION = 58;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -52,6 +52,25 @@ const CONFIG = {
     perHour: 0.35,        // so oft im Schnitt je Spielstunde (also etwa alle 3 Stunden eine)
     graceMinutes: 45,     // in den ersten 45 Spielminuten nie
     pauseMinutes: 60,     // nach einer Katastrophe mindestens 1 Stunde Ruhe
+  },
+  // Wünsche des Stammes (Emin, 02.11.: „Man kann nur noch forschen“): volle Lager haben einen Sinn – Waren abgeben
+  // bringt etwas Wissen und verkürzt die laufende Forschung. Es wartet immer höchstens ein Wunsch.
+  wishes: {
+    pause: 300,           // so viele Sekunden nach einem erfüllten Wunsch kommt der nächste
+    researchSeconds: 90,  // so viel kürzer wird die laufende Forschung
+    wissen: 8,            // so viel Wissen gibt es dazu (je Zeitalter mehr, siehe stagePlus)
+    stagePlus: 0.25,      // je Zeitalter wollen und geben Wünsche 25 % mehr
+    amount: { nahrung: 100, holz: 80, stein: 60, felle: 20, kleidung: 15, werkzeug: 10, ton: 30, toepferwaren: 10 },
+    text: {
+      nahrung: 'Der Stamm möchte ein großes Festmahl feiern.',
+      holz: 'Die Alten wünschen sich ein großes Feuer für die Ahnen.',
+      stein: 'Die Feuerstellen sollen neu gesetzt werden.',
+      felle: 'Für die Kinder werden warme Decken gebraucht.',
+      kleidung: 'Die Jäger brauchen neue Kleidung für den Winter.',
+      werkzeug: 'Die Sammlerinnen bitten um bessere Werkzeuge.',
+      ton: 'Die Kinder wollen Figuren aus Ton formen.',
+      toepferwaren: 'Für die Vorräte fehlen Krüge und Schalen.',
+    },
   },
   hunt: {                 // Mammutjagd (nach der Forschung „Mammutjagd“, bis zur Jungsteinzeit)
     seconds: 60,          // so lange sind die Jäger unterwegs
@@ -354,6 +373,34 @@ const TECHS = {
   kupferfund:     { name: 'Kupferfund',     icon: '🟠', stage: 'jung', col: 9, row: 2, requires: ['sichel', 'viehzucht', 'vorratshaltung', 'sternenkunde'], population: 110, cost: { wissen: 150, werkzeug: 40, toepferwaren: 20 }, time: 2400, effect: {}, bild: 'f-kupfer' },
 };
 
+// Forschung verlangt auch Gebäude (Emin, 02.11.): Wer weiterkommen will, muss weiterbauen.
+// Gezählt werden fertige Gebäude derselben Linie ab dieser Stufe (ein Fellzelt zählt also auch als Wohnhöhle).
+const TECH_NEEDS = {
+  flechtkoerbe:    { sammlerin: 2 },
+  faustkeil:       { holzsammler: 1, steinsammler: 1 },
+  speerspitzen:    { jaegerlager: 2 },
+  fellzelte:       { wohnhoehle: 6 },
+  hoehlenmalerei:  { hoehlenmaler: 2 },
+  mammutjagd:      { jaegerlager: 3 },
+  mittelsteinzeit: { hoehlenmaler: 3, feuerplatz: 3, pflanzerin: 1 },
+  pfeil_bogen:     { jaegerlager: 4 },
+  einbaum:         { holzsammler: 3 },
+  fellbearbeitung: { pflanzerin: 2 },
+  grubenhaus:      { wohnhoehle: 8 },
+  feine_klingen:   { steinsammler: 3 },
+  ahnenkult:       { feuerplatz: 4 },
+  jungsteinzeit:   { fellmacherin: 2, steinschlaeger: 2, ahnenplatz: 1, fischerplatz: 1 },
+  ackerbau:        { fischerplatz: 2 },
+  sichel:          { acker: 2 },
+  viehzucht:       { acker: 2 },
+  langhausbau:     { grubenhaus: 8 },
+  pfahlbauten:     { langhaus: 3 },
+  toepfern:        { hoehlenmaler: 4 },
+  vorratshaltung:  { tongrube: 1, toepferei: 1 },
+  sternenkunde:    { ahnenplatz: 2 },
+  kupferfund:      { steinkreis: 1, vorratsspeicher: 1, ziegengehege: 1 },
+};
+
 // Ganz rechts im Baum: Aufbruch in die nächste Epoche (Bronzezeit wird in einem späteren Schritt gebaut)
 // Tempo-Regler anwenden (siehe CONFIG.tempo)
 (function applyTempo(t) {
@@ -389,28 +436,56 @@ const BAR_CATEGORIES = [
   { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg', 'bruecke'] },
 ];
 
-// Aufträge (der Reihe nach, höchstens 3 gleichzeitig sichtbar)
+// Aufträge. Sichtbar sind höchstens 3 – zuerst die, die man gerade erfüllen kann (activeQuests).
+// IDs nie ändern: Sie stehen in Spielständen. Die Reihenfolge darf sich ändern.
 const QUESTS = [
+  // Altsteinzeit
   { id: 'q_sammlerin2', text: 'Baue 2 Sammlerinnen',     goal: { build: 'sammlerin', count: 2 }, reward: { holz: 20 } },
   { id: 'q_pop10',      text: 'Erreiche 10 Einwohner',   goal: { population: 10 }, reward: { nahrung: 30 } },
   { id: 'q_forschung1', text: 'Schließe eine Forschung ab', goal: { techs: 1 }, reward: { wissen: 10 } },
   { id: 'q_holz100',    text: 'Habe 100 Holz im Lager',  goal: { resource: 'holz', count: 100 }, reward: { stein: 30 } },
   { id: 'q_jaeger',     text: 'Baue ein Jägerlager',     goal: { build: 'jaegerlager', count: 1 }, reward: { nahrung: 40 } },
-  { id: 'q_zelte3',     text: 'Baue 3 Fellzelte',        goal: { build: 'fellzelt', count: 3 }, reward: { holz: 40, felle: 4 } },
+  { id: 'q_holzsammler2', text: 'Baue 2 Holzsammler',    goal: { build: 'holzsammler', count: 2 }, reward: { stein: 15 } },
+  { id: 'q_steinsammler2', text: 'Baue 2 Steinsammler',  goal: { build: 'steinsammler', count: 2 }, reward: { holz: 15 } },
+  { id: 'q_wege30',     text: 'Lege 30 Felder Trampelpfad', goal: { build: 'pfad', count: 30 }, reward: { holz: 30 } },
   { id: 'q_pop15',      text: 'Erreiche 15 Einwohner',   goal: { population: 15 }, reward: { wissen: 20 } },
+  { id: 'q_feuer2',     text: 'Baue 2 Feuerplätze',      goal: { build: 'feuerplatz', count: 2 }, reward: { nahrung: 30 } },
+  { id: 'q_maler2',     text: 'Baue 2 Höhlenmaler',      goal: { build: 'hoehlenmaler', count: 2 }, reward: { wissen: 10 } },
+  { id: 'q_wunsch1',    text: 'Erfülle einen Wunsch des Stammes', goal: { wishes: 1 }, reward: { wissen: 10 } },
+  { id: 'q_pflanzerin', text: 'Baue eine Pflanzerin',    goal: { build: 'pflanzerin', count: 1 }, reward: { holz: 25 } },
+  { id: 'q_land1',      text: 'Kaufe ein neues Landstück', goal: { plots: 1 }, reward: { stein: 40 } },
+  { id: 'q_jaeger2',    text: 'Baue 2 Jägerlager',       goal: { build: 'jaegerlager', count: 2 }, reward: { nahrung: 40, felle: 5 } },
+  { id: 'q_pop20',      text: 'Erreiche 20 Einwohner',   goal: { population: 20 }, reward: { holz: 40 } },
+  { id: 'q_wohnen8',    text: 'Habe 8 Wohnungen',        goal: { line: 'wohnen', type: 'wohnhoehle', count: 8 }, reward: { stein: 40 } },
+  { id: 'q_maler3',     text: 'Baue 3 Höhlenmaler',      goal: { build: 'hoehlenmaler', count: 3 }, reward: { wissen: 15 } },
+  { id: 'q_feuer3',     text: 'Baue 3 Feuerplätze',      goal: { build: 'feuerplatz', count: 3 }, reward: { nahrung: 40 } },
+  { id: 'q_zelte3',     text: 'Baue 3 Fellzelte',        goal: { build: 'fellzelt', count: 3 }, reward: { holz: 40, felle: 4 } },
+  { id: 'q_pop25',      text: 'Erreiche 25 Einwohner',   goal: { population: 25 }, reward: { felle: 5, wissen: 10 } },
+  { id: 'q_wunsch3',    text: 'Erfülle 3 Wünsche des Stammes', goal: { wishes: 3 }, reward: { wissen: 20 } },
+  { id: 'q_jagd1',      text: 'Schicke die Jäger auf Mammutjagd', goal: { hunts: 1 }, requires: 'mammutjagd', reward: { holz: 40, stein: 30 } },
   { id: 'q_mittel',     text: 'Erreiche die Mittelsteinzeit', goal: { tech: 'mittelsteinzeit' }, reward: { holz: 60, stein: 60 } },
-  { id: 'q_fischer',    text: 'Baue einen Fischerplatz', goal: { build: 'fischerplatz', count: 1 }, reward: { nahrung: 60 } },
-  { id: 'q_kleidung20', text: 'Habe 20 Kleidung im Lager', goal: { resource: 'kleidung', count: 20 }, reward: { wissen: 30 } },
+  // Mittelsteinzeit
   { id: 'q_pop30',      text: 'Erreiche 30 Einwohner',   goal: { population: 30 }, reward: { werkzeug: 10 } },
+  { id: 'q_land3',      text: 'Kaufe 3 neue Landstücke', goal: { plots: 3 }, reward: { holz: 60 } },
+  { id: 'q_jaeger4',    text: 'Baue 4 Jägerlager',       goal: { line: 'jagen', type: 'jaegerlager', count: 4 }, reward: { nahrung: 60, felle: 10 } },
+  { id: 'q_fischer',    text: 'Baue einen Fischerplatz', goal: { build: 'fischerplatz', count: 1 }, reward: { nahrung: 60 } },
+  { id: 'q_klingen2',   text: 'Baue 2 Steinschläger',    goal: { build: 'steinschlaeger', count: 2 }, reward: { stein: 50 } },
+  { id: 'q_fellmacher2', text: 'Baue 2 Fellmacherinnen', goal: { build: 'fellmacherin', count: 2 }, reward: { felle: 15 } },
+  { id: 'q_ahnen',      text: 'Baue einen Ahnenplatz',   goal: { build: 'ahnenplatz', count: 1 }, reward: { wissen: 30 } },
+  { id: 'q_kleidung20', text: 'Habe 20 Kleidung im Lager', goal: { resource: 'kleidung', count: 20 }, reward: { wissen: 30 } },
+  { id: 'q_wunsch6',    text: 'Erfülle 6 Wünsche des Stammes', goal: { wishes: 6 }, reward: { wissen: 30 } },
   { id: 'q_jung',       text: 'Erreiche die Jungsteinzeit', goal: { tech: 'jungsteinzeit' }, reward: { holz: 100, stein: 80 } },
+  // Jungsteinzeit
   { id: 'q_acker2',     text: 'Baue 2 Äcker',            goal: { build: 'acker', count: 2 }, reward: { werkzeug: 10 } },
   { id: 'q_pop60',      text: 'Erreiche 60 Einwohner',   goal: { population: 60 }, reward: { toepferwaren: 10 } },
-  { id: 'q_ahnen',      text: 'Baue einen Ahnenplatz',   goal: { build: 'ahnenplatz', count: 1 }, reward: { wissen: 30 } },
+  { id: 'q_ziegen',     text: 'Baue ein Ziegengehege',   goal: { build: 'ziegengehege', count: 1 }, reward: { felle: 15 } },
+  { id: 'q_langhaus3',  text: 'Baue 3 Langhäuser',       goal: { build: 'langhaus', count: 3 }, reward: { holz: 80 } },
   { id: 'q_pop80',      text: 'Erreiche 80 Einwohner',   goal: { population: 80 }, reward: { holz: 80, stein: 60 } },
   { id: 'q_vorrat',     text: 'Baue einen Vorratsspeicher', goal: { build: 'vorratsspeicher', count: 1 }, reward: { nahrung: 100 } },
   { id: 'q_kleidung40', text: 'Habe 40 Kleidung im Lager', goal: { resource: 'kleidung', count: 40 }, reward: { felle: 20 } },
   { id: 'q_pop100',     text: 'Erreiche 100 Einwohner',  goal: { population: 100 }, reward: { werkzeug: 20 } },
   { id: 'q_toepfer30',  text: 'Habe 30 Töpferwaren im Lager', goal: { resource: 'toepferwaren', count: 30 }, reward: { wissen: 40 } },
+  { id: 'q_wunsch12',   text: 'Erfülle 12 Wünsche des Stammes', goal: { wishes: 12 }, reward: { wissen: 40 } },
   { id: 'q_steinkreis', text: 'Baue einen Steinkreis',   goal: { build: 'steinkreis', count: 1 }, reward: { holz: 100, nahrung: 100 } },
   { id: 'q_pop120',     text: 'Erreiche 120 Einwohner – bereit für den Aufbruch', goal: { population: 120 }, reward: { holz: 150, nahrung: 150 } },
 ];

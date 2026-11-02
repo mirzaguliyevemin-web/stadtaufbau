@@ -32,6 +32,9 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     herdWait: 0,             // Sekunden, bis wieder eine Mammutherde vorbeizieht
     needSince: {},           // Waren-Bedürfnis → Spielzeit, ab der es galt (Schonfrist, Startvorrat)
     hunger: 0,               // Sekunden ohne Nahrung
+    wishWait: 0,             // Sekunden, bis der nächste Wunsch des Stammes kommt
+    wishesDone: 0,           // so viele Wünsche wurden erfüllt
+    huntsDone: 0,            // so oft waren die Jäger auf Mammutjagd
     stage: 'alt',
     pop: CONFIG.start.population,
     yearTime: 0,

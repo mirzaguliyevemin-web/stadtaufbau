@@ -24,6 +24,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-02, Epochia Version 58 – Emins Liste: Wohnhöhle und Höhlenmaler haben echte, geschlossene Rückseiten (Canva; vorher zwei Bilder für dieselbe Seite); ein einheitlicher Holzrahmen für alle Fenster und Sprechblasen, Tägliche Belohnung neu mit Warenbildern; gegen „man kann nur noch forschen“: Forschungen verlangen Gebäude, 24 neue Aufträge (gesperrte verstopfen die Liste nicht mehr), Wünsche des Stammes (Waren abgeben → Wissen und kürzere Forschung); Anzeige „Mittelsteinzeit → Mittelsteinzeit“ behoben.
 - 2026-11-01, Epochia Version 57 – Wunsch Emin: See doppelt so breit (neue Spiele, `mapGen 3`). Fehler behoben: Fluss riss bei manchen Karten am Lager ab bzw. lag zu nah am Lager; Stände mit `mapGen 2` behalten ihre Karte.
 - 2026-11-01, Epochia Version 56 – Fischer am Ufer hält den Speer fest in beiden Händen, holt aus und sticht zu, es spritzt (Canva).
 - 2026-11-01, Epochia Version 55 – Wünsche Emin: viel größere Karte (512 × 512, alte Stände liegen in der Mitte), Fluss von der Quelle im Gebirge bis zum See, Wolken über nicht gekauftem Land; Einstieg neu: der Älteste läuft auf der Karte mit (Entwurf B); mehr Verbrauch (Nahrung, Feuerholz, Stein, Werkzeug), Überschuss nur noch knapp; Fischer paddelt sichtbar; kein automatischer Dunkelmodus am Handy.

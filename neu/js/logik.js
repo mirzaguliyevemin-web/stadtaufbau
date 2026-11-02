@@ -792,6 +792,18 @@ function techStatus(id) {
   return TECHS[id].requires.every(r => state.techs[r]) ? 'available' : 'locked';
 }
 
+// Fertige Gebäude derselben Linie ab dieser Stufe (ein Fellzelt zählt auch als Wohnhöhle)
+function lineCount(type) {
+  const def = BUILDINGS[type];
+  return state.buildings.filter(b => { const d = BUILDINGS[b.type]; return !b.build && d.line === def.line && d.tier >= def.tier; }).length;
+}
+
+// Welche Gebäude verlangt eine Forschung? Alle: [{ type, have, need }]; Lücken: nur die, die noch fehlen
+function techBuildNeeds(id) {
+  return Object.entries(TECH_NEEDS[id] || {}).map(([type, need]) => ({ type, need, have: Math.min(need, lineCount(type)) }));
+}
+function techBuildGaps(id) { return techBuildNeeds(id).filter(g => g.have < g.need); }
+
 function researchProblem(id) {
   const t = TECHS[id];
   const status = techStatus(id);
@@ -800,6 +812,8 @@ function researchProblem(id) {
   if (status === 'locked') return 'Erst: ' + t.requires.filter(r => !state.techs[r]).map(r => TECHS[r].name).join(', ');
   if (state.research) return `Es läuft schon „${TECHS[state.research.id].name}“`;
   if (t.population && state.pop < t.population) return `Braucht ${t.population} Einwohner`;
+  const gaps = techBuildGaps(id);
+  if (gaps.length) return 'Erst bauen: ' + gaps.map(g => `${g.need - g.have} × ${BUILDINGS[g.type].name}`).join(', ');
   if (!canAfford(t.cost)) return missingText(t.cost);
   return null;
 }
@@ -901,6 +915,7 @@ function updateHunt(dt) {
     const reward = huntCamps().length ? huntReward() : {};
     addResources(reward);
     state.hunt = null;
+    state.huntsDone++;
     state.herdWait = CONFIG.hunt.herdWait;
     emit('huntDone', reward);
   } else if (state.herdWait > 0) state.herdWait = Math.max(0, state.herdWait - dt);
@@ -917,11 +932,68 @@ function questProgress(q) {
   if (g.techs) return { have: Math.min(Object.keys(state.techs).length, g.techs), need: g.techs };
   if (g.tech) return { have: state.techs[g.tech] ? 1 : 0, need: 1 };
   if (g.resource) return { have: Math.min(Math.floor(state.res[g.resource] || 0), g.count), need: g.count };
+  if (g.line) return { have: Math.min(lineCount(g.type), g.count), need: g.count };
+  if (g.plots) return { have: Math.min(plotsBought(), g.plots), need: g.plots };
+  if (g.wishes) return { have: Math.min(state.wishesDone, g.wishes), need: g.wishes };
+  if (g.hunts) return { have: Math.min(state.huntsDone, g.hunts), need: g.hunts };
   return { have: 0, need: 1 };
 }
 
+// Kann man an diesem Auftrag gerade nichts tun, weil erst eine Forschung fehlt?
+function questBlocked(q) {
+  const g = q.goal;
+  if (q.requires && !state.techs[q.requires]) return true;
+  if (g.tech) return true;   // Fernziel: nimmt erst einen Platz ein, wenn sonst nichts zu tun ist
+  if (g.build) return !isUnlocked(g.build);
+  if (g.resource) return !hasMaker(g.resource);
+  return false;
+}
+
+// Höchstens 3 sichtbar: zuerst, was fertig ist oder was man jetzt angehen kann (Emin, 02.11.: gesperrte Aufträge
+// verstopften die Liste, und es gab nichts mehr zu tun), danach Fernziele.
 function activeQuests() {
-  return QUESTS.filter(q => !state.quests[q.id]).slice(0, 3);
+  const open = QUESTS.filter(q => !state.quests[q.id]);
+  const now = open.filter(q => questDone(q) || !questBlocked(q));
+  return [...now, ...open.filter(q => !now.includes(q))].slice(0, 3);
+}
+
+// ---------------------------------------------------------------------
+// Wünsche des Stammes: Waren abgeben, dafür Wissen und schnellere Forschung
+// ---------------------------------------------------------------------
+
+// Kann der Stamm diese Ware schon herstellen?
+function hasMaker(id) {
+  return Object.keys(BUILDINGS).some(type => BUILDINGS[type].produces && BUILDINGS[type].produces[id] && isUnlocked(type));
+}
+
+function updateWishes(dt) {
+  if (state.wishWait > 0) state.wishWait = Math.max(0, state.wishWait - dt);
+}
+
+// Der Wunsch, der gerade wartet (ergibt sich aus Zähler und Kartenzahl – muss nicht gespeichert werden), oder null
+function currentWish() {
+  if (state.wishWait > 0 || state.tutorial >= 0) return null;
+  const w = CONFIG.wishes;
+  const goods = Object.keys(w.amount).filter(hasMaker);
+  if (!goods.length) return null;
+  const id = goods[(state.wishesDone + (state.seed >>> 0)) % goods.length];
+  const k = 1 + w.stagePlus * stageIndex();
+  const amount = Math.max(5, Math.round(Math.min(w.amount[id] * k, capOf(id) * 0.6) / 5) * 5);
+  return { id, amount, text: w.text[id], wissen: Math.round(w.wissen * k) };
+}
+
+// Gibt zurück, was es gab – oder null, wenn es nicht geht
+function fulfillWish() {
+  const wish = currentWish();
+  if (!wish || !canAfford({ [wish.id]: wish.amount })) return null;
+  payCost({ [wish.id]: wish.amount });
+  addResources({ wissen: wish.wissen });
+  const faster = state.research ? Math.min(CONFIG.wishes.researchSeconds, Math.max(0, state.research.left - 1)) : 0;
+  if (state.research) state.research.left -= faster;
+  state.wishesDone++;
+  state.wishWait = CONFIG.wishes.pause;
+  emit('wishDone', wish);
+  return { ...wish, faster };
 }
 
 function questDone(q) {
@@ -982,6 +1054,7 @@ function update(dt) {
   updateResearch(dt);
   updateHunt(dt);
   updateDisaster(dt);
+  updateWishes(dt);
 }
 
 // Läuft die Zeit nach, in der das Spiel zu war. Gibt zurück, was dazugekommen ist.

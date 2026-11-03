@@ -1,6 +1,6 @@
 # Epochia – Wunderwerke (Entwurf)
 
-Entwurf von Claude, 2026-11-01 – **zum Besprechen, noch nicht gebaut**. Gehört zu `docs/konzept-neu.md`.
+Entwurf von Claude, 2026-11-01 – **am 2026-11-03 von Emin entschieden (Abschnitt 5), noch nicht gebaut**. Gehört zu `docs/konzept-neu.md`.
 Alle Zahlen sind Startwerte; feinjustiert wird nach dem Test am Handy und mit dem Bot.
 
 Zeichen: ✅ entschieden · ❓ offene Frage an Emin · 💡 Vorschlag
@@ -245,21 +245,23 @@ Jede spätere Epoche: dann nur noch Daten, Texte und Bilder (mittel), weil die T
 
 ---
 
-## 5 · Offene Fragen an Emin
+## 5 · Entscheidungen von Emin (2026-11-03)
 
-1. ❓ **Wie viele Wunderwerke je Epoche?** 💡 Eins je Epoche; in der Steinzeit zwei (Höhle + Steinkreis), weil sie drei Stufen hat und die längste Lernzeit ist.
-2. ❓ **Soll der heutige Steinkreis zum Wunderwerk werden** (in Abschnitten statt einem Bau)? 💡 Ja – ID bleibt, alte Spielstände mit fertigem Steinkreis bekommen ihn als fertiges Wunderwerk.
-3. ❓ **Sind Wunderwerke Pflicht für den Aufbruch?** 💡 Nur das letzte der Epoche (Steinkreis); die Höhle ist freiwillig, lohnt sich aber stark.
-4. ❓ **Gefallen dir die Fundstück-Quellen** (glitzernde Stellen antippen, Jagd, Nacht/Sommer-Momente, Glück, Katastrophen, Tag-7-Truhe)? 💡 Ja, alle – aber jede mit Glücksschutz und Ersatzweg, damit man nie stecken bleibt.
-5. ❓ **Zeitdruck?** 💡 Nein: Fundstellen bleiben liegen, bis man sie antippt (höchstens 3 gleichzeitig), nichts läuft ab.
-6. ❓ **Was passiert offline?** 💡 Bauabschnitte laufen weiter; der Stamm legt offline höchstens 1–2 Fundstücke in einen Fundkorb.
-7. ❓ **Doppelte Fundstücke?** 💡 Beim Ältesten tauschen: 3 doppelte → 1 Stück nach Wahl.
-8. ❓ **Wo steht das Wunderwerk?** 💡 Man wählt den Platz selbst (wie beim Bauen), es gibt nur einen Hinweis („am besten an Felsen“). Für die Höhle: muss an Felsen stehen (wie der Fischer am Wasser).
-9. ❓ **Welche Belohnung ist dir am wichtigsten?** 💡 Mischung: dauerhafter Bonus + Fest einmal im Jahr + großes eigenes Bild + Seite im Album.
-10. ❓ **Wie lang sollen die Texte des Ältesten sein?** 💡 1–2 kurze Sätze je Kapitel, manchmal ein „Wusstest du?“ mit echtem Geschichtswissen.
-11. ❓ **Sammelalbum: alle Epochen schon sichtbar (grau)?** 💡 Ja, wie im Forschungsbaum – man sieht, was später kommt.
-12. ❓ **Größe der Wunderwerke?** 💡 Steinzeit 4×4 (wie der Steinkreis heute); ab der Antike 5×5, damit sie wirklich herausragen.
-13. ❓ **Bilder je Bauabschnitt?** 💡 3 Bilder je Wunderwerk (Gerüst, halb fertig, fertig) – nicht 4, damit es nicht zu viele werden.
-14. ❓ **Bronzezeit: Fürstenhügel oder Himmelsscheiben-Halle als Wunderwerk?** 💡 Die Halle der Himmelsscheibe (fröhlicher, und das Zusammensetzen der Scheibe aus 5 Teilen macht Spaß); der Fürstenhügel bleibt ein normales Wahrzeichen.
-15. ❓ **Mittelalter: Gotteshaus der gewählten Religion?** 💡 Ja, jede Religion mit eigenem Bild, gleich stark; wer möchte, baut stattdessen das Rathaus mit Kunstuhr.
-16. ❓ **Wann bauen?** 💡 Vor der Bronzezeit, in einer Sitzung mit dir, in den 3 Schritten aus Abschnitt 4 – dann haben alle späteren Epochen die Technik schon.
+Alle Fragen sind beantwortet, jeweils der Vorschlag. Frage 14 und 16 waren veraltet und wurden angepasst gestellt.
+
+1. ✅ **Anzahl:** eins je Epoche, in der Steinzeit zwei (Höhle + Steinkreis).
+2. ✅ **Steinkreis** wird Wunderwerk in Abschnitten; die ID bleibt, ein fertiger Steinkreis zählt als fertiges Wunderwerk.
+3. ✅ **Pflicht** ist nur das letzte Wunderwerk der Epoche (Steinkreis); die Höhle ist freiwillig.
+4. ✅ **Fundquellen:** alle – glitzernde Stellen, Ausflüge und Momente, Glück bei der Arbeit, Katastrophen und Tag-7-Truhe; jede mit Glücksschutz und Ersatzweg.
+5. ✅ **Kein Zeitdruck:** Fundstellen bleiben liegen, höchstens 3 gleichzeitig.
+6. ✅ **Offline:** Bauabschnitte laufen weiter, höchstens 1–2 Fundstücke im Fundkorb.
+7. ✅ **Doppelte:** beim Ältesten 3 gegen 1 Stück nach Wahl.
+8. ✅ **Standort:** selbst wählen, mit Hinweis; die Höhle muss an Felsen stehen.
+9. ✅ **Belohnung:** alles zusammen – dauerhafter Bonus, Fest einmal im Jahr, großes eigenes Bild, Seite im Album.
+10. ✅ **Texte:** 1–2 kurze Sätze je Kapitel, manchmal ein „Wusstest du?“.
+11. ✅ **Album:** alle Epochen sichtbar, noch nicht gefundene Stücke grau mit Fragezeichen.
+12. ✅ **Größe:** 4×4, ab der Antike 5×5.
+13. ✅ **Bilder:** 3 je Wunderwerk (Gerüst, halb fertig, fertig).
+14. ✅ **Bronzezeit:** neu die Halle der Himmelsscheibe; der schon gebaute Fürstenhügel bleibt normales Wahrzeichen.
+15. ✅ **Mittelalter:** Gotteshaus der gewählten Religion, alle gleich stark; wahlweise stattdessen Rathaus mit Kunstuhr.
+16. ✅ **Reihenfolge:** vor der Eisenzeit, in den 3 Schritten aus Abschnitt 4 (Fundstücke + Schatzkiste, Höhle, Steinkreis); Eisenzeit danach, Bilder großteils ab 27.11.

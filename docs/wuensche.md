@@ -18,14 +18,15 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 <!-- Hier Veränderungswünsche eintragen -->
 - Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten von Feuerplatz, Fellmacherin, Steinschläger, Ahnenplatz, Töpferei, Vorratsspeicher (Canva, das Spiel legt bis dahin selbst Schnee drauf). Bei Canva Option `--schnee` beim Einbauen; Prompt ohne „Fenster“.
 
-- Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, noch ohne Bilder (ab 27.11.). Offen: Erzader, Bronzezeit-Waren in der täglichen Belohnung. Plan: `docs/epoche-2-bronzezeit.md`.
+- Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, noch ohne Bilder (ab 27.11.). Offen: Erzader. Plan: `docs/epoche-2-bronzezeit.md`.
 
-- Wunderwerke je Zeitalter (Emin, 01.11.): Entwurf `docs/konzept-wunderwerke.md`, wird mit Emin besprochen.
-- Rückseiten Sammlerin und Langhaus neu (Emin, 02.11.): zeigen die Öffnung bzw. den Garten noch vorne. Bilder zwischendurch oder ab 27.11. (Canva), kein Eilfall. Dazu Winterbilder der neuen Rückseiten von Wohnhöhle und Höhlenmaler.
+- Wunderwerke je Zeitalter (Emin, 01.11.): alle Fragen am 03.11. entschieden (`docs/konzept-wunderwerke.md`, Abschnitt 5), noch nicht gebaut; als Erstes Fundstücke + Schatzkiste, vor der Eisenzeit.
+- Winterbilder der neuen Rückseiten von Sammlerin und Langhaus (Canva, das Spiel legt bis dahin selbst Schnee drauf).
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-03, Epochia Version 75 – Wunsch Emin: echte, geschlossene Rückseiten für Sammlerin und Langhaus (Canva), beim Langhaus steigt der Rauch jetzt aus dem Dach.
 - 2026-11-03, Epochia Version 74 – Wunsch Emin: Warnung, wenn die Einwohner eine Ware schneller verbrauchen, als sie für den Aufbruch zusammenkommt (Forschungsfenster, Zielzeile, einmal vom Ältesten); Ältester nennt nach einer Minute, wo Arbeiter fehlen und welches Gebäude mit vollem Lager man pausieren kann, Einwohner-Fenster listet fehlende Stellen; Jägerlager und Mammutjägerlager 20 % weniger Nahrung (Jungsteinzeit voll 75–77 → 55–65 %, ab Früher Bronzezeit kaum Wirkung, dort füllt der Viehhof).
 - 2026-11-03, Epochia Version 73 – Emins Entscheidungen zur Analyse: Forschungen kosten 50 % mehr Waren, Wünsche ebenso, Lager wächst je Zeitalter (200–700); Ackerbau, Vieh und Ton-Kette (Jungsteinzeit und ihre Weiterentwicklungen) brauchen je 1 Arbeiter mehr (mehr Stellen überall ließ die späte Bronzezeit im Test stocken); Tagesbelohnung wächst mit dem Zeitalter, ein verpasster Tag bricht die Reihe nicht; Bronzeschmied macht 4 Werkzeuge; Händler-Knopf am Rand und größere Blase; „Willkommen zurück“ nennt Hunger und Verluste; 10 Minuten Schonfrist für Glaube; im Einstieg gilt beim Tippen der gezeigte Bauplatz; größere Tippflächen; Warenleiste einzeilig auf sehr kleinen Handys.
 - 2026-11-02, Epochia Version 72 – Wunsch Emin nach der großen Analyse: Forschung vormerken (startet von selbst, auch offline), Belohnungen und Tausch gehen übers Lager hinaus, Händler-Abstand richtig, Schmuck-Bedarf 0,003, Werkstätten lassen Metall liegen; Fehler behoben: Mammut-Auftrag hing, Wünsche hingen, Wunsch-Aufträge verstopften die Liste, leere Karte beim Wechsel der Qualität, falsche Anzeige „leer in …“, schräges Ziehen aus der Bauleiste, Texte, abgeschnittene Kosten.

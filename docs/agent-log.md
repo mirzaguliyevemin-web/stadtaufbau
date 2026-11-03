@@ -5,9 +5,9 @@ Neueste Einträge oben.
 
 ## 2026-11-03 – Täglicher Lauf (Version 72)
 
-- Alle 20 Tests bestanden (inkl. 91 Epochia-Tests). Bot (nur Lauf 1 ausgewertet, die Läufe 2–3 sind in der Umgebung nicht fertig geworden):
-  Kleinstadt 6,1 min · 50 Einw. 18,9 · Stadt 23,7 · 150 Einw. 29,5 · 200 Einw. 33,7 · Antike 16,9 · Mittelalter 50,5 · Industrie 84,4 ·
-  Kathedrale 50,6 · Hunger 0 · Frost 0. Zielwerte eingehalten. Epochia-Bot nicht ausgewertet (Aufbau läuft).
+- Alle 20 Tests bestanden (inkl. 91 Epochia-Tests). Bot (3 Läufe à 90 min), Durchschnitt:
+  Kleinstadt 5,7 min · 50 Einw. 18,7 · Stadt 22,8 · 150 Einw. 30,8 · 200 Einw. 35,5 · Antike 16,6 · Mittelalter 49,5 · Industrie in 2 von 3 Läufen
+  (84,4 / 86,4) · Kathedrale ~51,4 · Hunger 0 · Frost 0. Alle Zielwerte eingehalten. Epochia-Bot nicht ausgewertet (Aufbau läuft).
 - `wuensche.md`: nichts Neues; offene Punkte (Ruckeln mit Emin, Winterbilder/Rückseiten über Canva, Bronzezeit-Reste, Wunderwerke) brauchen
   Emin bzw. Bilder – nicht angefasst.
 - Codebereich gelesen: Ereignisse, Feuer, Seuche, Wachposten (game.js ~2898–3110) – keine Fehler gefunden.

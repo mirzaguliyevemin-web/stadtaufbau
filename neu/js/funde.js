@@ -280,36 +280,63 @@ function spotAtScreen(sx, sy) {
   return best;
 }
 
-function drawSparkle(x, y, r, color) {
+// Vierzackiger Stern (spitz wie ein Lichtblitz), r = Länge der Zacken, turn = Drehung
+function drawSparkle(x, y, r, color, turn = 0) {
   ctx.fillStyle = color;
   ctx.beginPath();
   for (let k = 0; k < 8; k++) {
-    const a = k * Math.PI / 4, m = k % 2 ? r * 0.22 : r;
+    const a = turn + k * Math.PI / 4, m = k % 2 ? r * 0.13 : r;
     ctx.lineTo(x + Math.cos(a) * m, y + Math.sin(a) * m);
   }
   ctx.closePath();
-  ctx.strokeStyle = 'rgba(70,40,10,0.75)';
-  ctx.lineWidth = Math.max(1, r * 0.14);
-  ctx.stroke();
   ctx.fill();
+}
+
+// Funken: je Fundstelle fest verteilt, jeder blitzt zu seiner Zeit kurz auf
+const SPARK_COUNT = 9;
+
+function drawSpot(s, n, t) {
+  const q = spotScreen(s), style = SPOT_STYLE[s.kind], z = q.z, ph = t + n * 1.7;
+  const beat = 0.5 + 0.5 * Math.sin(ph * 4);          // das Pulsieren: 0 bis 1, gut 1,5 Schläge je Sekunde
+  ctx.save();
+  // Heller Schein, der mitpulsiert
+  const R = (30 + beat * 16) * z;
+  const g = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, R);
+  g.addColorStop(0, style.glow); g.addColorStop(0.5, style.glow.replace(/[\d.]+\)$/, '0.3)')); g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(q.x, q.y, R, 0, 7); ctx.fill();
+  // Zwei Lichtwellen laufen nach außen
+  for (let k = 0; k < 2; k++) {
+    const w = (ph * 0.7 + k * 0.5) % 1;
+    ctx.globalAlpha = (1 - w) * 0.7;
+    ctx.strokeStyle = style.color;
+    ctx.lineWidth = Math.max(1, 2.5 * z * (1 - w));
+    ctx.beginPath(); ctx.ellipse(q.x, q.y, (10 + w * 40) * z, (5 + w * 20) * z, 0, 0, 7); ctx.stroke();
+  }
+  // Dunkler Hauch hinter dem Stern: hebt ihn von hellem Laub und Felsen ab
+  ctx.globalAlpha = 0.35;
+  drawSparkle(q.x, q.y + 1.5 * z, (24 + beat * 13) * z, '#3a2200', ph * 0.5);
+  // Großer Stern: dreht sich langsam, darauf ein zweiter gegenläufig und ein heller Kern
+  ctx.globalAlpha = 0.95;
+  drawSparkle(q.x, q.y, (20 + beat * 12) * z, style.color, ph * 0.5);
+  drawSparkle(q.x, q.y, (11 + (1 - beat) * 8) * z, style.color, Math.PI / 4 - ph * 0.5);
+  ctx.globalAlpha = 1;
+  drawSparkle(q.x, q.y, (11 + beat * 7) * z, '#fff', ph * 0.5);
+  ctx.beginPath(); ctx.fillStyle = '#fff'; ctx.arc(q.x, q.y, (2.5 + beat * 2) * z, 0, 7); ctx.fill();
+  // Funken blitzen rundherum auf und steigen ein wenig
+  for (let k = 0; k < SPARK_COUNT; k++) {
+    const a = k * 2.399 + n, dist = (16 + (k * 7 % 22)) * z;
+    const life = (ph * 0.9 + k * 0.37) % 1, flash = Math.sin(life * Math.PI);
+    ctx.globalAlpha = flash;
+    drawSparkle(q.x + Math.cos(a) * dist, q.y + Math.sin(a) * dist * 0.7 - life * 10 * z, (2.5 + flash * 5) * z, k % 3 ? '#fff' : style.color);
+  }
+  ctx.restore();
 }
 
 function spotObjects(inView, t) {
   const out = [];
   state.spots.forEach((s, n) => {
-    if (!inView(s.x, s.y)) return;
-    out.push({ d: s.x + s.y + 100, kind: 'leben', draw: () => {
-      const q = spotScreen(s), style = SPOT_STYLE[s.kind], ph = t * 2.2 + n * 1.7;
-      ctx.save();
-      const g = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, 20 * q.z);
-      g.addColorStop(0, style.glow); g.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(q.x, q.y, 20 * q.z, 0, 7); ctx.fill();
-      drawSparkle(q.x, q.y, (14 + Math.sin(ph) * 3) * q.z, style.color);
-      drawSparkle(q.x - 9 * q.z, q.y - 6 * q.z, (3 + Math.sin(ph + 2) * 2.5) * q.z, '#fff');
-      drawSparkle(q.x + 8 * q.z, q.y + 5 * q.z, (3 + Math.sin(ph + 4) * 2.5) * q.z, '#fff');
-      ctx.restore();
-    } });
+    if (inView(s.x, s.y)) out.push({ d: s.x + s.y + 100, kind: 'leben', draw: () => drawSpot(s, n, t) });
   });
   return out;
 }

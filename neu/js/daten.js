@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 79;
+const APP_VERSION = 80;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -989,13 +989,13 @@ const FINDS = {
 };
 // Wie eine Fundstelle aussieht. instant = sofort eingesammelt, special = zählt nicht gegen die Höchstzahl.
 const SPOT_STYLE = {
-  fels:  { name: 'Etwas glitzert an einem Felsen', icon: '🪨', color: '#ff8f7a', glow: 'rgba(255,170,150,0.55)' },
-  wald:  { name: 'Etwas glitzert im Wald', icon: '🌲', color: '#fff6a8', glow: 'rgba(255,250,170,0.55)' },
-  ufer:  { name: 'Etwas glitzert am Ufer', icon: '🌊', color: '#a8ecff', glow: 'rgba(170,235,255,0.55)' },
-  erz:   { name: 'Eine Erzader glitzert', icon: '⛏️', color: '#ffc93c', glow: 'rgba(255,200,60,0.65)', special: true },
-  glut:  { name: 'Glut am Lagerfeuer', icon: '⚫', color: '#ff7a1a', glow: 'rgba(255,120,30,0.65)', special: true, instant: true },
-  findling: { name: 'Ein Riesenfindling liegt bereit', icon: '🪨', color: '#e6e6e6', glow: 'rgba(235,235,235,0.7)', special: true },
-  stern: { name: 'Eine Sternschnuppe ist gefallen', icon: '🌠', color: '#dfe8ff', glow: 'rgba(200,215,255,0.7)', special: true, instant: true },
+  fels:  { name: 'Etwas glitzert an einem Felsen', icon: '🪨', color: '#ff5a3c', glow: 'rgba(255,90,50,0.8)' },
+  wald:  { name: 'Etwas glitzert im Wald', icon: '🌲', color: '#ffc400', glow: 'rgba(255,190,0,0.8)' },
+  ufer:  { name: 'Etwas glitzert am Ufer', icon: '🌊', color: '#22d3ff', glow: 'rgba(30,200,255,0.8)' },
+  erz:   { name: 'Eine Erzader glitzert', icon: '⛏️', color: '#ffb300', glow: 'rgba(255,170,0,0.9)', special: true },
+  glut:  { name: 'Glut am Lagerfeuer', icon: '⚫', color: '#ff6a00', glow: 'rgba(255,100,0,0.9)', special: true, instant: true },
+  findling: { name: 'Ein Riesenfindling liegt bereit', icon: '🪨', color: '#d9e2ff', glow: 'rgba(190,205,255,0.85)', special: true },
+  stern: { name: 'Eine Sternschnuppe ist gefallen', icon: '🌠', color: '#9db8ff', glow: 'rgba(130,160,255,0.9)', special: true, instant: true },
 };
 
 // Einstieg: Der Stammesälteste läuft auf der Karte mit (siehe einstieg.js). Die Reihenfolge und die IDs nie ändern:

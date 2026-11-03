@@ -11,15 +11,14 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten von Töpferei, Vorratsspeicher (Canva, das Spiel legt bis dahin selbst Schnee drauf). Bei Canva Option `--schnee` beim Einbauen; Prompt ohne „Fenster“.
-
 - Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, noch ohne Bilder (ab 27.11.). Plan: `docs/epoche-2-bronzezeit.md`.
 
-- Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit und Bronzezeit gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis, Halle der Himmelsscheibe). Offen: Fundstück-Bilder und Rückseiten der neuen Wunderwerke (Canva); spätere Zeitalter mit deren Bau. Plan: `docs/konzept-wunderwerke.md`.
+- Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit und Bronzezeit gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis, Halle der Himmelsscheibe). Offen: restliche Fundstück-Bilder und Rückseiten der neuen Wunderwerke (Canva); spätere Zeitalter mit deren Bau. Plan: `docs/konzept-wunderwerke.md`.
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-03, Epochia Version 83 – Wunsch Emin: letzte Winterbilder der Rückseiten (Töpferei, Vorratsspeicher), erste Fundstück-Bilder (Rötel, Holzkohle, Adlerfeder).
 - 2026-11-03, Epochia Version 82 – Wunsch Emin: altes Spiel und ungenutzte Dateien entfernt (alte Fischerplatz-Bilder, zwei alte Zweige, nicht mehr gebrauchte Werkzeuge); Winterbilder der Rückseiten von Steinschläger und Ahnenplatz.
 - 2026-11-03, Epochia Version 81 – Wunsch Emin: Ordner aufgeräumt: altes Spiel entfernt, Hauptadresse leitet zu Epochia, Bilder nach Art und Gebäude sortiert. Der alte Ruckel-Fehler entfällt damit. Dazu Baustufen des Steinkreises, Winterbilder von Höhle, Halle, Feuerplatz- und Fellmacherin-Rückseite.
 - 2026-11-03, Epochia Version 80 – Wunsch Emin: Fundstellen glitzern und pulsieren richtig (drehender Stern, Lichtwellen, Funken, Farbe je Gelände), ohne Canva-Bilder; Bild der halb fertigen Halle.

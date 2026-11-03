@@ -23,6 +23,7 @@ function imageFolder(name) {
   if (b) return 'gebaeude/' + b[1].replace(/-winter$/, '').replace(/-r[12]$/, '').replace(/-(bau|halb)$/, '').replace(/^baustelle-\d$/, 'baustelle');
   if (name.startsWith('f-')) return 'forschung';
   if (name.startsWith('ware-')) return 'waren';
+  if (name.startsWith('fund-')) return 'fundstuecke';
   if (/^(mensch-|fischer-|einbaum|hirsch|mammut|ziege)/.test(name)) return 'figuren';
   if (/^(baum-|berg-|fels-|blumen|busch|wiese|sand|wasser|pfad|bruecke|erdsockel|setzling)/.test(name)) return 'gelaende';
   return 'oberflaeche';
@@ -225,6 +226,7 @@ function imageNames() {
     for (const v of b.views || []) { names.add(b.bild + '-' + v); names.add(b.bild + '-' + v + '-winter'); }   // weitere Ansichten zum Drehen (auch im Winter)
   }
   for (const r of Object.values(RESOURCES)) if (r.bild) names.add(r.bild);
+  for (const f of Object.values(FINDS)) if (f.bild) names.add(f.bild);
   for (const t of Object.values(TECHS)) if (t.bild) names.add(t.bild);
   for (const s of [2, 3, 4]) names.add('1-baustelle-' + s);
   return [...names];

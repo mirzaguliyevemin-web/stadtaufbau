@@ -1045,6 +1045,8 @@ function updateHunt(dt) {
     state.hunt = null;
     state.huntsDone++;
     state.herdWait = CONFIG.hunt.herdWait;
+    // Jede 2. Jagd bringt einen Stoßzahn, mit Mammutjägerlager jede
+    if (huntCamps().some(i => state.buildings[i].type === 'mammutjaegerlager') || (huntCamps().length && state.huntsDone % 2 === 0)) addFind('stosszahn');
     emit('huntDone', reward);
   } else if (state.herdWait > 0) state.herdWait = Math.max(0, state.herdWait - dt);
 }
@@ -1245,6 +1247,7 @@ function claimDailyReward() {
   const reward = dailyRewardOf(day);
   addReward(reward);
   state.daily.pending = 0;
+  if (day === DAILY_REWARDS.length) { const id = anyAvailableFind(); if (id) addFind(id); }   // in der großen Truhe liegt ein Fundstück
   return reward;
 }
 
@@ -1266,6 +1269,7 @@ function update(dt) {
   updatePopulation(dt);
   updateResearch(dt);
   updateHunt(dt);
+  updateFinds(dt);
   updateTrader(dt);
   updateFest();
   updateDisaster(dt);
@@ -1299,6 +1303,7 @@ function applyOfflineProgress(savedAt, now = Date.now()) {
     const d = (state.res[id] || 0) - (before[id] || 0);
     if (Math.abs(d) >= 1) gained[id] = d;
   }
+  if (fillBasket(secs)) offlineEvents.push('🧺 Der Stamm hat etwas gefunden: Schau in die Schatzkiste.');
   if (offlineStarved) offlineEvents.push(`🍖 Hunger: ${offlineStarved} ${offlineStarved === 1 ? 'Einwohner ist' : 'Einwohner sind'} weggezogen. Baue mehr Nahrung.`);
   return { seconds: secs, gained, pop: state.pop - before.pop, events: offlineEvents.slice() };
 }

@@ -38,6 +38,11 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     huntsDone: 0,            // so oft waren die Jäger auf Mammutjagd
     trader: { wait: CONFIG.trader.firstWait, left: 0, visit: 0, done: [] },   // Händler: Sekunden bis er kommt, bis er geht, Besuch Nr., schon getauschte Angebote
     tradesDone: 0,           // so oft wurde mit dem Händler getauscht
+    finds: {},               // Fundstück → Anzahl
+    spots: [],               // Fundstellen auf der Karte: { kind, x, y, find }
+    trips: [],               // unterwegs zu einer Fundstelle: { id, left, total, cx, cy, x, y, kind, find }
+    basket: [],              // Fundkorb: Fundstücke aus der Zeit, in der das Spiel zu war
+    fund: { rng: 0, spotWait: CONFIG.finds.firstSpot, oreWait: CONFIG.finds.oreEvery / 4, luck: {}, luckTick: 0, glutNight: -1, sternNight: -1, ores: 0, tripId: 0 },
     stage: 'alt',
     pop: CONFIG.start.population,
     yearTime: 0,

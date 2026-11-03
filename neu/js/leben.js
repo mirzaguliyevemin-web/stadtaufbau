@@ -910,6 +910,8 @@ function lifeObjects(range) {
   const t = frameTime;
   out.push(...felledObjects(lifeDt));
   out.push(...hunterObjects(inView, t));
+  out.push(...tripObjects(inView, t));
+  out.push(...spotObjects(inView, t));
   out.push(...traderObjects(inView, t));
   out.push(...workerObjects(inView, t));
   out.push(...visitorObjects(inView, t));

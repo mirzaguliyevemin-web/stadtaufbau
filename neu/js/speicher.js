@@ -104,6 +104,18 @@ function sanitizeState(data) {
     const t = data.trader, num = v => (Number.isFinite(v) && v >= 0 ? v : 0);
     s.trader = { wait: num(t.wait), left: num(t.left), visit: Math.floor(num(t.visit)), done: Array.isArray(t.done) ? t.done.filter(id => CONFIG.trader.offers.some(o => o.id === id)) : [] };
   }
+  if (data.finds && typeof data.finds === 'object')
+    for (const [id, n] of Object.entries(data.finds)) if (FINDS[id] && Number.isFinite(n) && n > 0) s.finds[id] = Math.floor(n);
+  const onMap = (x, y) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < N && y < N;
+  if (Array.isArray(data.spots)) s.spots = data.spots.filter(k => k && SPOT_STYLE[k.kind] && onMap(k.x, k.y) && (k.kind === 'erz' || FINDS[k.find])).map(k => ({ kind: k.kind, x: k.x, y: k.y, find: k.find || null }));
+  if (Array.isArray(data.trips)) s.trips = data.trips.filter(k => k && SPOT_STYLE[k.kind] && Number.isFinite(k.left) && k.total > 0 && [k.cx, k.cy, k.x, k.y].every(Number.isFinite) && (k.kind === 'erz' || FINDS[k.find]))
+    .map(k => ({ id: Number(k.id) || 0, left: Math.max(0, k.left), total: k.total, cx: k.cx, cy: k.cy, x: k.x, y: k.y, kind: k.kind, find: k.find || null }));
+  if (Array.isArray(data.basket)) s.basket = data.basket.filter(id => FINDS[id]).slice(0, CONFIG.finds.basketMax);
+  if (data.fund && typeof data.fund === 'object') {
+    const f = data.fund;
+    for (const key of ['rng', 'spotWait', 'oreWait', 'luckTick', 'glutNight', 'sternNight', 'ores', 'tripId']) if (Number.isFinite(f[key])) s.fund[key] = f[key];
+    if (f.luck && typeof f.luck === 'object') for (const [id, t] of Object.entries(f.luck)) if (FINDS[id] && Number.isFinite(t) && t >= 0) s.fund.luck[id] = t;
+  }
   if (data.quests && typeof data.quests === 'object') s.quests = { ...data.quests };
   if (data.built && typeof data.built === 'object') s.built = { ...data.built };
   if (data.seen && typeof data.seen === 'object') s.seen = { ...data.seen };

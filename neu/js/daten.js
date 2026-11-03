@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 75;
+const APP_VERSION = 76;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -107,6 +107,27 @@ const CONFIG = {
   // Gießer und Schmiede alles und man kommt nie auf die Kosten für Bauen und Forschung (Analyse 02.11.: bis 12 Stunden Stillstand)
   metalReserve: { kupfer: 30, bronze: 30 },
   fest: { happy: 15, seconds: 300 },   // Sonnwendfest (nach der „Himmelsscheibe“): mitten im Sommer 5 Minuten Fest, Laune +15
+  finds: {               // Fundstücke (docs/konzept-wunderwerke.md)
+    firstSpot: 120,       // so lange dauert es nach dem Einstieg bis zur ersten Fundstelle (Sekunden)
+    spotEvery: 300,       // alle 5 Minuten eine neue …
+    maxSpots: 3,          // … höchstens 3 warten gleichzeitig (Emin, 03.11.: nichts läuft ab)
+    tripMin: 20, tripMax: 90,   // so lange ist jemand unterwegs, je nach Entfernung
+    oreEvery: 1200,       // Erzader: alle 20 Minuten, solange es eine Kupfermine gibt
+    oreSeconds: 60,
+    oreReward: { kupfererz: 40 },
+    goldEvery: 3,         // jede 3. Erzader bringt dazu ein Goldblättchen
+    floodShells: 2,       // nach einem Hochwasser liegen so viele Muscheln am Ufer
+    basketMax: 2,         // Fundkorb: höchstens so viele Stücke aus der Zeit, in der das Spiel zu war …
+    basketFirst: 900,     // … das erste nach 15 Minuten Abwesenheit
+    basketSecond: 3600,   // … das zweite nach 1 Stunde
+    swapCost: 3,          // so viele doppelte Stücke ergeben ein Stück nach Wahl
+    luck: [               // Glück bei der Arbeit: pity = Sekunden Arbeit, nach denen das Stück sicher kommt
+      { find: 'sonnenstein', line: 'stein', pity: 1800 },
+      { find: 'feder', line: 'jagen', pity: 2400 },
+      { find: 'muschel', line: 'fischen', pity: 2400 },
+      { find: 'blumenkranz', line: 'sammeln', pity: 1200, seasons: [0, 1] },
+    ],
+  },
   hunt: {                 // Mammutjagd (nach der Forschung „Mammutjagd“, bis zur Jungsteinzeit)
     seconds: 60,          // so lange sind die Jäger unterwegs
     herdWait: 240,        // so lange dauert es nach einer Jagd, bis wieder eine Herde vorbeizieht
@@ -817,6 +838,62 @@ const DAILY_REWARDS = [
 const DAILY_GROWTH = {
   factor: { alt: 1, mittel: 1.5, jung: 2, kupfer: 3, frueh: 4, spaet: 5 },
   extra: { kupfer: { kupfer: 10 }, frueh: { kupfer: 10, bronze: 5 }, spaet: { bronze: 10, schmuck: 3 } },
+};
+
+// Fundstücke und Schatzkiste. need = so viele braucht das Wunderwerk (alles darüber zählt als doppelt),
+// spot = Gelände der Fundstelle, soon = kommt erst mit einem späteren Bauabschnitt, bild = später aus Canva.
+const FIND_PAGES = [
+  { id: 'steinzeit', name: 'Steinzeit' }, { id: 'bronze', name: 'Bronzezeit' }, { id: 'eisen', name: 'Eisenzeit' }, { id: 'antike', name: 'Antike' },
+  { id: 'mittelalter', name: 'Mittelalter' }, { id: 'neuzeit', name: 'Frühe Neuzeit' }, { id: 'juenger', name: 'Jüngere Neuzeit' }, { id: 'heute', name: 'Zeitgeschichte' },
+];
+const FIND_LATER = 'Kommt in einem späteren Zeitalter';
+const FINDS = {
+  roetel:      { name: 'Rötel', icon: '🔴', page: 'steinzeit', need: 5, spot: 'fels', hint: 'Glitzert an Felsen' },
+  holzkohle:   { name: 'Holzkohle-Stift', icon: '⚫', page: 'steinzeit', need: 2, hint: 'Glimmt nachts am Lagerfeuer' },
+  stosszahn:   { name: 'Mammut-Stoßzahn', icon: '🦣', page: 'steinzeit', spot: 'fels', spotExtinct: true, hint: 'Von der Mammutjagd, später alt im Fels' },
+  feder:       { name: 'Adlerfeder', icon: '🪶', page: 'steinzeit', spot: 'wald', hint: 'Glitzert im Wald, Jäger finden manchmal eine' },
+  muschel:     { name: 'Flussmuschel', icon: '🐚', page: 'steinzeit', need: 2, spot: 'ufer', hint: 'Glitzert am Ufer, nach Hochwasser mehr' },
+  sternkarte:  { name: 'Sternkarte', icon: '🗺️', page: 'steinzeit', need: 3, tech: 'sternenkunde', hint: 'Klare Nacht, Sternschnuppe (Sternenkunde)' },
+  findling:    { name: 'Riesenfindling', icon: '🪨', page: 'steinzeit', need: 5, soon: true, hint: 'Kommt mit dem Bau des Steinkreises' },
+  sonnenstein: { name: 'Sonnenstein', icon: '☀️', page: 'steinzeit', stage: 'jung', hint: 'Steinsammler finden ihn in der Jungsteinzeit' },
+  blumenkranz: { name: 'Blumenkranz', icon: '🌼', page: 'steinzeit', need: 3, stage: 'jung', hint: 'Sammlerinnen, nur Frühling und Sommer' },
+  goldblatt:   { name: 'Goldblättchen', icon: '🟡', page: 'bronze', need: 3, stage: 'kupfer', hint: 'Steckt manchmal in einer Erzader' },
+  zinnperle:   { name: 'Zinn-Perle', icon: '⚪', page: 'bronze', need: 2, stage: 'frueh', spot: 'ufer', hint: 'Glitzert ab der Frühen Bronzezeit am Ufer' },
+  bernsteinstueck: { name: 'Großer Bernstein', icon: '🟠', page: 'bronze', soon: true, hint: 'Kommt mit der Halle der Himmelsscheibe' },
+  scheibe:     { name: 'Teil der Himmelsscheibe', icon: '🌞', page: 'bronze', need: 5, soon: true, hint: 'Kommt mit der Halle der Himmelsscheibe' },
+  salzkristall:{ name: 'Salzkristall', icon: '💎', page: 'eisen', soon: true, hint: FIND_LATER },
+  rucksack:    { name: 'Alter Lederrucksack', icon: '🎒', page: 'eisen', soon: true, hint: FIND_LATER },
+  bronzepickel:{ name: 'Bronzepickel', icon: '⛏️', page: 'eisen', soon: true, hint: FIND_LATER },
+  wollstoff:   { name: 'Karierter Wollstoff', icon: '🧵', page: 'eisen', soon: true, hint: FIND_LATER },
+  schriftrolle:{ name: 'Schriftrolle', icon: '📜', page: 'antike', soon: true, hint: FIND_LATER },
+  spiegel:     { name: 'Bronzespiegel', icon: '🪞', page: 'antike', soon: true, hint: FIND_LATER },
+  marmor:      { name: 'Marmorblock', icon: '⬜', page: 'antike', soon: true, hint: FIND_LATER },
+  olivenkranz: { name: 'Olivenkranz', icon: '🌿', page: 'antike', soon: true, hint: FIND_LATER },
+  buntglas:    { name: 'Buntglas', icon: '🌈', page: 'mittelalter', soon: true, hint: FIND_LATER },
+  glocke:      { name: 'Glocke', icon: '🔔', page: 'mittelalter', soon: true, hint: FIND_LATER },
+  bauplan:     { name: 'Bauplan des Meisters', icon: '📐', page: 'mittelalter', soon: true, hint: FIND_LATER },
+  kerze:       { name: 'Bienenwachskerze', icon: '🕯️', page: 'mittelalter', soon: true, hint: FIND_LATER },
+  kartenstueck:{ name: 'Kartenstück', icon: '🧭', page: 'neuzeit', soon: true, hint: FIND_LATER },
+  linse:       { name: 'Geschliffene Linse', icon: '🔍', page: 'neuzeit', soon: true, hint: FIND_LATER },
+  pflanze:     { name: 'Seltene Pflanze', icon: '🌱', page: 'neuzeit', soon: true, hint: FIND_LATER },
+  buch:        { name: 'Gedrucktes Buch', icon: '📖', page: 'neuzeit', soon: true, hint: FIND_LATER },
+  gluehbirne:  { name: 'Glühbirne', icon: '💡', page: 'juenger', soon: true, hint: FIND_LATER },
+  telefon:     { name: 'Telefon', icon: '☎️', page: 'juenger', soon: true, hint: FIND_LATER },
+  fahrrad:     { name: 'Fahrrad', icon: '🚲', page: 'juenger', soon: true, hint: FIND_LATER },
+  fotoapparat: { name: 'Fotoapparat', icon: '📷', page: 'juenger', soon: true, hint: FIND_LATER },
+  bauteil:     { name: 'Raketenteil', icon: '🛰️', page: 'heute', soon: true, hint: FIND_LATER },
+  raumanzug:   { name: 'Raumanzug', icon: '🧑‍🚀', page: 'heute', soon: true, hint: FIND_LATER },
+  antenne:     { name: 'Funkantenne', icon: '📡', page: 'heute', soon: true, hint: FIND_LATER },
+  mondgestein: { name: 'Mondgestein', icon: '🌙', page: 'heute', soon: true, hint: FIND_LATER },
+};
+// Wie eine Fundstelle aussieht. instant = sofort eingesammelt, special = zählt nicht gegen die Höchstzahl.
+const SPOT_STYLE = {
+  fels:  { name: 'Etwas glitzert an einem Felsen', icon: '🪨', color: '#ff8f7a', glow: 'rgba(255,170,150,0.55)' },
+  wald:  { name: 'Etwas glitzert im Wald', icon: '🌲', color: '#fff6a8', glow: 'rgba(255,250,170,0.55)' },
+  ufer:  { name: 'Etwas glitzert am Ufer', icon: '🌊', color: '#a8ecff', glow: 'rgba(170,235,255,0.55)' },
+  erz:   { name: 'Eine Erzader glitzert', icon: '⛏️', color: '#ffc93c', glow: 'rgba(255,200,60,0.65)', special: true },
+  glut:  { name: 'Glut am Lagerfeuer', icon: '⚫', color: '#ff7a1a', glow: 'rgba(255,120,30,0.65)', special: true, instant: true },
+  stern: { name: 'Eine Sternschnuppe ist gefallen', icon: '🌠', color: '#dfe8ff', glow: 'rgba(200,215,255,0.7)', special: true, instant: true },
 };
 
 // Einstieg: Der Stammesälteste läuft auf der Karte mit (siehe einstieg.js). Die Reihenfolge und die IDs nie ändern:

@@ -1977,6 +1977,128 @@ test('Aufbruch-Warnung: Einwohner verbrauchen die verlangte Ware → Warnung im 
   noErrors(g);
 });
 
+test('Fundstücke: Fundstellen erscheinen, warten und bringen das fehlende Stück', () => {
+  const g = fresh();
+  ok(g.run(`state.spots.length`) === 0, 'Schon beim Start Fundstellen');
+  // Während des Einstiegs erscheint nichts
+  g.run(`state.tutorial = 3; state.fund.spotWait = 0; updateFinds(1); state.tutorial = -1;`);
+  ok(g.run(`state.spots.length`) === 0, 'Fundstelle mitten im Einstieg');
+  // Höchstens 3 gleichzeitig, sie laufen nicht ab
+  for (let k = 0; k < 6; k++) g.run(`state.fund.spotWait = 0; state.yearTime = 0; updateFinds(1);`);
+  ok(g.run(`normalSpots()`) === 3, 'Höchstens 3 Fundstellen: ' + g.run(`normalSpots()`));
+  ok(g.run(`state.spots.filter(s => !SPOT_STYLE[s.kind].special).every(s => isOwned(s.x, s.y) && buildingAt(s.x, s.y) < 0)`), 'Fundstelle unter den Wolken oder auf einem Gebäude');
+  g.run(`for (let i = 0; i < 600; i++) { state.fund.spotWait = 1e9; updateFinds(5); }`);
+  ok(g.run(`normalSpots()`) === 3, 'Fundstellen sind abgelaufen');
+  // Antippen: jemand läuft hin, danach ist das Stück da
+  const id = g.run(`state.spots.find(s => !SPOT_STYLE[s.kind].instant).find`);
+  const have = g.run(`findCount('${id}')`);
+  g.run(`collectSpot(state.spots.findIndex(s => !SPOT_STYLE[s.kind].instant))`);
+  ok(g.run(`state.trips.length`) === 1, 'Niemand unterwegs');
+  ok(g.run(`findCount('${id}')`) === have, 'Stück kam ohne Laufweg');
+  g.run(`for (let i = 0; i < 30; i++) updateFinds(5);`);
+  ok(g.run(`findCount('${id}')`) === have + 1 && g.run(`state.trips.length`) === 0, 'Stück kam nicht an');
+  // Glücksschutz: Es kommt, was im Verhältnis zum Bedarf am wenigsten da ist
+  g.run(`state.finds = { roetel: 5, feder: 1 }; state.spots = [];`);
+  ok(g.run(`leastFind(['roetel', 'feder', 'muschel'])`) === 'muschel', 'Fehlendes Stück kommt nicht zuerst');
+  // Überbaut: Fundstelle verschwindet ohne Absturz
+  g.run(`state.spots = []; const sp = addSpot('wald', 'feder'); terrain[sp.y * N + sp.x] = TERRAIN.gras.id; dropInvalidSpots();`);
+  ok(g.run(`state.spots.length`) === 0, 'Fundstelle auf gerodetem Wald bleibt');
+  noErrors(g);
+});
+
+test('Fundstücke: Erzader nur mit Kupfermine, Glut und Sternschnuppe sofort, Jagd, Hochwasser, Truhe', () => {
+  const g = fresh();
+  g.run(`state.fund.oreWait = 0; updateFinds(1);`);
+  ok(!g.run(`state.spots.some(s => s.kind === 'erz')`), 'Erzader ohne Kupfermine');
+  g.run(`state.spots = []; state.buildings.push({ type: 'kupfermine', x: 250, y: 250, rot: 0, build: 0 }); rebuildOccupancy(); state.fund.oreWait = 0; updateFinds(1);`);
+  ok(g.run(`state.spots.some(s => s.kind === 'erz')`), 'Keine Erzader trotz Kupfermine');
+  const erz0 = g.run(`state.res.kupfererz || 0`);
+  g.run(`state.fund.ores = 2; collectSpot(state.spots.findIndex(s => s.kind === 'erz'));`);
+  ok(g.run(`state.trips[0].total`) === g.run(`CONFIG.finds.oreSeconds`), 'Erzader dauert nicht 1 Minute');
+  g.run(`for (let i = 0; i < 13; i++) updateFinds(5);`);
+  ok(g.run(`state.res.kupfererz`) === erz0 + 40, 'Kein Kupfererz: ' + g.run(`state.res.kupfererz`));
+  ok(g.run(`findCount('goldblatt')`) === 1, 'Jede 3. Erzader bringt Gold');
+  // Glut: in der Nacht genau eine, sofort eingesammelt, je Nacht nur einmal
+  g.run(`state.spots = []; state.playTime = CONFIG.daySeconds * 0.8; state.fund.spotWait = 1e9; state.fund.oreWait = 1e9; updateFinds(1);`);
+  ok(g.run(`state.spots.filter(s => s.kind === 'glut').length`) === 1, 'Keine Glut in der Nacht');
+  g.run(`collectSpot(state.spots.findIndex(s => s.kind === 'glut')); updateFinds(1);`);
+  ok(g.run(`findCount('holzkohle')`) === 1 && !g.run(`state.spots.some(s => s.kind === 'glut')`), 'Glut mehrfach in einer Nacht');
+  // Sternschnuppe erst mit Sternenkunde
+  ok(!g.run(`findAvailable('sternkarte')`), 'Sternkarte vor der Forschung');
+  g.run(`state.techs.sternenkunde = true;`);
+  ok(g.run(`findAvailable('sternkarte')`), 'Sternkarte trotz Forschung nicht möglich');
+  // Jagd: jede 2., mit Mammutjägerlager jede
+  g.run(`state.buildings.push({ type: 'jaegerlager', x: 240, y: 240, rot: 0, build: 0 }); rebuildOccupancy(); isConnected = () => true; state.finds = {}; state.herdWait = 0; state.huntsDone = 0;
+    state.hunt = { left: 0.1, cx: 0, cy: 0, x: 0, y: 0 }; updateHunt(1);`);
+  ok(g.run(`findCount('stosszahn')`) === 0, 'Stoßzahn schon bei der 1. Jagd');
+  g.run(`state.hunt = { left: 0.1, cx: 0, cy: 0, x: 0, y: 0 }; updateHunt(1);`);
+  ok(g.run(`findCount('stosszahn')`) === 1, 'Kein Stoßzahn bei der 2. Jagd');
+  // Hochwasser spült Muscheln an
+  g.run(`state.spots = []; emit('disasterEnded', 'hochwasser');`);
+  ok(g.run(`state.spots.filter(s => s.find === 'muschel').length`) === 2, 'Keine Muscheln nach Hochwasser');
+  // Tag-7-Truhe
+  const n = g.run(`Object.values(state.finds).reduce((a, b) => a + b, 0)`);
+  g.run(`state.daily.pending = 7; claimDailyReward();`);
+  ok(g.run(`Object.values(state.finds).reduce((a, b) => a + b, 0)`) === n + 1, 'Truhe ohne Fundstück');
+  noErrors(g);
+});
+
+test('Fundstücke: Glück bei der Arbeit ist nach der Schutzzeit sicher, Fundkorb und Tausch', () => {
+  const g = fresh();
+  g.run(`state.buildings.push({ type: 'jaegerlager', x: 240, y: 240, rot: 0, build: 0 }); rebuildOccupancy(); stats.staff[state.buildings.length - 1] = 1; state.fund.luck.feder = 2400 - 60; updateLuck();`);
+  ok(g.run(`findCount('feder')`) === 1, 'Feder trotz Schutzzeit nicht gefunden');
+  ok(g.run(`state.fund.luck.feder`) === 0, 'Zähler nicht zurückgesetzt');
+  // Fundkorb: 15 Minuten eins, 1 Stunde zwei, nie mehr als zwei
+  g.run(`state.finds = {}`);
+  ok(g.run(`fillBasket(60)`) === 0 && g.run(`fillBasket(1000)`) === 1, 'Fundkorb nach 15 Minuten');
+  g.run(`state.basket = []`);
+  ok(g.run(`fillBasket(7200)`) === 2 && g.run(`fillBasket(7200)`) === 0 && g.run(`state.basket.length`) === 2, 'Fundkorb zu voll');
+  g.run(`claimBasket()`);
+  ok(g.run(`state.basket.length`) === 0 && g.run(`Object.values(state.finds).reduce((a, b) => a + b, 0)`) === 2, 'Fundkorb nicht übergeben');
+  // Offline-Lauf füllt den Korb, Fundstellen erscheinen dabei nicht
+  g.run(`state.basket = []; state.spots = []; state.fund.spotWait = 0; applyOfflineProgress(Date.now() - 2000 * 1000);`);
+  ok(g.run(`state.basket.length`) === 1 && g.run(`state.spots.length`) === 0, 'Offline falsch: Korb ' + g.run(`state.basket.length`) + ', Stellen ' + g.run(`state.spots.length`));
+  // Tausch: nur Stücke über dem Bedarf zählen als doppelt
+  g.run(`state.finds = { roetel: 5, feder: 3 };`);
+  ok(g.run(`spareTotal()`) === 2 && !g.run(`swapFinds('muschel')`), 'Tausch trotz zu weniger Doppelter');
+  g.run(`state.finds = { roetel: 6, feder: 3 };`);
+  ok(g.run(`swapFinds('muschel')`) && g.run(`findCount('muschel')`) === 1, 'Tausch ging nicht');
+  ok(g.run(`findCount('roetel')`) === 5 && g.run(`findCount('feder')`) === 1, 'Tausch nahm Benötigtes');
+  ok(!g.run(`(state.finds = { roetel: 9 }, swapFinds('findling'))`), 'Noch nicht findbares Stück tauschbar');
+  noErrors(g);
+});
+
+test('Fundstücke: Spielstand bleibt erhalten, alte und kaputte Stände laden', () => {
+  const g = fresh();
+  g.run(`state.finds = { roetel: 2 }; state.basket = ['feder']; state.spots = [{ kind: 'wald', x: 250, y: 250, find: 'feder' }, { kind: 'erz', x: 251, y: 250, find: null }];
+    state.trips = [{ id: 1, left: 5, total: 20, cx: 256, cy: 256, x: 250, y: 250, kind: 'fels', find: 'roetel' }]; state.fund.ores = 4; state.fund.luck.feder = 100;`);
+  ok(g.run(`loadFromText(serialize())`), 'Stand lädt nicht');
+  ok(g.run(`state.finds.roetel === 2 && state.basket[0] === 'feder' && state.spots.length === 2 && state.trips[0].find === 'roetel' && state.fund.ores === 4 && state.fund.luck.feder === 100`), 'Felder gingen verloren');
+  // Alter Stand ohne die Felder
+  g.run(`const d = JSON.parse(serialize()); for (const k of ['finds', 'spots', 'trips', 'basket', 'fund']) delete d[k]; window.__t = JSON.stringify(d);`);
+  ok(g.run(`loadFromText(window.__t)`), 'Alter Stand lädt nicht');
+  ok(g.run(`Array.isArray(state.spots) && state.fund.spotWait > 0 && state.basket.length === 0`), 'Standardwerte fehlen');
+  g.run(`for (let i = 0; i < 10; i++) update(5);`);
+  // Kaputte Werte fallen weg
+  g.run(`const b = JSON.parse(serialize()); b.finds = { gibtsnicht: 3, roetel: -2, feder: 'x' }; b.spots = [null, { kind: 'quatsch', x: 1, y: 1 }, { kind: 'wald', x: 99999, y: 1, find: 'feder' }, { kind: 'wald', x: 2, y: 2, find: 'nix' }];
+    b.trips = [{ kind: 'wald', left: 'a' }]; b.basket = ['nix', 3]; b.fund = { rng: 'x', luck: { nix: 3 } }; window.__t = JSON.stringify(b);`);
+  ok(g.run(`loadFromText(window.__t)`), 'Kaputter Stand lädt nicht');
+  ok(g.run(`Object.keys(state.finds).length === 0 && state.spots.length === 0 && state.trips.length === 0 && state.basket.length === 0 && state.fund.rng === 0 && !state.fund.luck.nix`), 'Kaputte Werte übernommen');
+  noErrors(g);
+});
+
+test('Schatzkiste: Fenster zeigt Fundstücke, Unbekanntes grau, Knöpfe tun, was sie sollen', () => {
+  const g = fresh();
+  g.run(`state.finds = { roetel: 7, feder: 3 }; state.basket = ['muschel']; addSpot('wald', 'feder');`);
+  const html = g.run(`chestHtml()`);
+  ok(html.includes('Rötel') && !html.includes('Sonnenstein') && html.includes('???'), 'Unbekanntes wird verraten oder Bekanntes fehlt');
+  ok(html.includes('Fundkorb') && html.includes('Hinschauen') && html.includes('Eintauschen'), 'Knöpfe fehlen');
+  ok(g.run(`FIND_PAGES.every(p => Object.values(FINDS).some(f => f.page === p.id)) && Object.values(FINDS).every(f => FIND_PAGES.some(p => p.id === f.page) && f.hint)`), 'Fundstück ohne Seite oder Hinweis');
+  ok(g.run(`chestBadge()`) === 2, 'Zähler am Knopf');
+  ok(g.run(`Object.values(FINDS).filter(f => f.spot).every(f => SPOT_STYLE[f.spot]) && CONFIG.finds.luck.every(r => FINDS[r.find]) && !!FINDS.goldblatt && !!FINDS.holzkohle`), 'Falsche Verweise in den Daten');
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

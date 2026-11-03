@@ -1,0 +1,419 @@
+'use strict';
+// Epochia – Fundstücke, glitzernde Fundstellen, Erzader und Schatzkiste (Wunderwerke, Schritt 1: docs/konzept-wunderwerke.md).
+// Eigener Zufall aus Spielstand-Zahl und Zähler: zieht nichts aus Math.random, das Testspiel bleibt damit unverändert.
+
+function fundRandom() {
+  const n = (state.fund.rng = (state.fund.rng + 1) >>> 0);
+  let h = Math.imul(((state.seed || 1) ^ n) >>> 0, 2654435761) >>> 0;
+  h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0;
+  return ((h ^ (h >>> 13)) >>> 0) / 4294967296;
+}
+
+function findCount(id) { return state.finds[id] || 0; }
+function findNeed(id) { return FINDS[id].need || 1; }
+
+// Lässt sich das Stück jetzt schon finden?
+function findAvailable(id) {
+  const f = FINDS[id];
+  if (!f || f.soon) return false;
+  if (f.tech && !state.techs[f.tech]) return false;
+  return !f.stage || stageReached(f.stage);
+}
+
+function addFind(id, n = 1) {
+  state.finds[id] = findCount(id) + n;
+  emit('findGained', id);
+}
+
+// Glücksschutz: Es kommt immer, was im Verhältnis zum Bedarf am wenigsten da ist. So bleibt niemand an einem Stück hängen.
+function leastFind(list) {
+  let best = [], low = Infinity;
+  for (const id of list) {
+    const k = findCount(id) / findNeed(id);
+    if (k < low - 1e-9) { low = k; best = [id]; } else if (k < low + 1e-9) best.push(id);
+  }
+  return best.length ? best[Math.floor(fundRandom() * best.length)] : null;
+}
+
+function anyAvailableFind() {
+  return leastFind(Object.keys(FINDS).filter(id => findAvailable(id)));
+}
+
+// ---------------------------------------------------------------------
+// Fundstellen auf der Karte
+// ---------------------------------------------------------------------
+
+function spotTileFits(kind, x, y) {
+  if (!inMap(x, y) || !isOwned(x, y) || buildingAt(x, y) >= 0) return false;
+  const t = terrainAt(x, y);
+  if (kind === 'fels') return t === TERRAIN.fels;
+  if (kind === 'wald') return t === TERRAIN.wald;
+  if (kind === 'erz') return t === TERRAIN.berg || t === TERRAIN.fels;
+  if (kind === 'stern') return t === TERRAIN.gras;
+  if (kind === 'ufer') {
+    if (t !== TERRAIN.gras && t !== TERRAIN.sand) return false;
+    return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => terrainAt(x + a, y + b) === TERRAIN.wasser);
+  }
+  return false;
+}
+
+function spotTiles(kind) {
+  const out = [], taken = new Set(state.spots.map(s => s.y * N + s.x));
+  for (let y = landBox.y0; y <= landBox.y1; y++)
+    for (let x = landBox.x0; x <= landBox.x1; x++)
+      if (!taken.has(y * N + x) && spotTileFits(kind, x, y)) out.push([x, y]);
+  return out;
+}
+
+function addSpot(kind, find, tiles = spotTiles(kind)) {
+  if (!tiles.length) return null;
+  const [x, y] = tiles[Math.floor(fundRandom() * tiles.length)];
+  const spot = { kind, x, y, find };
+  state.spots.push(spot);
+  emit('spotAppeared', spot);
+  return spot;
+}
+
+// Eine gewöhnliche Fundstelle: das Stück, das am meisten fehlt und zu dem es auf dem eigenen Land Gelände gibt
+function spawnSpot() {
+  const list = Object.keys(FINDS).filter(id => findAvailable(id) && FINDS[id].spot && (!FINDS[id].spotExtinct || mammothsExtinct()));
+  while (list.length) {
+    const id = leastFind(list), tiles = spotTiles(FINDS[id].spot);
+    if (tiles.length) return addSpot(FINDS[id].spot, id, tiles);
+    list.splice(list.indexOf(id), 1);
+  }
+  return null;
+}
+
+function normalSpots() { return state.spots.filter(s => !SPOT_STYLE[s.kind].special).length; }
+
+// Erzader: selten, nur mit Kupfermine. Bevorzugt am Gebirge, sonst an einem Felsen.
+function spawnOre() {
+  const all = spotTiles('erz');
+  const mountain = all.filter(([x, y]) => terrainAt(x, y) === TERRAIN.berg);
+  return addSpot('erz', null, mountain.length ? mountain : all);
+}
+
+function oreMines() {
+  return state.buildings.filter(b => BUILDINGS[b.type].line === 'erz' && !b.build);
+}
+
+function fireSpot() {
+  const b = state.buildings.find(k => k.type === 'lagerfeuer');
+  return b ? { x: b.x + BUILDINGS[b.type].size / 2, y: b.y + BUILDINGS[b.type].size / 2 } : null;
+}
+
+// Fundstellen auf überbautem oder gerodetem Boden verschwinden
+function dropInvalidSpots() {
+  state.spots = state.spots.filter(s => s.kind === 'glut' || spotTileFits(s.kind, s.x, s.y));
+}
+
+function updateMoments() {
+  if (darkness() < 1) return;
+  const night = Math.floor(state.playTime / CONFIG.daySeconds), f = state.fund;
+  if (f.glutNight !== night && !state.spots.some(s => s.kind === 'glut')) {
+    const p = fireSpot();
+    if (p) { f.glutNight = night; const spot = { kind: 'glut', x: Math.floor(p.x), y: Math.floor(p.y), find: 'holzkohle' }; state.spots.push(spot); emit('spotAppeared', spot); }
+  }
+  if (findAvailable('sternkarte') && f.sternNight !== night && currentWeather().id === 'klar' && !state.spots.some(s => s.kind === 'stern')) {
+    f.sternNight = night;
+    addSpot('stern', 'sternkarte');
+  }
+}
+
+// Glück bei der Arbeit: je Minute wahrscheinlicher, nach der Schutzzeit sicher
+function updateLuck() {
+  const f = state.fund;
+  for (const r of CONFIG.finds.luck) {
+    if (!findAvailable(r.find) || (r.seasons && !r.seasons.includes(seasonIndex()))) continue;
+    const works = state.buildings.some((b, i) => BUILDINGS[b.type].line === r.line && !b.build && stats.staff[i] > 0);
+    if (!works) continue;
+    const t = (f.luck[r.find] || 0) + 60;
+    f.luck[r.find] = t;
+    if (t >= r.pity || fundRandom() < (t / r.pity) ** 3 * 0.1) { f.luck[r.find] = 0; addFind(r.find); }
+  }
+}
+
+function updateFinds(dt) {
+  for (let i = state.trips.length - 1; i >= 0; i--) {
+    const trip = state.trips[i];
+    trip.left -= dt;
+    if (trip.left > 0) continue;
+    state.trips.splice(i, 1);
+    finishTrip(trip);
+  }
+  if (offlineRunning || state.tutorial >= 0) return;
+  const c = CONFIG.finds, f = state.fund;
+  dropInvalidSpots();
+  f.spotWait -= dt;
+  if (f.spotWait <= 0) { f.spotWait = c.spotEvery; if (normalSpots() < c.maxSpots) spawnSpot(); }
+  if (oreMines().length) {
+    f.oreWait -= dt;
+    if (f.oreWait <= 0) { f.oreWait = c.oreEvery; if (!state.spots.some(s => s.kind === 'erz')) spawnOre(); }
+  }
+  updateMoments();
+  f.luckTick += dt;
+  if (f.luckTick >= 60) { f.luckTick -= 60; updateLuck(); }
+}
+
+// Fundstelle antippen. Glut und Sternschnuppe gibt es sofort, sonst läuft jemand hin und bringt das Stück.
+function collectSpot(i) {
+  const spot = state.spots[i];
+  if (!spot) return null;
+  state.spots.splice(i, 1);
+  if (SPOT_STYLE[spot.kind].instant) { addFind(spot.find); return { instant: true, find: spot.find }; }
+  const mine = spot.kind === 'erz' ? oreMines()[0] : null;
+  const home = mine ? { x: mine.x + BUILDINGS[mine.type].size / 2, y: mine.y + BUILDINGS[mine.type].size / 2 } : fireSpot() || { x: spot.x, y: spot.y };
+  const dist = Math.hypot(spot.x - home.x, spot.y - home.y), c = CONFIG.finds;
+  const seconds = spot.kind === 'erz' ? c.oreSeconds : Math.max(c.tripMin, Math.min(c.tripMax, dist * 2 * 0.8));
+  const trip = { id: ++state.fund.tripId, left: seconds, total: seconds, cx: home.x, cy: home.y, x: spot.x + 0.5, y: spot.y + 0.5, kind: spot.kind, find: spot.find };
+  state.trips.push(trip);
+  return { trip };
+}
+
+function finishTrip(trip) {
+  if (trip.kind === 'erz') {
+    const reward = CONFIG.finds.oreReward;
+    addReward(reward);
+    state.fund.ores++;
+    emit('oreDone', reward);
+    if (state.fund.ores % CONFIG.finds.goldEvery === 0) addFind('goldblatt');
+    return;
+  }
+  if (FINDS[trip.find]) addFind(trip.find);
+}
+
+// Hochwasser spült Muscheln an
+on('disasterEnded', id => {
+  if (id !== 'hochwasser' || !state.fund) return;
+  for (let n = 0; n < CONFIG.finds.floodShells; n++) if (normalSpots() < CONFIG.finds.maxSpots + CONFIG.finds.floodShells) addSpot('ufer', 'muschel');
+});
+
+// Offline legt der Stamm wenige Stücke in den Fundkorb; aktives Spielen lohnt sich mehr
+function fillBasket(seconds) {
+  if (state.tutorial >= 0) return 0;
+  const c = CONFIG.finds;
+  const n = (seconds >= c.basketFirst ? 1 : 0) + (seconds >= c.basketSecond ? 1 : 0);
+  let added = 0;
+  while (added < n && state.basket.length < c.basketMax) {
+    const id = anyAvailableFind();
+    if (!id) break;
+    state.basket.push(id);
+    added++;
+  }
+  return added;
+}
+
+function claimBasket() {
+  const list = state.basket;
+  state.basket = [];
+  for (const id of list) addFind(id);
+  return list;
+}
+
+// Doppelte: alles über dem Bedarf des Wunderwerks. 3 davon ergeben ein Stück nach Wahl.
+function findSpare(id) { return Math.max(0, findCount(id) - findNeed(id)); }
+function spareTotal(except) { return Object.keys(FINDS).reduce((n, id) => n + (id === except ? 0 : findSpare(id)), 0); }
+
+function swapFinds(target) {
+  const cost = CONFIG.finds.swapCost;
+  if (!findAvailable(target) || spareTotal(target) < cost) return false;
+  for (let left = cost; left > 0; left--) {
+    const id = Object.keys(FINDS).filter(k => k !== target && findSpare(k) > 0).sort((a, b) => findSpare(b) - findSpare(a))[0];
+    state.finds[id]--;
+  }
+  addFind(target);
+  return true;
+}
+
+// ---------------------------------------------------------------------
+// Auf der Karte: Funkeln und Figuren
+// ---------------------------------------------------------------------
+
+function spotScreen(s) {
+  const p = tileToScreen(s.x + 0.5, s.y + 0.5), z = Math.max(cam.zoom, 1);
+  return { x: p.x, y: p.y - (s.kind === 'glut' ? 12 : 16) * z, z };
+}
+
+function spotAtScreen(sx, sy) {
+  let best = -1, low = Infinity;
+  state.spots.forEach((s, i) => {
+    const q = spotScreen(s), d = Math.hypot(sx - q.x, sy - q.y);
+    if (d <= 26 * q.z && d < low) { low = d; best = i; }
+  });
+  return best;
+}
+
+function drawSparkle(x, y, r, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  for (let k = 0; k < 8; k++) {
+    const a = k * Math.PI / 4, m = k % 2 ? r * 0.22 : r;
+    ctx.lineTo(x + Math.cos(a) * m, y + Math.sin(a) * m);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(70,40,10,0.75)';
+  ctx.lineWidth = Math.max(1, r * 0.14);
+  ctx.stroke();
+  ctx.fill();
+}
+
+function spotObjects(inView, t) {
+  const out = [];
+  state.spots.forEach((s, n) => {
+    if (!inView(s.x, s.y)) return;
+    out.push({ d: s.x + s.y + 100, kind: 'leben', draw: () => {
+      const q = spotScreen(s), style = SPOT_STYLE[s.kind], ph = t * 2.2 + n * 1.7;
+      ctx.save();
+      const g = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, 20 * q.z);
+      g.addColorStop(0, style.glow); g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(q.x, q.y, 20 * q.z, 0, 7); ctx.fill();
+      drawSparkle(q.x, q.y, (14 + Math.sin(ph) * 3) * q.z, style.color);
+      drawSparkle(q.x - 9 * q.z, q.y - 6 * q.z, (3 + Math.sin(ph + 2) * 2.5) * q.z, '#fff');
+      drawSparkle(q.x + 8 * q.z, q.y + 5 * q.z, (3 + Math.sin(ph + 4) * 2.5) * q.z, '#fff');
+      ctx.restore();
+    } });
+  });
+  return out;
+}
+
+const tripRoutes = new Map();
+function tripRoute(trip) {
+  let r = tripRoutes.get(trip.id);
+  if (r) return r;
+  let way = walkRoute(trip.cx, trip.cy, trip.x, trip.y);
+  // Am Gebirge kann man nicht aufs Feld selbst: bis an den Fuß gehen
+  for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+    if (way) break;
+    if (walkable(Math.floor(trip.x) + a, Math.floor(trip.y) + b)) way = walkRoute(trip.cx, trip.cy, trip.x + a, trip.y + b);
+  }
+  const pts = [[trip.cx, trip.cy], ...(way || [[trip.x, trip.y]])], len = [0];
+  for (let i = 1; i < pts.length; i++) len.push(len[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  r = { pts, len };
+  tripRoutes.set(trip.id, r);
+  if (tripRoutes.size > 12) tripRoutes.delete(tripRoutes.keys().next().value);
+  return r;
+}
+
+function tripObjects(inView, t) {
+  const out = [];
+  for (const trip of state.trips) {
+    const phase = Math.min(1, Math.max(0, 1 - trip.left / trip.total)), back = phase >= 0.5;
+    const p = routePoint(tripRoute(trip), back ? 2 - phase * 2 : phase * 2);
+    if (!inView(p.x, p.y)) continue;
+    const face = (p.dx - p.dy) * (back ? -1 : 1) > 0 ? -1 : 1, step = t * 10 + trip.id;
+    out.push({ d: p.x + p.y - 0.5, kind: 'leben', draw: () => {
+      drawCreature(personImg('mensch-mann', 'leer'), p.x, p.y, 32, face, Math.abs(Math.sin(step)) * 1.2 * cam.zoom, '🧍', step);
+      if (!back) return;
+      const q = tileToScreen(p.x, p.y), z = cam.zoom;
+      ctx.font = `${Math.round(13 * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = '#000';
+      ctx.fillText(trip.kind === 'erz' ? '⛏️' : FINDS[trip.find] ? FINDS[trip.find].icon : '✨', q.x, q.y - 34 * z);
+    } });
+  }
+  return out;
+}
+
+// Fundstelle wurde angetippt
+function tapSpot(i) {
+  const s = state.spots[i], r = collectSpot(i);
+  if (!r) return;
+  closeInfo();
+  if (r.trip) { toast(s.kind === 'erz' ? `⛏️ Ein Bergmann geht zur Erzader – in ${formatTime(r.trip.total)} ist er zurück` : `🚶 Jemand holt es – in ${formatTime(r.trip.total)} ist er zurück`); }
+  renderAll();
+}
+
+// ---------------------------------------------------------------------
+// Schatzkiste
+// ---------------------------------------------------------------------
+
+function chestBadge() { return state.spots.length + state.basket.length; }
+
+function findCardHtml(id) {
+  const f = FINDS[id], have = findCount(id), need = findNeed(id), open = findAvailable(id);
+  const canSwap = open && spareTotal(id) >= CONFIG.finds.swapCost;
+  return `<div class="find-card${have ? ' got' : ''}">
+    <div class="find-ic">${have ? iconHtml(f.bild, f.icon, 'big') : '<span class="ic emoji big">❓</span>'}</div>
+    <b>${have ? esc(f.name) : '???'}</b>
+    ${open || have ? `<em>${have} / ${need}</em>` : ''}
+    <small>${esc(f.hint)}</small>
+    ${canSwap ? `<button class="btn small" onclick="doSwapFind('${id}')">Eintauschen</button>` : ''}
+  </div>`;
+}
+
+function chestHtml() {
+  const top = [];
+  if (state.basket.length) top.push(`<div class="quest-card done"><div class="q-medal"><span class="ic emoji big">🧺</span></div><div class="q-main">
+      <b>Der Fundkorb ist voll</b><small>Während du weg warst, hat der Stamm ${state.basket.length === 1 ? 'etwas' : `${state.basket.length} Dinge`} gefunden.</small></div>
+      <button class="btn primary" onclick="doClaimBasket()">Ansehen</button></div>`);
+  state.spots.forEach((s, i) => {
+    const st = SPOT_STYLE[s.kind];
+    top.push(`<div class="quest-card"><div class="q-medal"><span class="ic emoji big">${st.icon}</span></div><div class="q-main"><b>${esc(st.name)}</b><small>Liegt auf der Karte und wartet, bis du sie antippst.</small></div>
+      <button class="btn" onclick="goToSpot(${i})">Hinschauen</button></div>`);
+  });
+  const spare = spareTotal();
+  if (spare) top.push(`<p class="hint">Doppelte Stücke: ${spare}. ${CONFIG.finds.swapCost} davon tauscht der Älteste gegen ein Stück deiner Wahl.</p>`);
+  const pages = FIND_PAGES.map(p => {
+    const ids = Object.keys(FINDS).filter(id => FINDS[id].page === p.id), got = ids.filter(id => findCount(id)).length;
+    return `<h3 class="find-page">${esc(p.name)} <small>${got} von ${ids.length}</small></h3><div class="find-grid">${ids.map(findCardHtml).join('')}</div>`;
+  }).join('');
+  return `<div class="quests">${top.join('')}</div>${pages}`;
+}
+
+function openChest() {
+  closeInfo();
+  openPage('💎 Schatzkiste', chestHtml(), 'chest');
+}
+
+function refreshChest() { if (pageOpen === 'chest') $('page-body').innerHTML = chestHtml(); }
+
+function doClaimBasket() {
+  const list = claimBasket();
+  if (list.length) { toast('🧺 ' + list.map(id => `${FINDS[id].icon} ${FINDS[id].name}`).join(', ')); playSound('muenze'); }
+  refreshChest();
+  renderAll();
+}
+
+function doSwapFind(id) {
+  if (swapFinds(id)) playSound('muenze');
+  refreshChest();
+  renderAll();
+}
+
+function goToSpot(i) {
+  const s = state.spots[i];
+  if (!s) return;
+  closePage();
+  centerOnTile(s.x, s.y);
+}
+
+// Der Älteste erklärt es einmal
+function checkFindHint() {
+  if (elderHint || tutorialStep() || state.playTime - lastHintAt < HINT_PAUSE_S) return;
+  const seen = (state.seen ||= {});
+  let text = null;
+  if (!seen.fund && state.spots.some(s => !SPOT_STYLE[s.kind].special)) {
+    seen.fund = true;
+    text = 'Sieh mal, da glitzert etwas! Tippe es an, dann holt es jemand. Was wir finden, liegt in der Schatzkiste.';
+  } else if (!seen.erzader && state.spots.some(s => s.kind === 'erz')) {
+    seen.erzader = true;
+    text = 'Dort glitzert es golden: eine Erzader! Tippe sie an, dann bringt ein Bergmann Kupfererz.';
+  } else if (!seen.glut && state.spots.some(s => s.kind === 'glut')) {
+    seen.glut = true;
+    text = 'Nachts glimmt das Feuer. Tippe die Glut an, daraus machen wir Holzkohle-Stifte.';
+  }
+  if (!text) return;
+  lastHintAt = state.playTime;
+  elderHint = text;
+  renderTutorial();
+}
+
+on('findGained', id => {
+  if (typeof gameRunning === 'undefined' || !gameRunning || offlineRunning) return;
+  toast(`${FINDS[id].icon} Gefunden: ${FINDS[id].name}!`);
+  playSound('muenze');
+  refreshChest();
+  renderAll();
+});
+on('oreDone', reward => { if (typeof gameRunning !== 'undefined' && gameRunning && !offlineRunning) toast(`⛏️ Der Bergmann ist zurück: +${formatAmounts(reward)}`); });
+on('spotAppeared', () => { if (typeof gameRunning !== 'undefined' && gameRunning && !offlineRunning) { refreshChest(); renderAll(); } });

@@ -217,6 +217,8 @@ function handleTap(sx, sy) {
   if (pathMode) return;
   const tag = plotTagAtScreen(sx, sy);   // Preisschild auf den Wolken: Land kaufen
   if (tag >= 0) { closeInfo(); showPlotDialog(tag); return; }
+  const spot = typeof spotAtScreen === 'function' ? spotAtScreen(sx, sy) : -1;
+  if (spot >= 0) { tapSpot(spot); return; }
   const mammoth = typeof mammothAtScreen === 'function' ? mammothAtScreen(sx, sy) : null;
   if (mammoth) { showHuntInfo(mammoth); return; }
   if (typeof traderAtScreen === 'function' && traderAtScreen(sx, sy)) { closeInfo(); openTrader(); return; }

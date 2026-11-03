@@ -1,6 +1,6 @@
 # Epochia – Wunderwerke (Entwurf)
 
-Entwurf von Claude, 2026-11-01 – **am 2026-11-03 von Emin entschieden (Abschnitt 5), noch nicht gebaut**. Gehört zu `docs/konzept-neu.md`.
+Entwurf von Claude, 2026-11-01 – **am 2026-11-03 von Emin entschieden (Abschnitt 6), wird in Schritten gebaut (Abschnitt 5)**. Gehört zu `docs/konzept-neu.md`.
 Alle Zahlen sind Startwerte; feinjustiert wird nach dem Test am Handy und mit dem Bot.
 
 Zeichen: ✅ entschieden · ❓ offene Frage an Emin · 💡 Vorschlag
@@ -245,7 +245,12 @@ Jede spätere Epoche: dann nur noch Daten, Texte und Bilder (mittel), weil die T
 
 ---
 
-## 5 · Entscheidungen von Emin (2026-11-03)
+## 5 · Stand des Baus
+
+- ✅ Schritt 1 (Version 76): Fundstücke, Fundstellen, Schatzkiste, Tausch, Fundkorb, Erzader. Abweichungen vom Entwurf: Der Glücksschutz bringt immer das Stück, von dem im Verhältnis zum Bedarf am wenigsten da ist; „doppelt“ heißt alles über dem Bedarf des Wunderwerks; Riesenfindling kommt erst mit dem Steinkreis, spätere Fundstücke sind nur im Album sichtbar. Bilder fehlen noch (Emojis).
+- ⏳ Schritt 2: Höhle der Geschichten. Schritt 3: Steinkreis umbauen.
+
+## 6 · Entscheidungen von Emin (2026-11-03)
 
 Alle Fragen sind beantwortet, jeweils der Vorschlag. Frage 14 und 16 waren veraltet und wurden angepasst gestellt.
 

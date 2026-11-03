@@ -144,6 +144,7 @@ function loop(now) {
     checkStaffHint();
     checkStallHint();
     checkHerdHint();
+    checkFindHint();
   }
   saveTimer += dt;
   if (saveTimer > 10) { saveTimer = 0; saveGame(); }

@@ -12,7 +12,7 @@ Gebaut, ohne Bilder: **Kupferzeit** (Version 60), **Frühe Bronzezeit** (Version
 neue Waren und Forschungen ihr Zeichen. Die 8 neuen Gebäude (Kupfermine, Köhler, Schmelzofen, Zinnwäscherin, Bronzegießer, Handelsplatz, Schmuckmacherin, Fürstenhügel) haben seit Version 65 ein Bild, aber nur die Vorderansicht (beim Drehen gespiegelt, Schnee legt das Spiel selbst darüber).
 Der Händler ist eine Figur mit Ochsen-Zeichen und einer Blase zum Antippen, bis es Bilder gibt.
 
-Noch nicht gebaut: Häuptling-Bild, Bronzezeit-Leisten, Ereignis Erzader, Bronzezeit-Waren in der täglichen Belohnung.
+Noch nicht gebaut: Häuptling-Bild, Bronzezeit-Leisten. Die Erzader kam mit Version 76, die Bronzezeit-Waren in der täglichen Belohnung mit Version 73.
 
 Abweichungen vom Entwurf:
 - Der Aufbruch wird auf einmal bezahlt (je Ware höchstens 200 wie alle Forschungen), nicht nach und nach geliefert.

@@ -244,6 +244,10 @@ function renderSideButtons() {
   show($('research-badge'), canResearch);
   show($('btn-trader'), traderHere());
   show($('btn-daily'), !!state.daily.pending);
+  show($('btn-chest'), state.tutorial < 0 || Object.keys(state.finds).length > 0);
+  const chest = chestBadge();
+  $('chest-badge').textContent = chest || '';
+  show($('chest-badge'), chest > 0);
   // Truhe statt 🎁, sobald das Bild geladen ist
   const daily = $('btn-daily');
   if (images.truhe && !daily.querySelector('img')) daily.innerHTML = `${iconHtml('truhe', '🎁')}<span>Belohnung</span>`;
@@ -579,7 +583,7 @@ function closeDialog(fromHistory = false) {
 let pageOpen = null;
 const pageStack = [];        // darunterliegende Seiten (z. B. Menü unter Spielstände) – „Zurück“ führt dorthin
 let reopening = false;
-const PAGE_OPENERS = { menu: () => openMenu(), slots: () => openSlots(true), research: () => openResearch(), quests: () => openQuests(), konto: () => openKonto() };
+const PAGE_OPENERS = { menu: () => openMenu(), slots: () => openSlots(true), research: () => openResearch(), quests: () => openQuests(), chest: () => openChest(), konto: () => openKonto() };
 
 function openPage(title, html, name) {
   $('page-title').textContent = title;
@@ -1162,7 +1166,7 @@ function showDailyReward() {
   const goods = r => Object.entries(r).map(([id, n]) => `<span>${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')}${n}</span>`).join('');
   const boxes = DAILY_REWARDS.map((_, k) => dailyRewardOf(k + 1)).map((r, k) => {
     const cls = (k + 1 === day ? ' today' : k + 1 < day ? ' past' : '') + (k === DAILY_REWARDS.length - 1 ? ' chest' : '');
-    return `<div class="day${cls}"><b>Tag ${k + 1}</b>${k === DAILY_REWARDS.length - 1 ? iconHtml('truhe', '🎁', 'big') : ''}<div class="day-goods">${goods(r)}</div></div>`;
+    return `<div class="day${cls}"><b>Tag ${k + 1}</b>${k === DAILY_REWARDS.length - 1 ? iconHtml('truhe', '🎁', 'big') : ''}<div class="day-goods">${goods(r)}${k === DAILY_REWARDS.length - 1 ? '<span>💎</span>' : ''}</div></div>`;
   }).join('');
   openDialog(`<div class="daily-head">${iconHtml('truhe', '🎁', 'big')}<div><h2>Tägliche Belohnung</h2>
     <p>Tag ${day} von 7 – am 7. Tag gibt es die große Truhe! Ein verpasster Tag bricht die Reihe nicht.</p></div></div>

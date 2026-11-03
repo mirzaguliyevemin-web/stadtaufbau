@@ -38,11 +38,13 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     huntsDone: 0,            // so oft waren die Jäger auf Mammutjagd
     trader: { wait: CONFIG.trader.firstWait, left: 0, visit: 0, done: [] },   // Händler: Sekunden bis er kommt, bis er geht, Besuch Nr., schon getauschte Angebote
     tradesDone: 0,           // so oft wurde mit dem Händler getauscht
+    wonders: {},             // Wunderwerk → { step: fertige Abschnitte, left: Restzeit des laufenden Abschnitts }
     finds: {},               // Fundstück → Anzahl
     spots: [],               // Fundstellen auf der Karte: { kind, x, y, find }
     trips: [],               // unterwegs zu einer Fundstelle: { id, left, total, cx, cy, x, y, kind, find }
     basket: [],              // Fundkorb: Fundstücke aus der Zeit, in der das Spiel zu war
-    fund: { rng: 0, spotWait: CONFIG.finds.firstSpot, oreWait: CONFIG.finds.oreEvery / 4, luck: {}, luckTick: 0, glutNight: -1, sternNight: -1, ores: 0, tripId: 0 },
+    fund: { rng: 0, spotWait: CONFIG.finds.firstSpot, oreWait: CONFIG.finds.oreEvery / 4, luck: {}, luckTick: 0, glutNight: -1, sternNight: -1, ores: 0, tripId: 0, used: {}, ever: {}, boulderWait: 30 },
+    disasterNext: null,      // angekündigte Katastrophe (Steinkreis warnt): { id, left }
     stage: 'alt',
     pop: CONFIG.start.population,
     yearTime: 0,
@@ -778,7 +780,8 @@ function buyPlot(p) {
 
 function addBuilding(type, x, y, rot = false, finished = false) {
   const def = BUILDINGS[type];
-  const b = { type, x, y, rot: (Number(rot) || 0) & 3, build: finished ? 0 : buildTimeOf(type) };
+  const b = { type, x, y, rot: (Number(rot) || 0) & 3, build: finished ? 0 : def.wonder ? 1 : buildTimeOf(type) };
+  if (def.wonder) wonderState(def.wonder);   // Fortschritt gleich anlegen: Stände ohne Eintrag gelten als alt (siehe sanitizeState)
   if (def.isPath) removeSapling(x, y);   // ein Pfad tritt den Setzling nieder
   state.buildings.push(b);
   return b;

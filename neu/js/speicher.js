@@ -104,6 +104,21 @@ function sanitizeState(data) {
     const t = data.trader, num = v => (Number.isFinite(v) && v >= 0 ? v : 0);
     s.trader = { wait: num(t.wait), left: num(t.left), visit: Math.floor(num(t.visit)), done: Array.isArray(t.done) ? t.done.filter(id => CONFIG.trader.offers.some(o => o.id === id)) : [] };
   }
+  if (data.wonders && typeof data.wonders === 'object')
+    for (const id of Object.keys(WONDERS)) {
+      const w = data.wonders[id];
+      if (w && Number.isInteger(w.step) && w.step >= 0) s.wonders[id] = { step: Math.min(w.step, WONDERS[id].steps.length), left: Number.isFinite(w.left) && w.left > 0 ? w.left : 0, ...(Number.isFinite(w.festUntil) ? { festUntil: w.festUntil } : {}) };
+    }
+  // Stand von vor den Wunderwerken: Ein fertiger Steinkreis ist ein fertiges Wunderwerk, eine Baustelle baut den letzten Abschnitt zu Ende
+  for (const b of s.buildings) {
+    const id = BUILDINGS[b.type].wonder;
+    if (!id || !WONDERS[id].legacy || s.wonders[id]) continue;
+    const list = WONDERS[id].steps;
+    s.wonders[id] = b.build > 0 ? { step: list.length - 1, left: Math.min(b.build, list[list.length - 1].seconds) } : { step: list.length, left: 0 };
+  }
+  // Wunderwerke: nur der Fortschritt zählt. Unfertig bleibt b.build auf 1, fertig auf 0.
+  for (const b of s.buildings) { const id = BUILDINGS[b.type].wonder; if (id) b.build = s.wonders[id] && s.wonders[id].step >= WONDERS[id].steps.length ? 0 : 1; }
+  if (data.disasterNext && DISASTERS[data.disasterNext.id] && Number.isFinite(data.disasterNext.left)) s.disasterNext = { id: data.disasterNext.id, left: Math.max(0, data.disasterNext.left) };
   if (data.finds && typeof data.finds === 'object')
     for (const [id, n] of Object.entries(data.finds)) if (FINDS[id] && Number.isFinite(n) && n > 0) s.finds[id] = Math.floor(n);
   const onMap = (x, y) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < N && y < N;
@@ -113,8 +128,9 @@ function sanitizeState(data) {
   if (Array.isArray(data.basket)) s.basket = data.basket.filter(id => FINDS[id]).slice(0, CONFIG.finds.basketMax);
   if (data.fund && typeof data.fund === 'object') {
     const f = data.fund;
-    for (const key of ['rng', 'spotWait', 'oreWait', 'luckTick', 'glutNight', 'sternNight', 'ores', 'tripId']) if (Number.isFinite(f[key])) s.fund[key] = f[key];
+    for (const key of ['rng', 'spotWait', 'oreWait', 'luckTick', 'glutNight', 'sternNight', 'ores', 'tripId', 'boulderWait']) if (Number.isFinite(f[key])) s.fund[key] = f[key];
     if (f.luck && typeof f.luck === 'object') for (const [id, t] of Object.entries(f.luck)) if (FINDS[id] && Number.isFinite(t) && t >= 0) s.fund.luck[id] = t;
+    for (const key of ['used', 'ever']) if (f[key] && typeof f[key] === 'object') for (const [id, n] of Object.entries(f[key])) if (FINDS[id] && Number.isFinite(n) && n > 0) s.fund[key][id] = Math.floor(n);
   }
   if (data.quests && typeof data.quests === 'object') s.quests = { ...data.quests };
   if (data.built && typeof data.built === 'object') s.built = { ...data.built };

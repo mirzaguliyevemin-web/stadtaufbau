@@ -2099,6 +2099,178 @@ test('Schatzkiste: Fenster zeigt Fundstücke, Unbekanntes grau, Knöpfe tun, was
   noErrors(g);
 });
 
+test('Höhle der Geschichten: erst nach der Forschung, einmalig, an Felsen, in 4 Abschnitten mit Fundstücken', () => {
+  const g = fresh();
+  ok(g.run(`barEntries().find(e => e.type === 'geschichtenhoehle').locked`), 'Höhle vor der Forschung frei');
+  g.run(`state.techs.hoehlenmalerei = true;`);
+  ok(!g.run(`barEntries().find(e => e.type === 'geschichtenhoehle').locked`), 'Höhle nach der Forschung gesperrt');
+  // Platz an Felsen, sonst nicht
+  const spot = g.run(`(() => { for (let y = landBox.y0; y <= landBox.y1; y++) for (let x = landBox.x0; x <= landBox.x1; x++) if (isOwned(x, y) && !buildProblem('geschichtenhoehle', x, y)) return [x, y]; return null; })()`);
+  ok(spot, 'Kein Platz an Felsen gefunden');
+  ok(g.run(`(() => { for (let y = landBox.y0; y <= landBox.y1; y++) for (let x = landBox.x0; x <= landBox.x1; x++) if (isOwned(x, y) && buildProblem('geschichtenhoehle', x, y) === 'Muss an Felsen oder am Gebirge stehen') return true; return false; })()`), 'Keine Felsen-Pflicht');
+  ok(g.run(`placeBuilding('geschichtenhoehle', ${spot[0]}, ${spot[1]})`) === null, 'Nicht baubar');
+  g.run(`rebuildOccupancy(); recalcStats();`);
+  ok(!g.run(`barEntries().some(e => e.type === 'geschichtenhoehle')`), 'Zweite Höhle in der Bauleiste');
+  ok(g.run(`buildProblem('geschichtenhoehle', ${spot[0]}, ${spot[1]})`), 'Zweite Höhle baubar');
+  ok(g.run(`constructionCount()`) === 0, 'Höhle belegt einen Bauplatz');
+  ok(g.run(`const i = wonderIndex('hoehle'); !demolish(i) && wonderIndex('hoehle') >= 0`), 'Höhle abreißbar');
+  // Sie bleibt unfertig und bringt noch nichts
+  g.run(`for (let i = 0; i < 20; i++) update(5);`);
+  ok(g.run(`state.buildings[wonderIndex('hoehle')].build`) === 1, 'Unfertige Höhle läuft wie eine Baustelle ab');
+  // Weg: Abschnitt 1 braucht Weg, Steinsammler, Waren
+  g.run(`isConnected = () => true; recalcStats();`);
+  ok(g.run(`wonderStepProblem('hoehle')`) === 'Baue 2 Steinsammler', 'Kapitelziel: ' + g.run(`wonderStepProblem('hoehle')`));
+  g.run(`state.buildings.push({ type: 'steinsammler', x: 200, y: 200, rot: 0, build: 0 }, { type: 'steinsammler', x: 203, y: 200, rot: 0, build: 0 }); rebuildOccupancy(); state.res.stein = 0;`);
+  ok(g.run(`wonderStepProblem('hoehle')`) === g.run(`missingText(WONDERS.hoehle.steps[0].goods)`), 'Waren nicht verlangt');
+  g.run(`state.res.stein = 100; state.res.holz = 100;`);
+  ok(g.run(`startWonderStep('hoehle')`) === null && g.run(`state.res.stein`) === 40, 'Abschnitt 1 startet nicht oder zahlt nicht');
+  ok(g.run(`startWonderStep('hoehle')`) === 'Dieser Abschnitt wird gerade gebaut', 'Doppelt gestartet');
+  g.run(`for (let i = 0; i < 61; i++) updateWonders(5);`);
+  ok(g.run(`state.wonders.hoehle.step`) === 1 && !g.run(`wonderDone('hoehle')`), 'Abschnitt 1 nicht fertig');
+  // Abschnitt 2 braucht Fundstücke und verbaut sie
+  g.run(`state.res.felle = 50; state.res.holz = 100;`);
+  ok(/Rötel/.test(g.run(`wonderStepProblem('hoehle')`)), 'Fundstück nicht verlangt');
+  g.run(`state.finds = { roetel: 5, holzkohle: 2 }; state.fund.ever = { roetel: 5, holzkohle: 2 };`);
+  ok(g.run(`findNeed('roetel')`) === 5, 'Bedarf Rötel');
+  ok(g.run(`startWonderStep('hoehle')`) === null, 'Abschnitt 2 startet nicht');
+  ok(g.run(`findCount('roetel')`) === 2 && g.run(`findNeed('roetel')`) === 2 && g.run(`findCount('holzkohle')`) === 0 && g.run(`findNeed('holzkohle')`) === 0, 'Verbautes falsch gezählt');
+  ok(g.run(`findEver('holzkohle')`) && g.run(`chestHtml()`).includes('verbaut'), 'Verbautes verschwindet aus dem Album');
+  // Offline läuft der Bau weiter und wird gemeldet
+  const r = g.run(`JSON.stringify(applyOfflineProgress(Date.now() - 600 * 1000).events)`);
+  ok(g.run(`state.wonders.hoehle.step`) === 2 && r.includes('Abschnitt 2'), 'Offline nicht weitergebaut: ' + r);
+  // Abschnitt 3
+  g.run(`state.res.nahrung = 100; state.finds.stosszahn = 1; state.finds.feder = 1;`);
+  ok(g.run(`startWonderStep('hoehle')`) === null, 'Abschnitt 3 startet nicht: ' + g.run(`wonderStepProblem('hoehle')`));
+  g.run(`for (let i = 0; i < 121; i++) updateWonders(5);`);
+  // Abschnitt 4 geht erst in der Mittelsteinzeit
+  g.run(`state.finds.muschel = 2; state.res.kleidung = 50; state.res.wissen = 100;`);
+  ok(/Mittelsteinzeit/.test(g.run(`wonderStepProblem('hoehle')`)), 'Abschnitt 4 zu früh');
+  g.run(`state.stage = 'mittel';`);
+  // Noch keine Wirkung
+  ok(g.run(`wonderBonus('hoehlenmaler')`) === 1 && g.run(`!wonderFest()`), 'Wirkung vor der Fertigstellung');
+  ok(g.run(`startWonderStep('hoehle')`) === null, 'Abschnitt 4 startet nicht');
+  g.run(`for (let i = 0; i < 145; i++) updateWonders(5);`);
+  ok(g.run(`wonderDone('hoehle')`) && g.run(`state.buildings[wonderIndex('hoehle')].build`) === 0, 'Nicht fertig');
+  ok(Math.abs(g.run(`wonderBonus('hoehlenmaler')`) - 1.2) < 1e-9 && g.run(`wonderBonus('sammlerin')`) === 1, 'Bonus falsch');
+  g.run(`recalcStats(); updateProduction(5);`);
+  const f = g.run(`outputPerMinute(wonderIndex('hoehle')).wissen`);
+  ok(f > 0, 'Höhle bringt kein Wissen: ' + f);
+  g.run(`state.yearTime = CONFIG.yearSeconds * 5 / 8;`);
+  ok(g.run(`festNow() && wonderFest().name === 'Fest der Geschichten'`), 'Kein Fest');
+  ok(g.run(`wonderAlbumHtml('steinzeit')`).includes('Höhle der Geschichten'), 'Keine Seite im Album');
+  noErrors(g);
+});
+
+test('Höhle der Geschichten: Fortschritt bleibt erhalten, kaputte Werte schaden nicht, Fenster öffnet', () => {
+  const g = fresh();
+  g.run(`state.techs.hoehlenmalerei = true; state.buildings.push({ type: 'geschichtenhoehle', x: 200, y: 200, rot: 0, build: 1 }); rebuildOccupancy(); state.wonders.hoehle = { step: 2, left: 77 }; state.fund.used.roetel = 3;`);
+  ok(g.run(`loadFromText(serialize())`), 'Stand lädt nicht');
+  ok(g.run(`state.wonders.hoehle.step === 2 && state.wonders.hoehle.left === 77 && state.fund.used.roetel === 3 && state.buildings[wonderIndex('hoehle')].build === 1`), 'Fortschritt ging verloren');
+  ok(g.run(`wonderHtml('hoehle')`).includes('Die große Jagd') && g.run(`wonderCardHtml()`).includes('Höhle der Geschichten'), 'Fenster falsch');
+  ok(g.run(`questsHtml()`).includes('Höhle der Geschichten'), 'Nicht im Auftrags-Fenster');
+  // Kaputt und alte Stände: Höhle ohne Fortschritt bleibt unfertig
+  g.run(`const d = JSON.parse(serialize()); d.wonders = { hoehle: { step: 'x' }, quatsch: { step: 1 } }; d.buildings.find(b => b.type === 'geschichtenhoehle').build = 0; d.fund.used = { nix: 3, roetel: -1 }; window.__t = JSON.stringify(d);`);
+  ok(g.run(`loadFromText(window.__t)`), 'Kaputter Stand lädt nicht');
+  ok(g.run(`!state.wonders.quatsch && wonderState('hoehle').step === 0 && state.buildings[wonderIndex('hoehle')].build === 1 && !state.fund.used.nix && !state.fund.used.roetel`), 'Kaputte Werte übernommen');
+  // Zu hoher Stand: fertig
+  g.run(`const b = JSON.parse(serialize()); b.wonders = { hoehle: { step: 99 } }; window.__t = JSON.stringify(b);`);
+  ok(g.run(`loadFromText(window.__t) && wonderDone('hoehle') && state.buildings[wonderIndex('hoehle')].build === 0`), 'Zu hoher Stand');
+  noErrors(g);
+});
+
+test('Steinkreis: Wunderwerk in 4 Abschnitten, Findlinge werden gerollt, erstes Fest, Warnung, nötig für den Aufbruch', () => {
+  const g = fresh();
+  g.run(`state.techs.sternenkunde = true; state.stage = 'jung'; isConnected = () => true;`);
+  ok(g.run(`canAfford(BUILDINGS.steinkreis.cost)`) && g.run(`Object.keys(BUILDINGS.steinkreis.cost).length`) === 0, 'Platz kostet etwas');
+  // Ohne Platz kommen keine Findlinge
+  g.run(`state.fund.boulderWait = 0; state.fund.spotWait = 1e9; state.fund.oreWait = 1e9; updateFinds(1);`);
+  ok(!g.run(`state.spots.some(s => s.kind === 'findling')`), 'Findling ohne Bauplatz');
+  const spot = g.run(`(() => { for (let y = landBox.y0; y <= landBox.y1; y++) for (let x = landBox.x0; x <= landBox.x1; x++) if (isOwned(x, y) && !buildProblem('steinkreis', x, y)) return [x, y]; return null; })()`);
+  ok(g.run(`placeBuilding('steinkreis', ${spot[0]}, ${spot[1]})`) === null, 'Nicht baubar');
+  g.run(`rebuildOccupancy(); recalcStats();`);
+  ok(g.run(`lineCount('steinkreis')`) === 0, 'Unfertiger Steinkreis zählt schon für die Forschung');
+  ok(g.run(`state.wonders.steinkreis.step`) === 0, 'Neuer Steinkreis gilt nicht als unfertig');
+  ok(g.run(`stats.happiness >= 0 && !state.buildings[wonderIndex('steinkreis')].build === false`), 'Unfertig bleibt Baustelle');
+  // Abschnitt 1: Sternkarten
+  ok(/Sternkarte/.test(g.run(`wonderStepProblem('steinkreis')`)), 'Sternkarten nicht verlangt');
+  g.run(`state.finds.sternkarte = 3; state.res.holz = 200;`);
+  ok(g.run(`startWonderStep('steinkreis')`) === null, 'Abschnitt 1 startet nicht');
+  g.run(`for (let i = 0; i < 61; i++) updateWonders(5);`);
+  // Abschnitt 2: Findling erscheint, acht Leute rollen ihn, er kommt an
+  g.run(`state.fund.boulderWait = 0; updateFinds(1);`);
+  ok(g.run(`state.spots.filter(s => s.kind === 'findling').length`) === 1, 'Kein Findling');
+  ok(g.run(`SPOT_STYLE.findling.special && !SPOT_STYLE.findling.instant`), 'Findling falsch eingestuft');
+  g.run(`collectSpot(state.spots.findIndex(s => s.kind === 'findling'));`);
+  ok(g.run(`state.trips[0].kind`) === 'findling' && g.run(`state.trips[0].total`) === 120, 'Rollen dauert nicht 2 Minuten');
+  const mid = g.run(`state.buildings[wonderIndex('steinkreis')].x + 2`);
+  ok(g.run(`state.trips[0].x`) === mid, 'Findling rollt nicht zum Bauplatz');
+  ok(g.run(`tripObjects(() => true, 0).length`) === 9, '8 Leute und ein Stein');
+  g.run(`for (let i = 0; i < 24; i++) updateFinds(5);`);
+  ok(g.run(`findCount('findling')`) === 1, 'Findling kam nicht an');
+  // Nur 5 kommen, mitgezählt, was schon rollt
+  g.run(`state.finds.findling = 4; state.spots = []; state.fund.boulderWait = 0; updateFinds(1); collectSpot(state.spots.findIndex(s => s.kind === 'findling')); state.fund.boulderWait = 0; updateFinds(1);`);
+  ok(!g.run(`state.spots.some(s => s.kind === 'findling')`), 'Zu viele Findlinge');
+  g.run(`state.trips = []; state.finds.findling = 5; state.res.werkzeug = 20; state.res.nahrung = 200;`);
+  ok(g.run(`startWonderStep('steinkreis')`) === null, 'Abschnitt 2 startet nicht');
+  g.run(`for (let i = 0; i < 121; i++) updateWonders(5);`);
+  g.run(`state.finds.sonnenstein = 1; state.res.stein = 200;`);
+  ok(g.run(`startWonderStep('steinkreis')`) === null, 'Abschnitt 3 startet nicht');
+  g.run(`for (let i = 0; i < 121; i++) updateWonders(5);`);
+  g.run(`state.finds.blumenkranz = 3; state.res.kleidung = 20; state.res.toepferwaren = 20;`);
+  ok(g.run(`startWonderStep('steinkreis')`) === null, 'Abschnitt 4 startet nicht');
+  g.run(`state.yearTime = 0; for (let i = 0; i < 61; i++) updateWonders(5);`);
+  // Fertig: zählt, erstes Fest gleich danach, Äcker, Sonnenkalender
+  ok(g.run(`wonderDone('steinkreis')`) && g.run(`state.buildings[wonderIndex('steinkreis')].build`) === 0, 'Nicht fertig');
+  ok(g.run(`lineCount('steinkreis')`) === 1 && g.run(`state.built.steinkreis`) === 1, 'Zählt nicht für den Aufbruch');
+  ok(g.run(`wonderFest().name`) === 'Sonnwendfest' && g.run(`festNow()`), 'Kein erstes Fest');
+  ok(Math.abs(g.run(`wonderBonus('acker')`) - 1.1) < 1e-9, 'Äcker-Bonus');
+  ok(g.run(`sunCalendarRow()`).includes('Sonnenkalender'), 'Kein Sonnenkalender');
+  // Fest im Sommer bringt ein Geschenk
+  g.run(`state.wonders.steinkreis.festUntil = 0; festWas = false; state.res.nahrung = 0; state.yearTime = CONFIG.yearSeconds * 3 / 8; updateFest();`);
+  ok(g.run(`state.res.nahrung`) === 100, 'Kein Geschenk zum Fest');
+  // Warnung vor der Katastrophe
+  g.run(`state.yearTime = 0; state.playTime = 1e6; state.disasterCalm = 1e6; state.tutorial = -1; disasterRandom = () => 0; updateDisaster(1);`);
+  ok(g.run(`!!state.disasterNext && !state.disaster`), 'Keine Warnung');
+  g.run(`updateDisaster(CONFIG.disasterWarn + 1);`);
+  ok(g.run(`!state.disasterNext && !!state.disaster`), 'Katastrophe kam nicht');
+  noErrors(g);
+});
+
+test('Steinkreis: alte Stände behalten ihn, fertig oder als Baustelle', () => {
+  const g = fresh();
+  g.run(`state.buildings.push({ type: 'steinkreis', x: 200, y: 200, rot: 0, build: 0 }); const d = JSON.parse(serialize()); delete d.wonders; delete d.fund; window.__t = JSON.stringify(d);`);
+  ok(g.run(`loadFromText(window.__t)`), 'Alter Stand lädt nicht');
+  ok(g.run(`wonderDone('steinkreis') && state.buildings[wonderIndex('steinkreis')].build === 0`), 'Fertiger Steinkreis wurde unfertig');
+  ok(g.run(`lineCount('steinkreis')`) === 1, 'Zählt nicht mehr');
+  // Alte Baustelle: baut den letzten Abschnitt zu Ende, ohne etwas zu verlangen
+  g.run(`state.buildings[wonderIndex('steinkreis')].build = 200; const b = JSON.parse(serialize()); delete b.wonders; window.__t = JSON.stringify(b);`);
+  ok(g.run(`loadFromText(window.__t)`), 'Alte Baustelle lädt nicht');
+  ok(g.run(`state.wonders.steinkreis.step === 3 && state.wonders.steinkreis.left === 200 && !wonderDone('steinkreis')`), 'Baustelle verloren');
+  g.run(`for (let i = 0; i < 41; i++) updateWonders(5);`);
+  ok(g.run(`wonderDone('steinkreis') && state.buildings[wonderIndex('steinkreis')].build === 0`), 'Baustelle nicht fertig');
+  // Neu platziert und gespeichert bleibt unfertig
+  g.run(`startNewGame(4242); state.tutorial = -1; state.techs.sternenkunde = true; const sp = (() => { for (let y = landBox.y0; y <= landBox.y1; y++) for (let x = landBox.x0; x <= landBox.x1; x++) if (isOwned(x, y) && !buildProblem('steinkreis', x, y)) return [x, y]; })(); placeBuilding('steinkreis', sp[0], sp[1]);`);
+  ok(g.run(`loadFromText(serialize()) && !wonderDone('steinkreis') && state.wonders.steinkreis.step === 0`), 'Neuer Steinkreis nach dem Laden fertig');
+  // Bild: fertig mit Drehung, unfertig mit Baustufe
+  ok(g.run(`buildingView(BUILDINGS.steinkreis, 0, 0, 0).name`) === '1-steinkreis-bau', 'Unfertig falsches Bild');
+  g.run(`state.wonders.steinkreis.step = 4; images['1-steinkreis-r2'] = {};`);
+  ok(g.run(`buildingView(BUILDINGS.steinkreis, 2, 0, 0).name`) === '1-steinkreis-r2', 'Fertig dreht nicht');
+  noErrors(g);
+});
+
+test('Hinweis „hier arbeitet niemand“ nur, wenn wirklich alle beschäftigt sind (nicht direkt nach dem Bau)', () => {
+  const g = fresh();
+  g.run(`isConnected = () => true; state.pop = stats.housing = 6; recalcStats(); state.pop = stats.housing; lastHintAt = -1e9; elderHint = null;`);
+  // Gebäude gerade fertig, Arbeiter noch nicht neu verteilt, Leute sind frei
+  g.run(`state.buildings.push({ type: 'steinschlaeger', x: 200, y: 200, rot: 0, build: 0 }); rebuildOccupancy(); stats.staff = []; checkStaffHint();`);
+  ok(!g.run(`elderHint`), 'Falsche Meldung: ' + g.run(`elderHint`));
+  ok(g.run(`stats.staff[state.buildings.length - 1]`) === 2, 'Arbeiter nicht verteilt');
+  // Wirklich niemand mehr frei: Meldung kommt
+  g.run(`for (let k = 0; k < 5; k++) state.buildings.push({ type: 'steinschlaeger', x: 204 + k * 3, y: 200, rot: 0, build: 0 }); rebuildOccupancy(); recalcStats(); state.pop = stats.housing; lastHintAt = -1e9; elderHint = null; checkStaffHint();`);
+  ok(/Hier arbeitet niemand/.test(g.run(`elderHint`) || ''), 'Echte Meldung fehlt');
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

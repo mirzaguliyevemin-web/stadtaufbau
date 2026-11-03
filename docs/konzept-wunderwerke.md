@@ -248,7 +248,9 @@ Jede spätere Epoche: dann nur noch Daten, Texte und Bilder (mittel), weil die T
 ## 5 · Stand des Baus
 
 - ✅ Schritt 1 (Version 76): Fundstücke, Fundstellen, Schatzkiste, Tausch, Fundkorb, Erzader. Abweichungen vom Entwurf: Der Glücksschutz bringt immer das Stück, von dem im Verhältnis zum Bedarf am wenigsten da ist; „doppelt“ heißt alles über dem Bedarf des Wunderwerks; Riesenfindling kommt erst mit dem Steinkreis, spätere Fundstücke sind nur im Album sichtbar. Bilder fehlen noch (Emojis).
-- ⏳ Schritt 2: Höhle der Geschichten. Schritt 3: Steinkreis umbauen.
+- ✅ Schritt 2 (Version 78): Höhle der Geschichten mit 4 Abschnitten. Das Fest der Geschichten liegt mitten im Herbst, damit es nicht mit dem Sonnwendfest zusammenfällt. Fehlt noch: Rückseite und Winterbilder der Höhle.
+- ✅ Schritt 3 (Version 78): Steinkreis in 4 Abschnitten. Der Bot baut ihn mit. Fehlt noch: Bilder der Baustufen (bis dahin das Baustellenbild).
+- ⏳ Nächstes Wunderwerk: Halle der Himmelsscheibe.
 
 ## 6 · Entscheidungen von Emin (2026-11-03)
 

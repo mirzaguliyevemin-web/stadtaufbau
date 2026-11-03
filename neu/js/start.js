@@ -145,12 +145,15 @@ function loop(now) {
     checkStallHint();
     checkHerdHint();
     checkFindHint();
+    checkWonderHint();
+    tickWonderPage();
+    updateStoryEvening();
   }
   saveTimer += dt;
   if (saveTimer > 10) { saveTimer = 0; saveGame(); }
 }
 
-on('finished', b => { if (gameRunning && !offlineRunning && BUILDINGS[b.type].time > 0) toast(`${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name} ist fertig!`); });
+on('finished', b => { if (gameRunning && !offlineRunning && BUILDINGS[b.type].time > 0 && !BUILDINGS[b.type].wonder) toast(`${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name} ist fertig!`); });
 on('evolved', list => {
   if (!gameRunning) return;
   for (const c of list) toast(`✨ ${c.count}× ${BUILDINGS[c.from].name} → ${BUILDINGS[c.to].name}`);
@@ -167,8 +170,9 @@ on('researchDone', id => {
       <div class="buttons"><button class="btn primary" onclick="closeDialog()">Weiter</button></div>`);
   }
 });
+on('disasterWarned', id => { if (gameRunning) toast(`🪨 Die Steine sagen: ${DISASTERS[id].icon} ${DISASTERS[id].name} naht! Noch ${formatTime(CONFIG.disasterWarn)}.`); });
 on('huntDone', reward => { if (gameRunning) toast(Object.keys(reward).length ? `🦣 Die Jäger sind zurück: +${formatAmounts(reward)}` : '🦣 Die Jäger fanden ihr Lager nicht mehr – die Beute ist verloren'); });
-on('fest', () => { if (gameRunning) { toast('☀️ Sonnwendfest! Das Dorf feiert: bessere Laune für 5 Minuten.'); playFestMusic(); renderAll(); } });
+on('fest', () => { if (gameRunning) { const w = wonderFest(); toast(w ? `🎉 ${w.name}! Das Dorf feiert: bessere Laune für 5 Minuten.` : '☀️ Sonnwendfest! Das Dorf feiert: bessere Laune für 5 Minuten.'); playFestMusic(); renderAll(); } });
 on('traderCame', () => { if (gameRunning) { toast('🤝 Der Händler ist da! Tippe rechts auf „Händler“.'); playSound('muenze'); renderAll(); } });
 on('traderLeft', () => { if (gameRunning) { toast('🤝 Der Händler zieht weiter.'); if (pageOpen === 'trader') closePage(); renderAll(); } });
 on('placed', b => { (state.seen ||= {})[b.type] = true; });

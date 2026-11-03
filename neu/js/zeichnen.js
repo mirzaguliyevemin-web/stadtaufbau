@@ -209,6 +209,7 @@ function imageNames() {
     ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, ...LIFE_NAMES]);
   for (const b of Object.values(BUILDINGS)) if (b.bild) {
     names.add(b.bild); names.add(b.bild + '-winter');
+    if (b.wonder) for (const n of WONDERS[b.wonder].images) { names.add(n); names.add(n + '-winter'); }
     for (const v of b.views || []) { names.add(b.bild + '-' + v); names.add(b.bild + '-' + v + '-winter'); }   // weitere Ansichten zum Drehen (auch im Winter)
   }
   for (const r of Object.values(RESOURCES)) if (r.bild) names.add(r.bild);
@@ -1240,7 +1241,7 @@ function alphaAt(img, u, v) {   // u, v = Anteile 0–1; null = unbekannt
 function buildingImageHit(b, sx, sy) {
   const def = BUILDINGS[b.type];
   if (settings.footprint) return false;   // Grundriss: nur die Platte selbst zählt
-  const view = b.build > 0 ? { img: images['1-baustelle-' + def.size] || images['1-baustelle-2'], mirror: (Number(b.rot) || 0) % 2 === 1 } : buildingView(def, b.rot, b.x, b.y);
+  const view = b.build > 0 && !(def.wonder && buildingView(def, b.rot, b.x, b.y).img) ? { img: images['1-baustelle-' + def.size] || images['1-baustelle-2'], mirror: (Number(b.rot) || 0) % 2 === 1 } : buildingView(def, b.rot, b.x, b.y);
   const img = view.img;
   if (!img || !img.sockel) return null;
   const pl = imagePlacement(img, b.x, b.y, def.size, view.mirror, 0, !!def.needsWater && !(b.build > 0));
@@ -1462,7 +1463,7 @@ function buildingView(def, rot, x = 0, y = 0) {
   const options = has('r1') ? [['', false], ['r1', false], ['r2', false], ['r1', true]] : [['', false], ['', true], ['r2', false], ['r2', true]];
   let [v, mirror] = options[r];
   if (v && !has(v)) { v = ''; mirror = r % 2 === 1; }
-  const name = def.bild ? def.bild + (v ? '-' + v : '') : null;
+  const name = def.wonder && !wonderDone(def.wonder) ? wonderImage(def.wonder) : def.bild ? def.bild + (v ? '-' + v : '') : null;
   const winter = name && state && staggeredSeason(hash(x, y)) === 3;
   // Winterbild aus Canva hat Vorrang; fehlt es, legt das Spiel selbst Schnee aufs Bild
   const img = !name ? null : !winter ? images[name] : images[name + '-winter'] || (missingImages.has(name + '-winter') ? buildingSnow(images[name]) : images[name]);
@@ -1524,10 +1525,19 @@ function drawConstruction(b) {
 }
 
 // Fortschrittsbalken und Restzeit über einer Baustelle
+// Wunderwerk mit eigenem Bild: Balken nur, solange ein Abschnitt läuft
+function drawWonderProgress(b) {
+  const def = BUILDINGS[b.type];
+  if (state.wonders[def.wonder] && state.wonders[def.wonder].left > 0) drawProgress(b, def.size, def.size * TW * cam.zoom * 0.45);
+}
+
 function drawProgress(b, s, height) {
   const def = BUILDINGS[b.type];
-  const total = def.time || 1;
-  const done = 1 - b.build / total;
+  const w = def.wonder ? wonderState(def.wonder) : null, step = w ? WONDERS[def.wonder].steps[w.step] : null;
+  if (w && !(w.left > 0)) return;   // Wunderwerk wartet auf den nächsten Abschnitt
+  const total = step ? step.seconds : def.time || 1;
+  const left = step ? w.left : b.build;
+  const done = 1 - left / total;
   const top = tileToScreen(b.x + s / 2, b.y + s / 2);
   const bw = Math.max(40, s * TW * 0.5 * cam.zoom), bh = Math.max(6, 8 * cam.zoom);
   const by = top.y - height - 18 * cam.zoom;
@@ -1539,7 +1549,7 @@ function drawProgress(b, s, height) {
   ctx.font = `600 ${Math.max(11, Math.round(12 * cam.zoom))}px ${FONT}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
-  ctx.fillText('🔨 ' + formatTime(b.build), top.x, by - 3);
+  ctx.fillText('🔨 ' + formatTime(left), top.x, by - 3);
 }
 
 function roundRect(x, y, w, h, r) {
@@ -1948,7 +1958,8 @@ function drawScene(dt) {
   for (const o of objects) {
     if (o.kind === 'b') {
       const b = state.buildings[o.i];
-      if (b.build > 0) drawConstruction(b);
+      if (b.build > 0 && BUILDINGS[b.type].wonder && buildingView(BUILDINGS[b.type], b.rot, b.x, b.y).img) { drawBuildingSprite(b.type, b.x, b.y, b.rot); drawWonderProgress(b); }
+      else if (b.build > 0) drawConstruction(b);
       else drawBuildingSprite(b.type, b.x, b.y, b.rot);
     } else if (o.kind === 'leben') o.draw();
     else if (o.kind === 'berg') drawMountain(o.x, o.y, o.m);

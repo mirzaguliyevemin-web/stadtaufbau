@@ -20,11 +20,12 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 - Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, noch ohne Bilder (ab 27.11.). Plan: `docs/epoche-2-bronzezeit.md`.
 
-- Wunderwerke je Zeitalter (Emin, 01.11.): alle Fragen am 03.11. entschieden (`docs/konzept-wunderwerke.md`, Abschnitt 6). Schritt 1 (Fundstücke, Schatzkiste) ist seit Version 76 drin; als Nächstes Schritt 2: Höhle der Geschichten, dann Schritt 3: Steinkreis, vor der Eisenzeit. Bilder ab 27.11.
+- Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit fertig gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis). Offen: Bilder der Baustufen und Fundstücke (Canva), Halle der Himmelsscheibe (Bronzezeit), danach Wunderwerke späterer Zeitalter. Plan und Entscheidungen: `docs/konzept-wunderwerke.md`.
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-03, Epochia Version 78 – Fehler von Emin: Ältester meldete direkt nach dem Bau „hier arbeitet niemand“, obwohl Leute frei waren (Arbeiter werden nur 4× je Sekunde verteilt). Wunsch Emin: Wunderwerke Schritt 3: Steinkreis in 4 Abschnitten (Sternkarten, Riesenfindlinge rollen, Sonnenstein, Blumenkränze), Sonnenkalender warnt vor Katastrophen, Äcker +10 %, Sonnwendfest mit Geschenk; fertiger Steinkreis und alte Baustelle bleiben erhalten. Schritt 2: Höhle der Geschichten (4 Kapitel mit Fundstücken, Platz selbst wählen an Felsen, Wissen, Bonus, Wärme, Geschichtenabend, Fest im Herbst, Album-Seite, eigenes Bild).
 - 2026-11-03, Epochia Version 76 – Wunsch Emin: Wunderwerke Schritt 1: Fundstücke (glitzernde Stellen, Glut nachts, Sternschnuppe, Glück bei der Arbeit, Jagd, Hochwasser, Tag-7-Truhe, Fundkorb offline), Schatzkiste mit Tausch 3 gegen 1; Erzader bringt 40 Kupfererz, jede 3. dazu ein Goldblättchen. Fundstück-Bilder ab 27.11., bis dahin Emojis.
 - 2026-11-03, Epochia Version 75 – Wunsch Emin: echte, geschlossene Rückseiten für Sammlerin und Langhaus (Canva), beim Langhaus steigt der Rauch jetzt aus dem Dach. Winterbilder dazu in Version 76.
 - 2026-11-03, Epochia Version 74 – Wunsch Emin: Warnung, wenn die Einwohner eine Ware schneller verbrauchen, als sie für den Aufbruch zusammenkommt (Forschungsfenster, Zielzeile, einmal vom Ältesten); Ältester nennt nach einer Minute, wo Arbeiter fehlen und welches Gebäude mit vollem Lager man pausieren kann, Einwohner-Fenster listet fehlende Stellen; Jägerlager und Mammutjägerlager 20 % weniger Nahrung (Jungsteinzeit voll 75–77 → 55–65 %, ab Früher Bronzezeit kaum Wirkung, dort füllt der Viehhof).

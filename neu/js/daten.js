@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 76;
+const APP_VERSION = 78;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -49,6 +49,7 @@ const CONFIG = {
     plantRadius: 4,       // Umkreis um die Pflanzerin
     growSeconds: 600,     // nach 10 Minuten ist aus dem Setzling ein Baum geworden
   },
+  disasterWarn: 180,      // so viele Sekunden vorher warnt der fertige Steinkreis
   disaster: {             // Naturkatastrophen (DISASTERS)
     perHour: 0.35,        // so oft im Schnitt je Spielstunde (also etwa alle 3 Stunden eine)
     graceMinutes: 45,     // in den ersten 45 Spielminuten nie
@@ -116,6 +117,8 @@ const CONFIG = {
     oreSeconds: 60,
     oreReward: { kupfererz: 40 },
     goldEvery: 3,         // jede 3. Erzader bringt dazu ein Goldblättchen
+    boulderEvery: 600,    // Riesenfindling: alle 10 Minuten einer, solange welche fehlen
+    boulderSeconds: 120,  // so lange rollen sie ihn zum Bauplatz
     floodShells: 2,       // nach einem Hochwasser liegen so viele Muscheln am Ufer
     basketMax: 2,         // Fundkorb: höchstens so viele Stücke aus der Zeit, in der das Spiel zu war …
     basketFirst: 900,     // … das erste nach 15 Minuten Abwesenheit
@@ -350,6 +353,11 @@ const BUILDINGS = {
     bonus: { terrain: ['fels', 'berg'], perTile: 0.06, max: 0.6 }, minesRocks: true,
     info: 'Sammelt Steine. An Felsen und am Gebirge viel mehr. Felsen in der Nähe werden nach und nach abgebaut – am Gebirge gibt es Stein ohne Ende.',
   },
+  geschichtenhoehle: {
+    name: 'Höhle der Geschichten', icon: '🎨', size: 4, line: 'wunder', tier: 0, stage: 'alt', bild: '1-hoehle', wonder: 'hoehle',
+    color: '#8a5a3a', cost: {}, time: 1, requires: 'hoehlenmalerei', needsRock: true, warmth: 8, produces: { wissen: 3 },
+    info: 'Wunderwerk: Tippe es an, um Abschnitt für Abschnitt weiterzubauen. Muss an Felsen stehen.',
+  },
   hoehlenmaler: {
     name: 'Höhlenmaler', icon: '🎨', size: 2, line: 'wissen', tier: 0, stage: 'alt', bild: '1-hoehlenmaler', views: ['r2'],
     color: '#c05a3a', cost: { holz: 15, stein: 15 }, time: 45, workers: 1, produces: { wissen: 4 }, upgradeTo: 'felsritzer',
@@ -391,9 +399,9 @@ const BUILDINGS = {
     info: 'Mehr Lagerplatz für alle Waren.',
   },
   steinkreis: {
-    name: 'Steinkreis', icon: '🪨', size: 4, line: 'wahrzeichen', tier: 0, stage: 'jung', bild: '1-steinkreis', views: ['r2'],
-    color: '#9a9a9a', cost: { stein: 200, holz: 100, werkzeug: 20 }, time: 300, belief: 14, warmth: 14,
-    requires: 'sternenkunde', info: 'Wahrzeichen der Steinzeit: Glaube und Wärme im großen Umkreis. Nötig für den Aufbruch.',
+    name: 'Steinkreis', icon: '🪨', size: 4, line: 'wahrzeichen', tier: 0, stage: 'jung', bild: '1-steinkreis', views: ['r2'], wonder: 'steinkreis',
+    color: '#9a9a9a', cost: {}, time: 1, belief: 14, warmth: 14,
+    requires: 'sternenkunde', info: 'Wunderwerk der Steinzeit: Tippe es an, um Abschnitt für Abschnitt weiterzubauen. Glaube und Wärme im großen Umkreis. Nötig für den Aufbruch.',
   },
   // ----- Bronzezeit, Stufe Kupferzeit. Bilder folgen ab 27.11.: Weiterentwicklungen zeigen so lange das Bild der Vorstufe,
   // neue Gebäude ein Platzhalter-Feld.
@@ -747,7 +755,7 @@ const BAR_CATEGORIES = [
   { id: 'nahrung',   name: 'Nahrung',   icon: '🍖', lines: ['sammeln', 'jagen', 'fischen', 'feld', 'tiere'] },
   { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton', 'erz', 'kohle', 'zinn'] },
   { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'bronze', 'kleidung', 'werkzeug', 'toepfern', 'schmuck', 'lager', 'handel'] },
-  { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['waerme', 'glaube', 'wissen', 'wahrzeichen'] },
+  { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['wunder', 'waerme', 'glaube', 'wissen', 'wahrzeichen'] },
   { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg', 'bruecke'] },
 ];
 
@@ -840,6 +848,66 @@ const DAILY_GROWTH = {
   extra: { kupfer: { kupfer: 10 }, frueh: { kupfer: 10, bronze: 5 }, spaet: { bronze: 10, schmuck: 3 } },
 };
 
+// Wunderwerke: jeder Abschnitt ist ein Kapitel (Zahlen und Texte aus docs/konzept-wunderwerke.md).
+// images: Bild je erreichtem Abschnitt. goal = Ziel des Kapitels, stage = geht erst ab diesem Zeitalter.
+const WONDERS = {
+  hoehle: {
+    name: 'Höhle der Geschichten', icon: '🎨', building: 'geschichtenhoehle', tech: 'hoehlenmalerei', page: 'steinzeit',
+    hint: 'Beginnt mit der Forschung Höhlenmalerei', where: 'Wähle den Platz selbst: unten in der Bauleiste unter „Feuer & Glaube“. Die Höhle muss an Felsen stehen.', whereShort: 'Wähle einen Platz an Felsen',
+    images: ['1-hoehle-bau', '1-hoehle-bau', '1-hoehle-halb', '1-hoehle-halb', '1-hoehle'],
+    call: 'Meine Großmutter erzählte von einer großen Höhle hinter den Felsen. Dort malten unsere Ahnen ihre Geschichten. Wählen wir einen Platz: unten unter Feuer & Glaube!',
+    intro: 'Hier malten unsere Ahnen ihre Geschichten an die Wand. Bauen wir die Höhle Stück für Stück wieder auf.',
+    doneText: 'Die Höhle ist fertig! Abends sitzen die Kinder am Feuer und hören die alten Geschichten.',
+    bonus: ['📜 +3 Wissen je Minute von selbst', '🎨 Alle Wissens-Gebäude arbeiten 20 % besser', '🔥 Wärme und Gemeinschaft im Umkreis 8', '🎉 Einmal im Jahr: Fest der Geschichten, bessere Laune', '🌙 Abends ein Geschichtenabend'],
+    boost: { line: 'wissen', share: 0.2 },
+    fest: { name: 'Fest der Geschichten', year: 5 / 8 },
+    facts: [
+      'Wusstest du? Die ältesten Höhlenbilder sind über 30.000 Jahre alt.',
+      'Wusstest du? Rot malten die Menschen mit Rötel, Schwarz mit Holzkohle.',
+      'Wusstest du? Handabdrücke entstanden, indem man Farbe über die Hand pustete.',
+      'Wusstest du? Die Maler arbeiteten tief in der Höhle beim Licht von Fackeln und Fettlampen.',
+      'Wusstest du? Auf den Bildern sind vor allem Tiere zu sehen: Mammuts, Pferde, Hirsche.',
+      'Wusstest du? Aus Mammut-Stoßzähnen schnitzten Menschen Figuren, und aus Knochen Flöten.',
+    ],
+    steps: [
+      { title: 'Der Eingang ist verschüttet', story: 'Geröll versperrt den Weg. Wir brauchen Leute, die Steine tragen können.', goal: { line: 'stein', count: 2, text: 'Baue 2 Steinsammler' },
+        goods: { stein: 60, holz: 40 }, seconds: 300, done: 'Der Eingang ist frei!' },
+      { title: 'Wir brauchen Licht und Farbe', story: 'Drinnen ist es dunkel. Sucht roten Rötel und Holzkohle, dazu Felle für die Fackeln.',
+        finds: { roetel: 3, holzkohle: 2 }, goods: { felle: 20, holz: 40 }, seconds: 480, done: 'Fackeln brennen, das Gerüst steht!' },
+      { title: 'Die große Jagd an der Wand', story: 'Jetzt malen wir die große Jagd. Ein Stoßzahn und eine Feder dienen als Werkzeug, die Maler brauchen ein Festessen.',
+        finds: { stosszahn: 1, feder: 1, roetel: 2 }, goods: { nahrung: 60 }, seconds: 600, done: 'Die ersten Bilder schimmern an der Wand!' },
+      { title: 'Die Geschichte ist vollständig', story: 'Die Erzähler tragen Muschelketten und festliche Kleider, wenn sie vom Stamm berichten.', stage: 'mittel',
+        finds: { muschel: 2 }, goods: { kleidung: 20, wissen: 40 }, seconds: 720, done: 'Die Geschichte ist vollständig!' },
+    ],
+  },
+  steinkreis: {
+    name: 'Steinkreis', icon: '🪨', building: 'steinkreis', tech: 'sternenkunde', page: 'steinzeit', legacy: true,
+    hint: 'Beginnt mit der Forschung Sternenkunde', where: 'Wähle den Platz selbst: unten in der Bauleiste unter „Feuer & Glaube“.', whereShort: 'Wähle einen Platz',
+    images: ['1-steinkreis-bau', '1-steinkreis-bau', '1-steinkreis-halb', '1-steinkreis-halb', '1-steinkreis'],
+    call: 'Die Sterne wandern jede Nacht. Wenn wir verstehen, wohin, wissen wir, wann der Sommer kommt. Bauen wir einen Kreis aus Stein: unten unter Feuer & Glaube!',
+    intro: 'Ein Kalender aus Stein: Am längsten Tag scheint die Sonne genau durch das Steintor. Ohne ihn gibt es keinen Aufbruch in die Bronzezeit.',
+    doneText: 'Der Kreis steht! Die Sonne scheint durch das Tor, und der ganze Stamm feiert das erste Sonnwendfest.',
+    bonus: ['🗿 Glaube und Wärme im großen Umkreis', '➡️ Nötig für den Aufbruch in die Bronzezeit', '☀️ Sonnenkalender: zeigt die nächste Jahreszeit und warnt vor Naturkatastrophen', '🌾 Äcker arbeiten 10 % besser', '🎉 Jeden Sommer das Sonnwendfest mit Geschenk'],
+    boost: { line: 'feld', share: 0.1 },
+    fest: { name: 'Sonnwendfest', year: 3 / 8, gift: { nahrung: 100, holz: 50 } },
+    firstFest: true,
+    facts: [
+      'Wusstest du? In Stonehenge steht die Sonne am längsten Tag genau über dem Fersenstein.',
+      'Wusstest du? Manche Steine von Stonehenge wurden über 200 Kilometer weit herangeschafft.',
+    ],
+    steps: [
+      { title: 'Den Kreis abstecken', story: 'Lies den Himmel! In klaren Nächten fällt eine Sternschnuppe. Tippe sie an, sie zeigt uns den Kreis. Dazu brauchen wir Holz für die Pfähle.',
+        finds: { sternkarte: 3 }, goods: { holz: 100 }, seconds: 300, done: 'Pfähle und Seile zeigen den Kreis!' },
+      { title: 'Die großen Steine', story: 'Am Gebirge liegen riesige Findlinge. Tippe einen an, dann rollen ihn acht Leute auf Stämmen heran. Die Helfer haben Hunger.',
+        finds: { findling: 5 }, goods: { werkzeug: 20, nahrung: 100 }, seconds: 600, done: 'Fünf große Steine stehen aufrecht!' },
+      { title: 'Das Sonnentor', story: 'Für den Deckstein brauchen wir den Sonnenstein. Steinsammler finden ihn irgendwann.',
+        finds: { sonnenstein: 1 }, goods: { stein: 100 }, seconds: 600, done: 'Das Steintor ist fertig!' },
+      { title: 'Das erste Sonnwendfest', story: 'Schmücken wir den Kreis! Sammlerinnen bringen im Frühling und Sommer Blumenkränze, doppelte Stücke tauscht der Älteste.',
+        finds: { blumenkranz: 3 }, goods: { kleidung: 20, toepferwaren: 20 }, seconds: 300, done: 'Das Fest beginnt!' },
+    ],
+  },
+};
+
 // Fundstücke und Schatzkiste. need = so viele braucht das Wunderwerk (alles darüber zählt als doppelt),
 // spot = Gelände der Fundstelle, soon = kommt erst mit einem späteren Bauabschnitt, bild = später aus Canva.
 const FIND_PAGES = [
@@ -854,7 +922,7 @@ const FINDS = {
   feder:       { name: 'Adlerfeder', icon: '🪶', page: 'steinzeit', spot: 'wald', hint: 'Glitzert im Wald, Jäger finden manchmal eine' },
   muschel:     { name: 'Flussmuschel', icon: '🐚', page: 'steinzeit', need: 2, spot: 'ufer', hint: 'Glitzert am Ufer, nach Hochwasser mehr' },
   sternkarte:  { name: 'Sternkarte', icon: '🗺️', page: 'steinzeit', need: 3, tech: 'sternenkunde', hint: 'Klare Nacht, Sternschnuppe (Sternenkunde)' },
-  findling:    { name: 'Riesenfindling', icon: '🪨', page: 'steinzeit', need: 5, soon: true, hint: 'Kommt mit dem Bau des Steinkreises' },
+  findling:    { name: 'Riesenfindling', icon: '🪨', page: 'steinzeit', need: 5, tech: 'sternenkunde', hint: 'Liegt am Gebirge, wenn der Steinkreis gebaut wird' },
   sonnenstein: { name: 'Sonnenstein', icon: '☀️', page: 'steinzeit', stage: 'jung', hint: 'Steinsammler finden ihn in der Jungsteinzeit' },
   blumenkranz: { name: 'Blumenkranz', icon: '🌼', page: 'steinzeit', need: 3, stage: 'jung', hint: 'Sammlerinnen, nur Frühling und Sommer' },
   goldblatt:   { name: 'Goldblättchen', icon: '🟡', page: 'bronze', need: 3, stage: 'kupfer', hint: 'Steckt manchmal in einer Erzader' },
@@ -893,6 +961,7 @@ const SPOT_STYLE = {
   ufer:  { name: 'Etwas glitzert am Ufer', icon: '🌊', color: '#a8ecff', glow: 'rgba(170,235,255,0.55)' },
   erz:   { name: 'Eine Erzader glitzert', icon: '⛏️', color: '#ffc93c', glow: 'rgba(255,200,60,0.65)', special: true },
   glut:  { name: 'Glut am Lagerfeuer', icon: '⚫', color: '#ff7a1a', glow: 'rgba(255,120,30,0.65)', special: true, instant: true },
+  findling: { name: 'Ein Riesenfindling liegt bereit', icon: '🪨', color: '#e6e6e6', glow: 'rgba(235,235,235,0.7)', special: true },
   stern: { name: 'Eine Sternschnuppe ist gefallen', icon: '🌠', color: '#dfe8ff', glow: 'rgba(200,215,255,0.7)', special: true, instant: true },
 };
 

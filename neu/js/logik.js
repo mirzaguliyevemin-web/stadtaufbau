@@ -114,7 +114,7 @@ function warmthRadius(def) {
 function barEntries() {
   const lines = new Map();
   for (const [type, def] of Object.entries(BUILDINGS)) {
-    if (def.buildable === false || def.upgradeOnly) continue;
+    if (def.buildable === false || def.upgradeOnly || (def.wonder && state.buildings.some(b => b.type === type))) continue;
     const list = lines.get(def.line) || [];
     list.push(type);
     lines.set(def.line, list);
@@ -147,13 +147,14 @@ function lockText(type) {
 // ---------------------------------------------------------------------
 
 function constructionCount() {
-  return state.buildings.filter(b => b.build > 0).length;
+  return state.buildings.filter(b => b.build > 0 && !BUILDINGS[b.type].wonder).length;
 }
 
 function buildProblem(type, x, y, ignore = -1, rot) {
   const def = BUILDINGS[type];
   if (!def || def.buildable === false) return 'Kann man nicht bauen';
   if (!isUnlocked(type)) return lockText(type);
+  if (def.wonder && state.buildings.some(b => b.type === type)) return 'Davon gibt es nur eines';
   const p = placeProblem(type, x, y, ignore, rot);
   if (p) return p;
   if (!canAfford(def.cost)) return missingText(def.cost);
@@ -227,7 +228,7 @@ function togglePause(i) {
 
 function demolish(i) {
   const b = state.buildings[i];
-  if (!b || BUILDINGS[b.type].buildable === false) return false;
+  if (!b || BUILDINGS[b.type].buildable === false || BUILDINGS[b.type].wonder) return false;
   addResources(refundOf(b));
   state.buildings.splice(i, 1);
   rebuildOccupancy();
@@ -276,7 +277,7 @@ function upgradeBuilding(i) {
 
 function updateConstruction(dt) {
   for (const b of state.buildings) {
-    if (b.build > 0) {
+    if (b.build > 0 && !BUILDINGS[b.type].wonder) {
       b.build -= dt;
       if (b.build <= 0) finishBuilding(b);
     }
@@ -541,6 +542,7 @@ function effectFactor(type) {
 
 // Sonnwendfest: ergibt sich aus der Jahreszeit (mitten im Sommer), muss nicht gespeichert werden
 function festNow() {
+  if (wonderFest()) return true;
   if (!state.techs.himmelsscheibe) return false;
   return Math.abs(state.yearTime - CONFIG.yearSeconds * 3 / 8) <= CONFIG.fest.seconds / 2;
 }
@@ -548,7 +550,11 @@ function festNow() {
 let festWas = false;
 function updateFest() {
   const now = festNow();
-  if (now && !festWas && !offlineRunning) emit('fest');
+  if (now && !festWas && !offlineRunning) {
+    const w = wonderFest();
+    if (w && w.gift && w.year !== undefined) addReward(w.gift);
+    emit('fest');
+  }
   festWas = now;
 }
 
@@ -566,12 +572,20 @@ function updateDisaster(dt) {
     if (state.disaster.left <= 0) { const id = state.disaster.id; state.disaster = null; state.disasterCalm = 0; emit('disasterEnded', id); }
     return;
   }
+  if (state.disasterNext) {   // der Steinkreis hat gewarnt
+    state.disasterNext.left -= dt;
+    if (state.disasterNext.left <= 0) { const id = state.disasterNext.id; state.disasterNext = null; startDisaster(id); }
+    return;
+  }
   state.disasterCalm = (state.disasterCalm || 0) + dt;
   if (state.playTime < c.graceMinutes * 60 || state.disasterCalm < c.pauseMinutes * 60 || state.tutorial >= 0) return;
   if (disasterRandom() >= c.perHour * dt / 3600) return;
   const si = seasonIndex();
   const ids = Object.keys(DISASTERS).filter(id => DISASTERS[id].seasons.includes(si));
-  if (ids.length) startDisaster(ids[Math.floor(disasterRandom() * ids.length)]);
+  if (!ids.length) return;
+  const id = ids[Math.floor(disasterRandom() * ids.length)];
+  if (state.wonders.steinkreis && wonderDone('steinkreis') && !offlineRunning) { state.disasterNext = { id, left: CONFIG.disasterWarn }; emit('disasterWarned', id); }
+  else startDisaster(id);
 }
 
 function startDisaster(id) {
@@ -619,7 +633,7 @@ function outputFactor(i) {
   if (b.build || !isConnected(i)) return 0;
   const staffShare = def.workers ? (stats.staff[i] || 0) / def.workers : 1;
   const seasonF = SEASON_FACTORS[b.type] ? SEASON_FACTORS[b.type][seasonIndex()] : 1;
-  return staffShare * seasonF * effectFactor(b.type) * happinessFactor() * (1 + terrainBonus(b)) * (1 + techSum('bonus', b.type));
+  return staffShare * seasonF * effectFactor(b.type) * happinessFactor() * (1 + terrainBonus(b)) * (1 + techSum('bonus', b.type)) * wonderBonus(b.type);
 }
 
 // Was ein Gebäude je Minute herstellt (für Anzeige und Logik)
@@ -1270,6 +1284,7 @@ function update(dt) {
   updateResearch(dt);
   updateHunt(dt);
   updateFinds(dt);
+  updateWonders(dt);
   updateTrader(dt);
   updateFest();
   updateDisaster(dt);

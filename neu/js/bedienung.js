@@ -225,6 +225,7 @@ function handleTap(sx, sy) {
   const hit = objectAtScreen(sx, sy);
   if (hit && hit.i === undefined && isOwned(hit.x, hit.y)) { showTerrainInfo(hit.x, hit.y, sx, sy); return; }
   const i = hit && hit.i !== undefined ? hit.i : -1;
+  if (i >= 0 && BUILDINGS[state.buildings[i].type].wonder) { closeInfo(); openWonder(BUILDINGS[state.buildings[i].type].wonder); return; }
   if (i >= 0) {
     selected = i;
     showInfo(i);

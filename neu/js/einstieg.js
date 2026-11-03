@@ -921,6 +921,9 @@ function checkStaffHint() {
     return def.workers && !b.build && !b.paused && isConnected(k) && !(stats.staff[k] > 0);
   });
   if (i < 0) return;
+  // Die Arbeiter werden nur 4× je Sekunde neu verteilt: Ein gerade fertiges Gebäude hat vielleicht noch keine, obwohl Leute frei sind
+  recalcStats();
+  if (stats.staff[i] > 0) return;
   lastHintAt = state.playTime;
   const name = BUILDINGS[state.buildings[i].type].name;
   let text = `${name}: Hier arbeitet niemand – alle Menschen sind schon beschäftigt. Baue eine Wohnung, dann kommen mehr Menschen. ` +

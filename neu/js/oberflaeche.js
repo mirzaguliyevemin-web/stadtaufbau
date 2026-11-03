@@ -90,6 +90,14 @@ function weatherIcon() {
   return w.k >= 0.15 ? w.icon : '';
 }
 
+// Steinkreis fertig: zeigt die nächste Jahreszeit und eine angekündigte Katastrophe
+function sunCalendarRow() {
+  if (!state.wonders.steinkreis || !wonderDone('steinkreis')) return '';
+  const q = CONFIG.yearSeconds / 4, next = SEASONS[(seasonIndex() + 1) % 4], left = q - (state.yearTime % q);
+  const warn = state.disasterNext ? ` · ${DISASTERS[state.disasterNext.id].icon} ${DISASTERS[state.disasterNext.id].name} in ${formatTime(state.disasterNext.left)}` : '';
+  return `<div><span>🪨 Sonnenkalender</span><b>${next.icon} ${esc(next.name)}</b><small>beginnt in ${formatTime(left)}${warn}</small></div>`;
+}
+
 // Wetter-Fenster: Jahreszeit, Tageszeit, Wetter mit Wirkung, Katastrophe – mit Restzeiten
 function weatherTip() {
   const w = currentWeather(), q = CONFIG.yearSeconds / 4;
@@ -101,6 +109,7 @@ function weatherTip() {
     <div class="info-list">
       <div><span>${season().icon} Jahreszeit</span><b>${esc(season().name)}</b><small>noch ${formatTime(seasonLeft)}</small></div>
       <div><span>${timeOfDay().icon} Tageszeit</span><b>${esc(timeOfDay().name)}</b><small>ganzer Tag ${formatTime(CONFIG.daySeconds)} · neuer Tag in ${formatTime(dayLeft)}</small></div>
+      ${sunCalendarRow()}
       <div><span>${w.icon} Wetter</span><b>${esc(w.name)}</b><small>${esc((w.effect && w.effect.text) || '')} · wechselt in ${formatTime(weatherLeft)}</small></div>
       ${d ? `<div class="bad"><span>${d.icon} ${esc(d.name)}</span><b>noch ${formatTime(state.disaster.left)}</b><small>${esc(d.text)}</small></div>` : ''}
       ${seasonIndex() === 3 || SEASON_FACTORS.sammlerin[seasonIndex()] !== 1 ? `<div><span>🍂 Jahreszeit wirkt</span><small>Sammlerinnen ×${SEASON_FACTORS.sammlerin[seasonIndex()]} · Äcker ×${SEASON_FACTORS.acker[seasonIndex()]}</small></div>` : ''}
@@ -237,7 +246,7 @@ function renderSideButtons() {
     if (bar) { bar.style.width = r ? Math.round((1 - r.left / TECHS[r.id].time) * 100) + '%' : '0'; show(bar.parentNode, !!r); }
   }
   const wish = currentWish();
-  const ready = activeQuests().filter(questDone).length + (wish && canAfford({ [wish.id]: wish.amount }) ? 1 : 0);
+  const ready = activeQuests().filter(questDone).length + (wish && canAfford({ [wish.id]: wish.amount }) ? 1 : 0) + (wonderReady() ? 1 : 0);
   $('quest-badge').textContent = ready || '';
   show($('quest-badge'), ready > 0);
   const canResearch = !r && Object.keys(TECHS).some(id => !researchProblem(id));
@@ -583,7 +592,7 @@ function closeDialog(fromHistory = false) {
 let pageOpen = null;
 const pageStack = [];        // darunterliegende Seiten (z. B. Menü unter Spielstände) – „Zurück“ führt dorthin
 let reopening = false;
-const PAGE_OPENERS = { menu: () => openMenu(), slots: () => openSlots(true), research: () => openResearch(), quests: () => openQuests(), chest: () => openChest(), konto: () => openKonto() };
+const PAGE_OPENERS = { menu: () => openMenu(), slots: () => openSlots(true), research: () => openResearch(), quests: () => openQuests(), chest: () => openChest(), wonder: () => { if (wonderPageId) openWonder(wonderPageId); }, konto: () => openKonto() };
 
 function openPage(title, html, name) {
   $('page-title').textContent = title;
@@ -1119,8 +1128,8 @@ function questsHtml() {
   const head = `<div class="quest-sum"><span>🏆 Erledigt <b>${doneCount}</b> von ${total}</span>
     <span class="q-bar thin"><i style="width:${Math.round(100 * doneCount / total)}%"></i></span></div>`;
   const list = activeQuests();
-  if (!list.length) return `<div class="quests">${head}${traderCardHtml()}${wishHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p></div>`;
-  return `<div class="quests">${head}${traderCardHtml()}${wishHtml()}` + list.map(q => {
+  if (!list.length) return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${wishHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p></div>`;
+  return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${wishHtml()}` + list.map(q => {
     const p = questProgress(q);
     const done = p.have >= p.need;
     const pct = Math.round(100 * p.have / p.need);

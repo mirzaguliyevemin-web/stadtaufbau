@@ -920,3 +920,17 @@ details.more[open] summary { margin-bottom: 4px; }
 .find-card em { font-style: normal; font-size: 12px; font-weight: bold; }
 .find-card small { font-size: 11px; line-height: 1.2; opacity: 0.8; }
 .find-card .btn { margin-top: 4px; padding: 3px 8px; font-size: 12px; }
+
+/* Wunderwerke */
+.wonder-head { display: flex; align-items: center; gap: 12px; margin: 4px 0 8px; }
+.wonder-head p { margin: 0; }
+.ic.wonder-pic { width: 110px; height: 110px; line-height: 110px; font-size: 60px; object-fit: contain; flex: none; }
+.wonder-bonus { margin-bottom: 8px; }
+.wonder-step .q-main { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.wonder-step.locked { opacity: 0.65; }
+.wonder-cost { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.wonder-album { display: flex; align-items: center; gap: 10px; padding: 8px; margin-bottom: 8px; border-radius: 12px; background: rgba(120, 90, 50, 0.12); border: 2px solid rgba(120, 90, 50, 0.25); }
+.wonder-album div { display: flex; flex-direction: column; }
+.wonder-album.got { background: linear-gradient(#fffbe8, #fff0c2); border-color: #e0b84c; }
+.wonder-step .q-bar { width: 100%; align-self: stretch; }
+.wonder-step .btn { align-self: flex-start; }

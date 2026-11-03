@@ -365,7 +365,14 @@ function botClearLanes(b) {
       if ((x % 5 === 0 || y % 5 === 0) && terrainAt(x, y) && terrainAt(x, y).clear) clearTile(x, y);
 }
 
+// Fundstellen antippen und Abschnitte der Wunderwerke bauen, sobald es geht
+function botWonders() {
+  for (let i = state.spots.length - 1; i >= 0; i--) collectSpot(i);
+  for (const id of Object.keys(WONDERS)) if (wonderOpen(id) && wonderBuilt(id) && !wonderStepProblem(id)) startWonderStep(id);
+}
+
 function botStep() {
+  botWonders();
   botQuests();
   botHunt();
   botTrade();

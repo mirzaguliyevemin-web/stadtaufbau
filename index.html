@@ -1,146 +1,20 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#5c3a1e">
-  <!-- Spiel hat eigene Farben: automatischen Dunkelmodus des Browsers abschalten -->
-  <meta name="color-scheme" content="only light">
-  <meta name="app-version" content="72">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Stadtaufbau</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Epochia</title>
+  <meta http-equiv="refresh" content="0; url=neu/">
+  <link rel="canonical" href="neu/">
 </head>
 <body>
-  <header id="topbar">
-    <div id="topbar-row">
-      <button id="age-title" title="Zeitalter und Stadtstufe – antippen für die Zeitalter"></button>
-      <button id="btn-speed" class="top-btn speed-btn" title="Spielgeschwindigkeit (Leertaste = Pause, +/−)">▶ 1×</button>
-      <button id="btn-research" class="top-btn" title="Forschung">🔬</button>
-      <button id="btn-settings" class="top-btn" title="Einstellungen">⚙️</button>
-    </div>
-    <button id="age-progress" title="Fortschritt zum nächsten Zeitalter – antippen für Einzelheiten">
-      <span class="ap-bar"><i></i></span><span class="ap-text"></span>
-    </button>
-    <div id="status"></div>
-    <div id="resources"></div>
-  </header>
-
-  <main id="map-wrap">
-    <canvas id="map"></canvas>
-    <button id="bars-toggle" title="Leisten ausblenden">⛶</button>
-    <button id="quest-tracker" title="Aufträge"></button>
-    <div id="toast" class="hidden"></div>
-    <section id="quests" class="hidden fullpage">
-      <div class="info-head">
-        <button id="quests-close" class="back-btn" title="Zurück zur Stadt (Esc)">← Zurück</button>
-        <span>📜</span>
-        <strong>Aufträge</strong>
-        <span id="quests-count"></span>
-      </div>
-      <div id="quest-list"></div>
-      <div id="achievements"></div>
-    </section>
-    <section id="research" class="hidden fullpage">
-      <div class="info-head">
-        <button id="research-close" class="back-btn" title="Zurück zur Stadt (Esc)">← Zurück</button>
-        <span>🔬</span>
-        <strong>Forschung</strong>
-        <span id="research-count"></span>
-      </div>
-      <div id="age-up"></div>
-      <div id="tech-list"></div>
-    </section>
-    <section id="ages" class="hidden fullpage">
-      <div class="info-head">
-        <button id="ages-close" class="back-btn" title="Zurück zur Stadt (Esc)">← Zurück</button>
-        <span>⏳</span>
-        <strong>Zeitalter</strong>
-        <span id="ages-count"></span>
-      </div>
-      <div id="age-list"></div>
-    </section>
-    <section id="settings" class="hidden fullpage">
-      <div class="info-head">
-        <button id="settings-close" class="back-btn" title="Zurück zur Stadt (Esc)">← Zurück</button>
-        <span>⚙️</span>
-        <strong>Einstellungen</strong>
-      </div>
-      <button class="setting" data-setting="sfx"></button>
-      <button class="setting" data-setting="music"></button>
-      <button class="setting" data-setting="daynight"></button>
-      <button class="setting" data-setting="portrait"></button>
-      <div class="settings-title">Meine Städte</div>
-      <div id="slots"></div>
-      <div class="settings-title">Spielstand übertragen</div>
-      <div class="transfer-row">
-        <button id="btn-export" class="setting-action">📤 Exportieren</button>
-        <button id="btn-import" class="setting-action">📥 Importieren</button>
-      </div>
-      <div id="transfer" class="hidden">
-        <p id="transfer-hint"></p>
-        <textarea id="transfer-code" rows="4" spellcheck="false" autocomplete="off"></textarea>
-        <div class="transfer-row">
-          <button id="transfer-copy" class="setting-action" data-for="export">📋 Kopieren</button>
-          <button id="transfer-file" class="setting-action" data-for="export">💾 Als Datei</button>
-          <button id="transfer-load" class="setting-action primary" data-for="import">✅ Laden</button>
-          <label class="setting-action file-btn" data-for="import">📂 Datei wählen
-            <input type="file" id="transfer-input" accept=".txt,.json,text/plain,application/json" hidden>
-          </label>
-        </div>
-      </div>
-      <button id="btn-reset" class="danger">⟳ Neues Spiel</button>
-    </section>
-    <section id="info" class="hidden">
-      <div class="info-head">
-        <span id="info-icon"></span>
-        <strong id="info-name"></strong>
-        <button id="info-close" class="back-btn small" title="Zurück zur Stadt (Esc)">← Zurück</button>
-      </div>
-      <p id="info-text"></p>
-      <p id="info-more" class="hidden"></p>
-      <button id="info-more-toggle" class="hidden">Mehr ▾</button>
-      <div id="info-extra"></div>
-      <button id="info-action" class="hidden"></button>
-      <button id="info-develop" class="hidden"></button>
-      <div class="info-buttons">
-        <button id="info-upgrade" class="hidden"></button>
-        <button id="info-demolish">Verkaufen</button>
-      </div>
-      <div id="info-move-row" class="info-buttons secondary hidden">
-        <button id="info-rotate">🔄 Drehen</button>
-        <button id="info-move">✋ Verschieben</button>
-      </div>
-    </section>
-    <section id="place-bar" class="hidden"></section>
-    <section id="build-info" class="hidden"></section>
-    <section id="move-bar" class="hidden"></section>
-    <div id="effects"></div>
-    <section id="event" class="hidden">
-      <div id="event-icon"></div>
-      <strong id="event-title"></strong>
-      <p id="event-text"></p>
-      <div id="event-buttons"></div>
-      <div id="event-timer" class="hidden"></div>
-    </section>
-  </main>
-
-  <nav id="buildnav">
-    <div id="build-tabs"></div>
-    <div id="buildbar"></div>
-    <div id="demolish-bar" class="hidden">
-      <div id="demolish-info"></div>
-      <div class="demolish-buttons">
-        <button id="demolish-sell"></button>
-        <button id="demolish-clear">✖ Auswahl aufheben</button>
-      </div>
-    </div>
-  </nav>
-
-  <script src="game.js"></script>
+  <p style="font-family: sans-serif; text-align: center; margin-top: 3em"><a href="neu/">Weiter zu Epochia</a></p>
+  <script>
+    // Das alte Spiel liegt im Archiv: seinen Service Worker abmelden, dann weiter zu Epochia (Spielstände bleiben unberührt)
+    const weiter = () => location.replace('neu/' + location.search);
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration('./').then(r => (r && new URL(r.scope).pathname === location.pathname.replace(/[^/]*$/, '') ? r.unregister() : null)).catch(() => {}).finally(weiter);
+    } else weiter();
+  </script>
 </body>
 </html>

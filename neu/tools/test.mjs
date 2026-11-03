@@ -2322,6 +2322,24 @@ test('Halle der Himmelsscheibe: 4 Abschnitte setzen die Scheibe zusammen, Händl
   noErrors(g);
 });
 
+test('Bilder: Jede Datei liegt dort, wo imagePath sie erwartet; alles, was das Spiel lädt, ist unter bilder/epochia/', () => {
+  const g = fresh();
+  const dir = new URL('../../bilder/epochia/', import.meta.url);
+  const walk = (d, pre = '') => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? (e.name === 'quelle' || e.name === 'musik' ? [] : walk(new URL(e.name + '/', d), pre + e.name + '/')) : [pre + e.name]);
+  const files = walk(dir).filter(f => f.endsWith('.webp'));
+  ok(files.length > 200, 'Zu wenige Bilder: ' + files.length);
+  for (const f of files) {
+    const name = f.split('/').pop().replace('.webp', '');
+    ok(g.run(`imagePath(${JSON.stringify(name)})`) === '../bilder/epochia/' + f, `${f} liegt falsch, erwartet ${g.run(`imagePath(${JSON.stringify(name)})`)}`);
+  }
+  ok(!fs.readdirSync(dir).some(f => f.endsWith('.webp')), 'Bild lose im Hauptordner');
+  const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  for (const m of css.matchAll(/\.\.\/bilder\/epochia\/([\w\/.-]+\.webp)/g)) ok(fs.existsSync(new URL(m[1], dir)), 'CSS-Bild fehlt: ' + m[1]);
+  // Gebäude liegen je in einem eigenen Ordner
+  ok(g.run(`imagePath('1-sammlerin-r2-winter')`).includes('gebaeude/sammlerin/') && g.run(`imagePath('1-baustelle-4')`).includes('gebaeude/baustelle/') && g.run(`imagePath('2-halle-bau')`).includes('gebaeude/halle/'), 'Gebäudeordner falsch');
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

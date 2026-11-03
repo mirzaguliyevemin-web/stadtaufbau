@@ -1,40 +1,16 @@
-# Stadtaufbau
+# Epochia
 
-Ein kleines Aufbauspiel als PWA – fürs Handy (Touch), Tablet und den PC (Maus und Tastatur).
-Straßen legen, Häuser bauen, Rohstoffe produzieren und verarbeiten, Einwohner versorgen und
-durch Dorf, Kleinstadt und Stadt wachsen.
+Aufbauspiel durch die Zeitalter als PWA: reines HTML, CSS und JavaScript mit Canvas, kein Server nötig.
 
-**Spielen:** https://mirzaguliyevemin-web.github.io/stadtaufbau/
+**Spielen:** https://mirzaguliyevemin-web.github.io/stadtaufbau/ (leitet zu `…/neu/` weiter)
 
-Auf dem Handy über „Zum Startbildschirm hinzufügen“ installierbar; danach auch offline spielbar.
+## Ordner
 
-## Epochia (Neustart, im Aufbau)
-
-Das neue Spiel **Epochia** entsteht im Ordner `neu/` und läuft unter
-https://mirzaguliyevemin-web.github.io/stadtaufbau/neu/ – mit eigenen Speicherplätzen, das alte Spiel bleibt unberührt.
-Pläne: [`docs/konzept-neu.md`](docs/konzept-neu.md), [`docs/epoche-1-steinzeit.md`](docs/epoche-1-steinzeit.md);
-Bilder: [`bilder/epochia/README.md`](bilder/epochia/README.md). Tests: `node neu/tools/test.mjs`, Bot: `node neu/tools/bot.mjs 90 3`.
-Zum Ausprobieren ohne Startseite: `…/neu/?direkt`.
-
-## Technik
-
-Reines HTML, CSS und JavaScript mit Canvas – kein Framework, kein Build-Schritt.
-
-| Datei | Inhalt |
+| Ordner | Inhalt |
 |---|---|
-| `index.html` | Seitengerüst |
-| `style.css` | Aussehen |
-| `game.js` | Spiel – alle Gebäude, Ressourcen, Aufträge usw. stehen als Listen oben in der Datei |
-| `manifest.json`, `service-worker.js` | Installation und Offline-Betrieb |
+| `neu/` | das Spiel: `js/`, `style.css`, `tools/` (Tests, Bot, Bild-Werkzeuge) |
+| `bilder/epochia/` | Bilder nach Art sortiert, Gebäude je im eigenen Ordner, Originale unter `quelle/`, dazu `musik/` und die Bild-Prompts |
+| `docs/` | Pläne, Wunschliste (`wuensche.md`), Protokoll des täglichen Agenten |
+| `archiv/altes-spiel/` | das alte Spiel mit Draufsicht, wird nicht mehr bearbeitet |
 
-Lokal starten: `python3 -m http.server 8000` und `http://localhost:8000` öffnen.
-
-Bei jeder Änderung die Version an drei Stellen gemeinsam erhöhen: `APP_VERSION` in `game.js`,
-`<meta name="app-version">` in `index.html` und `CACHE` in `service-worker.js`.
-
-## Tests und Balancing-Bot
-
-`node tools/test.mjs` prüft das Spiel automatisch (inkl. eines Bots, der 90 Minuten spielt).
-Details in [`tools/README.md`](tools/README.md); Ideen für neue Funktionen in
-[`docs/vorschlaege.md`](docs/vorschlaege.md), Berichte des täglichen Agenten in
-[`docs/agent-log.md`](docs/agent-log.md).
+Regeln für die Arbeit am Spiel: `CLAUDE.md`. Tests: `node neu/tools/test.mjs`, Bot: `node neu/tools/bot.mjs 90 3`.

@@ -14,7 +14,7 @@ function setLoading(progress) {
 // Logo-Bild statt Text-Logo (sobald Emins Schriftzug geladen ist)
 function showLogo() {
   if (!images.logo) return;
-  for (const id of ['loading-logo', 'start-logo']) $(id).innerHTML = `<img src="${IMAGE_DIR}logo.webp" alt="Epochia">`;
+  for (const id of ['loading-logo', 'start-logo']) $(id).innerHTML = `<img src="${imagePath('logo')}" alt="Epochia">`;
 }
 
 async function preloadImages() {
@@ -34,7 +34,7 @@ function showStartScreen() {
   show($('loading'), false);
   const info = slotInfo(currentSlot);
   $('start-continue').textContent = info && !info.broken ? "▶ Weiterspielen" : '▶ Neues Spiel';
-  if (images.start) $('start').style.backgroundImage = `url(${IMAGE_DIR}start.webp)`;
+  if (images.start) $('start').style.backgroundImage = `url(${imagePath('start')})`;
   show($('start'), true);
 }
 
@@ -250,7 +250,7 @@ function boot() {
   });
   const minWait = new Promise(r => setTimeout(r, 900));
   Promise.all([preloadImages(), minWait]).then(() => {
-    if (images.ladebild) $('loading').style.backgroundImage = `url(${IMAGE_DIR}ladebild.webp)`;
+    if (images.ladebild) $('loading').style.backgroundImage = `url(${imagePath('ladebild')})`;
     showStartScreen();
     // ?direkt überspringt die Startseite (zum Ausprobieren und für Bildschirmfotos)
     if (typeof location !== 'undefined' && /direkt/.test(location.search || '')) enterGame();

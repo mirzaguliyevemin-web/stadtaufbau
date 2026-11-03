@@ -1,3 +1,5 @@
+> **Ordner (seit 03.11.2026):** `gebaeude/<name>/`, `forschung/`, `waren/`, `figuren/`, `gelaende/`, `oberflaeche/`, Originale genauso unter `quelle/`. Das Spiel findet den Ordner über den Namen (`imageFolder` in `neu/js/zeichnen.js`).
+
 # Epochia – Bild-Prompts
 
 Von Claude geschrieben, Emin erzeugt die Bilder. Fertige Bilder hier in `bilder/epochia/` ablegen (PNG oder JPG,

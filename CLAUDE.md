@@ -1,15 +1,14 @@
-# Stadtaufbau – Regeln für Claude
+# Epochia – Regeln für Claude
 
-Aufbauspiel als PWA (reines HTML/CSS/JS mit Canvas). Läuft öffentlich über GitHub Pages:
-https://mirzaguliyevemin-web.github.io/stadtaufbau/ – **jeder Push auf `main` ist sofort live**
-und wird von Emin am Handy gespielt. Siehe `README.md` und `tools/README.md`.
+Aufbauspiel als PWA (reines HTML/CSS/JS mit Canvas) im Ordner `neu/`. Läuft öffentlich über GitHub Pages:
+https://mirzaguliyevemin-web.github.io/stadtaufbau/neu/ – **jeder Push auf `main` ist sofort live**
+und wird von Emin am Handy gespielt. Die Hauptadresse `…/stadtaufbau/` leitet zu Epochia weiter.
 
-## Zwei Spiele im Repo
+Pläne in `docs/` (`konzept-neu.md`, `epoche-1-steinzeit.md`, `epoche-2-bronzezeit.md`, `konzept-wunderwerke.md`).
+Bilder in `bilder/epochia/` nach Art sortiert, jedes Gebäude im eigenen Ordner (`gebaeude/sammlerin/…`), Originale genauso
+unter `quelle/`. Der Pfad folgt aus dem Namen (`imagePath` in `neu/js/zeichnen.js`). Neue Bilder dorthin legen, der Test „Bilder“ prüft das.
 
-- **Altes Spiel** (Hauptadresse): `index.html`, `game.js`, `style.css`, `service-worker.js`.
-- **Epochia** (Neustart, im Aufbau): Ordner `neu/`, live unter `…/stadtaufbau/neu/`. Pläne in `docs/konzept-neu.md`
-  und `docs/epoche-1-steinzeit.md`, Bilder in `bilder/epochia/`. Wenn die erste Epoche fertig ist, wird Epochia die
-  Hauptadresse.
+Das alte Spiel mit Draufsicht liegt in `archiv/altes-spiel/` und wird nicht mehr bearbeitet (Emin, 03.11.2026).
 
 ## Sprache
 
@@ -17,22 +16,16 @@ Alles auf Deutsch: Texte im Spiel, Kommentare, Commit-Nachrichten, Dokumente.
 
 ## Vor jedem Push
 
-1. `node tools/test.mjs` muss mit „Alle … Tests bestanden“ enden. Schlägt etwas fehl: nicht pushen.
-   Das schließt die Epochia-Tests (`node neu/tools/test.mjs`) mit ein.
-2. Version des **geänderten** Spiels an **drei** Stellen gleich erhöhen:
-   - altes Spiel: `APP_VERSION` in `game.js`, `<meta name="app-version">` in `index.html`, `CACHE` in `service-worker.js`;
-   - Epochia: `APP_VERSION` in `neu/js/daten.js`, `<meta name="app-version">` in `neu/index.html`,
-     `CACHE` in `neu/service-worker.js`.
+1. `node neu/tools/test.mjs` muss mit „Alle … Epochia-Tests bestanden“ enden (`--quick` ohne Bot). Schlägt etwas fehl: nicht pushen.
+2. Version an **drei** Stellen gleich erhöhen: `APP_VERSION` in `neu/js/daten.js`, `<meta name="app-version">` in `neu/index.html`,
+   `CACHE` in `neu/service-worker.js`.
 3. Commit mit kurzer deutscher Beschreibung, dann `git push`.
 
 ## Spielstände nie kaputt machen
 
-Spieler haben echte Spielstände im localStorage (`stadtaufbau-save-1/2/3`). Änderungen am
-Speicherformat müssen alte Stände weiter laden (Test „Alte Spielstände“). Gebäude-IDs in
-`BUILDINGS` nie umbenennen oder löschen.
-Epochia speichert getrennt in `epochia-save-1/2/3` und darf die `stadtaufbau-…`-Stände nie anfassen. Auch dort
-Gebäude- und Forschungs-IDs nicht umbenennen; neue Felder im Spielstand in `sanitizeState` (`neu/js/speicher.js`)
-mit Standardwert ergänzen.
+Spieler haben echte Spielstände im localStorage (`epochia-save-1/2/3`). Änderungen am Speicherformat müssen alte Stände weiter
+laden. Gebäude- und Forschungs-IDs nie umbenennen oder löschen; neue Felder im Spielstand in `sanitizeState`
+(`neu/js/speicher.js`) mit Standardwert ergänzen. Die alten Stände `stadtaufbau-…` nie anfassen.
 
 ## Fehler und Wünsche von Emin (`docs/wuensche.md`)
 
@@ -47,16 +40,8 @@ zuerst lesen, dann abarbeiten:
 
 ## Täglicher Agent (automatischer Lauf)
 
-Erlaubt ohne Rückfrage:
-- **Fehler beheben**, die Tests, Bot oder Code-Lektüre aufdecken (Absturz, falsche Anzeige, Logikfehler).
-- **Kleines Balancing**: Zahlen in den Konfigurationslisten oben in `game.js` (Kosten, Produktion,
-  Zeiten) um höchstens etwa 25 % pro Wert anpassen, wenn der Bot-Bericht ein klares Problem zeigt
-  (Zielwerte in `tools/README.md`). Vorher und nachher je 3 Bot-Läufe vergleichen
-  (`node tools/bot.mjs 90 3`).
-- Tests oder Bot verbessern.
-
-Für **Epochia** gilt solange der Aufbau läuft: nur Fehler beheben, die Tests oder Code-Lektüre aufdecken.
-Kein Balancing, keine neuen Inhalte – die Zahlen und Inhalte entstehen in Sitzungen mit Emin. Bot-Werte von
+Solange der Aufbau läuft, gilt: nur Fehler beheben, die Tests oder Code-Lektüre aufdecken, Tests oder Bot verbessern.
+Kein Balancing, keine neuen Inhalte – Zahlen und Inhalte entstehen in Sitzungen mit Emin. Bot-Werte von
 `node neu/tools/bot.mjs 90 3` ins Protokoll schreiben.
 
 Nicht erlaubt – stattdessen als Vorschlag in `docs/vorschlaege.md` eintragen:

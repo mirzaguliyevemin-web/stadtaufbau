@@ -45,7 +45,7 @@ function esc(text) {
 // Kleines Bild (Gebäude, Ware, Forschung) – fehlt das Bild, das Zeichen
 function iconHtml(bild, icon, cls = '') {
   return bild && images[bild]
-    ? `<img class="ic ${cls}" src="${IMAGE_DIR}${bild}.webp" alt="">`
+    ? `<img class="ic ${cls}" src="${imagePath(bild)}" alt="">`
     : `<span class="ic emoji ${cls}">${icon}</span>`;
 }
 
@@ -132,8 +132,8 @@ function applyEpochTheme() {
   const key = st.theme || st.epoch.toLowerCase();
   if (key === themeEpoch) return;
   themeEpoch = key;
-  setCssVar('--bar-wood', `url(${IMAGE_DIR}leiste-holz-${key}.webp)`);
-  setCssVar('--bar-leather', `url(${IMAGE_DIR}leiste-leder-${key}.webp)`);
+  setCssVar('--bar-wood', `url(${imagePath('leiste-holz-' + key)})`);
+  setCssVar('--bar-leather', `url(${imagePath('leiste-leder-' + key)})`);
 }
 
 function renderTopbar() {
@@ -1212,7 +1212,7 @@ function menuHtml() {
   const sw = (key, icon, label, note) => `<label class="switch-row"><span>${icon} ${label}<small>${note}</small></span>
     <input type="checkbox" class="switch" ${settings[key] ? 'checked' : ''} onchange="settings.${key}=this.checked; saveSettings(); updateMusic()"></label>`;
   return `<div class="menu">
-    ${images['logo-rund'] ? `<img class="menu-logo" src="${IMAGE_DIR}logo-rund.webp" alt="Epochia">` : ''}
+    ${images['logo-rund'] ? `<img class="menu-logo" src="${imagePath('logo-rund')}" alt="Epochia">` : ''}
     <section class="card wide">
       <h3>🏕️ Dein Stamm</h3>
       <div class="stats">
@@ -1256,7 +1256,7 @@ function slotsHtml(inGame) {
     const pic = good ? (SLOT_PICTURES[info.stageId] || 'logo-rund') : info ? '' : '1-baustelle-2';
     const when = good && info.savedAt ? new Date(info.savedAt).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) : '';
     return `<div class="slot${cur ? ' current' : ''}${info ? '' : ' empty'}">
-      <div class="slot-pic">${pic ? `<img src="${IMAGE_DIR}${pic}.webp" alt="">` : '⚠️'}</div>
+      <div class="slot-pic">${pic ? `<img src="${imagePath(pic)}" alt="">` : '⚠️'}</div>
       <div class="slot-text">
         <b>Platz ${slot}${cur && inGame ? ' <em>gerade offen</em>' : ''}</b>
         ${good ? `<span class="slot-stage">${esc(info.stage)}</span><span>👥 ${info.pop} Einwohner</span><small>${esc(when)}</small>`

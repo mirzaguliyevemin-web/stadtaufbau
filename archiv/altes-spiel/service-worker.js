@@ -1,0 +1,85 @@
+// Bei Änderungen an den Dateien die Versionsnummer erhöhen (gleiche Nummer wie APP_VERSION in game.js
+// und <meta name="app-version"> in index.html).
+const CACHE = 'stadtaufbau-v72';
+const ASSETS = [
+  './',
+  'index.html',
+  'style.css',
+  'game.js',
+  'manifest.json',
+  'icon.svg',
+  'icon-192.png',
+  'icon-512.png',
+  'bilder/gelaende-baum-laub.webp',
+  'bilder/gelaende-baum-tanne.webp',
+  'bilder/gelaende-baum-birke.webp',
+  'bilder/gelaende-baum-herbst.webp',
+  'bilder/gelaende-baum-winter.webp',
+  'bilder/gelaende-fels-gross.webp',
+  'bilder/gelaende-fels-klein.webp',
+  'bilder/gelaende-busch.webp',
+  'bilder/gelaende-wasser.webp',
+  'bilder/gelaende-wiese.webp',
+  'bilder/gelaende-sand.webp',
+  'bilder/1-hut.webp',
+  'bilder/1-gatherer.webp',
+  'bilder/1-hunter.webp',
+  'bilder/1-woodcutter.webp',
+  'bilder/1-stonecutter.webp',
+  'bilder/1-fireplace.webp',
+  'bilder/1-painter.webp',
+  'bilder/1-watertrough.webp',
+  'bilder/2-house.webp',
+  'bilder/2-farm.webp',
+  'bilder/2-sawmill.webp',
+  'bilder/2-market.webp',
+  'bilder/4-coalmine.webp',
+  'bilder/4-steelworks.webp',
+  'bilder/4-factory.webp',
+  'bilder/4-tenement.webp',
+  'bilder/4-station.webp',
+  'bilder/4-police.webp',
+  'bilder/4-clocktower.webp',
+  'bilder/5-powerplant.webp',
+  'bilder/2-quarry.webp',
+  'bilder/2-warehouse.webp',
+  'bilder/2-park.webp',
+  'bilder/2-firestation.webp',
+  'bilder/2-scriptorium.webp',
+  'bilder/2-brickworks.webp',
+  'bilder/2-well.webp',
+  'bilder/2-guard.webp',
+  'bilder/2-sheepfarm.webp',
+  'bilder/2-fishery.webp',
+  'bilder/2-plaza.webp',
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k.startsWith('stadtaufbau-') && k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+// Netzwerk zuerst (immer aktuelle Version), offline aus dem Cache.
+// cache: 'no-cache' zwingt den Browser, beim Server nachzufragen – sonst kann er alte Dateien
+// aus seinem HTTP-Cache mit neuen mischen.
+self.addEventListener('fetch', event => {
+  const req = event.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  event.respondWith(
+    fetch(req, { cache: 'no-cache' })
+      .then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(cache => cache.put(req, copy));
+        return res;
+      })
+      .catch(() => caches.match(req, { ignoreSearch: true }))
+  );
+});

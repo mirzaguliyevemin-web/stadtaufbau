@@ -14,8 +14,20 @@ let renderScale = 1;
 let chunks = [];          // vorgezeichnete Boden-Stücke (null = neu zeichnen)
 let frameTime = 0;        // Sekunden seit dem Start (für Bewegungen)
 
-// Bilder: bilder/epochia/<name>.webp – fehlt eins, zeichnen wir einen Platzhalter
+// Bilder: bilder/epochia/<ordner>/<name>.webp – fehlt eins, zeichnen wir einen Platzhalter
 const IMAGE_DIR = '../bilder/epochia/';
+// Die Bilder liegen nach Art sortiert, Gebäude je in einem eigenen Ordner (Emin, 03.11.): gebaeude/sammlerin/1-sammlerin-r2-winter.webp.
+// Dieselbe Regel gilt für die Originale in quelle/; der Test „Bilder“ prüft sie gegen die Dateien.
+function imageFolder(name) {
+  const b = /^[12]-(.+)$/.exec(name);
+  if (b) return 'gebaeude/' + b[1].replace(/-winter$/, '').replace(/-r[12]$/, '').replace(/-(bau|halb)$/, '').replace(/^baustelle-\d$/, 'baustelle');
+  if (name.startsWith('f-')) return 'forschung';
+  if (name.startsWith('ware-')) return 'waren';
+  if (/^(mensch-|fischer-|einbaum|hirsch|mammut|ziege)/.test(name)) return 'figuren';
+  if (/^(baum-|berg-|fels-|blumen|busch|wiese|sand|wasser|pfad|bruecke|erdsockel|setzling)/.test(name)) return 'gelaende';
+  return 'oberflaeche';
+}
+function imagePath(name) { return `${IMAGE_DIR}${imageFolder(name)}/${name}.webp`; }
 const images = {};
 
 function loadImage(name) {
@@ -29,7 +41,7 @@ function loadImage(name) {
       resolve(true);
     };
     img.onerror = () => { missingImages.add(name); resolve(false); };
-    img.src = IMAGE_DIR + name + '.webp';
+    img.src = imagePath(name);
   });
 }
 

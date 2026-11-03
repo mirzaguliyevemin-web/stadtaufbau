@@ -881,7 +881,7 @@ let lastHintAt = -1e9;
 const HINT_PAUSE_S = 300;   // höchstens alle 5 Spielminuten ein Hinweis
 
 function renderElderHint() {
-  const face = images['aeltester-1'] ? `<img src="${IMAGE_DIR}aeltester-1.webp" alt="">` : '<span class="emoji">👴</span>';
+  const face = images['aeltester-1'] ? `<img src="${imagePath('aeltester-1')}" alt="">` : '<span class="emoji">👴</span>';
   $('tutorial').innerHTML = `<div class="elder">${face}</div>
     <div class="speech"><b>Stammesältester</b><p>${esc(elderHint)}</p>
       <div class="tut-buttons"><button class="btn primary" onclick="closeElderHint()">Verstanden</button></div>

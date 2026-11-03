@@ -4,7 +4,7 @@
 import os, re
 
 DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'bilder', 'epochia')
-done = {os.path.splitext(f)[0] for f in os.listdir(os.path.join(DIR, 'quelle'))}
+done = {os.path.splitext(f)[0] for _, _, files in os.walk(os.path.join(DIR, 'quelle')) for f in files}
 strike = lambda t: ''.join(c + '̶' for c in t)
 unstrike = lambda t: t.replace('̶', '')
 

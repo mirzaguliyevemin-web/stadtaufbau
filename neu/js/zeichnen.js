@@ -58,6 +58,9 @@ const STILT_IMAGES = {
     outline: [[251, 553], [257, 555], [283, 553], [310, 536], [360, 508], [397, 494], [433, 479], [467, 464], [477, 469], [474, 488], [454, 535], [420, 572], [360, 602], [313, 613], [282, 607], [257, 592], [251, 580]],
   },
 };
+// Das Winterbild ist gleich aufgebaut: Sein gemaltes Boot muss genauso heraus (das lose Boot bekommt seinen Schnee vom Spiel)
+STILT_IMAGES['1-fischerhuette-winter'] = { ...STILT_IMAGES['1-fischerhuette'], boat: null,
+  outline: [[249, 553], [257, 553], [283, 551], [310, 534], [360, 506], [397, 490], [433, 475], [467, 460], [480, 466], [477, 490], [457, 537], [423, 575], [360, 606], [313, 617], [282, 611], [255, 595], [249, 582]] };
 function splitStiltBoat(name, img) {
   try {
     const d = STILT_IMAGES[name];
@@ -69,7 +72,7 @@ function splitStiltBoat(name, img) {
     const bg = b.getContext('2d');
     bg.translate(-x0, -y0); trace(bg); bg.clip(); bg.drawImage(img, 0, 0);
     b.spanPx = d.spanPx * k;
-    images[d.boat] = b;
+    if (d.boat) images[d.boat] = b;
     const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
     const g = c.getContext('2d');
     g.drawImage(img, 0, 0);

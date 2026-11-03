@@ -2539,6 +2539,13 @@ test('Eisenzeit: Salz kommt vorher nicht als Bedürfnis, Wein hebt die Laune, Th
   noErrors(g);
 });
 
+test('Fischerhütte: Auch aus dem Winterbild wird das gemalte Boot gelöst, das lose Boot bleibt das aus dem Sommerbild', () => {
+  const g = fresh();
+  ok(g.run(`STILT_IMAGES['1-fischerhuette-winter'].outline.length > 3 && !STILT_IMAGES['1-fischerhuette-winter'].boat && !!STILT_IMAGES['1-fischerhuette'].boat`), 'Winterbild behält sein Boot');
+  ok(g.run(`STILT_IMAGES['1-fischerhuette-winter'].sockel === STILT_IMAGES['1-fischerhuette'].sockel`), 'Winterbild steht anders');
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

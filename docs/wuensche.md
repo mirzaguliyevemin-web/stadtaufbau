@@ -24,6 +24,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-03, Epochia Version 87 – Fehler von Emin: Fischerhütten hatten im Winter ein halbes Boot im Wasser. Das gemalte Boot wurde nur aus dem Sommerbild gelöst, jetzt auch aus dem Winterbild.
 - 2026-11-03, Epochia Version 86 – Wunsch Emin: Eisenzeit als Technik: drei Stufen, 31 Forschungen (gut 7 Stunden) bis zur noch gesperrten Antike, 27 Gebäude, Eisen, Salz, Glas, Wein, Bedürfnis Salz, 15 Aufträge, Salzberg mit 4 Fundstücken; vorläufige Bilder. Aufbruch aus der Bronzezeit ist frei, Metallreserve schützt jetzt auch ihn. Gesperrter Aufbruch sagt ehrlich „kommt mit dem nächsten Ausbau“.
 - 2026-11-03, Epochia Version 85 – Wunsch Emin: Item-Shop zum Ausprobieren ohne echtes Geld: Gold, Beschleunigen von Forschung, Bau und Wunderwerk, fehlende Fundstücke, Warenpakete, eine Baustelle mehr.
 - 2026-11-03, Epochia Version 84 – Wunsch Emin: Technik für weiche Arbeitsbewegungen mit 3 Bildern; jede Arbeit hat eine eigene Bewegung, Kupfermine, Köhler, Schmelzofen, Gießer, Zinnwäscherin und Schmuckmacherin zeigen jetzt Menschen; Fundstück-Bilder Muschel und Stoßzahn.

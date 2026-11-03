@@ -2340,6 +2340,25 @@ test('Bilder: Jede Datei liegt dort, wo imagePath sie erwartet; alles, was das S
   noErrors(g);
 });
 
+test('Arbeitsbewegungen: Jedes Gebäude mit Arbeitern hat eine eigene, passende Arbeit; Bilder überblenden weich', () => {
+  const g = fresh();
+  const ohne = g.run(`Object.keys(BUILDINGS).filter(t => BUILDINGS[t].workers && !WORK[t]).join()`);
+  ok(!ohne, 'Gebäude ohne Arbeit: ' + ohne);
+  ok(g.run(`WORK.weberin.swing !== WORK.fellmacherin.swing || WORK.weberin.thing !== WORK.fellmacherin.thing`), 'Weberin schabt Fell');
+  ok(g.run(`WORK.kupferschmied.thing !== WORK.steinschlaeger.thing`) && g.run(`WORK.sternkundiger.swing !== 'paint'`) && g.run(`WORK.gemuesegarten.target === 'self'`), 'Falscher Beruf');
+  // Jede Art wird ohne Fehler gezeichnet
+  ok(g.run(`(() => { for (const kind of Object.values(WORK)) for (const phase of ['work', 'back', 'go']) drawWorker({ kind, phase, x: 256, y: 256, tx: 257, ty: 256, sx: 256, sy: 256, w: 0, t: 2, ph: 0, face: 1, k: 0, b: state.buildings[0], route: [] }, 3.3); return true; })()`), 'Zeichnen');
+  // Überblenden: Deckkraft stimmt für zwei und drei Bilder, Reihenfolge oben – Mitte – unten – Mitte
+  const seq = g.run(`(() => { const out = []; for (let c = 0; c < 1; c += 0.02) { const m = poseMix(3, c); out.push(m[m.length - 1][0]); if (!m.every(x => x[1] >= 0 && x[1] <= 1)) return 'Deckkraft'; } return out.join(''); })()`);
+  ok(seq !== 'Deckkraft' && /0+1+2+1+0*/.test(seq), 'Reihenfolge falsch: ' + seq);
+  const zwei = g.run(`[poseMix(2, 0.3)[0][0], poseMix(2, 0.8)[0][0], poseMix(2, 0.68).length, poseMix(2, 0.999).length]`);
+  ok(zwei[0] === 0 && zwei[1] === 1 && zwei[2] === 2 && zwei[3] === 2, 'Zwei Bilder falsch: ' + zwei);
+  // Alle eigenen Bewegungen: drei Bilder, und die Bilder gibt es
+  const fehlt = g.run(`Object.values(ANIM_POSES).flat().map(f => f[0]).filter(n => !imageNames().includes(n)).join()`);
+  ok(!fehlt, 'Bild wird nicht geladen: ' + fehlt);
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

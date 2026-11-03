@@ -15,9 +15,12 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 - Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit und Bronzezeit gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis, Halle der Himmelsscheibe). Offen: restliche Fundstück-Bilder und Rückseiten der neuen Wunderwerke (Canva); spätere Zeitalter mit deren Bau. Plan: `docs/konzept-wunderwerke.md`.
 
+- Arbeitsbewegungen (Emin, 03.11.): 74 Bilder mit je 3 Stufen, Plan `docs/plan-arbeitsbewegungen.md`. Item-Shop: Plan `docs/plan-item-shop.md`, 6 Fragen an Emin offen.
+
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-03, Epochia Version 84 – Wunsch Emin: Technik für weiche Arbeitsbewegungen mit 3 Bildern; jede Arbeit hat eine eigene Bewegung, Kupfermine, Köhler, Schmelzofen, Gießer, Zinnwäscherin und Schmuckmacherin zeigen jetzt Menschen; Fundstück-Bilder Muschel und Stoßzahn.
 - 2026-11-03, Epochia Version 83 – Wunsch Emin: letzte Winterbilder der Rückseiten (Töpferei, Vorratsspeicher), erste Fundstück-Bilder (Rötel, Holzkohle, Adlerfeder).
 - 2026-11-03, Epochia Version 82 – Wunsch Emin: altes Spiel und ungenutzte Dateien entfernt (alte Fischerplatz-Bilder, zwei alte Zweige, nicht mehr gebrauchte Werkzeuge); Winterbilder der Rückseiten von Steinschläger und Ahnenplatz.
 - 2026-11-03, Epochia Version 81 – Wunsch Emin: Ordner aufgeräumt: altes Spiel entfernt, Hauptadresse leitet zu Epochia, Bilder nach Art und Gebäude sortiert. Der alte Ruckel-Fehler entfällt damit. Dazu Baustufen des Steinkreises, Winterbilder von Höhle, Halle, Feuerplatz- und Fellmacherin-Rückseite.

@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 83;
+const APP_VERSION = 84;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -951,9 +951,9 @@ const FIND_LATER = 'Kommt in einem späteren Zeitalter';
 const FINDS = {
   roetel:      { name: 'Rötel', icon: '🔴', bild: 'fund-roetel', page: 'steinzeit', need: 5, spot: 'fels', hint: 'Glitzert an Felsen' },
   holzkohle:   { name: 'Holzkohle-Stift', icon: '⚫', bild: 'fund-holzkohle', page: 'steinzeit', need: 2, hint: 'Glimmt nachts am Lagerfeuer' },
-  stosszahn:   { name: 'Mammut-Stoßzahn', icon: '🦣', page: 'steinzeit', spot: 'fels', spotExtinct: true, hint: 'Von der Mammutjagd, später alt im Fels' },
+  stosszahn:   { name: 'Mammut-Stoßzahn', icon: '🦣', bild: 'fund-stosszahn', page: 'steinzeit', spot: 'fels', spotExtinct: true, hint: 'Von der Mammutjagd, später alt im Fels' },
   feder:       { name: 'Adlerfeder', icon: '🪶', bild: 'fund-feder', page: 'steinzeit', spot: 'wald', hint: 'Glitzert im Wald, Jäger finden manchmal eine' },
-  muschel:     { name: 'Flussmuschel', icon: '🐚', page: 'steinzeit', need: 2, spot: 'ufer', hint: 'Glitzert am Ufer, nach Hochwasser mehr' },
+  muschel:     { name: 'Flussmuschel', icon: '🐚', bild: 'fund-muschel', page: 'steinzeit', need: 2, spot: 'ufer', hint: 'Glitzert am Ufer, nach Hochwasser mehr' },
   sternkarte:  { name: 'Sternkarte', icon: '🗺️', page: 'steinzeit', need: 3, tech: 'sternenkunde', hint: 'Sternschnuppe in der Nacht (Sternenkunde)' },
   findling:    { name: 'Riesenfindling', icon: '🪨', page: 'steinzeit', need: 5, tech: 'sternenkunde', hint: 'Liegt am Gebirge, wenn der Steinkreis gebaut wird' },
   sonnenstein: { name: 'Sonnenstein', icon: '☀️', page: 'steinzeit', stage: 'jung', hint: 'Steinsammler finden ihn in der Jungsteinzeit' },

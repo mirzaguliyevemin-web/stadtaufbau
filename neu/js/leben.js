@@ -316,15 +316,29 @@ function targetGone(w) {
   return inMap(x, y) && !targetIds(k).includes(terrain[y * N + x]);
 }
 
-// Weiterentwicklungen der Kupferzeit arbeiten wie ihre Vorstufe (eigene Figuren folgen mit den Bildern)
-Object.assign(WORK, { gemuesegarten: WORK.sammlerin, fischerhuette: WORK.fischerplatz, holzfaeller: WORK.holzsammler, steinbruch: WORK.steinsammler,
-  felsritzer: WORK.hoehlenmaler, lehmgrube: WORK.tongrube, kupferschmied: WORK.steinschlaeger,
-  jagdhuette: WORK.mammutjaegerlager, feld: WORK.acker, viehhof: WORK.ziegengehege, baumgaertnerin: WORK.pflanzerin, weberin: WORK.fellmacherin,
-  bronzeschmied: WORK.steinschlaeger, toepferwerkstatt: WORK.toepferei, sternkundiger: WORK.hoehlenmaler });
+// Jede Arbeit hat einen eigenen Eintrag (docs/plan-arbeitsbewegungen.md). Solange die eigenen Bilder fehlen, passt die Bewegung
+// zur Arbeit, so gut es mit den vorhandenen Figuren geht: anim = Name in ANIM_POSES, sobald die Bilder da sind.
+Object.assign(WORK, {
+  holzfaeller: WORK.holzsammler, steinbruch: WORK.steinsammler, lehmgrube: WORK.tongrube, fischerhuette: WORK.fischerplatz,
+  jagdhuette: WORK.mammutjaegerlager, feld: WORK.acker, viehhof: WORK.ziegengehege, baumgaertnerin: WORK.pflanzerin, toepferwerkstatt: WORK.toepferei,
+  gemuesegarten:  { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: '#d8344a', swing: 'pick' },   // bleibt auf dem Beet
+  felsritzer:     { target: 'fels',   tool: null,    carry: 'ware-wissen', img: 'mensch-mann', chips: '#b9b4a8', swing: 'chisel' },
+  sternkundiger:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: null, swing: 'gaze' },       // schaut zum Himmel
+  kupferschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug' },
+  bronzeschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug' },
+  weberin:        { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: null, swing: 'scrape', thing: 'ware-kleidung' },
+  schmuckmacherin:{ target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: '#ffd166', swing: 'knap' },
+  kupfermine:     { target: 'fels',   tool: 'hacke', carry: null, img: 'mensch-mann', chips: '#6fae8a', swing: 'hack', carryLook: 'mensch-mann-stein' },
+  koehler:        { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'tend' },   // am Meiler
+  schmelzofen:    { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'tend' },
+  bronzegiesser:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffd166', swing: 'tend' },
+  zinnwaescherin: { target: 'wasser', tool: null,    carry: null, img: 'mensch-frau', chips: '#cfe9f7', swing: 'pan' },    // schwenkt die Pfanne am Ufer
+});
 
 // Arbeitsplatz IN der Werkstatt (auf der Platte, vordere Hälfte, passend zum Bild): [Standplatz u, v, Werkstück u, v]
 // u läuft zur rechten, v zur linken Ecke der Raute (0 … Größe). Gespiegelte Ansicht: u und v tauschen.
 const INSIDE_SPOTS = {
+  gemuesegarten:  [[1.5, 1.0, 1.1, 0.9], [1.0, 1.5, 0.9, 1.1]],   // zwischen den Beeten
   fellmacherin:   [[1.55, 1.05, 1.25, 0.8], [1.05, 1.55, 0.8, 1.25]],   // vor den Spannrahmen
   steinschlaeger: [[1.6, 1.05, 1.15, 1.25], [1.25, 1.7, 1.1, 1.25]],    // am großen Arbeitsstein
   kupferschmied:  [[1.6, 1.05, 1.15, 1.25], [1.25, 1.7, 1.1, 1.25]],
@@ -529,19 +543,27 @@ function drawWorker(w, t) {
   let bob = walking ? Math.abs(Math.sin(step)) * 1.2 * z : 0;
   const swing = w.kind.swing;
   if (!walking && swing === 'pick') bob = -Math.max(0, Math.sin(t * 3 + w.ph)) * 3 * z;   // bückt sich zum Busch
+  if (!walking && (swing === 'tend' || swing === 'pan')) bob = (Math.sin(t * 2 + w.ph) + 1) * 0.9 * z;   // wiegt sich bei der Arbeit
+  if (!walking && swing === 'chisel') bob = Math.abs(Math.sin(t * 6 + w.ph)) * 0.8 * z;
   // mit Last nur auf dem Rückweg (carryLook: das Grundbild zeigt schon Holz bzw. Korb), sonst leere Hände
   const look = w.kind.look && images[w.kind.look] ? w.kind.look   // Jäger immer mit Speer
     : w.phase === 'back' && w.kind.carryLook && images[w.kind.carryLook] ? w.kind.carryLook : personImg(w.kind.img, 'leer');
   const p = tileToScreen(w.x, w.y);
-  const pose = !walking && w.kind.tool && TOOL_POSES[w.kind.tool];
-  const posed = pose && images[pose[0][0]] && images[pose[1][0]];
-  if (posed) {   // Arbeitshaltung aus Canva: ausholen (lang) – zuschlagen (kurz), das Werkzeug ist in der Hand
-    const cyc = (t * 1.6 + w.ph) % 1, [name, h, shift] = pose[cyc < 0.7 ? 0 : 1], img = images[name];
-    const hh = h * z, ww = hh * img.width / img.height;
+  // Arbeitshaltung aus Canva: ganz eigene Bewegung (anim) oder das Werkzeug in der Hand
+  const pose = !walking && ((w.kind.anim && ANIM_POSES[w.kind.anim]) || (w.kind.tool && TOOL_POSES[w.kind.tool]));
+  const frames = pose ? pose.filter(f => images[f[0]]) : [];
+  const posed = frames.length >= 2;
+  if (posed) {
+    const m = poseMix(frames.length, (t * 1.6 + w.ph) % 1);
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.beginPath(); ctx.ellipse(p.x, p.y, 10 * z, 3.2 * z, 0, 0, 7); ctx.fill();
     ctx.save(); ctx.translate(p.x, p.y); if (w.face < 0) ctx.scale(-1, 1);
-    ctx.drawImage(img, -ww / 2 - ww * shift, -hh, ww, hh);
+    for (const [i, alpha] of m) {
+      const [name, h, shift] = frames[i], img = images[name], hh = h * z, ww = hh * img.width / img.height;
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(img, -ww / 2 - ww * shift, -hh, ww, hh);
+    }
+    ctx.globalAlpha = 1;
     ctx.restore();
   } else if (!walking && BEND_POSES[swing] && images[BEND_POSES[swing]]) {   // bückt sich zum Busch / kniet am Setzling (Canva)
     const img = images[BEND_POSES[swing]], hh = 30 * z, ww = hh * img.width / img.height, dip = Math.max(0, Math.sin(t * 3 + w.ph)) * 1.5 * z;
@@ -617,6 +639,38 @@ function drawWorker(w, t) {
       ctx.fillStyle = w.kind.chips;
       for (let i = 0; i < 3; i++) ctx.fillRect(hx + (i - 1) * 4 * z, hy - (2 + i) * z, 2 * z, 2 * z);
     }
+  }
+  // Köhler, Ofen, Gießer: beugt sich sanft zur Glut, Funken steigen auf
+  if (!walking && swing === 'tend') {
+    const g = tileToScreen(w.tx, w.ty), q = (t * 0.8 + w.ph) % 1;
+    ctx.fillStyle = w.kind.chips;
+    for (let i = 0; i < 4; i++) {
+      const k = (q + i * 0.25) % 1;
+      ctx.globalAlpha = 1 - k;
+      ctx.fillRect(g.x + Math.sin(k * 9 + i) * 5 * z - z, g.y - 8 * z - k * 18 * z, 2 * z, 2 * z);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // Felsritzer: kleine Splitter an der Wand
+  if (!walking && swing === 'chisel') {
+    const g = tileToScreen(w.tx, w.ty), q = (t * 2 + w.ph) % 1;
+    if (q < 0.4) {
+      ctx.fillStyle = w.kind.chips; ctx.globalAlpha = 1 - q / 0.4;
+      for (let i = 0; i < 3; i++) ctx.fillRect(g.x + (i - 1) * 5 * q * z * 2.5, g.y - 14 * z - q * 8 * z, 2 * z, 2 * z);
+      ctx.globalAlpha = 1;
+    }
+  }
+  // Zinn waschen: das Wasser spritzt beim Schwenken
+  if (!walking && swing === 'pan') {
+    const q = (t * 1.2 + w.ph) % 1;
+    if (q < 0.5) splash(p.x - w.face * 12 * z, p.y - 2 * z, z, 1 - q * 2);
+  }
+  // Sternkundiger: nachts funkelt über ihm ein Stern
+  if (!walking && swing === 'gaze' && darkness() > 0.3) {
+    const q = 0.5 + 0.5 * Math.sin(t * 2 + w.ph);
+    ctx.globalAlpha = darkness() * (0.4 + q * 0.6);
+    drawSparkle(p.x - w.face * 14 * z, p.y - 48 * z, (4 + q * 3) * z, '#fff6c8', t * 0.3);
+    ctx.globalAlpha = 1;
   }
   // Beeren pflücken: ab und zu hüpft eine Beere in den Korb
   if (!walking && swing === 'pick') {
@@ -842,6 +896,22 @@ const TOOL_POSES = {
   speer: [['fischer-speer-oben', 40, 0.05], ['fischer-speer-unten', 34, 0.12]],
   grabstock: [['mensch-frau-grabstock-oben', 36, 0], ['mensch-frau-grabstock-unten', 33, 0.1]],
 };
+
+// Eigene Bewegungen je Beruf (je Bild: Name, Höhe, Versatz). Nur eintragen, was es als Bild gibt, sonst würde es umsonst geladen.
+const ANIM_POSES = {};
+for (const list of Object.values(ANIM_POSES)) for (const [name] of list) if (!LIFE_NAMES.includes(name)) LIFE_NAMES.push(name);
+
+// Welche Bilder gerade zu sehen sind: [[Bildnummer, Deckkraft], …]. Ausholen ist langsam, der Schlag schnell. Dazwischen wird
+// kurz überblendet, das macht die Bewegung weich. Zwei Bilder: oben, unten. Drei Bilder: oben, Mitte, unten, Mitte, oben.
+function poseMix(n, cyc) {
+  const keys = n >= 3 ? [[0, 0], [1, 0.58], [2, 0.7], [1, 0.9]] : [[0, 0], [1, 0.7]];
+  let k = keys.length - 1;
+  while (keys[k][1] > cyc) k--;
+  const next = keys[(k + 1) % keys.length], end = k === keys.length - 1 ? 1 : next[1];
+  const fade = 0.05, left = end - cyc;
+  if (left >= fade) return [[keys[k][0], 1]];
+  return [[keys[k][0], 1], [next[0], 1 - left / fade]];
+}
 
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
 const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, 'mensch-mann-leer': 0.62, 'mensch-frau-leer': 0.62, 'mensch-jaeger': 0.62, 'mensch-mann-stein': 0.62, 'mensch-hirte': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };

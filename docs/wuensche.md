@@ -20,11 +20,12 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 - Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, noch ohne Bilder (ab 27.11.). Plan: `docs/epoche-2-bronzezeit.md`.
 
-- Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit fertig gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis). Offen: Bilder der Baustufen und Fundstücke (Canva), Halle der Himmelsscheibe (Bronzezeit), danach Wunderwerke späterer Zeitalter. Plan und Entscheidungen: `docs/konzept-wunderwerke.md`.
+- Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit und Bronzezeit gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis, Halle der Himmelsscheibe). Offen: Bilder der Baustufen von Steinkreis und Halle, Fundstück-Bilder, Winterbilder und Rückseiten der neuen Wunderwerke (Canva); spätere Zeitalter mit deren Bau. Plan: `docs/konzept-wunderwerke.md`.
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-03, Epochia Version 79 – Wunsch Emin: Halle der Himmelsscheibe (4 Abschnitte setzen die Scheibe aus 5 Teilen zusammen, Goldblättchen, Zinn-Perlen, großer Bernstein vom Händler; Bronzegießer +20 %, Händler 5 Minuten früher, Großes Sonnwendfest), Bilder der Höhle.
 - 2026-11-03, Epochia Version 78 – Fehler von Emin: Ältester meldete direkt nach dem Bau „hier arbeitet niemand“, obwohl Leute frei waren (Arbeiter werden nur 4× je Sekunde verteilt). Wunsch Emin: Wunderwerke Schritt 3: Steinkreis in 4 Abschnitten (Sternkarten, Riesenfindlinge rollen, Sonnenstein, Blumenkränze), Sonnenkalender warnt vor Katastrophen, Äcker +10 %, Sonnwendfest mit Geschenk; fertiger Steinkreis und alte Baustelle bleiben erhalten. Schritt 2: Höhle der Geschichten (4 Kapitel mit Fundstücken, Platz selbst wählen an Felsen, Wissen, Bonus, Wärme, Geschichtenabend, Fest im Herbst, Album-Seite, eigenes Bild).
 - 2026-11-03, Epochia Version 76 – Wunsch Emin: Wunderwerke Schritt 1: Fundstücke (glitzernde Stellen, Glut nachts, Sternschnuppe, Glück bei der Arbeit, Jagd, Hochwasser, Tag-7-Truhe, Fundkorb offline), Schatzkiste mit Tausch 3 gegen 1; Erzader bringt 40 Kupfererz, jede 3. dazu ein Goldblättchen. Fundstück-Bilder ab 27.11., bis dahin Emojis.
 - 2026-11-03, Epochia Version 75 – Wunsch Emin: echte, geschlossene Rückseiten für Sammlerin und Langhaus (Canva), beim Langhaus steigt der Rauch jetzt aus dem Dach. Winterbilder dazu in Version 76.

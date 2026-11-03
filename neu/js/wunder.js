@@ -55,6 +55,7 @@ function updateWonders(dt) {
     w.left -= dt;
     if (w.left > 0) continue;
     w.left = 0;
+    for (const [fid, n] of Object.entries(WONDERS[id].steps[w.step].gives || {})) addFind(fid, n);
     w.step++;
     const done = wonderDone(id);
     if (done) {
@@ -80,12 +81,16 @@ function wonderBonus(type) {
 
 // Fest eines fertigen Wunderwerks: einmal im Jahr, ergibt sich aus der Jahreszeit (muss nicht gespeichert werden)
 function wonderFest() {
-  for (const id of Object.keys(WONDERS)) {
+  for (const id of Object.keys(WONDERS).reverse()) {   // das spätere Wunderwerk richtet das Fest aus
     const fest = WONDERS[id].fest;
     if (fest && state.wonders[id] && state.wonders[id].festUntil > state.playTime) return { name: fest.name };   // erstes Fest gleich nach dem Bau
     if (fest && state.wonders[id] && wonderDone(id) && Math.abs(state.yearTime - CONFIG.yearSeconds * fest.year) <= CONFIG.fest.seconds / 2) return fest;
   }
   return null;
+}
+
+function wonderTraderFaster() {
+  return Object.keys(WONDERS).reduce((n, id) => n + (WONDERS[id].traderFaster && state.wonders[id] && wonderDone(id) ? WONDERS[id].traderFaster : 0), 0);
 }
 
 // Was gerade offen ist, für Aufträge und den Zähler am Knopf

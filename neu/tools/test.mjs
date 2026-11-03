@@ -2027,6 +2027,13 @@ test('Fundstücke: Erzader nur mit Kupfermine, Glut und Sternschnuppe sofort, Ja
   ok(!g.run(`findAvailable('sternkarte')`), 'Sternkarte vor der Forschung');
   g.run(`state.techs.sternenkunde = true;`);
   ok(g.run(`findAvailable('sternkarte')`), 'Sternkarte trotz Forschung nicht möglich');
+  // Sternschnuppe: auch bei Wolken spätestens gegen Ende der Nacht, je Nacht eine
+  g.run(`state.spots = []; state.fund.sternNight = -1; currentWeather = () => ({ id: 'regen' }); state.playTime = CONFIG.daySeconds * 5.75; updateMoments();`);
+  ok(!g.run(`state.spots.some(s => s.kind === 'stern')`), 'Sternschnuppe zu früh bei Wolken');
+  g.run(`state.playTime = CONFIG.daySeconds * 5.89; updateMoments();`);
+  ok(g.run(`state.spots.filter(s => s.kind === 'stern').length`) === 1, 'Keine Sternschnuppe am Ende der Nacht');
+  g.run(`collectSpot(state.spots.findIndex(s => s.kind === 'stern')); updateMoments();`);
+  ok(g.run(`!state.spots.some(s => s.kind === 'stern') && findCount('sternkarte') === 1`), 'Zwei Sternschnuppen in einer Nacht');
   // Jagd: jede 2., mit Mammutjägerlager jede
   g.run(`state.buildings.push({ type: 'jaegerlager', x: 240, y: 240, rot: 0, build: 0 }); rebuildOccupancy(); isConnected = () => true; state.finds = {}; state.herdWait = 0; state.huntsDone = 0;
     state.hunt = { left: 0.1, cx: 0, cy: 0, x: 0, y: 0 }; updateHunt(1);`);
@@ -2045,7 +2052,7 @@ test('Fundstücke: Erzader nur mit Kupfermine, Glut und Sternschnuppe sofort, Ja
 
 test('Fundstücke: Glück bei der Arbeit ist nach der Schutzzeit sicher, Fundkorb und Tausch', () => {
   const g = fresh();
-  g.run(`state.buildings.push({ type: 'jaegerlager', x: 240, y: 240, rot: 0, build: 0 }); rebuildOccupancy(); stats.staff[state.buildings.length - 1] = 1; state.fund.luck.feder = 2400 - 60; updateLuck();`);
+  g.run(`state.buildings.push({ type: 'jaegerlager', x: 240, y: 240, rot: 0, build: 0 }); rebuildOccupancy(); state.buildings[state.buildings.length - 1].paused = true; state.fund.luck.feder = 2400 - 60; updateLuck();`);
   ok(g.run(`findCount('feder')`) === 1, 'Feder trotz Schutzzeit nicht gefunden');
   ok(g.run(`state.fund.luck.feder`) === 0, 'Zähler nicht zurückgesetzt');
   // Fundkorb: 15 Minuten eins, 1 Stunde zwei, nie mehr als zwei
@@ -2268,6 +2275,50 @@ test('Hinweis „hier arbeitet niemand“ nur, wenn wirklich alle beschäftigt s
   // Wirklich niemand mehr frei: Meldung kommt
   g.run(`for (let k = 0; k < 5; k++) state.buildings.push({ type: 'steinschlaeger', x: 204 + k * 3, y: 200, rot: 0, build: 0 }); rebuildOccupancy(); recalcStats(); state.pop = stats.housing; lastHintAt = -1e9; elderHint = null; checkStaffHint();`);
   ok(/Hier arbeitet niemand/.test(g.run(`elderHint`) || ''), 'Echte Meldung fehlt');
+  noErrors(g);
+});
+
+test('Halle der Himmelsscheibe: 4 Abschnitte setzen die Scheibe zusammen, Händler bringt Bernstein, Boni', () => {
+  const g = fresh();
+  g.run(`state.stage = 'spaet'; state.techs.himmelsscheibe = true; isConnected = () => true;`);
+  const spot = g.run(`(() => { for (let y = landBox.y0; y <= landBox.y1; y++) for (let x = landBox.x0; x <= landBox.x1; x++) if (isOwned(x, y) && !buildProblem('himmelshalle', x, y)) return [x, y]; return null; })()`);
+  ok(spot && g.run(`placeBuilding('himmelshalle', ${spot[0]}, ${spot[1]})`) === null, 'Nicht baubar');
+  g.run(`rebuildOccupancy(); recalcStats();`);
+  ok(g.run(`barEntries().every(e => e.type !== 'himmelshalle')`) && g.run(`barEntries().some(e => e.type === 'geschichtenhoehle')`) !== undefined, 'Bauleiste');
+  // Abschnitt 1 gibt das erste Stück
+  g.run(`Object.assign(state.res, { holz: 500, stein: 500, bronze: 500, schmuck: 50, kleidung: 50, wissen: 500 });`);
+  ok(g.run(`startWonderStep('himmelshalle')`) === null, 'Abschnitt 1');
+  g.run(`for (let i = 0; i < 73; i++) updateWonders(5);`);
+  ok(g.run(`findCount('scheibe')`) === 1, 'Kein Stück der Scheibe');
+  // Abschnitt 2: Gold aus der Erzader
+  ok(/Goldblättchen/.test(g.run(`wonderStepProblem('himmelshalle')`)), 'Gold nicht verlangt');
+  g.run(`state.finds.goldblatt = 3;`);
+  ok(g.run(`startWonderStep('himmelshalle')`) === null, 'Abschnitt 2');
+  g.run(`for (let i = 0; i < 121; i++) updateWonders(5);`);
+  ok(g.run(`findCount('scheibe')`) === 3 && g.run(`findCount('goldblatt')`) === 0, 'Abschnitt 2 falsch gezählt');
+  // Händler: bietet den Bernstein an, solange er fehlt, und nur dann
+  g.run(`state.buildings.push({ type: 'handelsplatz', x: 200, y: 200, rot: 0, build: 0 }); rebuildOccupancy(); state.trader.left = 100; state.trader.done = []; hasMaker = () => true;`);
+  ok(g.run(`traderOffers().some(o => o.id === 'bronze_grossbernstein')`), 'Kein Bernstein-Angebot: ' + g.run(`traderOffers().map(o => o.id).join()`));
+  ok(g.run(`traderHtml()`).includes('Großer Bernstein'), 'Angebot nicht im Fenster');
+  ok(g.run(`doTrade('bronze_grossbernstein')`) === null && g.run(`findCount('bernsteinstueck')`) === 1, 'Tausch ging nicht');
+  ok(!g.run(`traderOffers().some(o => o.id === 'bronze_grossbernstein')`), 'Bernstein-Angebot trotz Besitz');
+  g.run(`state.trader.left = 0;`);
+  // Abschnitt 3 und 4
+  g.run(`state.finds.zinnperle = 2;`);
+  ok(g.run(`startWonderStep('himmelshalle')`) === null, 'Abschnitt 3: ' + g.run(`wonderStepProblem('himmelshalle')`));
+  g.run(`for (let i = 0; i < 121; i++) updateWonders(5);`);
+  ok(g.run(`startWonderStep('himmelshalle')`) === null, 'Abschnitt 4: ' + g.run(`wonderStepProblem('himmelshalle')`));
+  g.run(`for (let i = 0; i < 121; i++) updateWonders(5);`);
+  ok(g.run(`wonderDone('himmelshalle')`) && g.run(`findCount('scheibe')`) === 5, 'Scheibe nicht vollständig');
+  // Wirkung
+  ok(Math.abs(g.run(`wonderBonus('bronzegiesser')`) - 1.2) < 1e-9, 'Bonus Bronzegießer: ' + g.run(`wonderBonus('bronzegiesser')`));
+  ok(g.run(`wonderTraderFaster()`) === 300, 'Händler nicht schneller');
+  g.run(`state.wonders.himmelshalle.festUntil = 0; state.yearTime = CONFIG.yearSeconds * 3 / 8;`);
+  ok(g.run(`wonderFest().name`) === 'Großes Sonnwendfest', 'Falsches Fest');
+  ok(g.run(`techBuildGaps('aufbruch_eisenzeit').every(x => x.type !== 'himmelshalle')`), 'Fertige Halle zählt nicht für den Aufbruch');
+  // Nach Laden bleibt alles
+  ok(g.run(`loadFromText(serialize()) && wonderDone('himmelshalle') && findCount('scheibe') === 5`), 'Laden');
+  ok(g.run(`wonderAlbumHtml('bronze')`).includes('Halle der Himmelsscheibe'), 'Album');
   noErrors(g);
 });
 

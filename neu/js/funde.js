@@ -138,7 +138,8 @@ function updateMoments() {
     const p = fireSpot();
     if (p) { f.glutNight = night; const spot = { kind: 'glut', x: Math.floor(p.x), y: Math.floor(p.y), find: 'holzkohle' }; state.spots.push(spot); emit('spotAppeared', spot); }
   }
-  if (findAvailable('sternkarte') && f.sternNight !== night && currentWeather().id === 'klar' && !state.spots.some(s => s.kind === 'stern')) {
+  // Sternschnuppe: bei klarem Himmel, gegen Ende der Nacht sicher (sonst dauern 3 Sternkarten bei wolkigem Wetter Stunden)
+  if (findAvailable('sternkarte') && f.sternNight !== night && (currentWeather().id === 'klar' || dayPart() >= 0.88) && !state.spots.some(s => s.kind === 'stern')) {
     f.sternNight = night;
     addSpot('stern', 'sternkarte');
   }
@@ -149,7 +150,7 @@ function updateLuck() {
   const f = state.fund;
   for (const r of CONFIG.finds.luck) {
     if (!findAvailable(r.find) || (r.seasons && !r.seasons.includes(seasonIndex()))) continue;
-    const works = state.buildings.some((b, i) => BUILDINGS[b.type].line === r.line && !b.build && stats.staff[i] > 0);
+    const works = state.buildings.some(b => BUILDINGS[b.type].line === r.line && !b.build);   // auch pausierte zählen, sonst hängt der Steinkreis
     if (!works) continue;
     const t = (f.luck[r.find] || 0) + 60;
     f.luck[r.find] = t;

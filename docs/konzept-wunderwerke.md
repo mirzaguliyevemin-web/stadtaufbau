@@ -250,7 +250,9 @@ Jede spätere Epoche: dann nur noch Daten, Texte und Bilder (mittel), weil die T
 - ✅ Schritt 1 (Version 76): Fundstücke, Fundstellen, Schatzkiste, Tausch, Fundkorb, Erzader. Abweichungen vom Entwurf: Der Glücksschutz bringt immer das Stück, von dem im Verhältnis zum Bedarf am wenigsten da ist; „doppelt“ heißt alles über dem Bedarf des Wunderwerks; Riesenfindling kommt erst mit dem Steinkreis, spätere Fundstücke sind nur im Album sichtbar. Bilder fehlen noch (Emojis).
 - ✅ Schritt 2 (Version 78): Höhle der Geschichten mit 4 Abschnitten. Das Fest der Geschichten liegt mitten im Herbst, damit es nicht mit dem Sonnwendfest zusammenfällt. Fehlt noch: Rückseite und Winterbilder der Höhle.
 - ✅ Schritt 3 (Version 78): Steinkreis in 4 Abschnitten. Der Bot baut ihn mit. Fehlt noch: Bilder der Baustufen (bis dahin das Baustellenbild).
-- ⏳ Nächstes Wunderwerk: Halle der Himmelsscheibe.
+- ✅ Halle der Himmelsscheibe (Version 79): 4 Abschnitte, die Scheibe entsteht als Belohnung der Kapitel. Sie ist für den Aufbruch in die Eisenzeit nötig, der noch gesperrt ist. Der Fürstenhügel bleibt ein normales Wahrzeichen.
+- Messung Version 79, sparsamer Testspieler (3 Läufe): Aufbruch aus der Steinzeit nach 360–385 Minuten (ohne Wunderwerk-Bau 296–309). Abweichung: Je Nacht kommt sicher eine Sternschnuppe, nicht nur bei klarem Himmel; mit der Regel „nur klar“ dauerte es 525 bis über 800 Minuten.
+- ⏳ Spätere Zeitalter: mit deren Bau.
 
 ## 6 · Entscheidungen von Emin (2026-11-03)
 

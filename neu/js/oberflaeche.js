@@ -1101,7 +1101,7 @@ function traderHtml() {
     const taken = state.trader.done.includes(o.id);
     const problem = taken ? null : tradeProblem(o.id);
     return `<div class="quest-card${taken ? ' done' : ''}">
-      <div class="q-main"><b>Du gibst ${costHtml(o.give)}</b><span class="q-reward">Du bekommst ${rewardChips(o.get)}</span>${problem ? `<small class="bad">${esc(problem)}</small>` : ''}</div>
+      <div class="q-main"><b>Du gibst ${costHtml(o.give)}</b><span class="q-reward">Du bekommst ${o.getFind ? `${FINDS[o.getFind].icon} ${esc(FINDS[o.getFind].name)}` : rewardChips(o.get)}</span>${problem ? `<small class="bad">${esc(problem)}</small>` : ''}</div>
       ${taken ? '<span class="q-pct">✔</span>' : `<button class="btn primary" ${problem ? 'disabled' : ''} onclick="tradeNow('${o.id}')">🤝 Tauschen</button>`}
     </div>`;
   }).join('');

@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 78;
+const APP_VERSION = 79;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -100,6 +100,7 @@ const CONFIG = {
       { id: 'nahrung_wolle', give: { nahrung: 40 },     get: { wolle: 8 } },
       { id: 'felle_wolle',  give: { felle: 20 },        get: { wolle: 10 } },
       // Bernstein gibt es nur hier: Ab der „Bernsteinstraße“ zeigt er beide Angebote immer
+      { id: 'bronze_grossbernstein', give: { bronze: 15 }, get: {}, getFind: 'bernsteinstueck', requires: 'himmelsscheibe' },   // Fundstück für die Halle, solange es fehlt
       { id: 'kleid_bernstein',  give: { kleidung: 15 }, get: { bernstein: 10 }, requires: 'bernsteinstrasse' },
       { id: 'bronze_bernstein', give: { bronze: 10 },   get: { bernstein: 12 }, requires: 'bernsteinstrasse' },
     ],
@@ -128,7 +129,7 @@ const CONFIG = {
       { find: 'sonnenstein', line: 'stein', pity: 1800 },
       { find: 'feder', line: 'jagen', pity: 2400 },
       { find: 'muschel', line: 'fischen', pity: 2400 },
-      { find: 'blumenkranz', line: 'sammeln', pity: 1200, seasons: [0, 1] },
+      { find: 'blumenkranz', line: 'sammeln', pity: 600, seasons: [0, 1] },
     ],
   },
   hunt: {                 // Mammutjagd (nach der Forschung „Mammutjagd“, bis zur Jungsteinzeit)
@@ -402,6 +403,11 @@ const BUILDINGS = {
     name: 'Steinkreis', icon: '🪨', size: 4, line: 'wahrzeichen', tier: 0, stage: 'jung', bild: '1-steinkreis', views: ['r2'], wonder: 'steinkreis',
     color: '#9a9a9a', cost: {}, time: 1, belief: 14, warmth: 14,
     requires: 'sternenkunde', info: 'Wunderwerk der Steinzeit: Tippe es an, um Abschnitt für Abschnitt weiterzubauen. Glaube und Wärme im großen Umkreis. Nötig für den Aufbruch.',
+  },
+  himmelshalle: {
+    name: 'Halle der Himmelsscheibe', icon: '🌞', size: 4, line: 'wunder_bronze', tier: 0, stage: 'spaet', bild: '2-halle', wonder: 'himmelshalle',
+    color: '#c9a23a', cost: {}, time: 1, belief: 14, requires: 'himmelsscheibe',
+    info: 'Wunderwerk der Bronzezeit: Tippe es an, um Abschnitt für Abschnitt weiterzubauen und die Himmelsscheibe zusammenzusetzen.',
   },
   // ----- Bronzezeit, Stufe Kupferzeit. Bilder folgen ab 27.11.: Weiterentwicklungen zeigen so lange das Bild der Vorstufe,
   // neue Gebäude ein Platzhalter-Feld.
@@ -707,7 +713,7 @@ const TECH_NEEDS = {
   heiliger_hain:   { ahnenplatz: 3 },
   fuerstenhuegel:  { schmuckmacherin: 1, heiliger_hain: 1 },
   eisenfund:       { fuerstenhuegel: 1, hallenhaus: 5 },
-  aufbruch_eisenzeit: { fuerstenhuegel: 1, sternkundiger: 2, kornspeicher: 1, jagdhuette: 2, feld: 2, viehhof: 2, kupfermine: 2, schmelzofen: 2, zinnwaescherin: 1, handelsplatz: 1, schmuckmacherin: 1 },
+  aufbruch_eisenzeit: { himmelshalle: 1, fuerstenhuegel: 1, sternkundiger: 2, kornspeicher: 1, jagdhuette: 2, feld: 2, viehhof: 2, kupfermine: 2, schmelzofen: 2, zinnwaescherin: 1, handelsplatz: 1, schmuckmacherin: 1 },
 };
 
 // Ganz rechts im Baum: Aufbruch in die nächste Epoche (Bronzezeit wird in einem späteren Schritt gebaut)
@@ -755,7 +761,7 @@ const BAR_CATEGORIES = [
   { id: 'nahrung',   name: 'Nahrung',   icon: '🍖', lines: ['sammeln', 'jagen', 'fischen', 'feld', 'tiere'] },
   { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton', 'erz', 'kohle', 'zinn'] },
   { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'bronze', 'kleidung', 'werkzeug', 'toepfern', 'schmuck', 'lager', 'handel'] },
-  { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['wunder', 'waerme', 'glaube', 'wissen', 'wahrzeichen'] },
+  { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['wunder', 'wunder_bronze', 'waerme', 'glaube', 'wissen', 'wahrzeichen'] },
   { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg', 'bruecke'] },
 ];
 
@@ -906,6 +912,33 @@ const WONDERS = {
         finds: { blumenkranz: 3 }, goods: { kleidung: 20, toepferwaren: 20 }, seconds: 300, done: 'Das Fest beginnt!' },
     ],
   },
+  himmelshalle: {
+    name: 'Halle der Himmelsscheibe', icon: '🌞', building: 'himmelshalle', tech: 'himmelsscheibe', page: 'bronze',
+    hint: 'Beginnt mit der Forschung Himmelsscheibe', where: 'Wähle den Platz selbst: unten in der Bauleiste unter „Feuer & Glaube“.', whereShort: 'Wähle einen Platz',
+    images: ['2-halle-bau', '2-halle-bau', '2-halle-halb', '2-halle-halb', '2-halle'],
+    call: 'Die Sternkundigen wollen den Himmel festhalten: Sonne, Mond und Sterne auf einer Scheibe aus Bronze. Dafür bauen wir eine Halle: unten unter Feuer & Glaube!',
+    intro: 'Eine Scheibe aus Bronze und Gold zeigt den Himmel. Mit jedem Abschnitt setzen wir ein Stück mehr zusammen.',
+    doneText: 'Die Himmelsscheibe ist vollständig! Aus allen Dörfern kommen Menschen und bestaunen Sonne, Mond und Sterne.',
+    bonus: ['🗿 Glaube im großen Umkreis', '🔥 Bronzegießer arbeiten 20 % besser', '🤝 Der Händler kommt 5 Minuten früher', '🎉 Großes Sonnwendfest jeden Sommer, mit reicherem Geschenk', '➡️ Nötig für den Aufbruch in die Eisenzeit'],
+    boost: { line: 'bronze', share: 0.2 },
+    traderFaster: 300,
+    fest: { name: 'Großes Sonnwendfest', year: 3 / 8, gift: { nahrung: 300, bronze: 10 } },
+    firstFest: true,
+    facts: [
+      'Wusstest du? Die Himmelsscheibe von Nebra ist rund 3.600 Jahre alt und zeigt den Himmel so genau wie nichts aus ihrer Zeit.',
+      'Wusstest du? Das Gold der Himmelsscheibe von Nebra kam wohl aus Cornwall in England, weit weg vom Fundort.',
+    ],
+    steps: [
+      { title: 'Der Bauplatz', story: 'Eine Halle braucht starke Balken und Mauern. Der Bronzegießer gießt schon die runde Scheibe, darauf kommt die Sonne.',
+        goods: { holz: 200, stein: 150, bronze: 20 }, seconds: 360, gives: { scheibe: 1 }, done: 'Das Dach steht, die Sonne glänzt auf der Scheibe!' },
+      { title: 'Gold für Mond und Sterne', story: 'Goldblättchen stecken manchmal in einer Erzader. Daraus schneiden wir den Mond und die Sterne.',
+        finds: { goldblatt: 3 }, goods: { bronze: 30 }, seconds: 600, gives: { scheibe: 2 }, done: 'Mond und Sterne leuchten auf der Scheibe!' },
+      { title: 'Der Rand des Himmels', story: 'Für die Bögen am Rand brauchen wir Perlen vom Ufer und einen großen Bernstein vom Händler.',
+        finds: { zinnperle: 2, bernsteinstueck: 1 }, goods: { schmuck: 10, kleidung: 30 }, seconds: 600, gives: { scheibe: 1 }, done: 'Die Horizontbögen rahmen den Himmel!' },
+      { title: 'Das Sonnenschiff', story: 'Das letzte Stück: das Schiff, das die Sonne über den Himmel trägt.',
+        goods: { bronze: 40, schmuck: 10, wissen: 100 }, seconds: 600, gives: { scheibe: 1 }, done: 'Das Sonnenschiff ist da!' },
+    ],
+  },
 };
 
 // Fundstücke und Schatzkiste. need = so viele braucht das Wunderwerk (alles darüber zählt als doppelt),
@@ -921,14 +954,14 @@ const FINDS = {
   stosszahn:   { name: 'Mammut-Stoßzahn', icon: '🦣', page: 'steinzeit', spot: 'fels', spotExtinct: true, hint: 'Von der Mammutjagd, später alt im Fels' },
   feder:       { name: 'Adlerfeder', icon: '🪶', page: 'steinzeit', spot: 'wald', hint: 'Glitzert im Wald, Jäger finden manchmal eine' },
   muschel:     { name: 'Flussmuschel', icon: '🐚', page: 'steinzeit', need: 2, spot: 'ufer', hint: 'Glitzert am Ufer, nach Hochwasser mehr' },
-  sternkarte:  { name: 'Sternkarte', icon: '🗺️', page: 'steinzeit', need: 3, tech: 'sternenkunde', hint: 'Klare Nacht, Sternschnuppe (Sternenkunde)' },
+  sternkarte:  { name: 'Sternkarte', icon: '🗺️', page: 'steinzeit', need: 3, tech: 'sternenkunde', hint: 'Sternschnuppe in der Nacht (Sternenkunde)' },
   findling:    { name: 'Riesenfindling', icon: '🪨', page: 'steinzeit', need: 5, tech: 'sternenkunde', hint: 'Liegt am Gebirge, wenn der Steinkreis gebaut wird' },
   sonnenstein: { name: 'Sonnenstein', icon: '☀️', page: 'steinzeit', stage: 'jung', hint: 'Steinsammler finden ihn in der Jungsteinzeit' },
   blumenkranz: { name: 'Blumenkranz', icon: '🌼', page: 'steinzeit', need: 3, stage: 'jung', hint: 'Sammlerinnen, nur Frühling und Sommer' },
   goldblatt:   { name: 'Goldblättchen', icon: '🟡', page: 'bronze', need: 3, stage: 'kupfer', hint: 'Steckt manchmal in einer Erzader' },
   zinnperle:   { name: 'Zinn-Perle', icon: '⚪', page: 'bronze', need: 2, stage: 'frueh', spot: 'ufer', hint: 'Glitzert ab der Frühen Bronzezeit am Ufer' },
-  bernsteinstueck: { name: 'Großer Bernstein', icon: '🟠', page: 'bronze', soon: true, hint: 'Kommt mit der Halle der Himmelsscheibe' },
-  scheibe:     { name: 'Teil der Himmelsscheibe', icon: '🌞', page: 'bronze', need: 5, soon: true, hint: 'Kommt mit der Halle der Himmelsscheibe' },
+  bernsteinstueck: { name: 'Großer Bernstein', icon: '🟠', page: 'bronze', stage: 'spaet', hint: 'Gegen Bronze beim Händler, wenn die Himmelsscheibe erforscht ist' },
+  scheibe:     { name: 'Teil der Himmelsscheibe', icon: '🌞', page: 'bronze', need: 5, soon: true, hint: 'Entsteht beim Bau der Halle der Himmelsscheibe' },
   salzkristall:{ name: 'Salzkristall', icon: '💎', page: 'eisen', soon: true, hint: FIND_LATER },
   rucksack:    { name: 'Alter Lederrucksack', icon: '🎒', page: 'eisen', soon: true, hint: FIND_LATER },
   bronzepickel:{ name: 'Bronzepickel', icon: '⛏️', page: 'eisen', soon: true, hint: FIND_LATER },

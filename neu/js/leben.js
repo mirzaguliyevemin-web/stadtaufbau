@@ -691,7 +691,7 @@ function drawBoat(w, t) {
 // Treffpunkte: Am Feuer sitzen die Leute zusammen (abends tanzen sie), am Ahnenplatz und Steinkreis beten sie
 // ---------------------------------------------------------------------
 
-const GATHER = { lagerfeuer: 'feuer', feuerplatz: 'feuer', geschichtenhoehle: 'feuer', dorfbrunnen: 'feuer', ahnenplatz: 'beten', steinkreis: 'beten' };
+const GATHER = { lagerfeuer: 'feuer', feuerplatz: 'feuer', geschichtenhoehle: 'feuer', dorfbrunnen: 'feuer', ahnenplatz: 'beten', steinkreis: 'beten', himmelshalle: 'beten' };
 life.visitors = [];
 life.visitTimer = 0;
 

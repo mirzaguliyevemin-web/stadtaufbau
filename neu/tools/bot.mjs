@@ -270,6 +270,7 @@ function botWants() {
   if (isUnlocked('vorratsspeicher') && botLineCount('lager') < 3 &&
       Object.entries(state.res).some(([id, n]) => !RESOURCES[id].knowledge && n >= storageCap() - 1)) w.push([botBest('lager')]);
   if (isUnlocked('steinkreis') && botCount('steinkreis') < 1) w.push(['steinkreis']);
+  if (isUnlocked('himmelshalle') && botCount('himmelshalle') < 1) w.push(['himmelshalle']);
   return w;
 }
 

@@ -1080,7 +1080,7 @@ function updateTrader(dt) {
   const t = state.trader;
   if (t.left > 0) {
     t.left = Math.max(0, t.left - dt);
-    if (t.left === 0) { t.wait = Math.max(0, CONFIG.trader.every - techSum('traderFaster') - CONFIG.trader.stay); emit('traderLeft'); }
+    if (t.left === 0) { t.wait = Math.max(0, CONFIG.trader.every - techSum('traderFaster') - wonderTraderFaster() - CONFIG.trader.stay); emit('traderLeft'); }
     return;
   }
   if (!tradePosts().length) return;
@@ -1096,9 +1096,9 @@ function updateTrader(dt) {
 function traderOffers() {
   const c = CONFIG.trader;
   const mix = o => hash(state.trader.visit * 13 + o.id.length * 7 + o.id.charCodeAt(0), (state.seed % 9973) + o.id.charCodeAt(o.id.length - 1));
-  const open = c.offers.filter(o => (!o.requires || state.techs[o.requires]) && Object.keys(o.give).every(hasMaker)).map(o => [mix(o), o]).sort((a, b) => a[0] - b[0]).map(a => a[1]);
+  const open = c.offers.filter(o => (!o.requires || state.techs[o.requires]) && (!o.getFind || findCount(o.getFind) < findNeed(o.getFind)) && Object.keys(o.give).every(hasMaker)).map(o => [mix(o), o]).sort((a, b) => a[0] - b[0]).map(a => a[1]);
   const zinn = open.find(o => o.get.zinn);
-  const fest = [...(zinn ? [zinn] : []), ...open.filter(o => o.get.bernstein)];   // immer dabei: Zinn und Bernstein
+  const fest = [...(zinn ? [zinn] : []), ...open.filter(o => o.get.bernstein || o.getFind)];   // immer dabei: Zinn, Bernstein und das Fundstück für die Halle
   return [...fest, ...open.filter(o => !fest.includes(o))].slice(0, c.count + techSum('traderOffers'));
 }
 
@@ -1117,6 +1117,7 @@ function doTrade(id) {
   const o = CONFIG.trader.offers.find(x => x.id === id);
   payCost(o.give);
   addReward(o.get);
+  if (o.getFind) addFind(o.getFind);
   state.trader.done.push(id);
   state.tradesDone++;
   emit('traded', o);

@@ -225,7 +225,7 @@ function traderObjects(inView, t) {
     ctx.fillText('🐂', q.x, q.y);
   } });
   out.push({ d: p.bx + p.by + 100, kind: 'leben', draw: () => {
-    const q = traderBubble(p), z = cam.zoom, r = (15 + Math.sin(t * 3) * 1.5) * z;
+    const q = traderBubble(p), z = Math.max(cam.zoom, 1.4), r = (15 + Math.sin(t * 3) * 1.5) * z;   // auch weit herausgezoomt gut zu sehen
     ctx.fillStyle = 'rgba(255,250,235,0.95)'; ctx.strokeStyle = '#6b4a2b'; ctx.lineWidth = 2 * z;
     ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, 7); ctx.fill(); ctx.stroke();
     ctx.font = `${Math.round(17 * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#000';
@@ -245,7 +245,7 @@ function traderAtScreen(sx, sy) {
   const p = traderSpot();
   if (!p) return false;
   const z = cam.zoom, q = traderBubble(p), f = tileToScreen(p.x, p.y);
-  return Math.hypot(sx - q.x, sy - q.y) <= 26 * z || (Math.abs(sx - f.x) <= 22 * z && sy <= f.y + 8 * z && sy >= f.y - 40 * z);
+  return Math.hypot(sx - q.x, sy - q.y) <= 26 * Math.max(z, 1.4) || (Math.abs(sx - f.x) <= 22 * z && sy <= f.y + 8 * z && sy >= f.y - 40 * z);
 }
 
 // Liegt unter dem Finger ein Mammut? Gibt das Tier zurück oder null.

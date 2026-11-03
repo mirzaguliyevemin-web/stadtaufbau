@@ -442,7 +442,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 4px calc(10px + var(--safe-r)) 4px calc(10px + var(--safe-l));
 }
 .page-head h2 { margin: 0; font-size: 18px; }
-.page-head .back { color: var(--ink); }
+.page-head .back { color: var(--ink); min-height: 40px; min-width: 64px; }
+#guide-skip { min-height: 36px; padding-left: 12px; padding-right: 12px; }
 #page-body { flex: 1; overflow: auto; touch-action: pan-x pan-y; padding: 8px calc(12px + var(--safe-r)) 8px calc(12px + var(--safe-l)); display: flex; flex-direction: column; }
 
 /* Seiten: Pergament mit leichter Maserung */
@@ -782,7 +783,7 @@ small.ok { color: var(--green-dark); }
 /* Bauleiste ein-/ausklappen */
 #bar-toggle {
   position: absolute; right: calc(8px + var(--safe-r)); bottom: calc(var(--bar-h, 100px) + 4px); z-index: 5;
-  min-width: 34px; height: 30px; border-radius: 15px; padding: 0 10px;
+  min-width: 42px; height: 36px; border-radius: 18px; padding: 0 10px;
   font: inherit; font-size: 16px; color: #fff; cursor: pointer;
   background: linear-gradient(#b3814a, var(--wood)); border: 2px solid var(--wood-dark); box-shadow: 0 3px 0 var(--wood-dark);
   transition: bottom 0.25s;
@@ -804,8 +805,9 @@ small.ok { color: var(--green-dark); }
   }
   .bar-tab { padding: 0; width: 32px; height: 24px; justify-content: center; border-radius: 8px; }
   .bar-tab .tname { display: none; }
+  .bar-tab::after { content: ''; position: absolute; inset: -2px; }   /* größere Tippfläche, sieht gleich aus */
   .bar-tab .emoji { font-size: 15px; }
-  #bar-toggle { right: calc(8px + var(--safe-r)); bottom: calc(var(--bar-h, 60px) / 2 - 15px); }
+  #bar-toggle { right: calc(8px + var(--safe-r)); bottom: calc(var(--bar-h, 60px) / 2 - 18px); }
 }
 
 /* Info-Fenster (Waren, Einwohner, Zufriedenheit, Wetter, Gebäude) */
@@ -896,3 +898,10 @@ details.more[open] summary { margin-bottom: 4px; }
 .wish-card.later { border-color: #ead3a3; background: #fffdf6; opacity: 0.85; }
 .wish-card .q-main > span:not(.q-reward) { font-size: 14px; }
 .rs-hint.neutral { color: #6b4a2b; }
+
+/* Sehr kleine Handys quer: Waren in einer Zeile zum Wischen, damit die Karte Platz behält (vorher vier Zeilen) */
+@media (max-height: 340px) {
+  #topbar .chips:not(.right) { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  #topbar .chips:not(.right)::-webkit-scrollbar { display: none; }
+  .chip { flex: none; }
+}

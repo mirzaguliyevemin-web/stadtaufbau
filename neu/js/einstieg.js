@@ -299,7 +299,7 @@ function roadPlan(i, step) {
     ? { ruf: 'Oje, kein Weg!', text: 'Zieh den *Pfad* vom Feuer zur Baustelle.' }
     : { ruf: 'Oje, kein Weg!', text: 'Wähl unten den *Trampelpfad*.' };
   return { kind: 'road', key: `${step.id}:road:${i}`, i, x: b.x, y: b.y, s: BUILDINGS[b.type].size, route, bar: 'pfad', say,
-    hilfe: 'Oder tipp die Baustelle an, dann „Weg bauen“.' };
+    hilfe: 'Oder tipp die Baustelle an, dann „Mehr“ und „Weg bauen“.' };
 }
 
 function sitePlan(type, step, say) {

@@ -242,6 +242,7 @@ function renderSideButtons() {
   show($('quest-badge'), ready > 0);
   const canResearch = !r && Object.keys(TECHS).some(id => !researchProblem(id));
   show($('research-badge'), canResearch);
+  show($('btn-trader'), traderHere());
   show($('btn-daily'), !!state.daily.pending);
   // Truhe statt 🎁, sobald das Bild geladen ist
   const daily = $('btn-daily');
@@ -1123,16 +1124,24 @@ function doClaim(id) {
 // Tägliche Belohnung und „Willkommen zurück“
 // ---------------------------------------------------------------------
 
+// Zum Händler: Karte hinfahren und sein Fenster öffnen (Emin, 03.11.: der Handelsplatz lag oft außerhalb des Bildes)
+function goToTrader() {
+  const p = traderSpot();
+  if (!p) return;
+  centerOnTile(p.bx, p.by);
+  openTrader();
+}
+
 function showDailyReward() {
   const day = state.daily.pending;
   if (!day) return;
   const goods = r => Object.entries(r).map(([id, n]) => `<span>${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')}${n}</span>`).join('');
-  const boxes = DAILY_REWARDS.map((r, k) => {
+  const boxes = DAILY_REWARDS.map((_, k) => dailyRewardOf(k + 1)).map((r, k) => {
     const cls = (k + 1 === day ? ' today' : k + 1 < day ? ' past' : '') + (k === DAILY_REWARDS.length - 1 ? ' chest' : '');
     return `<div class="day${cls}"><b>Tag ${k + 1}</b>${k === DAILY_REWARDS.length - 1 ? iconHtml('truhe', '🎁', 'big') : ''}<div class="day-goods">${goods(r)}</div></div>`;
   }).join('');
   openDialog(`<div class="daily-head">${iconHtml('truhe', '🎁', 'big')}<div><h2>Tägliche Belohnung</h2>
-    <p>Tag ${day} von 7 – am 7. Tag gibt es die große Truhe!</p></div></div>
+    <p>Tag ${day} von 7 – am 7. Tag gibt es die große Truhe! Ein verpasster Tag bricht die Reihe nicht.</p></div></div>
     <div class="days">${boxes}</div>
     <div class="buttons"><button class="btn primary" onclick="doClaimDaily()">🎁 Abholen</button></div>`);
 }
@@ -1147,9 +1156,11 @@ function doClaimDaily() {
 function showOfflineSummary(result) {
   if (!result) return;
   const gained = Object.entries(result.gained).filter(([, n]) => n > 0);
+  const lost = Object.entries(result.gained).filter(([, n]) => n < 0);
   openDialog(`<h2>Willkommen zurück!</h2>
     <p>Du warst ${formatTime(result.seconds)} weg. Dein Stamm hat weitergearbeitet:</p>
-    <p>${gained.length ? gained.map(([id, n]) => `${RESOURCES[id].icon} +${Math.floor(n)}`).join('  ') : 'nicht viel Neues'}${result.pop > 0 ? `  👥 +${result.pop}` : ''}</p>
+    <p>${gained.length ? gained.map(([id, n]) => `${RESOURCES[id].icon} +${Math.floor(n)}`).join('  ') : 'nichts Neues im Lager'}${result.pop > 0 ? `  👥 +${result.pop}` : ''}</p>
+    ${lost.length || result.pop < 0 ? `<p><small>Weniger geworden: ${lost.map(([id, n]) => `${RESOURCES[id].icon} −${Math.floor(-n)}`).join('  ')}${result.pop < 0 ? `  👥 −${Math.ceil(-result.pop)}` : ''}</small></p>` : ''}
     ${(result.events || []).length ? `<div class="info-list">${result.events.map(e => `<div><small>${esc(e)}</small></div>`).join('')}</div>` : ''}
     <div class="buttons"><button class="btn primary" onclick="closeDialog(); afterWelcome()">Weiter</button></div>`);
 }

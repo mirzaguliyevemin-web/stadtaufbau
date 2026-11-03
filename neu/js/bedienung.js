@@ -91,7 +91,9 @@ function beginBuild(type, sx, sy) {
   ghost = { type, x: 0, y: 0, rot: defaultRotation(type), from: -1 };
   if (sx === undefined) {
     const c = screenToTile(viewW / 2, viewH / 2);
-    const spot = findFreeSpot(type, c.x, c.y);
+    // im Einstieg den Platz nehmen, den der Älteste gerade zeigt (nicht einfach die Bildmitte)
+    const shown = state.tutorial >= 0 && typeof guide !== 'undefined' && guide.site && guide.site.type === type ? guide.site : null;
+    const spot = shown && !placeProblem(type, shown.x, shown.y) ? shown : findFreeSpot(type, c.x, c.y);
     ghost.x = spot.x; ghost.y = spot.y;
     autoOrient();
   } else ghostToScreen(sx, sy - FINGER_LIFT_PX);

@@ -288,7 +288,7 @@ test('Offline-Fortschritt: läuft weiter, höchstens 2 Stunden, verstellte Uhr s
   noErrors(g);
 });
 
-test('Tägliche Belohnung: Reihe von 7 Tagen, verpasster Tag fängt neu an', () => {
+test('Tägliche Belohnung: Reihe von 7 Tagen, ein verpasster Tag bricht sie nicht, zwei schon; wächst mit dem Zeitalter', () => {
   const g = fresh();
   const day = d => g.run(`checkDailyReward(new Date(2026, 9, ${d}, 10))`);
   ok(day(1) === 1, 'Tag 1');
@@ -296,11 +296,16 @@ test('Tägliche Belohnung: Reihe von 7 Tagen, verpasster Tag fängt neu an', () 
   g.run('claimDailyReward()');
   ok(day(1) === 0, 'nach Abholen nochmal');
   ok(day(2) === 2 && day(3) === 3, 'Reihe zählt nicht');
-  ok(day(5) === 1, 'Verpasster Tag nicht zurückgesetzt');
-  for (let d = 6; d <= 11; d++) day(d);
-  ok(day(12) === 1, 'Nach Tag 7 wieder Tag 1 erwartet, ist ' + day(12));
+  ok(day(5) === 4, 'Ein verpasster Tag darf die Reihe nicht brechen');
+  ok(day(8) === 1, 'Zwei verpasste Tage: Reihe muss neu anfangen');
+  for (let d = 9; d <= 14; d++) day(d);
+  ok(day(15) === 1, 'Nach Tag 7 wieder Tag 1 erwartet, ist ' + day(15));
   g.run(`state.daily = { last: '', streak: 0, pending: 0 }; checkDailyReward(new Date(2026, 9, 1)); state.res.holz = 0; claimDailyReward();`);
   ok(g.run('state.res.holz') === 20, 'Belohnung nicht gutgeschrieben');
+  g.run(`state.stage = 'spaet'`);
+  const t7 = g.run('dailyRewardOf(7)');
+  ok(t7.holz === 500 && t7.bronze === 20 && t7.schmuck === 6, 'Truhe wächst nicht mit dem Zeitalter: ' + JSON.stringify(t7));
+  ok(Object.keys(g.run('dailyRewardOf(1)')).every(id => id === 'nahrung' || id === 'holz'), 'Tag 1 soll keine Zeitalter-Waren haben');
 });
 
 test('Aufträge: Fortschritt und Abholen', () => {
@@ -414,17 +419,17 @@ test('Kupferzeit: Aufbruch, Geschenk, Dorfplatz, Weiterentwicklung und Metall-Ke
   g.run(`for (const id of Object.keys(TECH_NEEDS)) delete TECH_NEEDS[id];
     for (const id in TECHS) if (!['kupfer', 'frueh', 'spaet'].includes(TECHS[id].stage) && id !== 'aufbruch_bronzezeit') state.techs[id] = true;
     state.stage = 'jung'; state.pop = 130; state.res.wissen = 999;
-    for (const id of ['holz','stein','nahrung','toepferwaren','werkzeug']) state.res[id] = 200;
+    for (const id of ['holz','stein','nahrung','toepferwaren','werkzeug']) state.res[id] = 400;
     recalcStats();`);
   ok(g.run(`barEntries().every(e => BUILDINGS[e.type].stage !== 'kupfer' || !e.locked) && !barEntries().some(e => e.type === 'kupfermine')`), 'Kupferzeit-Gebäude vor dem Aufbruch sichtbar');
   const cap = g.run(`storageCap()`);
   // alle Kosten des Aufbruchs müssen ins Grundlager passen, sonst käme man nie los
-  ok(g.run(`Object.entries(TECHS.aufbruch_bronzezeit.cost).every(([id, n]) => id === 'wissen' || n <= CONFIG.baseStorage)`), 'Aufbruch teurer als das Lager');
+  ok(g.run(`Object.entries(TECHS.aufbruch_bronzezeit.cost).every(([id, n]) => id === 'wissen' || n <= CONFIG.baseStorage + CONFIG.stageStorage.jung)`), 'Aufbruch teurer als das Lager');
   ok(g.run(`startResearch('aufbruch_bronzezeit')`) === null, 'Aufbruch startet nicht');
   g.run(`for (let i = 0; i <= TECHS.aufbruch_bronzezeit.time; i++) update(1);`);
   ok(g.run(`state.stage`) === 'kupfer', 'Stufe nicht gewechselt');
   ok(g.run(`state.res.kupfer`) === 20 && g.run(`state.res.kupfererz`) >= 30, 'Geschenk fehlt');
-  ok(g.run(`storageCap()`) === Math.round(cap + g.run(`CONFIG.dorfplatz.storage * (1 + techSum('storage'))`)), 'Dorfplatz bringt kein Lager');
+  ok(g.run(`storageCap()`) === Math.round(cap + g.run(`(CONFIG.dorfplatz.storage + CONFIG.stageStorage.kupfer - CONFIG.stageStorage.jung) * (1 + techSum('storage'))`)), 'Dorfplatz bringt kein Lager');
   ok(g.run(`['gemuesegarten', 'fischerhuette', 'holzfaeller', 'steinbruch', 'felsritzer', 'lehmgrube', 'kupferschmied'].every(t => WORK[t])`), 'Weiterentwicklung ohne Arbeiter');
   // gleiche Zutaten: von selbst – neue Zutaten: nur per Knopf
   const y = g.run(`Math.floor(N / 2) + 10`);
@@ -478,7 +483,7 @@ test('Frühe Bronzezeit: Übergang, Werkzeug-Bedürfnis, Weiterentwicklung, Ziel
   const g = fresh();
   g.run(`for (const id of Object.keys(TECH_NEEDS)) delete TECH_NEEDS[id];
     for (const id in TECHS) if (!['frueh', 'spaet'].includes(TECHS[id].stage) && id !== 'fruehe_bronzezeit') state.techs[id] = true;
-    state.stage = 'kupfer'; state.pop = 160; state.res.wissen = 999; state.res.nahrung = 300; state.res.kupfer = 60; state.res.werkzeug = 50;
+    state.stage = 'kupfer'; state.pop = 160; state.res.wissen = 999; state.res.nahrung = 500; state.res.kupfer = 100; state.res.werkzeug = 100;
     const m = Math.floor(N / 2) + 12;
     state.buildings.push({ type: 'acker', x: m, y: m, rot: 0, build: 0 }, { type: 'fellmacherin', x: m + 4, y: m, rot: 0, build: 0 }, { type: 'pflanzerin', x: m + 7, y: m, rot: 0, build: 0 }, { type: 'kupferschmied', x: m + 10, y: m, rot: 0, build: 0 });
     rebuildOccupancy(); recalcStats();`);
@@ -502,8 +507,8 @@ test('Frühe Bronzezeit: Übergang, Werkzeug-Bedürfnis, Weiterentwicklung, Ziel
   ok(g.run(`SEASON_FACTORS.feld[3]`) === 0, 'Feld trägt im Winter');
   ok(g.run(`Object.values(BUILDINGS).every(d => BAR_CATEGORIES.some(c => c.lines.includes(d.line)) || d.line === 'mitte')`), 'Linie ohne Kategorie in der Bauleiste');
   ok(g.run(`Object.values(BUILDINGS).every(d => !d.upgradeTo || BUILDINGS[d.upgradeTo])`), 'Weiterentwicklung zeigt ins Leere');
-  // alle Forschungskosten passen ins Grundlager, alle verlangten Gebäude gibt es
-  ok(g.run(`Object.values(TECHS).every(t => Object.entries(t.cost).every(([id, n]) => RESOURCES[id] && (id === 'wissen' || n <= CONFIG.baseStorage)))`), 'Forschung passt nicht ins Lager');
+  // alle Forschungskosten passen ins Lager ihres Zeitalters, alle verlangten Gebäude gibt es
+  ok(g.run(`Object.values(TECHS).every(t => Object.entries(t.cost).every(([id, n]) => RESOURCES[id] && (id === 'wissen' || n <= CONFIG.baseStorage + CONFIG.stageStorage[t.stage || 'alt'] + (['kupfer', 'frueh', 'spaet'].includes(t.stage) ? CONFIG.dorfplatz.storage : 0))))`), 'Forschung passt nicht ins Lager');
   noErrors(g);
 });
 
@@ -525,7 +530,7 @@ test('Metall-Kette läuft wirklich: Erz + Kohle → Kupfer, Kupfer + Zinn → Br
     for (const id in TECHS) if (!['frueh', 'spaet'].includes(TECHS[id].stage) || TECHS[id].stage === 'frueh' && !TECHS[id].transition) state.techs[id] = true;
     state.stage = 'frueh';
     for (const k in RESOURCES) state.res[k] = 0;
-    Object.assign(state.res, { nahrung: 500, holz: 300, stein: 300, werkzeug: 100, bronze: 50, kupfer: 40, ton: 50 });
+    Object.assign(state.res, { nahrung: 500, holz: 300, stein: 300, werkzeug: 100, bronze: 200, kupfer: 200, ton: 50 });
     state.pop = 30;
     const built = {};
     // Gebäude regelkonform: dort, wo der Platz nach den Spielregeln passt, jeweils mit Weg
@@ -541,7 +546,7 @@ test('Metall-Kette läuft wirklich: Erz + Kohle → Kupfer, Kupfer + Zinn → Br
     rebuildOccupancy();
     state.pop = 30; recalcStats();
     const verbunden = state.buildings.map((b, i) => [b.type, isConnected(i)]).filter(a => !a[1] && a[0] !== 'pfad' && a[0] !== 'bruecke').map(a => a[0]);
-    state.res.nahrung = 1000; state.res.kupfererz = 0; state.res.holzkohle = 0; state.res.kupfer = 0; state.res.zinn = 0; state.res.bronze = 60; state.res.werkzeug = 0; state.res.holz = 300;
+    state.res.nahrung = 1000; state.res.kupfererz = 0; state.res.holzkohle = 0; state.res.kupfer = 0; state.res.zinn = 0; state.res.bronze = 200; state.res.werkzeug = 0; state.res.holz = 300;
     for (let i = 0; i < 1800; i++) { state.res.holz = Math.max(state.res.holz, 300); state.res.nahrung = Math.max(state.res.nahrung, 500); update(1); }
     return { built, verbunden, res: { ...state.res }, flows: Object.fromEntries(['kupfererz', 'holzkohle', 'kupfer', 'zinn', 'bronze', 'werkzeug'].map(id => [id, stats.flows[id] || null])), staff: stats.staff.filter(n => n === 0).length };
   })()`);
@@ -592,6 +597,25 @@ test('Händler: kommt nur mit Handelsplatz, bleibt, tauscht einmal je Angebot, k
   ok(g.run(`doTrade('${offers[2]}')`) !== null, 'Tausch ohne Händler');
   g.run(`state.techs.rad = true; state.trader.left = 1; update(2);`);
   ok(g.run(`state.trader.wait`) === CONFIG_WAIT(g, true), 'Rad macht den Händler nicht schneller');
+  noErrors(g);
+});
+
+test('Zurück nach der Pause: Hunger und Verluste werden genannt; Händler-Knopf führt hin', () => {
+  const g = fresh();
+  const r = g.run(`(() => { state.pop = 40; state.res.nahrung = 0; state.res.holz = 100; recalcStats();
+    return applyOfflineProgress(Date.now() - 3600 * 1000); })()`);
+  ok(r.pop < 0 && r.events.some(e => e.includes('Hunger')), 'Hunger-Wegzug fehlt: ' + JSON.stringify(r));
+  g.run(`showOfflineSummary(${JSON.stringify(r)})`);
+  ok(g.run(`$('dialog-box').innerHTML.includes('Weniger geworden')`), 'Verluste fehlen im Fenster');
+  g.run(`closeDialog(); for (const id in TECHS) if (!['frueh', 'spaet'].includes(TECHS[id].stage) || id === 'tauschhandel') state.techs[id] = true;
+    state.stage = 'frueh'; state.pop = 20; for (const id in RESOURCES) state.res[id] = 200;
+    const sp = findFreeSpot('handelsplatz', Math.floor(N / 2), Math.floor(N / 2)); const k = state.buildings.length;
+    state.buildings.push({ type: 'handelsplatz', x: sp.x, y: sp.y, rot: 0, build: 0 }); rebuildOccupancy(); buildRoute(k); rebuildOccupancy(); recalcStats();
+    for (let i = 0; i < CONFIG.trader.firstWait + 1; i++) update(1); renderAll();`);
+  ok(g.run(`traderHere()`), 'Händler kommt nicht');
+  ok(!g.run(`$('btn-trader').classList.contains('hidden')`), 'Händler-Knopf fehlt');
+  g.run(`goToTrader()`);
+  ok(g.run(`pageOpen`) === 'trader', 'Knopf öffnet den Händler nicht');
   noErrors(g);
 });
 

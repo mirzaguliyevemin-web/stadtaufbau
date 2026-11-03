@@ -15,6 +15,7 @@ function storageCap() {
   let cap = 0;
   state.buildings.forEach((b, i) => { if (!b.build && BUILDINGS[b.type].storage && isConnected(i)) cap += BUILDINGS[b.type].storage; });
   if (stageReached('kupfer')) cap += CONFIG.dorfplatz.storage;   // das Lagerfeuer ist jetzt der Dorfplatz
+  cap += CONFIG.stageStorage[state.stage] || 0;                  // jedes Zeitalter fasst mehr (die Forschungen kosten auch mehr)
   return Math.round(Math.max(cap, CONFIG.baseStorage) * (1 + techSum('storage')));
 }
 
@@ -348,7 +349,9 @@ function recalcStats() {
     let met;
     // neu dazugekommene Waren-Bedürfnisse: Startvorrat und 10 Minuten Schonfrist (sonst bricht die Laune sofort ein)
     const since = n.kind === 'stock' && n.id !== 'nahrung' ? needStart(n.id) : -Infinity;
-    if (state.playTime - since < CONFIG.needGrace) met = 1;
+    // Glaube kommt ohne Vorrat: nur die Schonfrist, damit der Ahnenkult die Laune nicht sofort senkt
+    if (n.id === 'glaube') { const ns = (state.needSince ||= {}); if (ns.glaube === undefined) ns.glaube = state.playTime; }
+    if (state.playTime - (n.id === 'glaube' ? state.needSince.glaube : since) < CONFIG.needGrace) met = 1;
     else if (n.kind === 'stock') met = (state.res[n.id] || 0) > 0.01 ? 1 : 0;
     else met = areaCoverage(n.id === 'waerme' ? 'warmth' : 'belief');
     s.needs[n.id] = met;
@@ -1169,16 +1172,27 @@ function checkDailyReward(now = new Date()) {
   const d = state.daily;
   if (d.last === today) return d.pending || 0;
   const yesterday = dayString(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
-  d.streak = d.last === yesterday ? (d.streak % 7) + 1 : 1;
+  const before = dayString(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2));   // ein verpasster Tag bricht die Reihe nicht (Emin, 03.11.)
+  d.streak = d.last === yesterday || d.last === before ? (d.streak % 7) + 1 : 1;
   d.last = today;
   d.pending = d.streak;
   return d.pending;
 }
 
+// Was Tag 1–7 im aktuellen Zeitalter bringt
+function dailyRewardOf(day) {
+  const f = DAILY_GROWTH.factor[state.stage] || 1, out = {};
+  for (const [id, n] of Object.entries(DAILY_REWARDS[day - 1])) out[id] = Math.round(n * f / 5) * 5;
+  const extra = DAILY_GROWTH.extra[state.stage];
+  if (extra && (day === 3 || day === 5 || day === 7))
+    for (const [id, n] of Object.entries(extra)) out[id] = (out[id] || 0) + n * (day === 7 ? 2 : 1);
+  return out;
+}
+
 function claimDailyReward() {
   const day = state.daily.pending;
   if (!day) return null;
-  const reward = DAILY_REWARDS[day - 1];
+  const reward = dailyRewardOf(day);
   addReward(reward);
   state.daily.pending = 0;
   return reward;
@@ -1210,7 +1224,8 @@ function update(dt) {
 
 // Läuft die Zeit nach, in der das Spiel zu war. Gibt zurück, was dazugekommen ist.
 // Während offline nachgerechnet wird: keine Fenster öffnen, sondern Wichtiges für „Willkommen zurück“ sammeln
-let offlineRunning = false, offlineEvents = [];
+let offlineRunning = false, offlineEvents = [], offlineStarved = 0;
+on('starved', () => { if (offlineRunning) offlineStarved++; });
 on('disaster', id => { if (offlineRunning) offlineEvents.push(`${DISASTERS[id].icon} ${DISASTERS[id].name}: ${DISASTERS[id].text}`); });
 on('researchStarted', id => { if (offlineRunning) offlineEvents.push(`📌 Von selbst gestartet: ${TECHS[id].name}`); });
 on('researchDone', id => { if (offlineRunning) offlineEvents.push(`📜 Erforscht: ${TECHS[id].name}${TECHS[id].effect && TECHS[id].effect.stage ? ' – ein neues Zeitalter beginnt!' : ''}`); });
@@ -1220,7 +1235,7 @@ function applyOfflineProgress(savedAt, now = Date.now()) {
   if (!(secs > 30)) return null;
   const before = { ...state.res, pop: state.pop };
   let left = secs;
-  offlineEvents = [];
+  offlineEvents = []; offlineStarved = 0;
   offlineRunning = true;
   try {
     while (left > 0) {
@@ -1234,5 +1249,6 @@ function applyOfflineProgress(savedAt, now = Date.now()) {
     const d = (state.res[id] || 0) - (before[id] || 0);
     if (Math.abs(d) >= 1) gained[id] = d;
   }
+  if (offlineStarved) offlineEvents.push(`🍖 Hunger: ${offlineStarved} ${offlineStarved === 1 ? 'Einwohner ist' : 'Einwohner sind'} weggezogen. Baue mehr Nahrung.`);
   return { seconds: secs, gained, pop: state.pop - before.pop, events: offlineEvents.slice() };
 }

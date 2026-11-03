@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 72;
+const APP_VERSION = 73;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -31,6 +31,7 @@ const CONFIG = {
   growthSeconds: 45,      // so oft zieht jemand ein (seit Version 24: 45 s statt 15 s – sonst Hunger und zu große Stämme)
   growthMinHappy: 50,     // ab dieser Zufriedenheit ziehen Leute zu
   baseStorage: 200,       // Lagerplatz je Ware am Lagerfeuer (seit Version 24: 200, damit der lange Winter zu überstehen ist)
+  stageStorage: { alt: 0, mittel: 100, jung: 200, kupfer: 200, frueh: 300, spaet: 400 },   // so viel mehr fasst das Lager je Zeitalter (Emin, 03.11.)
   bonusRadius: 3,         // Umkreis für Geländebonus (Wald, Felsen)
   maxOfflineHours: 2,     // so lange läuft das Spiel offline weiter (Emin: höchstens 2 Stunden)
   refundShare: 0.5,       // beim Abreißen gibt es die Hälfte zurück
@@ -61,7 +62,7 @@ const CONFIG = {
     researchSeconds: 90,  // so viel kürzer wird die laufende Forschung
     wissen: 8,            // so viel Wissen gibt es dazu (je Zeitalter mehr, siehe stagePlus)
     stagePlus: 0.25,      // je Zeitalter wollen und geben Wünsche 25 % mehr
-    amount: { nahrung: 100, holz: 80, stein: 60, felle: 20, kleidung: 15, werkzeug: 10, ton: 30, toepferwaren: 10, kupfererz: 30, holzkohle: 20, kupfer: 10, zinn: 8, bronze: 5, wolle: 20, schmuck: 5 },
+    amount: { nahrung: 150, holz: 120, stein: 90, felle: 30, kleidung: 25, werkzeug: 15, ton: 45, toepferwaren: 15, kupfererz: 45, holzkohle: 30, kupfer: 15, zinn: 12, bronze: 8, wolle: 30, schmuck: 8 },
     text: {
       nahrung: 'Der Stamm möchte ein großes Festmahl feiern.',
       holz: 'Die Alten wünschen sich ein großes Feuer für die Ahnen.',
@@ -116,7 +117,7 @@ const CONFIG = {
   // Werden unten einmal auf BUILDINGS und TECHS angewendet; die Zahlen dort sind die Grundwerte.
   tempo: {
     researchTime: 0.75,   // Forschungszeiten (seit Version 44, Emin: halbiert – vorher 1,5: Steinzeit ≈ 8,5 h, davon 96 % Warten)
-    researchGoods: 1.5,   // dafür brauchen Forschungen 50 % mehr Waren (außer Wissen), höchstens so viel, wie das Grundlager fasst
+    researchGoods: 2.25,  // Forschungen brauchen mehr Waren, damit volle Lager einen Sinn haben (Emin, 03.11.; vorher 1,5), höchstens so viel, wie das Lager des Zeitalters fasst
     knowledgeCost: 1.5,   // und kosten 50 % mehr Wissen
     knowledgeMade: 0.5,   // Höhlenmaler & Co. machen halb so viel Wissen (seit Version 27; vorher 0,7)
     buildTime: 1.5,       // Bauzeiten +50 %
@@ -302,12 +303,12 @@ const BUILDINGS = {
   },
   acker: {
     name: 'Acker', icon: '🌾', size: 3, line: 'feld', tier: 0, stage: 'jung', bild: '1-acker', views: ['r2'],
-    color: '#d8b44a', cost: { holz: 40, werkzeug: 5 }, time: 90, workers: 3, produces: { nahrung: 30 }, upgradeTo: 'feld',
+    color: '#d8b44a', cost: { holz: 40, werkzeug: 5 }, time: 90, workers: 4, produces: { nahrung: 30 }, upgradeTo: 'feld',
     requires: 'ackerbau', info: 'Sehr viel Nahrung – im Sommer am meisten, im Winter nichts.',
   },
   ziegengehege: {
     name: 'Ziegengehege', icon: '🐐', size: 3, line: 'tiere', tier: 0, stage: 'jung', bild: '1-ziegengehege', views: ['r2'],
-    color: '#c8b48a', cost: { holz: 60, werkzeug: 5 }, time: 120, workers: 2, produces: { nahrung: 10, felle: 2 }, upgradeTo: 'viehhof',
+    color: '#c8b48a', cost: { holz: 60, werkzeug: 5 }, time: 120, workers: 3, produces: { nahrung: 10, felle: 2 }, upgradeTo: 'viehhof',
     requires: 'viehzucht', info: 'Ziegen geben Milch, Fleisch und Felle – das ganze Jahr.',
   },
   holzsammler: {
@@ -354,12 +355,12 @@ const BUILDINGS = {
   },
   tongrube: {
     name: 'Tongrube', icon: '🟤', size: 2, line: 'ton', tier: 0, stage: 'jung', bild: '1-tongrube', views: ['r1', 'r2'],
-    color: '#a0603a', cost: { holz: 30, werkzeug: 3 }, time: 60, workers: 2, produces: { ton: 4 }, needsWater: true, upgradeTo: 'lehmgrube',
+    color: '#a0603a', cost: { holz: 30, werkzeug: 3 }, time: 60, workers: 3, produces: { ton: 4 }, needsWater: true, upgradeTo: 'lehmgrube',
     requires: 'toepfern', info: 'Gräbt Ton am Ufer. Muss am Wasser stehen.',
   },
   toepferei: {
     name: 'Töpferei', icon: '🏺', size: 2, line: 'toepfern', tier: 0, stage: 'jung', bild: '1-toepferei', views: ['r2'],
-    color: '#b8643a', cost: { holz: 50, stein: 40 }, time: 120, workers: 2, consumes: { ton: 2, holz: 1 }, produces: { toepferwaren: 1.25 }, upgradeTo: 'toepferwerkstatt',
+    color: '#b8643a', cost: { holz: 50, stein: 40 }, time: 120, workers: 3, consumes: { ton: 2, holz: 1 }, produces: { toepferwaren: 1.25 }, upgradeTo: 'toepferwerkstatt',
     requires: 'toepfern', info: 'Formt und brennt aus Ton und Holz Töpferwaren: aus 8 Ton und 4 Holz werden 5 Töpferwaren.',
   },
   vorratsspeicher: {
@@ -414,7 +415,7 @@ const BUILDINGS = {
   },
   lehmgrube: {
     name: 'Lehmgrube', icon: '🟤', size: 2, line: 'ton', tier: 1, stage: 'kupfer', bild: '1-tongrube', views: ['r1', 'r2'],
-    color: '#a0603a', cost: { holz: 40, werkzeug: 3 }, time: 60, workers: 2, produces: { ton: 6 }, needsWater: true, requires: 'lehmbau',
+    color: '#a0603a', cost: { holz: 40, werkzeug: 3 }, time: 60, workers: 3, produces: { ton: 6 }, needsWater: true, requires: 'lehmbau',
     info: 'Gräbt Lehm und Ton am Ufer. Muss am Wasser stehen.',
   },
   kupferschmied: {
@@ -448,12 +449,12 @@ const BUILDINGS = {
   },
   feld: {
     name: 'Feld', icon: '🐂', size: 3, line: 'feld', tier: 1, stage: 'frueh', bild: '1-acker', views: ['r2'],
-    color: '#d8b44a', cost: { holz: 55, werkzeug: 8 }, time: 90, workers: 3, produces: { nahrung: 45 }, requires: 'hakenpflug',
+    color: '#d8b44a', cost: { holz: 55, werkzeug: 8 }, time: 90, workers: 4, produces: { nahrung: 45 }, requires: 'hakenpflug',
     info: 'Mit Ochse und Hakenpflug – sehr viel Nahrung. Im Sommer am meisten, im Winter nichts.',
   },
   viehhof: {
     name: 'Viehhof', icon: '🐑', size: 3, line: 'tiere', tier: 1, stage: 'frueh', bild: '1-ziegengehege', views: ['r2'],
-    color: '#c8b48a', cost: { holz: 80, werkzeug: 6 }, time: 120, workers: 2, produces: { nahrung: 14, wolle: 4, felle: 1 }, requires: 'schafzucht',
+    color: '#c8b48a', cost: { holz: 80, werkzeug: 6 }, time: 120, workers: 3, produces: { nahrung: 14, wolle: 4, felle: 1 }, requires: 'schafzucht',
     info: 'Schafe und Rinder geben Fleisch, Milch und Wolle – das ganze Jahr.',
   },
   baumgaertnerin: {
@@ -468,12 +469,12 @@ const BUILDINGS = {
   },
   bronzeschmied: {
     name: 'Bronzeschmied', icon: '⚒️', size: 2, line: 'werkzeug', tier: 2, stage: 'frueh', bild: '1-steinschlaeger', views: ['r2'],
-    color: '#b5683a', cost: { holz: 40, stein: 60, bronze: 10 }, time: 90, workers: 2, consumes: { bronze: 1, holz: 1 }, produces: { werkzeug: 3 }, requires: 'bronzewerkzeug', manualUpgrade: true,
-    info: 'Schmiedet aus 1 Bronze und 1 Holz 3 Werkzeuge. Lässt etwas Bronze für Bauen und Forschung liegen. Braucht Bronze: darum nur per Knopf umbauen, wenn sie da ist.',
+    color: '#b5683a', cost: { holz: 40, stein: 60, bronze: 10 }, time: 90, workers: 2, consumes: { bronze: 1, holz: 1 }, produces: { werkzeug: 4 }, requires: 'bronzewerkzeug', manualUpgrade: true,
+    info: 'Schmiedet aus 1 Bronze und 1 Holz 4 Werkzeuge. Lässt etwas Bronze für Bauen und Forschung liegen. Braucht Bronze: darum nur per Knopf umbauen, wenn sie da ist.',
   },
   toepferwerkstatt: {
     name: 'Töpferwerkstatt', icon: '🏺', size: 2, line: 'toepfern', tier: 1, stage: 'frueh', bild: '1-toepferei', views: ['r2'],
-    color: '#b8643a', cost: { holz: 65, stein: 50, bronze: 2 }, time: 120, workers: 2, consumes: { ton: 2, holzkohle: 1 }, produces: { toepferwaren: 2 }, requires: 'brennofen', manualUpgrade: true,
+    color: '#b8643a', cost: { holz: 65, stein: 50, bronze: 2 }, time: 120, workers: 3, consumes: { ton: 2, holzkohle: 1 }, produces: { toepferwaren: 2 }, requires: 'brennofen', manualUpgrade: true,
     info: 'Der Brennofen mit Holzkohle macht aus 2 Ton und 1 Holzkohle 2 Töpferwaren. Braucht Holzkohle: darum nur per Knopf umbauen.',
   },
   zinnwaescherin: {
@@ -694,7 +695,11 @@ const TECH_NEEDS = {
     tech.time = Math.round(tech.time * t.researchTime);
     if (tech.cost && tech.cost.wissen) tech.cost.wissen = Math.round(tech.cost.wissen * t.knowledgeCost);
     for (const id of Object.keys(tech.cost || {}))
-      if (id !== 'wissen') tech.cost[id] = Math.min(CONFIG.baseStorage, Math.round(tech.cost[id] * t.researchGoods / 5) * 5);
+      if (id !== 'wissen') {
+        const stages = ['kupfer', 'frueh', 'spaet'];   // ab der Kupferzeit fasst der Dorfplatz mehr
+        const room = CONFIG.baseStorage + CONFIG.stageStorage[tech.stage || 'alt'] + (stages.includes(tech.stage) ? CONFIG.dorfplatz.storage : 0);
+        tech.cost[id] = Math.min(room, Math.round(tech.cost[id] * t.researchGoods / 5) * 5);
+      }
   }
 })(CONFIG.tempo);
 
@@ -807,6 +812,11 @@ const DAILY_REWARDS = [
   { nahrung: 50, wissen: 15 },
   { holz: 100, stein: 80, nahrung: 100, wissen: 30 },
 ];
+// Die Belohnung wächst mit dem Zeitalter (Emin, 03.11.): Grundmenge × Faktor, an Tag 3, 5 und 7 dazu Waren der Zeit (Tag 7 doppelt)
+const DAILY_GROWTH = {
+  factor: { alt: 1, mittel: 1.5, jung: 2, kupfer: 3, frueh: 4, spaet: 5 },
+  extra: { kupfer: { kupfer: 10 }, frueh: { kupfer: 10, bronze: 5 }, spaet: { bronze: 10, schmuck: 3 } },
+};
 
 // Einstieg: Der Stammesälteste läuft auf der Karte mit (siehe einstieg.js). Die Reihenfolge und die IDs nie ändern:
 // state.tutorial ist der Index in dieser Liste, alte Spielstände stehen mitten darin.

@@ -1,6 +1,6 @@
 # Epochia – Epoche 3: Eisenzeit (Entwurf)
 
-Entwurf von Claude, 2026-11-03. **Zum Besprechen, nichts davon ist gebaut.** Alle Zahlen sind Startwerte und werden am Handy und mit dem Testspieler abgestimmt.
+Entwurf von Claude, 2026-11-03, von Emin entschieden. **Technik gebaut (Version 86), Bilder folgen später.** Bis dahin zeigen Weiterentwicklungen das Bild der Vorstufe, neue Gebäude einen Platzhalter. Alle Zahlen sind Startwerte und werden am Handy und mit dem Testspieler abgestimmt.
 
 Zeichen: 💡 Vorschlag · ❓ Frage an Emin
 
@@ -14,7 +14,7 @@ Zeichen: 💡 Vorschlag · ❓ Frage an Emin
 | **Mittlere Eisenzeit** | Salz, Handelshof, karierter Stoff, Bedürfnis Salz | das Dorf wird reich, Karren kommen von weit her |
 | **Späte Eisenzeit** | Glas, Wein, Gehöfte, Ringwall, Salzberg | eine stolze Stadt auf dem Hügel, Vorbote der Antike |
 
-💡 **Dauer:** etwa 7 Stunden reine Forschungszeit, die Bronzezeit hat 6. ❓ Frage 1
+💡 **Dauer:** etwa 7 Stunden reine Forschungszeit, die Bronzezeit hat 6. 
 
 **Historisch:** Die Hallstatt-Zeit lebte vom Salzbergbau. In den Stollen von Hallstatt blieben Tragesäcke aus Leder und karierte Stoffe erhalten. Die späte Eisenzeit heißt La-Tène-Zeit, mit großen befestigten Siedlungen (Oppida), Drehscheiben-Töpferei und Glasarmreifen. Münzen kamen damals auch auf, im Spiel bleibt Geld aber wie entschieden der Antike vorbehalten.
 
@@ -28,7 +28,10 @@ Beim Aufbruch:
 - Geschenk zum Start: 20 Eisen, 30 Eisenerz.
 - Neue Leisten im Eisenzeit-Stil.
 
-⚠️ **Muss beim Bau geprüft werden:** In den Messungen vom 03.11. kam der Testspieler lange nicht an die Waren für diesen Aufbruch, weil die Metallreserve gesperrte Forschungen nicht schützt und Bronze knapp blieb. Das wird vor dem Freischalten behoben und neu gemessen.
+**Messung vom 03.11. (Version 86), die Metallreserve schützt jetzt auch den kommenden Aufbruch:**
+- Vom Stand der Späten Bronzezeit schafft der Testspieler den Aufbruch in **280 Minuten**.
+- Vom Stand der Kupferzeit kommt er in 700 Minuten nur bis zur Schmuckkunst (Späte Bronzezeit bei Minute 480). Er baut lange zu wenig Zinnwäscherinnen, dazu viel zu viele Häuser und Felder (756 Einwohner statt 280). Das liegt an seinem Bauverhalten, muss aber am Handy beobachtet werden.
+- Die Eisenzeit selbst spielt der Testspieler noch nicht. Ihre Dauer ist also nur die Summe der Forschungszeiten (gut 7 Stunden), getestet sind Erreichbarkeit, Ketten und Salzberg.
 
 ## Gebäude: Weiterentwicklungen
 
@@ -77,19 +80,18 @@ Gebäude mit neuen Zutaten gehen wie bisher nur per Knopf, alle anderen entwicke
 | ⛏️ Eisenerz | Früh | Eisenmine, Erzader | Rennofen |
 | 🔩 Eisen | Früh | Rennofen | Bauen, Werkzeug, Forschung |
 | 🧂 Salz | Mittel | Salzsiederei, Salzberg | Bedürfnis, Handel |
-| 🟢 Glas | Spät | Glasmacherin | Schmuck, Forschung |
+| 🟢 Glas | Spät | Glasmacherin | Forschung, Aufbruch in die Antike |
 | 🍇 Wein | Spät | nur vom Händler | Bedürfnis, Fest |
 
-Schmuck macht man dann aus 1 Bronze + 1 Bernstein oder aus 1 Eisen + 1 Glas. Der Händler nimmt jetzt Salz, Salz wird das wichtigste Tauschgut.
+Schmuck bleibt bei 1 Bronze + 1 Bernstein, ein zweites Rezept mit Eisen und Glas ist nicht gebaut. Glas braucht man für Forschung und Aufbruch. Der Händler nimmt jetzt Salz, Salz wird das wichtigste Tauschgut.
 
 ## Bedürfnisse
 
 | Bedürfnis | Ab | Menge |
 |---|---|---|
 | 🧂 Salz | Mittel | 0,02 je Einwohner und Minute |
-| 🍇 Wein | Spät | 0,005 je Einwohner und Minute, bessere Laune statt Pflicht ❓ Frage 3 |
 
-Wie bisher: 10 Minuten Schonfrist und ein kleiner Startvorrat.
+Wie bisher: 10 Minuten Schonfrist und ein kleiner Startvorrat, dazu 80 Salz als Geschenk zur Mittleren Eisenzeit, damit es reicht, bis die erste Salzsiederei steht. Wein ist kein Bedürfnis: Solange welcher da ist (0,005 je Einwohner und Minute), gibt es bessere Laune.
 
 ## Wunderwerk: Der Salzberg
 
@@ -110,8 +112,6 @@ Schon im Wunderwerk-Plan vorgesehen. Pflicht für den Aufbruch in die Antike ist
 
 **Wusstest du?** Salz war so wertvoll, dass man es „weißes Gold“ nannte. In Hallstatt fand man 3.000 Jahre alte Tragesäcke aus Leder.
 
-❓ Frage 4: Wird der Ringwall auch ein Wunderwerk, oder bleibt er normales Wahrzeichen wie der Fürstenhügel?
-
 ## Forschungsbaum
 
 Etwa 30 Forschungen in den gewohnten vier Ästen, je Stufe mit Übergang:
@@ -125,8 +125,8 @@ Etwa 30 Forschungen in den gewohnten vier Ästen, je Stufe mit Übergang:
 
 ## Aufträge, Ereignisse, Stimmung
 
-- **Aufträge:** etwa 20 neue, je Stufe. Dazu Wünsche des Stammes mit den neuen Waren, die Tagesbelohnung wächst mit.
-- **Ereignisse:** Erzader bringt auch Eisenerz. **Neu: Wanderhändler aus dem Süden** bringt einmal im Jahr Wein und Glas. Keine neuen Katastrophen.
+- **Aufträge:** 15 neue, je Stufe. Dazu Wünsche des Stammes mit den neuen Waren, die Tagesbelohnung wächst mit.
+- **Ereignisse:** Erzader bringt auch Eisenerz. Der Wanderhändler aus dem Süden ist noch nicht gebaut, Wein und Glas kommen über den normalen Händler. Keine neuen Katastrophen.
 - **Stimmung:** Hämmern, Funken, Hunde laufen mit den Jägern, Musik mit Harfe und Trommeln, Menschen in karierter Kleidung.
 - **Schatzkiste:** Die Seite „Eisenzeit“ gibt es schon, ihre Stücke werden dann echt.
 
@@ -160,7 +160,7 @@ Laut Plan bekommt die Eisenzeit **neue Kleidung für alle Menschen**. Die Bewegu
 
 💡 Weil die Bilder so lange dauern: Die Technik kann mit vorläufigen Bildern gebaut werden, wie in der Bronzezeit. Die Bilder hängen wir nach und nach ein.
 
-## Reihenfolge beim Bau
+## Reihenfolge beim Bau (Schritte 1–5 gebaut, Stand Version 86)
 
 1. Metallreserve und Bronzemangel beim Aufbruch beheben, messen.
 2. Frühe Eisenzeit: Eisen-Kette, erste Weiterentwicklungen.
@@ -171,13 +171,8 @@ Laut Plan bekommt die Eisenzeit **neue Kleidung für alle Menschen**. Die Bewegu
 
 Neu im Spielstand ist fast nichts: Die Felder für Wunderwerke, Fundstücke und Stufen gibt es schon, also bleiben alte Stände unberührt.
 
-## Fragen an Emin
+## Entscheidungen von Emin (2026-11-03)
 
-1. **Dauer:** Etwa 7 Stunden Forschungszeit? 💡 Ja.
-2. **Stufen:** Drei wie bisher? 💡 Ja.
-3. **Wein:** Pflicht-Bedürfnis oder nur Bonus für die Laune? 💡 Nur Bonus, weil er allein vom Händler kommt.
-4. **Ringwall:** Normales Wahrzeichen oder zweites Wunderwerk? 💡 Normales Wahrzeichen, der Salzberg ist das Wunderwerk.
-5. **Kämpfe:** Bleibt es ganz friedlich, auch wenn es den Ringwall gibt? 💡 Ja.
-6. **Münzen:** Bleibt Geld wie entschieden bei der Antike? 💡 Ja.
-7. **Salzberg:** Reicht die Salzsiederei am Wasser als normale Salzquelle, oder soll es auch ein Salzbergwerk zum Bauen geben? 💡 Salzsiederei reicht, das Bergwerk ist das Wunderwerk.
-8. **Wann bauen?** 💡 Nach den Bildern für Steinzeit und Bronzezeit, oder parallel mit vorläufigen Bildern, weil die Technik ohne Canva geht.
+Alle Fragen nach dem Vorschlag: etwa 7 Stunden Forschungszeit, drei Stufen, Wein nur als Bonus für die Laune, Ringwall als normales Wahrzeichen, ganz friedlich, Geld erst in der Antike, Salzsiederei als normale Salzquelle.
+
+**Bauen:** Die Technik wird nebenher mit vorläufigen Bildern eingebaut, die Bilder kommen später.

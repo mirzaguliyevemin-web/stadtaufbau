@@ -332,6 +332,18 @@ Object.assign(WORK, {
   koehler:        { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'tend' },   // am Meiler
   schmelzofen:    { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'tend' },
   bronzegiesser:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffd166', swing: 'tend' },
+  // Eisenzeit: vorläufig passende Bewegungen, eigene Bilder folgen
+  obstgarten: { target: 'self', tool: null, carry: null, img: 'mensch-frau', chips: '#d8344a', swing: 'pick' },
+  holzhof: WORK.holzsammler, grosser_steinbruch: WORK.steinsammler, grosse_lehmgrube: WORK.tongrube, fischerei: WORK.fischerplatz,
+  jagdhof: WORK.mammutjaegerlager, eisenfeld: WORK.acker, rindergut: WORK.ziegengehege, forstmeisterin: WORK.pflanzerin, drehscheibe: WORK.toepferei,
+  druide:       { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: null, swing: 'gaze' },
+  eisenschmied: { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'knap', thing: 'ware-werkzeug' },
+  tuchmacherin: { target: 'self', tool: null,    carry: null, img: 'mensch-frau', chips: null, swing: 'scrape', thing: 'ware-kleidung' },
+  eisenmine:    { target: 'fels', tool: 'hacke', carry: null, img: 'mensch-mann', chips: '#a0604a', swing: 'hack', carryLook: 'mensch-mann-stein' },
+  rennofen:     { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'tend' },
+  salzsiederei: { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#f4f4ee', swing: 'tend' },
+  glasmacherin: { target: 'self', tool: null,    carry: null, img: 'mensch-frau', chips: '#7fe0b8', swing: 'tend' },
+  wagner:       { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#a8743f', swing: 'knap' },
   zinnwaescherin: { target: 'wasser', tool: null,    carry: null, img: 'mensch-frau', chips: '#cfe9f7', swing: 'pan' },    // schwenkt die Pfanne am Ufer
 });
 

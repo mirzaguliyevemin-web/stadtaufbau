@@ -104,7 +104,7 @@ function housingOf(type) {
 
 function warmthRadius(def) {
   if (!def.warmth) return 0;
-  return def.warmth + techSum('warmth') + (def === BUILDINGS.lagerfeuer && stageReached('kupfer') ? CONFIG.dorfplatz.warmth : 0);
+  return def.warmth + techSum('warmth') + (def === BUILDINGS.lagerfeuer && stageReached('kupfer') ? CONFIG.dorfplatz.warmth + (stageReached('eisen1') ? CONFIG.thingplatz.warmth : 0) : 0);
 }
 
 // ---------------------------------------------------------------------
@@ -359,7 +359,7 @@ function recalcStats() {
   s.hungry = (state.hunger || 0) > 30;   // eine halbe Minute ohne Nahrung: die Laune sinkt zusätzlich
   // Dorfbrunnen: ein Treffpunkt hebt die Laune (mehrere bringen nicht mehr)
   s.placeHappy = state.buildings.reduce((m, b, i) => Math.max(m, !b.build && BUILDINGS[b.type].happy && isConnected(i) ? BUILDINGS[b.type].happy : 0), 0);
-  s.happiness = Math.max(0, Math.min(100, s.needsHappy + s.weatherHappy + s.placeHappy + (festNow() ? CONFIG.fest.happy : 0) - (s.hungry ? CONFIG.hunger.unhappy : 0)));
+  s.happiness = Math.max(0, Math.min(100, s.needsHappy + s.weatherHappy + s.placeHappy + (festNow() ? CONFIG.fest.happy : 0) + ((state.res.wein || 0) > 0 ? CONFIG.wine.happy : 0) - (s.hungry ? CONFIG.hunger.unhappy : 0)));
   stats = s;
   return s;
 }
@@ -765,7 +765,7 @@ function foodPerHead() {
 function metalReserve(id) {
   let most = CONFIG.metalReserve[id] || 0;
   for (const tid of Object.keys(TECHS)) {
-    if (!TECHS[tid].soon && techStatus(tid) === 'available' && (TECHS[tid].cost[id] || 0) > most) most = TECHS[tid].cost[id];
+    if (techStatus(tid) === 'available' && (TECHS[tid].cost[id] || 0) > most) most = TECHS[tid].cost[id];   // auch der kommende Aufbruch: sonst verbrauchen Werkstätten alles
   }
   return most;
 }
@@ -1099,7 +1099,7 @@ function traderOffers() {
   const open = c.offers.filter(o => (!o.requires || state.techs[o.requires]) && (!o.getFind || findCount(o.getFind) < findNeed(o.getFind)) && Object.keys(o.give).every(hasMaker)).map(o => [mix(o), o]).sort((a, b) => a[0] - b[0]).map(a => a[1]);
   const zinn = open.find(o => o.get.zinn);
   const fest = [...(zinn ? [zinn] : []), ...open.filter(o => o.get.bernstein || o.getFind)];   // immer dabei: Zinn, Bernstein und das Fundstück für die Halle
-  return [...fest, ...open.filter(o => !fest.includes(o))].slice(0, c.count + techSum('traderOffers'));
+  return [...fest, ...open.filter(o => !fest.includes(o))].slice(0, c.count + techSum('traderOffers') + (state.buildings.some(b => (b.type === 'wagner' || b.type === 'handelshof') && !b.build) ? 1 : 0));
 }
 
 function tradeProblem(id) {
@@ -1289,6 +1289,7 @@ function update(dt) {
   updateWonders(dt);
   updateTrader(dt);
   updateFest();
+  if ((state.res.wein || 0) > 0) state.res.wein = Math.max(0, state.res.wein - state.pop * CONFIG.wine.perPerson * dt / 60);   // Wein ist nur ein Bonus
   updateDisaster(dt);
   updateWishes(dt);
 }

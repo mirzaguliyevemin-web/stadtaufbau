@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 85;
+const APP_VERSION = 86;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -31,7 +31,7 @@ const CONFIG = {
   growthSeconds: 45,      // so oft zieht jemand ein (seit Version 24: 45 s statt 15 s – sonst Hunger und zu große Stämme)
   growthMinHappy: 50,     // ab dieser Zufriedenheit ziehen Leute zu
   baseStorage: 200,       // Lagerplatz je Ware am Lagerfeuer (seit Version 24: 200, damit der lange Winter zu überstehen ist)
-  stageStorage: { alt: 0, mittel: 100, jung: 200, kupfer: 200, frueh: 300, spaet: 400 },   // so viel mehr fasst das Lager je Zeitalter (Emin, 03.11.)
+  stageStorage: { alt: 0, mittel: 100, jung: 200, kupfer: 200, frueh: 300, spaet: 400, eisen1: 550, eisen2: 700, eisen3: 850 },   // so viel mehr fasst das Lager je Zeitalter (Emin, 03.11.)
   bonusRadius: 3,         // Umkreis für Geländebonus (Wald, Felsen)
   maxOfflineHours: 2,     // so lange läuft das Spiel offline weiter (Emin: höchstens 2 Stunden)
   refundShare: 0.5,       // beim Abreißen gibt es die Hälfte zurück
@@ -63,7 +63,7 @@ const CONFIG = {
     researchSeconds: 90,  // so viel kürzer wird die laufende Forschung
     wissen: 8,            // so viel Wissen gibt es dazu (je Zeitalter mehr, siehe stagePlus)
     stagePlus: 0.25,      // je Zeitalter wollen und geben Wünsche 25 % mehr
-    amount: { nahrung: 150, holz: 120, stein: 90, felle: 30, kleidung: 25, werkzeug: 15, ton: 45, toepferwaren: 15, kupfererz: 45, holzkohle: 30, kupfer: 15, zinn: 12, bronze: 8, wolle: 30, schmuck: 8 },
+    amount: { nahrung: 150, holz: 120, stein: 90, felle: 30, kleidung: 25, werkzeug: 15, ton: 45, toepferwaren: 15, kupfererz: 45, holzkohle: 30, kupfer: 15, zinn: 12, bronze: 8, wolle: 30, schmuck: 8, eisen: 25, salz: 30, glas: 8 },
     text: {
       nahrung: 'Der Stamm möchte ein großes Festmahl feiern.',
       holz: 'Die Alten wünschen sich ein großes Feuer für die Ahnen.',
@@ -80,6 +80,9 @@ const CONFIG = {
       bronze: 'Zum Fest soll ein Ring aus Bronze über dem Dorfplatz hängen.',
       wolle: 'Die Alten frieren und wünschen sich weiche Wolldecken.',
       schmuck: 'Zur Hochzeit im Dorf soll die Braut etwas Schönes tragen.',
+      eisen: 'Die Schmiede wollen ein Tor aus Eisen für das Dorf.',
+      salz: 'Für den langen Winter muss Fleisch eingesalzen werden.',
+      glas: 'Die Kinder wünschen sich bunte Glasperlen.',
     },
   },
   dorfplatz: { storage: 100, warmth: 1 },   // beim Aufbruch in die Bronzezeit wird das Lagerfeuer zum Dorfplatz: mehr Lager, größerer Umkreis
@@ -101,6 +104,10 @@ const CONFIG = {
       { id: 'felle_wolle',  give: { felle: 20 },        get: { wolle: 10 } },
       // Bernstein gibt es nur hier: Ab der „Bernsteinstraße“ zeigt er beide Angebote immer
       { id: 'bronze_grossbernstein', give: { bronze: 15 }, get: {}, getFind: 'bernsteinstueck', requires: 'himmelsscheibe' },   // Fundstück für die Halle, solange es fehlt
+      { id: 'salz_wein',    give: { salz: 20 },       get: { wein: 25 }, requires: 'weinhandel' },
+      { id: 'kleid_wein',   give: { kleidung: 25 },   get: { wein: 20 }, requires: 'weinhandel' },
+      { id: 'salz_bronze',  give: { salz: 20 },       get: { bronze: 15 }, requires: 'handelswege' },
+      { id: 'salz_glas',    give: { salz: 25 },       get: { glas: 6 }, requires: 'weinhandel' },
       { id: 'kleid_bernstein',  give: { kleidung: 15 }, get: { bernstein: 10 }, requires: 'bernsteinstrasse' },
       { id: 'bronze_bernstein', give: { bronze: 10 },   get: { bernstein: 12 }, requires: 'bernsteinstrasse' },
     ],
@@ -108,6 +115,8 @@ const CONFIG = {
   // Werkstätten lassen so viel Metall liegen (mindestens; mehr, wenn eine startbare Forschung mehr kostet), sonst verbrauchen
   // Gießer und Schmiede alles und man kommt nie auf die Kosten für Bauen und Forschung (Analyse 02.11.: bis 12 Stunden Stillstand)
   metalReserve: { kupfer: 30, bronze: 30 },
+  wine: { perPerson: 0.005, happy: 6 },   // Wein ist nur ein Bonus für die Laune (Emin, 03.11.), kein Bedürfnis
+  thingplatz: { warmth: 1 },
   fest: { happy: 15, seconds: 300 },   // Sonnwendfest (nach der „Himmelsscheibe“): mitten im Sommer 5 Minuten Fest, Laune +15
   finds: {               // Fundstücke (docs/konzept-wunderwerke.md)
     firstSpot: 120,       // so lange dauert es nach dem Einstieg bis zur ersten Fundstelle (Sekunden)
@@ -117,7 +126,8 @@ const CONFIG = {
     oreEvery: 1200,       // Erzader: alle 20 Minuten, solange es eine Kupfermine gibt
     oreSeconds: 60,
     oreReward: { kupfererz: 40 },
-    goldEvery: 3,         // jede 3. Erzader bringt dazu ein Goldblättchen
+    goldEvery: 3,         // jede 3. Erzader bringt dazu ein Goldblättchen, in der Eisenzeit einen Bronzepickel
+    oreRewardIron: { eisenerz: 40 },   // ab der Eisenzeit dazu
     boulderEvery: 600,    // Riesenfindling: alle 10 Minuten einer, solange welche fehlen
     boulderSeconds: 120,  // so lange rollen sie ihn zum Bauplatz
     floodShells: 2,       // nach einem Hochwasser liegen so viele Muscheln am Ufer
@@ -127,6 +137,8 @@ const CONFIG = {
     swapCost: 3,          // so viele doppelte Stücke ergeben ein Stück nach Wahl
     luck: [               // Glück bei der Arbeit: pity = Sekunden Arbeit, nach denen das Stück sicher kommt
       { find: 'sonnenstein', line: 'stein', pity: 1800 },
+      { find: 'salzkristall', line: 'salz', pity: 900 },
+      { find: 'wollstoff', line: 'kleidung', pity: 1200 },
       { find: 'feder', line: 'jagen', pity: 2400 },
       { find: 'muschel', line: 'fischen', pity: 2400 },
       { find: 'blumenkranz', line: 'sammeln', pity: 600, seasons: [0, 1] },
@@ -190,6 +202,11 @@ const RESOURCES = {
   wolle:        { name: 'Wolle',       icon: '🐑', from: 'frueh' },
   bernstein:    { name: 'Bernstein',   icon: '🟡', from: 'spaet' },
   schmuck:      { name: 'Schmuck',     icon: '💍', from: 'spaet' },
+  eisenerz:     { name: 'Eisenerz',    icon: '🪨', from: 'eisen1' },
+  eisen:        { name: 'Eisen',       icon: '🔩', from: 'eisen1' },
+  salz:         { name: 'Salz',        icon: '🧂', from: 'eisen2' },
+  glas:         { name: 'Glas',        icon: '🟢', from: 'eisen3' },
+  wein:         { name: 'Wein',        icon: '🍇', from: 'eisen3' },
 };
 
 // Stufen der Steinzeit (Unterteilungen = Abschnitte im Forschungsbaum)
@@ -200,6 +217,9 @@ const STAGES = [
   { id: 'kupfer', name: 'Kupferzeit',      epoch: 'Bronzezeit', theme: 'steinzeit' },   // theme: Leisten-Bilder, bis es eigene gibt (ab 27.11.)
   { id: 'frueh',  name: 'Frühe Bronzezeit', epoch: 'Bronzezeit', theme: 'steinzeit' },
   { id: 'spaet',  name: 'Späte Bronzezeit', epoch: 'Bronzezeit', theme: 'steinzeit' },
+  { id: 'eisen1', name: 'Frühe Eisenzeit',   epoch: 'Eisenzeit', theme: 'steinzeit' },   // Entwurf: docs/epoche-3-eisenzeit.md, Bilder folgen
+  { id: 'eisen2', name: 'Mittlere Eisenzeit', epoch: 'Eisenzeit', theme: 'steinzeit' },
+  { id: 'eisen3', name: 'Späte Eisenzeit',   epoch: 'Eisenzeit', theme: 'steinzeit' },
 ];
 
 // Bedürfnisse der Einwohner. kind: 'stock' = Ware im Lager, 'area' = Gebäude im Umkreis der Wohnung
@@ -211,6 +231,7 @@ const NEEDS = [
   { id: 'toepferwaren', name: 'Töpferwaren',          icon: '🏺', from: 'jung',   kind: 'stock' },
   { id: 'werkzeug',     name: 'Werkzeug',             icon: '🗡️', from: 'frueh',  kind: 'stock', perPerson: 0.01 },   // perPerson: je Einwohner und Minute, sonst CONFIG.goodsPerPerson
   { id: 'schmuck',      name: 'Schmuck',              icon: '💍', from: 'spaet',  kind: 'stock', perPerson: 0.003 },   // Bernstein gibt es nur beim Händler: darf nicht mehr verlangen, als er bringt
+  { id: 'salz',         name: 'Salz',                 icon: '🧂', from: 'eisen2', kind: 'stock', perPerson: 0.02 },
 ];
 
 const SEASONS = [
@@ -424,6 +445,34 @@ const BUILDINGS = {
     color: '#c9a23a', cost: {}, time: 1, belief: 14, requires: 'himmelsscheibe',
     info: 'Wunderwerk der Bronzezeit: Tippe es an, um Abschnitt für Abschnitt weiterzubauen und die Himmelsscheibe zusammenzusetzen.',
   },
+  // ----- Eisenzeit (Entwurf: docs/epoche-3-eisenzeit.md). Weiterentwicklungen zeigen so lange das Bild der Vorstufe, neue Gebäude den Platzhalter.
+  gehoeft: { name: 'Gehöft', icon: '🏠', size: 3, line: 'wohnen', tier: 6, stage: 'eisen1', bild: '1-langhaus', views: ['r2'], color: '#9a6a3a', cost: { holz: 200, stein: 110, eisen: 5 }, time: 240, housing: 30, requires: 'gehoefte', info: 'Ein großer Hof mit Stall und Vorrat, Platz für 30 Menschen.' },
+  stadthaus: { name: 'Stadthaus', icon: '🏘️', size: 3, line: 'wohnen', tier: 7, stage: 'eisen3', bild: '1-langhaus', views: ['r2'], color: '#8a5f36', cost: { holz: 240, stein: 160, eisen: 15 }, time: 270, housing: 36, requires: 'stadthaeuser', info: 'Dicht gebaute Häuser einer kleinen Stadt, Platz für 36 Menschen.' },
+  seehof: { name: 'Seehof', icon: '🛶', size: 3, line: 'wasserwohnen', tier: 2, stage: 'eisen2', bild: '1-pfahlbau', views: ['r1', 'r2'], color: '#7a6a4a', cost: { holz: 220, stein: 60, eisen: 10 }, time: 240, housing: 22, needsWater: true, requires: 'seehoefe', info: 'Große Häuser auf Pfählen, Platz für 22 Menschen.' },
+  obstgarten: { name: 'Obstgarten', icon: '🍎', size: 2, line: 'sammeln', tier: 2, stage: 'eisen1', bild: '1-sammlerin', views: ['r2'], color: '#7a9a4a', cost: { holz: 60, stein: 20 }, time: 90, workers: 2, produces: { nahrung: 16 }, requires: 'obstbau', info: 'Äpfel und Birnen, viel Nahrung.' },
+  jagdhof: { name: 'Jagdhof', icon: '🐕', size: 3, line: 'jagen', tier: 3, stage: 'eisen2', bild: '1-mammutjaegerlager', views: ['r2'], color: '#7a5a3a', cost: { holz: 130, stein: 50, eisen: 5 }, time: 150, workers: 4, produces: { nahrung: 30, felle: 4 }, requires: 'hunde', info: 'Jäger mit Hunden: Nahrung und Felle.' },
+  fischerei: { name: 'Fischerei', icon: '🐟', size: 2, line: 'fischen', tier: 2, stage: 'eisen2', bild: '1-fischerhuette', color: '#4f7a9a', cost: { holz: 90, eisen: 5 }, time: 100, workers: 2, produces: { nahrung: 28 }, needsWater: true, stilts: true, requires: 'fischerboote', info: 'Mit Booten und großen Netzen.' },
+  eisenfeld: { name: 'Eisenpflug-Feld', icon: '🌾', size: 3, line: 'feld', tier: 2, stage: 'eisen1', bild: '1-acker', views: ['r2'], color: '#b7a14a', cost: { holz: 100, eisen: 5 }, time: 120, workers: 4, produces: { nahrung: 65 }, requires: 'eisenpflug', info: 'Der Eisenpflug zieht tiefe Furchen: viel Getreide, im Winter nichts.' },
+  rindergut: { name: 'Rindergut', icon: '🐄', size: 3, line: 'tiere', tier: 2, stage: 'eisen2', bild: '1-ziegengehege', views: ['r2'], color: '#9a7a4a', cost: { holz: 170, stein: 60, eisen: 5 }, time: 160, workers: 3, produces: { nahrung: 20, wolle: 6, felle: 2 }, requires: 'rinderzucht', info: 'Große Herden: Nahrung, Wolle und Felle.' },
+  holzhof: { name: 'Holzhof', icon: '🪵', size: 2, line: 'holz', tier: 2, stage: 'eisen1', bild: '1-holzsammler', views: ['r2'], color: '#8a6a3a', cost: { holz: 40, stein: 30, eisen: 3 }, time: 80, workers: 2, produces: { holz: 16 }, requires: 'eisenaxt', info: 'Die Eisenaxt fällt Bäume schneller.' },
+  forstmeisterin: { name: 'Forstmeisterin', icon: '🌲', size: 2, line: 'pflanzen', tier: 2, stage: 'eisen2', bild: '1-pflanzerin', views: ['r2'], color: '#5a8a4a', cost: { holz: 50, stein: 30 }, time: 70, workers: 1, requires: 'forstwirtschaft', info: 'Pflanzt noch schneller neue Bäume.' },
+  grosser_steinbruch: { name: 'Großer Steinbruch', icon: '⛏️', size: 2, line: 'stein', tier: 2, stage: 'eisen1', bild: '1-steinsammler', views: ['r2'], color: '#8a8a80', cost: { holz: 60, eisen: 3 }, time: 80, workers: 2, produces: { stein: 13 }, requires: 'eisenkeile', info: 'Eisenkeile spalten große Blöcke.' },
+  druide: { name: 'Druide', icon: '🧙', size: 2, line: 'wissen', tier: 3, stage: 'eisen2', bild: '1-hoehlenmaler', views: ['r2'], color: '#4a6a5a', cost: { holz: 40, stein: 40, eisen: 3 }, time: 90, workers: 1, produces: { wissen: 13 }, requires: 'druiden', info: 'Druiden bewahren das Wissen des Stammes.' },
+  badehaus: { name: 'Badehaus', icon: '♨️', size: 2, line: 'waerme', tier: 2, stage: 'eisen2', bild: '1-feuerplatz', views: ['r2'], color: '#a06a4a', cost: { holz: 80, stein: 80, eisen: 3 }, time: 100, warmth: 7, happy: 6, requires: 'badehaus', info: 'Warmes Wasser und Geselligkeit: Wärme und bessere Laune im Umkreis.' },
+  tuchmacherin: { name: 'Tuchmacherin', icon: '🧵', size: 2, line: 'kleidung', tier: 2, stage: 'eisen2', bild: '1-fellmacherin', views: ['r2'], color: '#b0604a', cost: { holz: 70, stein: 30, eisen: 3 }, time: 100, workers: 2, consumes: { wolle: 6 }, produces: { kleidung: 6 }, requires: 'kariert', info: 'Webt karierte Stoffe aus Wolle.' },
+  eisenschmied: { name: 'Eisenschmied', icon: '⚒️', size: 2, line: 'werkzeug', tier: 3, stage: 'eisen1', bild: '1-steinschlaeger', views: ['r2'], color: '#6a6a70', cost: { holz: 50, stein: 70, eisen: 10 }, time: 100, workers: 2, consumes: { eisen: 1, holz: 1 }, produces: { werkzeug: 5 }, requires: 'eisenschmiede', manualUpgrade: true, info: 'Schmiedet aus 1 Eisen und 1 Holz 5 Werkzeuge. Lässt etwas Eisen für Bauen und Forschung liegen. Braucht Eisen: darum nur per Knopf umbauen.' },
+  druidenhain: { name: 'Druidenhain', icon: '🌳', size: 3, line: 'glaube', tier: 2, stage: 'eisen3', bild: '1-ahnenplatz', views: ['r2'], color: '#4a7a4a', cost: { holz: 160, stein: 140, eisen: 10 }, time: 180, belief: 13, requires: 'druidenhain', info: 'Ein heiliger Eichenhain der Druiden: Glaube im großen Umkreis.' },
+  grosse_lehmgrube: { name: 'Große Lehmgrube', icon: '🟤', size: 2, line: 'ton', tier: 2, stage: 'eisen2', bild: '1-tongrube', views: ['r1', 'r2'], color: '#a0603a', cost: { holz: 60, eisen: 3 }, time: 80, workers: 3, produces: { ton: 8 }, needsWater: true, requires: 'drehscheibe', info: 'Viel Ton vom Ufer.' },
+  drehscheibe: { name: 'Drehscheiben-Töpferei', icon: '🏺', size: 2, line: 'toepfern', tier: 2, stage: 'eisen2', bild: '1-toepferei', views: ['r2'], color: '#b0704a', cost: { holz: 60, stein: 50, eisen: 3 }, time: 100, workers: 3, consumes: { ton: 3, holzkohle: 1 }, produces: { toepferwaren: 3 }, requires: 'drehscheibe', info: 'Die Drehscheibe macht schnell feine Gefäße.' },
+  vorratshof: { name: 'Vorratshof', icon: '🛖', size: 3, line: 'lager', tier: 2, stage: 'eisen2', bild: '1-vorratsspeicher', views: ['r2'], color: '#9a7a4a', cost: { holz: 220, stein: 140, eisen: 8 }, time: 180, storage: 400, requires: 'vorratshof', info: 'Große Scheunen: viel mehr Lagerplatz.' },
+  handelshof: { name: 'Handelshof', icon: '🤝', size: 3, line: 'handel', tier: 1, stage: 'eisen2', bild: '2-handelsplatz', color: '#a07a3a', cost: { holz: 180, stein: 100, eisen: 10 }, time: 200, requires: 'handelswege', info: 'Händler kommen von weit her, jedes Mal mit einem Angebot mehr.' },
+  eisenmine: { name: 'Eisenmine', icon: '⛏️', size: 3, line: 'eisenerz', tier: 0, stage: 'eisen1', color: '#7a4a3a', cost: { holz: 120, stein: 80, werkzeug: 20 }, time: 150, workers: 3, produces: { eisenerz: 4 }, needsRock: true, requires: 'eisenbergbau', bonus: { terrain: 'berg', perTile: 0.05, max: 0.5 }, info: 'Holt Eisenerz aus dem Berg. Muss an Felsen oder am Gebirge stehen, am Gebirge bis +50 %.' },
+  rennofen: { name: 'Rennofen', icon: '🔥', size: 2, line: 'eisen', tier: 0, stage: 'eisen1', color: '#8a4a2a', cost: { stein: 80, ton: 30 }, time: 130, workers: 2, consumes: { eisenerz: 2, holzkohle: 2 }, produces: { eisen: 1 }, requires: 'rennofen', info: 'Macht aus 2 Eisenerz und 2 Holzkohle 1 Eisen. Lässt etwas Eisen für Bauen und Forschung liegen.' },
+  salzsiederei: { name: 'Salzsiederei', icon: '🧂', size: 3, line: 'salz', tier: 0, stage: 'eisen2', color: '#c0c0b0', cost: { holz: 150, stein: 80, eisen: 15 }, time: 170, workers: 3, consumes: { holz: 2 }, produces: { salz: 3 }, needsWater: true, requires: 'salzbergbau', info: 'Kocht Salz aus Sole: 2 Holz werden zu 3 Salz. Muss am Wasser stehen.' },
+  wagner: { name: 'Wagner', icon: '🛞', size: 2, line: 'wagner', tier: 0, stage: 'eisen2', color: '#8a6a4a', cost: { holz: 100, eisen: 10 }, time: 110, workers: 1, requires: 'wagenbau', info: 'Baut Wagen: Der Händler bringt ein Angebot mehr.' },
+  glasmacherin: { name: 'Glasmacherin', icon: '🟢', size: 2, line: 'glas', tier: 0, stage: 'eisen3', color: '#4a9a7a', cost: { stein: 80, eisen: 20 }, time: 120, workers: 2, consumes: { holzkohle: 2, stein: 1 }, produces: { glas: 1 }, requires: 'glas', info: 'Schmilzt aus 2 Holzkohle und 1 Stein 1 Glas: Perlen und Armreifen.' },
+  ringwall: { name: 'Ringwall', icon: '🏰', size: 4, line: 'wahrzeichen', tier: 2, stage: 'eisen3', color: '#7a7a6a', cost: { stein: 500, holz: 300, eisen: 40 }, time: 420, belief: 18, happy: 12, requires: 'ringwall', info: 'Wahrzeichen der Eisenzeit: Stolz und Treffpunkt der Stadt. Nötig für den Aufbruch in die Antike.' },
+  salzberg: { name: 'Salzberg', icon: '⛰️', size: 4, line: 'wunder_eisen', tier: 0, stage: 'eisen2', wonder: 'salzberg', needsRock: true, color: '#bdbdb0', cost: {}, time: 1, produces: { salz: 4 }, requires: 'salzbergbau', info: 'Wunderwerk der Eisenzeit: Tippe es an, um Abschnitt für Abschnitt weiterzubauen. Muss an Felsen oder am Gebirge stehen.' },
   // ----- Bronzezeit, Stufe Kupferzeit. Bilder folgen ab 27.11.: Weiterentwicklungen zeigen so lange das Bild der Vorstufe,
   // neue Gebäude ein Platzhalter-Feld.
   lehmhaus: {
@@ -591,6 +640,10 @@ const BUILDINGS = {
   },
 };
 
+// Eisenzeit: Weiterentwicklungen der Bronzezeit-Gebäude
+for (const [from, to] of [['hallenhaus', 'gehoeft'], ['gehoeft', 'stadthaus'], ['fischerhaus', 'seehof'], ['gemuesegarten', 'obstgarten'], ['jagdhuette', 'jagdhof'], ['fischerhuette', 'fischerei'], ['feld', 'eisenfeld'], ['viehhof', 'rindergut'], ['holzfaeller', 'holzhof'], ['baumgaertnerin', 'forstmeisterin'], ['steinbruch', 'grosser_steinbruch'], ['sternkundiger', 'druide'], ['dorfbrunnen', 'badehaus'], ['weberin', 'tuchmacherin'], ['bronzeschmied', 'eisenschmied'], ['heiliger_hain', 'druidenhain'], ['lehmgrube', 'grosse_lehmgrube'], ['toepferwerkstatt', 'drehscheibe'], ['kornspeicher', 'vorratshof'], ['handelsplatz', 'handelshof']]) BUILDINGS[from].upgradeTo = to;
+
+
 // Forschungsbaum. col/row = Platz im Baum (Spalte von links, Reihe: 0–1 Nahrung, 2 Wohnen, 3 Handwerk, 4 Wissen)
 // effect: unlock (Gebäude), bonus (Produktion +x je Gebäude), housing (+Plätze je Gebäude), warmth (+Umkreis), stage
 const TECHS = {
@@ -669,10 +722,51 @@ const TECHS = {
   heiliger_hain:    { name: 'Heiliger Hain',   icon: '🌳', stage: 'spaet', col: 21, row: 4, requires: ['spaete_bronzezeit'], population: 220, cost: { wissen: 240, toepferwaren: 30 }, time: 1020, effect: {} },
   fuerstenhuegel:   { name: 'Fürstenhügel',    icon: '⛰️', stage: 'spaet', col: 22, row: 3, requires: ['schmuckkunst', 'heiliger_hain'], population: 240, cost: { wissen: 250, schmuck: 15 }, time: 1080, effect: {} },
   eisenfund:        { name: 'Eisenfund',       icon: '🔩', stage: 'spaet', col: 23, row: 2, requires: ['plankenboote', 'hallenhaus', 'kornspeicher', 'fuerstenhuegel', 'himmelsscheibe'], population: 250, cost: { wissen: 280, bronze: 40, schmuck: 20 }, time: 2400, effect: {} },
-  // Das Ziel der Bronzezeit. soon: lässt sich noch nicht starten – die Eisenzeit bekommt einen eigenen Entwurf.
+  // Das Ziel der Bronzezeit
   aufbruch_eisenzeit: {
-    name: 'Aufbruch in die Eisenzeit', icon: '🔩', stage: 'spaet', col: 24, row: 2, transition: true, soon: true, requires: ['eisenfund'],
-    population: 280, cost: { wissen: 280, holz: 400, stein: 300, nahrung: 400, bronze: 60, schmuck: 30, werkzeug: 50 }, time: 300, effect: {},
+    name: 'Aufbruch in die Eisenzeit', icon: '🔩', stage: 'spaet', col: 24, row: 2, transition: true, requires: ['eisenfund'],
+    population: 280, cost: { wissen: 280, holz: 400, stein: 300, nahrung: 400, bronze: 60, schmuck: 30, werkzeug: 50 }, time: 300, effect: { stage: 'eisen1', gift: { eisen: 20, eisenerz: 30 } },
+  },
+  // ----- Aufbruch und Frühe Eisenzeit (docs/epoche-3-eisenzeit.md)
+  eisenbergbau:   { name: 'Eisenbergbau',   icon: '⛏️', stage: 'eisen1', col: 25, row: 3, requires: ['aufbruch_eisenzeit'], population: 285, cost: { wissen: 300, holz: 200 }, time: 960, effect: {} },
+  rennofen:       { name: 'Rennofen',       icon: '🔥', stage: 'eisen1', col: 26, row: 3, requires: ['eisenbergbau'], population: 290, cost: { wissen: 310, stein: 200 }, time: 1020, effect: {} },
+  eisenaxt:       { name: 'Eisenaxt',       icon: '🪓', stage: 'eisen1', col: 27, row: 3, requires: ['rennofen'], population: 300, cost: { wissen: 320, eisen: 15 }, time: 1020, effect: {} },
+  eisenkeile:     { name: 'Eisenkeile',     icon: '🔨', stage: 'eisen1', col: 27, row: 2, requires: ['rennofen'], population: 300, cost: { wissen: 320, eisen: 15 }, time: 1020, effect: {} },
+  eisenschmiede:  { name: 'Eisenschmiede',  icon: '⚒️', stage: 'eisen1', col: 27, row: 4, requires: ['rennofen'], population: 305, cost: { wissen: 330, eisen: 20 }, time: 1080, effect: {} },
+  obstbau:        { name: 'Obstbau',        icon: '🍎', stage: 'eisen1', col: 25, row: 0, requires: ['aufbruch_eisenzeit'], population: 285, cost: { wissen: 290, nahrung: 200 }, time: 900, effect: {} },
+  eisenpflug:     { name: 'Eisenpflug',     icon: '🌾', stage: 'eisen1', col: 27, row: 0, requires: ['rennofen', 'obstbau'], population: 305, cost: { wissen: 330, eisen: 20 }, time: 1080, effect: {} },
+  gehoefte:       { name: 'Gehöfte',        icon: '🏠', stage: 'eisen1', col: 25, row: 2, requires: ['aufbruch_eisenzeit'], population: 285, cost: { wissen: 300, holz: 200, stein: 100 }, time: 960, effect: {} },
+  mittlere_eisenzeit: {
+    name: 'Mittlere Eisenzeit', icon: '🧂', stage: 'eisen1', col: 28, row: 2, transition: true, requires: ['eisenaxt', 'eisenkeile', 'eisenschmiede', 'eisenpflug', 'gehoefte'],
+    population: 320, cost: { wissen: 350, eisen: 30, kleidung: 40 }, time: 1800, effect: { stage: 'eisen2', gift: { eisen: 10, salz: 80 } },   // Salz reicht, bis die erste Salzsiederei steht
+  },
+  salzbergbau:    { name: 'Salzbergbau',    icon: '🧂', stage: 'eisen2', col: 30, row: 3, requires: ['mittlere_eisenzeit'], population: 325, cost: { wissen: 350, eisen: 20, holz: 200 }, time: 1080, effect: {} },
+  kariert:        { name: 'Karierter Stoff', icon: '🧵', stage: 'eisen2', col: 31, row: 3, requires: ['salzbergbau'], population: 335, cost: { wissen: 360, wolle: 40 }, time: 1080, effect: {} },
+  drehscheibe:    { name: 'Drehscheibe',    icon: '🏺', stage: 'eisen2', col: 31, row: 4, requires: ['mittlere_eisenzeit'], population: 335, cost: { wissen: 360, ton: 80 }, time: 1080, effect: {} },
+  wagenbau:       { name: 'Wagenbau',       icon: '🛞', stage: 'eisen2', col: 32, row: 3, requires: ['kariert'], population: 350, cost: { wissen: 370, eisen: 25, holz: 150 }, time: 1140, effect: {} },
+  hunde:          { name: 'Jagdhunde',      icon: '🐕', stage: 'eisen2', col: 30, row: 0, requires: ['mittlere_eisenzeit'], population: 325, cost: { wissen: 340, nahrung: 200 }, time: 1020, effect: {} },
+  fischerboote:   { name: 'Fischerboote',   icon: '🐟', stage: 'eisen2', col: 31, row: 0, requires: ['hunde'], population: 335, cost: { wissen: 350, holz: 200 }, time: 1080, effect: {} },
+  rinderzucht:    { name: 'Rinderzucht',    icon: '🐄', stage: 'eisen2', col: 32, row: 0, requires: ['fischerboote'], population: 350, cost: { wissen: 370, nahrung: 250 }, time: 1140, effect: {} },
+  seehoefe:       { name: 'Seehöfe',        icon: '🛶', stage: 'eisen2', col: 30, row: 2, requires: ['mittlere_eisenzeit'], population: 325, cost: { wissen: 340, holz: 250 }, time: 1020, effect: {} },
+  badehaus:       { name: 'Badehaus',       icon: '♨️', stage: 'eisen2', col: 31, row: 2, requires: ['seehoefe'], population: 340, cost: { wissen: 360, stein: 200 }, time: 1080, effect: {} },
+  forstwirtschaft:{ name: 'Forstwirtschaft', icon: '🌲', stage: 'eisen2', col: 32, row: 2, requires: ['badehaus'], population: 350, cost: { wissen: 360, holz: 200 }, time: 1080, effect: {} },
+  druiden:        { name: 'Druiden',        icon: '🧙', stage: 'eisen2', col: 30, row: 4, requires: ['mittlere_eisenzeit'], population: 325, cost: { wissen: 360, kleidung: 40 }, time: 1140, effect: {} },
+  handelswege:    { name: 'Handelswege',    icon: '🤝', stage: 'eisen2', col: 32, row: 4, requires: ['druiden', 'drehscheibe'], population: 355, cost: { wissen: 380, salz: 40 }, time: 1200, effect: {} },
+  vorratshof:     { name: 'Vorratshof',     icon: '🛖', stage: 'eisen2', col: 33, row: 2, requires: ['forstwirtschaft'], population: 360, cost: { wissen: 370, holz: 300 }, time: 1140, effect: { storage: 0.25 } },
+  spaete_eisenzeit: {
+    name: 'Späte Eisenzeit', icon: '🟢', stage: 'eisen2', col: 34, row: 2, transition: true, requires: ['wagenbau', 'rinderzucht', 'vorratshof', 'handelswege'],
+    population: 380, cost: { wissen: 400, eisen: 40, salz: 40 }, time: 1800, effect: { stage: 'eisen3', gift: { glas: 5 } },
+  },
+  glas:           { name: 'Glas',           icon: '🟢', stage: 'eisen3', col: 35, row: 3, requires: ['spaete_eisenzeit'], population: 385, cost: { wissen: 400, eisen: 25, holzkohle: 40 }, time: 1140, effect: {} },
+  eisenkunst:     { name: 'Eisenkunst',     icon: '🗡️', stage: 'eisen3', col: 36, row: 3, requires: ['glas'], population: 400, cost: { wissen: 420, eisen: 40 }, time: 1200, effect: {} },
+  stadthaeuser:   { name: 'Stadthäuser',    icon: '🏘️', stage: 'eisen3', col: 35, row: 2, requires: ['spaete_eisenzeit'], population: 385, cost: { wissen: 400, holz: 300, stein: 200 }, time: 1140, effect: {} },
+  ringwall:       { name: 'Ringwall',       icon: '🏰', stage: 'eisen3', col: 36, row: 2, requires: ['stadthaeuser'], population: 410, cost: { wissen: 430, stein: 300, eisen: 30 }, time: 1200, effect: {} },
+  weinhandel:     { name: 'Weinhandel',     icon: '🍇', stage: 'eisen3', col: 35, row: 4, requires: ['spaete_eisenzeit'], population: 385, cost: { wissen: 400, salz: 60 }, time: 1140, effect: {} },
+  druidenhain:    { name: 'Druidenhain',    icon: '🌳', stage: 'eisen3', col: 36, row: 4, requires: ['weinhandel'], population: 400, cost: { wissen: 420, stein: 200 }, time: 1200, effect: {} },
+  keltenschrift:  { name: 'Keltenschrift',  icon: '📜', stage: 'eisen3', col: 37, row: 3, requires: ['eisenkunst', 'ringwall', 'druidenhain'], population: 430, cost: { wissen: 450, glas: 20 }, time: 1500, effect: {} },
+  aufbruch_antike: {
+    name: 'Aufbruch in die Antike', icon: '🏛️', stage: 'eisen3', col: 38, row: 2, transition: true, soon: true, requires: ['keltenschrift'],
+    population: 480, cost: { wissen: 500, holz: 500, stein: 400, nahrung: 500, eisen: 80, salz: 80, glas: 30 }, time: 300, effect: {},
   },
 };
 
@@ -729,6 +823,21 @@ const TECH_NEEDS = {
   fuerstenhuegel:  { schmuckmacherin: 1, heiliger_hain: 1 },
   eisenfund:       { fuerstenhuegel: 1, hallenhaus: 5 },
   aufbruch_eisenzeit: { himmelshalle: 1, fuerstenhuegel: 1, sternkundiger: 2, kornspeicher: 1, jagdhuette: 2, feld: 2, viehhof: 2, kupfermine: 2, schmelzofen: 2, zinnwaescherin: 1, handelsplatz: 1, schmuckmacherin: 1 },
+  rennofen:        { eisenmine: 1, koehler: 2 },
+  eisenaxt:        { rennofen: 1 },
+  eisenkeile:      { rennofen: 1 },
+  eisenschmiede:   { rennofen: 1 },
+  eisenpflug:      { rennofen: 1, obstgarten: 2 },
+  mittlere_eisenzeit: { eisenmine: 2, rennofen: 2, eisenschmied: 1, gehoeft: 5 },
+  kariert:         { salzsiederei: 1 },
+  wagenbau:        { salzsiederei: 2 },
+  rinderzucht:     { jagdhof: 1 },
+  handelswege:     { druide: 3 },
+  spaete_eisenzeit: { salzsiederei: 2, tuchmacherin: 1, wagner: 1, rindergut: 2 },
+  eisenkunst:      { glasmacherin: 1 },
+  ringwall:        { stadthaus: 4 },
+  keltenschrift:   { ringwall: 1, druidenhain: 1 },
+  aufbruch_antike: { ringwall: 1, salzberg: 1, stadthaus: 8, eisenschmied: 2, rennofen: 3, salzsiederei: 3, glasmacherin: 1 },
 };
 
 // Ganz rechts im Baum: Aufbruch in die nächste Epoche (Bronzezeit wird in einem späteren Schritt gebaut)
@@ -747,14 +856,14 @@ const TECH_NEEDS = {
     if (tech.cost && tech.cost.wissen) tech.cost.wissen = Math.round(tech.cost.wissen * t.knowledgeCost);
     for (const id of Object.keys(tech.cost || {}))
       if (id !== 'wissen') {
-        const stages = ['kupfer', 'frueh', 'spaet'];   // ab der Kupferzeit fasst der Dorfplatz mehr
+        const stages = ['kupfer', 'frueh', 'spaet', 'eisen1', 'eisen2', 'eisen3'];   // ab der Kupferzeit fasst der Dorfplatz mehr
         const room = CONFIG.baseStorage + CONFIG.stageStorage[tech.stage || 'alt'] + (stages.includes(tech.stage) ? CONFIG.dorfplatz.storage : 0);
         tech.cost[id] = Math.min(room, Math.round(tech.cost[id] * t.researchGoods / 5) * 5);
       }
   }
 })(CONFIG.tempo);
 
-const NEXT_EPOCH = { name: 'Eisenzeit', icon: '🔩', text: 'Eisenerz, Schmiede und befestigte Siedlungen.' };   // der nächste Bauabschnitt: nur Vorschau im Forschungsfenster
+const NEXT_EPOCH = { name: 'Antike', icon: '🏛️', text: 'Schrift, Geld, Tempel und Märkte, dazu die Wahl der Religion.' };   // der nächste Bauabschnitt: nur Vorschau im Forschungsfenster
 
 // Weiterentwicklungen wirken wie ihre Vorstufe bei Wetter, Jahreszeit, Katastrophen und Forschungs-Boni
 (function inheritEffects() {
@@ -774,9 +883,9 @@ const NEXT_EPOCH = { name: 'Eisenzeit', icon: '🔩', text: 'Eisenerz, Schmiede 
 const BAR_CATEGORIES = [
   { id: 'wohnen',    name: 'Wohnen',    icon: '🏠', lines: ['wohnen', 'wasserwohnen'] },
   { id: 'nahrung',   name: 'Nahrung',   icon: '🍖', lines: ['sammeln', 'jagen', 'fischen', 'feld', 'tiere'] },
-  { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton', 'erz', 'kohle', 'zinn'] },
-  { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'bronze', 'kleidung', 'werkzeug', 'toepfern', 'schmuck', 'lager', 'handel'] },
-  { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['wunder', 'wunder_bronze', 'waerme', 'glaube', 'wissen', 'wahrzeichen'] },
+  { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton', 'erz', 'eisenerz', 'kohle', 'zinn'] },
+  { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'bronze', 'eisen', 'kleidung', 'werkzeug', 'toepfern', 'schmuck', 'glas', 'salz', 'wagner', 'lager', 'handel'] },
+  { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['wunder', 'wunder_bronze', 'wunder_eisen', 'waerme', 'glaube', 'wissen', 'wahrzeichen'] },
   { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg', 'bruecke'] },
 ];
 
@@ -851,6 +960,22 @@ const QUESTS = [
   { id: 'q_b_pop230',   text: 'Erreiche 230 Einwohner',  goal: { population: 230 }, reward: { holz: 150, stein: 100 } },
   { id: 'q_b_fuerstenhuegel', text: 'Baue den Fürstenhügel', goal: { build: 'fuerstenhuegel', count: 1 }, reward: { bronze: 30, nahrung: 150 } },
   { id: 'q_b_pop280',   text: 'Erreiche 280 Einwohner – bereit für den Aufbruch', goal: { population: 280 }, reward: { holz: 200, nahrung: 200 } },
+  // Eisenzeit
+  { id: 'q_e_mine',     text: 'Baue eine Eisenmine',     goal: { build: 'eisenmine', count: 1 }, reward: { holz: 200, stein: 100 } },
+  { id: 'q_e_ofen',     text: 'Baue einen Rennofen',     goal: { build: 'rennofen', count: 1 }, reward: { holzkohle: 40 } },
+  { id: 'q_e_eisen20',  text: 'Habe 20 Eisen im Lager',  goal: { resource: 'eisen', count: 20 }, reward: { wissen: 100 } },
+  { id: 'q_e_gehoeft5', text: 'Baue 5 Gehöfte',          goal: { build: 'gehoeft', count: 5 }, reward: { holz: 200 } },
+  { id: 'q_e_pop320',   text: 'Erreiche 320 Einwohner',  goal: { population: 320 }, reward: { eisen: 20 } },
+  { id: 'q_e_mittel',   text: 'Erreiche die Mittlere Eisenzeit', goal: { tech: 'mittlere_eisenzeit' }, reward: { eisen: 20, nahrung: 200 } },
+  { id: 'q_e_salz',     text: 'Baue eine Salzsiederei',  goal: { build: 'salzsiederei', count: 1 }, reward: { holz: 200 } },
+  { id: 'q_e_salz30',   text: 'Habe 30 Salz im Lager',   goal: { resource: 'salz', count: 30 }, reward: { wissen: 120 } },
+  { id: 'q_e_druide',   text: 'Baue 3 Druiden',          goal: { build: 'druide', count: 3 }, reward: { kleidung: 30 } },
+  { id: 'q_e_pop380',   text: 'Erreiche 380 Einwohner',  goal: { population: 380 }, reward: { eisen: 30 } },
+  { id: 'q_e_spaet',    text: 'Erreiche die Späte Eisenzeit', goal: { tech: 'spaete_eisenzeit' }, reward: { salz: 40 } },
+  { id: 'q_e_glas',     text: 'Baue eine Glasmacherin',  goal: { build: 'glasmacherin', count: 1 }, reward: { holzkohle: 60 } },
+  { id: 'q_e_stadt4',   text: 'Baue 4 Stadthäuser',      goal: { build: 'stadthaus', count: 4 }, reward: { stein: 200 } },
+  { id: 'q_e_ringwall', text: 'Baue den Ringwall',       goal: { build: 'ringwall', count: 1 }, reward: { eisen: 40, nahrung: 300 } },
+  { id: 'q_e_pop480',   text: 'Erreiche 480 Einwohner – bereit für den Aufbruch', goal: { population: 480 }, reward: { holz: 300, nahrung: 300 } },
 ];
 
 // Tägliche Belohnung: Tag 1–7 hintereinander (Tag 7 ist die große Truhe)
@@ -865,8 +990,8 @@ const DAILY_REWARDS = [
 ];
 // Die Belohnung wächst mit dem Zeitalter (Emin, 03.11.): Grundmenge × Faktor, an Tag 3, 5 und 7 dazu Waren der Zeit (Tag 7 doppelt)
 const DAILY_GROWTH = {
-  factor: { alt: 1, mittel: 1.5, jung: 2, kupfer: 3, frueh: 4, spaet: 5 },
-  extra: { kupfer: { kupfer: 10 }, frueh: { kupfer: 10, bronze: 5 }, spaet: { bronze: 10, schmuck: 3 } },
+  factor: { alt: 1, mittel: 1.5, jung: 2, kupfer: 3, frueh: 4, spaet: 5, eisen1: 6, eisen2: 7, eisen3: 8 },
+  extra: { kupfer: { kupfer: 10 }, frueh: { kupfer: 10, bronze: 5 }, spaet: { bronze: 10, schmuck: 3 }, eisen1: { bronze: 10, eisen: 5 }, eisen2: { eisen: 10, salz: 5 }, eisen3: { eisen: 10, salz: 10, glas: 3 } },
 };
 
 // Wunderwerke: jeder Abschnitt ist ein Kapitel (Zahlen und Texte aus docs/konzept-wunderwerke.md).
@@ -954,6 +1079,32 @@ const WONDERS = {
         goods: { bronze: 40, schmuck: 10, wissen: 100 }, seconds: 600, gives: { scheibe: 1 }, done: 'Das Sonnenschiff ist da!' },
     ],
   },
+  salzberg: {
+    name: 'Salzberg', icon: '⛰️', building: 'salzberg', tech: 'salzbergbau', page: 'eisen',
+    hint: 'Beginnt mit der Forschung Salzbergbau', where: 'Wähle den Platz selbst: unten in der Bauleiste unter „Feuer & Glaube“. Der Salzberg muss an Felsen oder am Gebirge stehen.', whereShort: 'Wähle einen Platz an Felsen',
+    images: ['3-salzberg-bau', '3-salzberg-bau', '3-salzberg-halb', '3-salzberg-halb', '3-salzberg'],
+    call: 'Tief im Berg liegt weißes Gold: Salz! Wer es hat, wird reich. Wählen wir einen Platz am Fels: unten unter Feuer & Glaube!',
+    intro: 'Salz macht Essen haltbar und wird überall gesucht. Graben wir uns Stück für Stück in den Berg.',
+    doneText: 'Der Salzberg ist fertig! Lange Reihen von Trägern bringen das weiße Gold ans Licht, Karren rollen in alle Richtungen.',
+    bonus: ['🧂 +4 Salz je Minute von selbst', '🧂 Salzsiedereien arbeiten 20 % besser', '🎉 Einmal im Jahr: Salzfest im Herbst, mit Geschenk', '➡️ Nötig für den Aufbruch in die Antike'],
+    boost: { line: 'salz', share: 0.2 },
+    fest: { name: 'Salzfest', year: 4.5 / 8, gift: { salz: 30, nahrung: 300 } },
+    firstFest: true,
+    facts: [
+      'Wusstest du? Salz war so wertvoll, dass man es „weißes Gold“ nannte.',
+      'Wusstest du? Im Salzbergwerk von Hallstatt fand man über 3.000 Jahre alte Tragesäcke aus Leder.',
+    ],
+    steps: [
+      { title: 'Der Stollen', story: 'Wir brauchen Holz für die Stützen und viel Werkzeug. Dann graben wir uns in den Berg.',
+        goods: { holz: 300, stein: 150, werkzeug: 30 }, seconds: 360, done: 'Der Stollen führt tief in den Berg!' },
+      { title: 'Die lange Treppe', story: 'Eine Treppe aus Holz führt hinab. Alte Bronzepickel aus Erzadern taugen noch gut.',
+        finds: { bronzepickel: 3 }, goods: { holz: 200, eisen: 30 }, seconds: 600, done: 'Die Treppe steht!' },
+      { title: 'Weißes Gold', story: 'Salzkristalle glänzen im Fackelschein! Die Träger brauchen Rucksäcke, Essen und warme Kleidung.',
+        finds: { salzkristall: 5, rucksack: 2 }, goods: { nahrung: 200, kleidung: 50 }, seconds: 720, done: 'Das erste Salz kommt ans Licht!' },
+      { title: 'Die Karren rollen', story: 'Karierte Tücher für die Fuhrleute, dann geht das Salz hinaus in die Welt.',
+        finds: { wollstoff: 3 }, goods: { salz: 80, eisen: 40, wissen: 150 }, seconds: 720, done: 'Die Karren rollen!' },
+    ],
+  },
 };
 
 // Fundstücke und Schatzkiste. need = so viele braucht das Wunderwerk (alles darüber zählt als doppelt),
@@ -977,10 +1128,10 @@ const FINDS = {
   zinnperle:   { name: 'Zinn-Perle', icon: '⚪', page: 'bronze', need: 2, stage: 'frueh', spot: 'ufer', hint: 'Glitzert ab der Frühen Bronzezeit am Ufer' },
   bernsteinstueck: { name: 'Großer Bernstein', icon: '🟠', page: 'bronze', stage: 'spaet', hint: 'Gegen Bronze beim Händler, wenn die Himmelsscheibe erforscht ist' },
   scheibe:     { name: 'Teil der Himmelsscheibe', icon: '🌞', page: 'bronze', need: 5, soon: true, hint: 'Entsteht beim Bau der Halle der Himmelsscheibe' },
-  salzkristall:{ name: 'Salzkristall', icon: '💎', page: 'eisen', soon: true, hint: FIND_LATER },
-  rucksack:    { name: 'Alter Lederrucksack', icon: '🎒', page: 'eisen', soon: true, hint: FIND_LATER },
-  bronzepickel:{ name: 'Bronzepickel', icon: '⛏️', page: 'eisen', soon: true, hint: FIND_LATER },
-  wollstoff:   { name: 'Karierter Wollstoff', icon: '🧵', page: 'eisen', soon: true, hint: FIND_LATER },
+  salzkristall:{ name: 'Salzkristall', icon: '💎', page: 'eisen', need: 5, stage: 'eisen2', hint: 'Die Salzsiederei findet manchmal einen' },
+  rucksack:    { name: 'Alter Lederrucksack', icon: '🎒', page: 'eisen', need: 2, stage: 'eisen2', spot: 'fels', hint: 'Glitzert ab der Mittleren Eisenzeit an Felsen' },
+  bronzepickel:{ name: 'Bronzepickel', icon: '⛏️', page: 'eisen', need: 3, stage: 'eisen2', hint: 'Steckt manchmal in einer Erzader' },
+  wollstoff:   { name: 'Karierter Wollstoff', icon: '🧵', page: 'eisen', need: 3, stage: 'eisen2', hint: 'Die Tuchmacherin webt manchmal einen' },
   schriftrolle:{ name: 'Schriftrolle', icon: '📜', page: 'antike', soon: true, hint: FIND_LATER },
   spiegel:     { name: 'Bronzespiegel', icon: '🪞', page: 'antike', soon: true, hint: FIND_LATER },
   marmor:      { name: 'Marmorblock', icon: '⬜', page: 'antike', soon: true, hint: FIND_LATER },

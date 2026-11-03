@@ -19,7 +19,7 @@ const IMAGE_DIR = '../bilder/epochia/';
 // Die Bilder liegen nach Art sortiert, Gebäude je in einem eigenen Ordner (Emin, 03.11.): gebaeude/sammlerin/1-sammlerin-r2-winter.webp.
 // Dieselbe Regel gilt für die Originale in quelle/; der Test „Bilder“ prüft sie gegen die Dateien.
 function imageFolder(name) {
-  const b = /^[12]-(.+)$/.exec(name);
+  const b = /^[123]-(.+)$/.exec(name);
   if (b) return 'gebaeude/' + b[1].replace(/-winter$/, '').replace(/-r[12]$/, '').replace(/-(bau|halb)$/, '').replace(/^baustelle-\d$/, 'baustelle');
   if (name.startsWith('f-')) return 'forschung';
   if (name.startsWith('ware-')) return 'waren';

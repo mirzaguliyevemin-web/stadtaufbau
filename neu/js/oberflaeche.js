@@ -128,7 +128,7 @@ function setCssVar(name, value) {
 let themeEpoch = '';
 function applyEpochTheme() {
   const st = STAGES[stageIndex()];
-  BUILDINGS.lagerfeuer.name = stageReached('kupfer') ? 'Dorfplatz' : 'Lagerfeuer';
+  BUILDINGS.lagerfeuer.name = stageReached('eisen1') ? 'Thingplatz' : stageReached('kupfer') ? 'Dorfplatz' : 'Lagerfeuer';
   const key = st.theme || st.epoch.toLowerCase();
   if (key === themeEpoch) return;
   themeEpoch = key;
@@ -866,7 +866,7 @@ function researchTopHtml() {
   if (!g) return `<div class="rs-goal"><div class="rs-gtext"><b>Alles erforscht</b></div>${know}</div>`;
   const t = TECHS[g.trans], done = state.techs[g.trans];
   const stalled = !done && !g.open.length && !t.soon && researchStalls(g.trans)[0];
-  const line = done ? 'Geschafft!' : stalled ? `⚠ ${RESOURCES[stalled.id].name} knapp` : g.open.length ? `Noch ${g.open.length} ${g.open.length === 1 ? 'Forschung' : 'Forschungen'} bis zum Aufbruch` : 'Alles bereit – jetzt erforschen!';
+  const line = done ? 'Geschafft!' : stalled ? `⚠ ${RESOURCES[stalled.id].name} knapp` : g.open.length ? `Noch ${g.open.length} ${g.open.length === 1 ? 'Forschung' : 'Forschungen'} bis zum Aufbruch` : t.soon ? 'Kommt mit dem nächsten Ausbau' : 'Alles bereit – jetzt erforschen!';
   const steps = g.open.map(id => `<button class="rs-step${techStatus(id) === 'running' ? ' run' : ''}" onclick="selectTech('${id}')">${esc(TECHS[id].name)}</button>`).join('');
   return `<div class="rs-goal"><button class="rs-gmain" onclick="selectTech('${g.trans}')">${iconHtml(t.bild, t.icon)}<span class="rs-gtext"><b>Ziel: ${esc(t.name === g.target ? t.name : t.name + ' → ' + g.target)}</b><small>${line}</small></span></button>
     <div class="rs-steps">${steps}</div>${know}</div>`;
@@ -947,6 +947,7 @@ function researchHint(id) {
   const t = TECHS[id], problem = researchProblem(id);
   if (!problem) return { label: '📜 Erforschen', hint: '' };
   const status = techStatus(id);
+  if (t.soon) return { label: '🔜 Kommt mit dem nächsten Ausbau', hint: '' };
   if (status === 'locked') return { label: '🔒 ' + problem, hint: '' };
   if (state.research) return { label: '⏳ Es läuft schon eine Forschung', hint: problem };
   if (t.population && state.pop < t.population) return { label: `👥 ${t.population} Einwohner nötig`, hint: 'Baue mehr Wohnungen, dann ziehen mehr Leute zu.' };
@@ -1249,7 +1250,7 @@ function openMenu() {
   openPage('⚙️ Menü', menuHtml(), 'menu');
 }
 
-const SLOT_PICTURES = { alt: '1-lagerfeuer', mittel: '1-grubenhaus', jung: '1-langhaus', kupfer: '1-langhaus' };
+const SLOT_PICTURES = { alt: '1-lagerfeuer', mittel: '1-grubenhaus', jung: '1-langhaus', kupfer: '1-langhaus', eisen1: '1-langhaus', eisen2: '1-langhaus', eisen3: '1-langhaus' };
 
 function slotsHtml(inGame) {
   return '<div class="slots">' + SLOTS.map(slot => {

@@ -4,7 +4,7 @@ Aufbauspiel als PWA (reines HTML/CSS/JS mit Canvas) im Ordner `neu/`. Läuft öf
 https://mirzaguliyevemin-web.github.io/stadtaufbau/neu/ – **jeder Push auf `main` ist sofort live**
 und wird von Emin am Handy gespielt. Die Hauptadresse `…/stadtaufbau/` leitet zu Epochia weiter.
 
-Pläne in `docs/` (`konzept-neu.md`, `epoche-1-steinzeit.md`, `epoche-2-bronzezeit.md`, `konzept-wunderwerke.md`).
+Pläne in `docs/` (`konzept-neu.md`, `epoche-1-steinzeit.md`, `epoche-2-bronzezeit.md`, `epoche-3-eisenzeit.md`, `konzept-wunderwerke.md`, `plan-arbeitsbewegungen.md`, `plan-item-shop.md`, `plan-zweite-stadt.md`).
 Bilder in `bilder/epochia/` nach Art sortiert, jedes Gebäude im eigenen Ordner (`gebaeude/sammlerin/…`), Originale genauso
 unter `quelle/`. Der Pfad folgt aus dem Namen (`imagePath` in `neu/js/zeichnen.js`). Neue Bilder dorthin legen, der Test „Bilder“ prüft das.
 

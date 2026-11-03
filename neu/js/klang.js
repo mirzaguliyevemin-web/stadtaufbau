@@ -198,7 +198,7 @@ const SOUNDS = {
 
 // Welches Geräusch gehört zu welchem Gebäude?
 const BUILDING_SOUNDS = {
-  geschichtenhoehle: 'hoehle', himmelshalle: 'steinkreis',
+  geschichtenhoehle: 'hoehle', himmelshalle: 'steinkreis', salzberg: 'klirren', ringwall: 'steinkreis', gehoeft: 'haus', stadthaus: 'haus', seehof: 'pfahl', obstgarten: 'graben', jagdhof: 'hacken', fischerei: 'pfahl', eisenfeld: 'graben', rindergut: 'knarzen', holzhof: 'hacken', forstmeisterin: 'graben', grosser_steinbruch: 'klirren', druide: 'pinsel', badehaus: 'feuer', tuchmacherin: 'schaben', eisenschmied: 'klopfen', druidenhain: 'trommel', grosse_lehmgrube: 'matsch', drehscheibe: 'toepfern', vorratshof: 'knarzen', handelshof: 'knarzen', eisenmine: 'klirren', rennofen: 'feuer', salzsiederei: 'feuer', wagner: 'klopfen', glasmacherin: 'feuer',
   lehmhaus: 'haus', gemuesegarten: 'rascheln', fischerhuette: 'platsch', holzfaeller: 'hacken', steinbruch: 'klirren', felsritzer: 'pinsel',
   dorfbrunnen: 'matsch', lehmgrube: 'matsch', kupferschmied: 'klopfen', kupfermine: 'klirren', koehler: 'feuer', schmelzofen: 'feuer',
   jagdhuette: 'horn', feld: 'korn', viehhof: 'ziege', baumgaertnerin: 'graben', weberin: 'schaben', bronzeschmied: 'klopfen', toepferwerkstatt: 'toepfern',

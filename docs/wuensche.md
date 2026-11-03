@@ -17,11 +17,14 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 - Arbeitsbewegungen (Emin, 03.11.): 74 Bilder mit je 3 Stufen, Plan `docs/plan-arbeitsbewegungen.md`. Item-Shop: Plan `docs/plan-item-shop.md`; Emin probiert Schritt 1 ohne Geld aus, Preise danach anpassen.
 
-- Eisenzeit (Emin, 03.11.): Entwurf `docs/epoche-3-eisenzeit.md`, 8 Fragen an Emin offen, noch nicht bauen.
+- Eisenzeit (Emin, 03.11.): Technik mit vorläufigen Bildern gebaut (Version 86). Offen: etwa 200 Bilder, später nach den Bildern für Steinzeit und Bronzezeit. Plan: `docs/epoche-3-eisenzeit.md`.
+
+- Zweite Karte und zweite Stadt (Emin, 03.11.): nur ein Plan, wichtigere Sachen gehen vor. Plan: `docs/plan-zweite-stadt.md`, → Frage: 6 Fragen an Emin, wenn es so weit ist.
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-03, Epochia Version 86 – Wunsch Emin: Eisenzeit als Technik: drei Stufen, 31 Forschungen (gut 7 Stunden) bis zur noch gesperrten Antike, 27 Gebäude, Eisen, Salz, Glas, Wein, Bedürfnis Salz, 15 Aufträge, Salzberg mit 4 Fundstücken; vorläufige Bilder. Aufbruch aus der Bronzezeit ist frei, Metallreserve schützt jetzt auch ihn. Gesperrter Aufbruch sagt ehrlich „kommt mit dem nächsten Ausbau“.
 - 2026-11-03, Epochia Version 85 – Wunsch Emin: Item-Shop zum Ausprobieren ohne echtes Geld: Gold, Beschleunigen von Forschung, Bau und Wunderwerk, fehlende Fundstücke, Warenpakete, eine Baustelle mehr.
 - 2026-11-03, Epochia Version 84 – Wunsch Emin: Technik für weiche Arbeitsbewegungen mit 3 Bildern; jede Arbeit hat eine eigene Bewegung, Kupfermine, Köhler, Schmelzofen, Gießer, Zinnwäscherin und Schmuckmacherin zeigen jetzt Menschen; Fundstück-Bilder Muschel und Stoßzahn.
 - 2026-11-03, Epochia Version 83 – Wunsch Emin: letzte Winterbilder der Rückseiten (Töpferei, Vorratsspeicher), erste Fundstück-Bilder (Rötel, Holzkohle, Adlerfeder).

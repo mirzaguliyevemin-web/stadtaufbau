@@ -118,7 +118,7 @@ function spawnBoulder() {
 }
 
 function oreMines() {
-  return state.buildings.filter(b => BUILDINGS[b.type].line === 'erz' && !b.build);
+  return state.buildings.filter(b => (BUILDINGS[b.type].line === 'erz' || BUILDINGS[b.type].line === 'eisenerz') && !b.build);
 }
 
 function fireSpot() {
@@ -209,11 +209,11 @@ function collectSpot(i) {
 
 function finishTrip(trip) {
   if (trip.kind === 'erz') {
-    const reward = CONFIG.finds.oreReward;
+    const reward = stageReached('eisen1') ? { ...CONFIG.finds.oreReward, ...CONFIG.finds.oreRewardIron } : CONFIG.finds.oreReward;
     addReward(reward);
     state.fund.ores++;
     emit('oreDone', reward);
-    if (state.fund.ores % CONFIG.finds.goldEvery === 0) addFind('goldblatt');
+    if (state.fund.ores % CONFIG.finds.goldEvery === 0) addFind(findAvailable('bronzepickel') ? 'bronzepickel' : 'goldblatt');
     return;
   }
   if (FINDS[trip.find]) addFind(trip.find);

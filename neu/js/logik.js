@@ -328,11 +328,7 @@ function areaCoverage(key) {
 function recalcStats() {
   const s = { housing: housingTotal(), jobs: 0, workers: 0, happiness: 100, needs: {}, staff: [], rates: {} };
   // Arbeiter verteilen: zuerst die Nahrung, dann alles andere in Bau-Reihenfolge
-  const order = state.buildings.map((b, i) => i).filter(i => {
-    const b = state.buildings[i];
-    return !b.build && !b.paused && BUILDINGS[b.type].workers && isConnected(i);
-  });
-  order.sort((a, b) => foodFirst(state.buildings[b]) - foodFirst(state.buildings[a]));
+  const order = workerOrder();
   let free = Math.floor(state.pop);
   for (const i of order) {
     const want = BUILDINGS[state.buildings[i].type].workers;
@@ -380,6 +376,60 @@ function needStart(id) {
 
 function foodFirst(b) {
   return BUILDINGS[b.type].produces && BUILDINGS[b.type].produces.nahrung ? 1 : 0;
+}
+
+// In dieser Reihenfolge bekommen die Gebäude ihre Arbeiter
+function workerOrder() {
+  const order = state.buildings.map((b, i) => i).filter(i => {
+    const b = state.buildings[i];
+    return !b.build && !b.paused && BUILDINGS[b.type].workers && isConnected(i);
+  });
+  return order.sort((a, b) => foodFirst(state.buildings[b]) - foodFirst(state.buildings[a]));
+}
+
+// Arbeiterfalle (Analyse 02.11.): Ein Gebäude bekommt zu wenige Arbeiter, seine Ware geht aus, und woanders arbeiten
+// Leute für ein volles Lager. Ergebnis: { i, good, donor, helps } oder null. donor = Gebäude, das man pausieren kann,
+// helps = die dort frei werdenden Leute kommen wirklich hier an (Reihenfolge wie in workerOrder).
+function workerShortage() {
+  const LOW = 20;
+  const order = workerOrder(), rates = stats.rates || {};
+  const staff = i => stats.staff[i] || 0;
+  const full = i => {
+    const out = Object.keys(BUILDINGS[state.buildings[i].type].produces || {});
+    return out.length && out.every(id => (state.res[id] || 0) >= capOf(id) * 0.95);
+  };
+  for (const i of order) {
+    const def = BUILDINGS[state.buildings[i].type];
+    if (staff(i) >= def.workers || !def.produces) continue;
+    if (Object.keys(def.consumes || {}).some(id => (state.res[id] || 0) < 0.5)) continue;   // da helfen auch keine Arbeiter
+    const good = Object.keys(def.produces).find(id => !RESOURCES[id].knowledge && (state.res[id] || 0) < LOW && (rates[id] || 0) <= 0.05);
+    if (!good) continue;
+    const donor = order.filter(k => k !== i && staff(k) > 0 && full(k)).sort((a, b) => staff(b) - staff(a))[0];
+    if (donor === undefined) return { i, good, donor: null, helps: false };
+    // Wer vor dem Gebäude in der Reihe ebenfalls Leute sucht, bekommt die frei werdenden zuerst
+    const before = order.slice(0, order.indexOf(i)).filter(k => k !== donor).reduce((n, k) => n + BUILDINGS[state.buildings[k].type].workers - staff(k), 0);
+    return { i, good, donor, helps: staff(donor) > before };
+  }
+  return null;
+}
+
+// Warnung vor dem Aufbruch (Analyse 02.11.): Die Einwohner verbrauchen eine Ware, die die Forschung verlangt, so schnell,
+// dass die Menge nicht zusammenkommt. Ergebnis: je betroffener Ware { id, need, have, use, made }.
+const STALL_MINUTES = 60;
+function researchStalls(techId) {
+  const flows = stats.flows || {}, out = [];
+  for (const [id, need] of Object.entries(TECHS[techId].cost)) {
+    const have = state.res[id] || 0;
+    if (RESOURCES[id].knowledge || have >= need) continue;
+    if (id === 'nahrung' && seasonIndex() === 3) continue;   // im Winter sinkt die Nahrung immer, im Frühling steigt sie wieder
+    const f = flows[id];
+    const use = f && f.out.__pop || 0;
+    if (!use) continue;
+    const rate = (stats.rates || {})[id] || 0;
+    if (rate > 0 && (need - have) / rate <= STALL_MINUTES) continue;
+    out.push({ id, need, have, use, made: Object.values(f.in).reduce((a, n) => a + n, 0) });
+  }
+  return out;
 }
 
 function happinessFactor() { return 0.5 + 0.5 * stats.happiness / 100; }

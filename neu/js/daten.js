@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 73;
+const APP_VERSION = 74;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -284,15 +284,16 @@ const BUILDINGS = {
     bonus: { terrain: 'wald', perTile: 0.04, max: 0.5 },
     info: 'Sammelt Beeren, Pilze und Wurzeln. Am Wald mehr, im Winter wenig.',
   },
+  // Jägerlager und Mammutjägerlager seit Version 74 20 % weniger Nahrung (Emin, 03.11.: Lager sind zu oft voll; vorher 10 und 20)
   jaegerlager: {
     name: 'Jägerlager', icon: '🏹', size: 3, line: 'jagen', tier: 0, stage: 'alt', bild: '1-jaegerlager', views: ['r2'],
-    color: '#8a6a3a', cost: { holz: 20, stein: 10 }, time: 60, workers: 3, produces: { nahrung: 10, felle: 1 },
+    color: '#8a6a3a', cost: { holz: 20, stein: 10 }, time: 60, workers: 3, produces: { nahrung: 8, felle: 1 },
     bonus: { terrain: 'wald', perTile: 0.03, max: 0.5 }, upgradeTo: 'mammutjaegerlager',
     info: 'Jäger bringen Fleisch und ein paar Felle. Am Wald mehr.',
   },
   mammutjaegerlager: {
     name: 'Mammutjägerlager', icon: '🦣', size: 3, line: 'jagen', tier: 1, stage: 'alt', bild: '1-mammutjaegerlager', views: ['r2'],
-    color: '#6f5030', cost: { holz: 60, stein: 40 }, time: 120, workers: 4, produces: { nahrung: 20, felle: 2 },
+    color: '#6f5030', cost: { holz: 60, stein: 40 }, time: 120, workers: 4, produces: { nahrung: 16, felle: 2 },
     bonus: { terrain: 'wald', perTile: 0.03, max: 0.5 }, requires: 'mammutjagd', upgradeOnly: true, upgradeTo: 'jagdhuette',
     info: 'Doppelt so viel Nahrung und Felle wie das Jägerlager.',
   },

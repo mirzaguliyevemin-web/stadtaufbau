@@ -192,7 +192,7 @@ function popTip() {
     <div class="info-list">
       <div><span>Einwohner</span><b>${Math.floor(state.pop)}</b></div>
       <div><span>Wohnplätze</span><b>${stats.housing}</b><small>${Object.entries(homes).map(([t, n]) => `${BUILDINGS[t].icon} ${esc(BUILDINGS[t].name)} ${n}`).join(' · ') || '–'}</small></div>
-      <div><span>Arbeit</span><b>${stats.workers} / ${stats.jobs}</b><small>${stats.jobs > stats.workers ? `${stats.jobs - stats.workers} Stellen frei – Gebäude arbeiten langsamer` : `alle Stellen besetzt · ${Math.floor(state.pop) - stats.workers} Einwohner ohne Arbeit (spazieren, beten, sitzen am Feuer)`}</small></div>
+      <div><span>Arbeit</span><b>${stats.workers} / ${stats.jobs}</b><small>${stats.jobs > stats.workers ? `${stats.jobs - stats.workers} Stellen frei – Gebäude arbeiten langsamer${understaffedText()}` : `alle Stellen besetzt · ${Math.floor(state.pop) - stats.workers} Einwohner ohne Arbeit (spazieren, beten, sitzen am Feuer)`}</small></div>
       <div><span>Zuzug</span><small>${esc(why)}</small></div>
       <div><span>🍖 Essen</span><small>Jeder isst ${perMin(foodPerHead())} Nahrung je Minute</small></div>
       ${upkeepPerHead('holz') > 0 ? `<div><span>🪵 Feuerholz</span><small>Alle zusammen ${perMin(state.pop * upkeepPerHead('holz'))} Holz je Minute</small></div>` : ''}
@@ -368,6 +368,28 @@ function infoText(i) {
   if (def.belief) parts.push(`🗿 Umkreis ${def.belief}`);
   if (def.storage) parts.push(`📦 +${def.storage}`);
   return parts.join(' · ');
+}
+
+// Wo fehlen Leute? Für das Einwohner-Fenster
+function understaffedText() {
+  const missing = {};
+  for (const i of workerOrder()) {
+    const b = state.buildings[i], gap = BUILDINGS[b.type].workers - (stats.staff[i] || 0);
+    if (gap > 0) missing[b.type] = (missing[b.type] || 0) + gap;
+  }
+  const list = Object.entries(missing).sort((a, b) => b[1] - a[1]);
+  if (!list.length) return '';
+  return '. Es fehlen Leute bei: ' + list.slice(0, 3).map(([t, n]) => `${BUILDINGS[t].name} (${n})`).join(', ') + (list.length > 3 ? ' und anderen' : '');
+}
+
+// Warnung: Die Einwohner verbrauchen eine Ware schneller, als sie für diese Forschung zusammenkommt
+function stallText(techId) {
+  const s = researchStalls(techId)[0];
+  if (!s) return '';
+  const r = RESOURCES[s.id];
+  const from = Object.keys(BUILDINGS).filter(t => BUILDINGS[t].produces && BUILDINGS[t].produces[s.id] && isUnlocked(t)).map(t => BUILDINGS[t].name);
+  return `${r.name}: Deine ${Math.floor(state.pop)} Einwohner verbrauchen ${perMin(s.use)} je Minute, es entstehen ${perMin(s.made)}. ` +
+    `So kommen die ${s.need} ${r.name} kaum zusammen. Baue mehr davon (${from.length ? from.slice(0, 2).join(" oder ") : "Hersteller"}) und vorerst keine neuen Wohnungen.`;
 }
 
 // Woher kommt eine Ware? (für Hinweise wie „Es fehlt Felle – kommt vom Jägerlager“)
@@ -629,7 +651,7 @@ function showBuildingWindow(i) {
       lines.push(near('belief', d => d.belief) ? '🗿 Ahnenplatz in der Nähe' : '🗿 Kein Ahnenplatz mit Weg in der Nähe');
   }
   if (def.workers && !b.build) lines.push(b.paused ? '⏸ Pausiert – die Arbeiter helfen in anderen Gebäuden'
-    : `👤 Arbeiter: ${stats.staff[i] || 0} von ${def.workers}`);
+    : `👤 Arbeiter: ${stats.staff[i] || 0} von ${def.workers}${(stats.staff[i] || 0) < def.workers ? ' – alle Einwohner arbeiten schon woanders' : ''}`);
   if (def.produces && !b.build) {
     const out = outputPerMinute(i);
     lines.push('Stellt her: ' + Object.entries(out).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n)}/min`).join(', '));
@@ -829,7 +851,8 @@ function researchTopHtml() {
   const g = researchGoal();
   if (!g) return `<div class="rs-goal"><div class="rs-gtext"><b>Alles erforscht</b></div>${know}</div>`;
   const t = TECHS[g.trans], done = state.techs[g.trans];
-  const line = done ? 'Geschafft!' : g.open.length ? `Noch ${g.open.length} ${g.open.length === 1 ? 'Forschung' : 'Forschungen'} bis zum Aufbruch` : 'Alles bereit – jetzt erforschen!';
+  const stalled = !done && !g.open.length && !t.soon && researchStalls(g.trans)[0];
+  const line = done ? 'Geschafft!' : stalled ? `⚠ ${RESOURCES[stalled.id].name} knapp` : g.open.length ? `Noch ${g.open.length} ${g.open.length === 1 ? 'Forschung' : 'Forschungen'} bis zum Aufbruch` : 'Alles bereit – jetzt erforschen!';
   const steps = g.open.map(id => `<button class="rs-step${techStatus(id) === 'running' ? ' run' : ''}" onclick="selectTech('${id}')">${esc(TECHS[id].name)}</button>`).join('');
   return `<div class="rs-goal"><button class="rs-gmain" onclick="selectTech('${g.trans}')">${iconHtml(t.bild, t.icon)}<span class="rs-gtext"><b>Ziel: ${esc(t.name === g.target ? t.name : t.name + ' → ' + g.target)}</b><small>${line}</small></span></button>
     <div class="rs-steps">${steps}</div>${know}</div>`;
@@ -946,7 +969,8 @@ function techDetailHtml() {
     <div class="rs-facts"><div class="rs-fact">Dauer<b>⏱ ${formatTime(t.time)}</b></div>${people}<div class="rs-fact">Vorher erforscht<b class="rs-req">${req}</b></div></div>
     ${news.length ? `<div class="rs-sec rs-sec-new"><h4>Neu zum Bauen</h4>${news.map(def => `<div class="rs-new">${iconHtml(def.bild, def.icon)}<div><b>${esc(def.name)}${def.upgradeOnly ? ' <small>(Weiterentwicklung)</small>' : ''}</b><span>${esc(def.info || '')}</span></div></div>`).join('')}</div>` : ''}
     ${buildSec}<div class="rs-sec"><h4>Kostet</h4><div class="rs-costs">${costHtml(t.cost)}</div></div>
-    ${state.researchNext === id ? `<p class="rs-hint neutral">Startet von selbst, sobald die laufende Forschung fertig und alles dafür da ist – auch wenn das Spiel zu ist. Bezahlt wird beim Start.${researchProblem(id) && !state.research ? ' Gerade fehlt: ' + esc(researchProblem(id)) : ''}</p>` : hint && status === 'available' && !(state.research && !queueProblem(id)) ? `<p class="rs-hint">${esc(hint)}</p>` : ''}
+    ${state.researchNext === id ? `<p class="rs-hint neutral">Startet von selbst, sobald die laufende Forschung fertig und alles dafür da ist – auch wenn das Spiel zu ist. Bezahlt wird beim Start.${researchProblem(id) && !state.research ? ' Gerade fehlt: ' + esc(researchProblem(id)) : ''}</p>` : hint && status === 'available' && !stallText(id) && !(state.research && !queueProblem(id)) ? `<p class="rs-hint">${esc(hint)}</p>` : ''}
+    ${status === 'available' && !t.soon && stallText(id) ? `<p class="rs-hint">⚠ ${esc(stallText(id))}</p>` : ''}
     <div class="rs-action">${button}</div>`;
 }
 

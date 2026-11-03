@@ -894,8 +894,27 @@ function closeElderHint() {
 }
 
 // Steht ein fertiges Gebäude mit Weg ohne Arbeiter da, weil alle Menschen schon arbeiten? Dann erklären, was hilft.
+let shortageSince = null;
 function checkStaffHint() {
+  // Arbeiterfalle: nur wenn sie mindestens eine Minute anhält (sonst meldet sich der Älteste bei jedem neuen Gebäude)
+  const short = workerShortage();
+  if (!short) shortageSince = null;
+  else if (shortageSince === null) shortageSince = state.playTime;
   if (elderHint || tutorialStep() || state.playTime - lastHintAt < HINT_PAUSE_S) return;
+  if (short && state.playTime - shortageSince >= 60) {
+    lastHintAt = state.playTime;
+    const name = BUILDINGS[state.buildings[short.i].type].name, good = RESOURCES[short.good].name;
+    let text = `${name}: Hier fehlen Arbeiter, und ${good} geht aus. `;
+    if (short.donor !== null) {
+      const d = BUILDINGS[state.buildings[short.donor].type];
+      text += `Bei ${d.name} arbeiten Leute, obwohl dort alles voll ist. Tippe es an und drücke ⏸ Pause, ` +
+        (short.helps ? 'dann arbeiten sie hier.' : 'dann werden Leute für andere Gebäude frei.');
+      if (d.produces.nahrung) text += ' Wenn die Nahrung sinkt, drücke dort wieder ▶ Weiter.';
+    } else text += 'Baue eine Wohnung, dann kommen mehr Menschen. Oder tippe ein anderes Gebäude an und drücke ⏸ Pause.';
+    elderHint = text;
+    renderTutorial();
+    return;
+  }
   if (Math.floor(state.pop) < stats.housing) return;   // es ziehen noch Menschen zu
   const i = state.buildings.findIndex((b, k) => {
     const def = BUILDINGS[b.type];
@@ -908,6 +927,20 @@ function checkStaffHint() {
     `Oder tippe ein anderes Gebäude an und drücke ⏸ Pause: Dann arbeiten dessen Leute hier.`;
   if ((state.res.stein || 0) < (BUILDINGS.wohnhoehle.cost.stein || 0)) text += ' Fehlt dir Stein? Tippe auf einen Felsen und trage ihn ab.';
   elderHint = text;
+  renderTutorial();
+}
+
+// Der Aufbruch ist dran, aber die Einwohner verbrauchen eine Ware schneller, als sie zusammenkommt: einmal je Forschung warnen
+let stallSince = null;
+function checkStallHint() {
+  const g = researchGoal();
+  const open = g && !TECHS[g.trans].soon && techStatus(g.trans) === 'available' ? g.trans : null;
+  if (!open || !researchStalls(open).length || (state.seen || {})['stau_' + open]) { stallSince = null; return; }
+  if (stallSince === null) stallSince = state.playTime;
+  if (elderHint || tutorialStep() || state.playTime - stallSince < 120 || state.playTime - lastHintAt < HINT_PAUSE_S) return;
+  (state.seen ||= {})['stau_' + open] = true;
+  lastHintAt = state.playTime;
+  elderHint = `Der Weg ins nächste Zeitalter stockt! ${stallText(open)}`;
   renderTutorial();
 }
 

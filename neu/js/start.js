@@ -142,6 +142,7 @@ function loop(now) {
     if (infoFor) positionInfo();
     tickResearchPage();
     checkStaffHint();
+    checkStallHint();
     checkHerdHint();
   }
   saveTimer += dt;

@@ -1918,6 +1918,65 @@ test('Laufender Verbrauch: Holz und Stein je Einwohner wirken, kleine Stämme za
   noErrors(g);
 });
 
+test('Arbeiterfalle: Ältester nennt nach einer Minute das Gebäude, die knappe Ware und wer pausieren kann', () => {
+  const g = fresh();
+  g.run(`
+    state.res.holz = 500; state.res.stein = 500; state.res.nahrung = 500;
+    for (const type of ['sammlerin', 'jaegerlager', 'holzsammler', 'steinsammler']) {
+      const sp = findFreeSpot(type, 62 + O, 62 + O);
+      placeBuilding(type, sp.x, sp.y);
+      const k = state.buildings.length - 1;
+      finishBuilding(state.buildings[k]);
+      if (!isConnected(k)) buildRoute(k);
+    }
+    state.res.stein = 0; state.res.nahrung = capOf('nahrung'); state.res.felle = capOf('felle'); state.res.holz = 100; state.pop = 6; recalcStats();
+    updateProduction(1); state.tutorial = -1; state.playTime = 1000; elderHint = null; lastHintAt = -1e9; shortageSince = null;
+  `);
+  const short = g.run('workerShortage()');
+  ok(short && short.good === 'stein', 'Falle nicht erkannt: ' + JSON.stringify(short));
+  ok(g.run(`BUILDINGS[state.buildings[${short.donor}].type].produces.nahrung > 0`), 'Volles Nahrungsgebäude nicht als Pause vorgeschlagen');
+  g.run('checkStaffHint(); elderHint = null; lastHintAt = -1e9; state.playTime += 30; checkStaffHint();');
+  ok(!g.run('(elderHint || "").includes("Stein geht aus")'), 'Hinweis kommt zu früh');
+  g.run('elderHint = null; lastHintAt = -1e9; state.playTime += 40; checkStaffHint();');
+  const text = g.run('elderHint || ""');
+  ok(text.includes('Steinsammler') && text.includes('Stein geht aus') && text.includes('Pause'), 'Hinweis falsch: ' + text);
+  // Der Vorschlag stimmt: Pause am genannten Gebäude bringt dem Steinsammler Leute
+  const stone = g.run(`state.buildings.findIndex(b => b.type === 'steinsammler')`);
+  if (short.helps) { g.run(`togglePause(${short.donor}); recalcStats();`); ok(g.run(`stats.staff[${stone}] > 0`), 'Pause hilft nicht, obwohl der Hinweis es sagt'); }
+  // Ware reichlich da: keine Falle
+  g.run(`state.res.stein = 100; recalcStats();`);
+  ok(!g.run('workerShortage()'), 'Falle gemeldet, obwohl genug Stein da ist');
+  ok(typeof g.run('understaffedText()') === 'string', 'Einwohner-Text kaputt');
+  noErrors(g);
+});
+
+test('Aufbruch-Warnung: Einwohner verbrauchen die verlangte Ware → Warnung im Fenster, einmal vom Ältesten; sonst still', () => {
+  const g = fresh();
+  g.run(`
+    state.stage = 'jung';
+    const walk = id => { for (const r of TECHS[id].requires) { state.techs[r] = true; walk(r); } }; walk('aufbruch_bronzezeit');
+    state.pop = 500; state.res.toepferwaren = 0; TECHS.aufbruch_bronzezeit.cost.toepferwaren = 30; state.needSince = { toepferwaren: 0, kleidung: 0, glaube: 0 };
+    state.playTime = 5000; recalcStats(); updateProduction(1); state.tutorial = -1; elderHint = null; lastHintAt = -1e9;
+  `);
+  const stall = g.run(`researchStalls('aufbruch_bronzezeit').map(s => s.id)`);
+  ok(stall.includes('toepferwaren'), 'Stau nicht erkannt: ' + stall);
+  ok(g.run(`stallText('aufbruch_bronzezeit')`).includes('500 Einwohner'), 'Text nennt die Einwohner nicht');
+  ok(g.run(`researchSelected = 'aufbruch_bronzezeit'; techDetailHtml()`).includes('⚠'), 'keine Warnung im Forschungsfenster');
+  ok(g.run('researchTopHtml()').includes('⚠'), 'keine Warnung in der Zielzeile');
+  g.run('checkStallHint(); state.playTime += 60; checkStallHint();');
+  ok(!g.run('elderHint'), 'Ältester warnt zu früh');
+  g.run('state.playTime += 61; checkStallHint();');
+  ok(g.run('(elderHint || "").includes("stockt")'), 'Ältester warnt nicht');
+  ok(g.run(`loadFromText(serialize()) && state.seen.stau_aufbruch_bronzezeit === true`), 'Warnung wird nach dem Laden wiederholt');
+  // Ware reicht: keine Warnung
+  g.run(`TECHS.aufbruch_bronzezeit.cost.toepferwaren = 30; recalcStats(); updateProduction(1); state.res.toepferwaren = 30; for (const [id, n] of Object.entries(TECHS.aufbruch_bronzezeit.cost)) state.res[id] = n;`);
+  ok(!g.run(`researchStalls('aufbruch_bronzezeit').length`), 'Warnung trotz genug Ware');
+  // Kleiner Stamm, Ware kommt in unter einer Stunde zusammen: keine Warnung
+  g.run(`state.pop = 6; state.res.toepferwaren = 0; stats.flows = { toepferwaren: { in: { toepferei: 5 }, out: { __pop: 1 } } }; stats.rates = { toepferwaren: 4 };`);
+  ok(!g.run(`researchStalls('aufbruch_bronzezeit').some(s => s.id === 'toepferwaren')`), 'Warnung trotz genug Herstellung');
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

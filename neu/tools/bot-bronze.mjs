@@ -20,7 +20,7 @@ export function runBronzeBot(minutes = 600, file = new URL('../teststand-kupferz
       for (const id in TECHS) if (state.techs[id] && zeit[id] === undefined) zeit[id] = Math.round(sec / 60);
       if (!stand && state.stage === 'frueh') stand = btoa(unescape(encodeURIComponent(serialize())));
       if (sec % 60 === 0) for (const id in RESOURCES) { if ((state.res[id] || 0) < 1 && stageReached(RESOURCES[id].from || 'alt')) leer[id] = (leer[id] || 0) + 1; }
-      if (state.techs.eisenfund && !techBuildGaps('aufbruch_eisenzeit').length && state.pop >= TECHS.aufbruch_eisenzeit.population) { was.ziel = Math.round(sec / 60); break; }
+      if (state.techs.aufbruch_eisenzeit) { was.ziel = Math.round(sec / 60); break; }   // Ziel: Aufbruch in die Eisenzeit wirklich fertig erforscht
     }
     const counts = state.buildings.reduce((m, b) => (BUILDINGS[b.type].isPath ? 0 : m[b.type] = (m[b.type] || 0) + 1, m), {});
     return { min: Math.round(sec / 60), ziel: was.ziel ?? null, stage: state.stage, pop: state.pop, happy: stats.happiness, zeit, leer, counts, res: Object.fromEntries(Object.entries(state.res).map(([k, v]) => [k, Math.floor(v)])), wait: botReport.wait, missing: botReport.missing, blocked: botReport.blocked, trades: botReport.trades || 0, needs: stats.needs, jobs: stats.jobs, workers: stats.workers, housing: stats.housing, stand };

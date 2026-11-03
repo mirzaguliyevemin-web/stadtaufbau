@@ -29,8 +29,8 @@ Beim Aufbruch:
 - Neue Leisten im Eisenzeit-Stil.
 
 **Messung vom 03.11. (Version 86), die Metallreserve schützt jetzt auch den kommenden Aufbruch:**
-- Vom Stand der Späten Bronzezeit schafft der Testspieler den Aufbruch in **280 Minuten**.
-- Vom Stand der Kupferzeit kommt er in 700 Minuten nur bis zur Schmuckkunst (Späte Bronzezeit bei Minute 480). Er baut lange zu wenig Zinnwäscherinnen, dazu viel zu viele Häuser und Felder (756 Einwohner statt 280). Das liegt an seinem Bauverhalten, muss aber am Handy beobachtet werden.
+- Vom Stand der Späten Bronzezeit schaffte der Testspieler den Aufbruch in **280 Minuten** (gemessen vor der Verbesserung des Testspielers).
+- Vom Stand der Kupferzeit schafft er den Aufbruch in **653 Minuten** (Frühe Bronzezeit bei Minute 294, Späte bei 465, Eisenfund bei 613). Früher kam er auch in 1100 Minuten nicht an: Er kaufte Land ohne Wasser, baute darum nur 2 Zinnwäscherinnen und immer neue Bronzegießer. Beides ist im Testspieler behoben. Er überbaut weiter stark (652 Einwohner statt der nötigen 280), ein sparsamer Spieler dürfte also schneller sein.
 - Die Eisenzeit selbst spielt der Testspieler noch nicht. Ihre Dauer ist also nur die Summe der Forschungszeiten (gut 7 Stunden), getestet sind Erreichbarkeit, Ketten und Salzberg.
 
 ## Gebäude: Weiterentwicklungen

@@ -91,7 +91,16 @@ function botTryBuild(type, near) {
   if (!spot && near) return false;   // an dieser Wohnung ist kein Platz – nächstes Mal eine andere
   if (!spot) {
     // kein Platz: Land dazukaufen – und wenn das zu teuer ist, wie ein Spieler Bäume fällen, um Platz zu schaffen
-    for (let p = 0; p < state.plots.length; p++) if (canBuyPlot(p) && buyPlot(p)) return false;
+    // Wer ans Wasser muss, kauft wie ein Spieler ein Grundstück am Wasser, nicht irgendeines
+    const wet = p => {
+      if (!BUILDINGS[type].needsWater) return 0;
+      const size = CONFIG.plotSize, px = (p % PLOTS) * size, py = Math.floor(p / PLOTS) * size;
+      let n = 0;
+      for (let y = py; y < py + size; y++) for (let x = px; x < px + size; x++) if (inMap(x, y) && terrain[y * N + x] === TERRAIN.wasser.id) n++;
+      return n;
+    };
+    const plots = state.plots.map((_, p) => p).filter(p => canBuyPlot(p)).map(p => [p, wet(p)]).sort((a, b) => b[1] - a[1]);
+    for (const [p] of plots) if (buyPlot(p)) return false;
     botNoteMissing(plotPrice());
     for (let k = 0; k < 4; k++) botClear('wald');
     return false;
@@ -254,7 +263,10 @@ function botWants() {
   // Waren für Bedürfnisse, Verarbeiter und Forschung (Verarbeiter zuerst, dann ihre Rohstoffe)
   for (const res of ['schmuck', 'bronze', 'kupfer', 'zinn', 'wolle', 'kleidung', 'toepferwaren', 'werkzeug', 'felle', 'ton', 'holzkohle', 'kupfererz']) {
     const type = botBest(BOT_MAKER[res]);
-    if (type && isUnlocked(type) && botNeedsMore(res)) w.push([type]);
+    if (!type || !isUnlocked(type) || !botNeedsMore(res)) continue;
+    // Warten die vorhandenen Verarbeiter schon auf eine Zutat, nützt ein weiterer nichts: erst die Zutat (sonst 24 Bronzegießer und 2 Zinnwäscherinnen)
+    const zutat = Object.keys(BUILDINGS[type].consumes || {}).find(id => BOT_MAKER[id] && botBest(BOT_MAKER[id]) && isUnlocked(botBest(BOT_MAKER[id])) && (state.res[id] || 0) < 30 && botSupply(id) < botUse(id));
+    w.push([zutat ? botBest(BOT_MAKER[zutat]) : type]);
   }
   // Holz und Stein: Grundbedarf wächst mit dem Stamm. Fehlte es zuletzt beim Bauen oder Forschen (und wird nicht
   // gerade schon ein Sammler gebaut), kommt ein Sammler dazu – so wie ein Spieler auf leere Lager reagiert.

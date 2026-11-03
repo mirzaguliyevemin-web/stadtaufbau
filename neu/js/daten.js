@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 84;
+const APP_VERSION = 85;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -131,6 +131,21 @@ const CONFIG = {
       { find: 'muschel', line: 'fischen', pity: 2400 },
       { find: 'blumenkranz', line: 'sammeln', pity: 600, seasons: [0, 1] },
     ],
+  },
+  shop: {                // Item-Shop, Schritt 1 zum Ausprobieren (docs/plan-item-shop.md)
+    testMode: true,       // Gold kostenlos, es fließt kein echtes Geld
+    euroPerGold: 0.0099,  // nur zur Anzeige des Euro-Werts
+    packs: [{ gold: 100, euro: '0,99' }, { gold: 550, euro: '4,99' }, { gold: 1200, euro: '9,99' }],
+    speed15: 10, speed60: 30,
+    speedPerMinute: 0.6, speedMin: 5,   // „sofort fertig“ je Restminute
+    findPrice: 25,
+    findPrices: { sternkarte: 40, findling: 40, sonnenstein: 60, stosszahn: 40, goldblatt: 60, bernsteinstueck: 60 },
+    goods: {
+      klein: { name: 'Kleines Warenpaket', price: 30, extra: 1, goods: { nahrung: 100, holz: 100, stein: 50 } },
+      gross: { name: 'Großes Warenpaket', price: 100, extra: 4, goods: { nahrung: 400, holz: 400, stein: 200 } },
+    },
+    slotPrice: 300,
+    earn: { quest: 5, wish: 2, chest: 20 },   // so viel Gold verdient man ohne Kauf
   },
   hunt: {                 // Mammutjagd (nach der Forschung „Mammutjagd“, bis zur Jungsteinzeit)
     seconds: 60,          // so lange sind die Jäger unterwegs

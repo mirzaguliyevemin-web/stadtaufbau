@@ -934,3 +934,12 @@ details.more[open] summary { margin-bottom: 4px; }
 .wonder-album.got { background: linear-gradient(#fffbe8, #fff0c2); border-color: #e0b84c; }
 .wonder-step .q-bar { width: 100%; align-self: stretch; }
 .wonder-step .btn { align-self: flex-start; }
+
+/* Shop */
+.shop-head { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 4px 0 8px; text-align: center; }
+.shop-gold { font-size: 24px; font-weight: bold; }
+.shop-packs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.shop-pack { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; }
+.shop-pack small, .shop-euro { display: block; font-size: 11px; font-weight: normal; opacity: 0.8; }
+.shop-speed .q-main { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.shop-speed-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }

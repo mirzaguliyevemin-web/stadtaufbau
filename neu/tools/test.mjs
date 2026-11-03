@@ -2359,6 +2359,60 @@ test('Arbeitsbewegungen: Jedes Gebäude mit Arbeitern hat eine eigene, passende 
   noErrors(g);
 });
 
+test('Shop: Gold, Beschleunigen, Fundstücke, Pakete, Baustelle; Testkauf kostenlos, Spielstand bleibt', () => {
+  const g = fresh();
+  ok(g.run(`state.shop.gold`) === 0, 'Gold am Start');
+  ok(g.run(`CONFIG.shop.testMode`) === true, 'Ausprobieren: Testmodus muss an sein');
+  ok(g.run(`speedUp('r', 900, 10)`) === 'Das läuft nicht mehr', 'Beschleunigt Nichts');
+  // Testkauf kostet nichts, gibt Gold
+  ok(g.run(`buyPack(1)`) === null && g.run(`state.shop.gold`) === 550, 'Testpaket');
+  // Forschung beschleunigen, Gold reicht nicht
+  g.run(`state.research = { id: 'faustkeil', left: 2000 };`);
+  ok(g.run(`speedUp('r', 900, 10)`) === null && g.run(`state.research.left`) === 1100 && g.run(`state.shop.gold`) === 540, 'Forschung -15 min');
+  ok(g.run(`speedUp('r', 1e9, speedAllPrice(1100))`) === null && g.run(`state.research.left`) === 0.01, 'Sofort');
+  g.run(`updateResearch(1);`);
+  ok(g.run(`!state.research && state.techs.faustkeil === true`), 'Forschung wird nicht fertig');
+  // Baustelle
+  g.run(`state.buildings.push({ type: 'wohnhoehle', x: 200, y: 200, rot: 0, build: 500 }); rebuildOccupancy();`);
+  const key = g.run(`speedTargets().find(t => t.key[0] === 'b').key`);
+  g.run(`speedUp('${key}', 1e9, 5); updateConstruction(1);`);
+  ok(g.run(`state.buildings[state.buildings.length - 1].build`) === 0, 'Baustelle nicht fertig');
+  // Wunderwerk-Abschnitt
+  g.run(`state.wonders.hoehle = { step: 0, left: 300 };`);
+  g.run(`speedUp('whoehle', 1e9, 5); updateWonders(1);`);
+  ok(g.run(`state.wonders.hoehle.step`) === 1, 'Abschnitt nicht fertig');
+  // Fundstück: nur Fehlendes, und Findbares
+  const vorher = g.run(`state.shop.gold`);
+  ok(g.run(`buyFind('feder')`) === null && g.run(`findCount('feder')`) === 1 && g.run(`state.shop.gold`) === vorher - 25, 'Fundstück');
+  ok(g.run(`buyFind('feder')`) === 'Das brauchst du gerade nicht', 'Mehr als gebraucht');
+  ok(g.run(`buyFind('schriftrolle')`) === 'Das brauchst du gerade nicht', 'Noch nicht findbar');
+  // Warenpaket wächst mit dem Zeitalter, geht übers Lager
+  const k = g.run(`goodsPack('klein').goods.holz`);
+  g.run(`state.stage = 'frueh';`);
+  ok(g.run(`goodsPack('klein').goods.holz`) > k && g.run(`goodsPack('klein').goods.bronze`) > 0, 'Paket wächst nicht');
+  g.run(`state.res.holz = 9999; buyGoods('klein');`);
+  ok(g.run(`state.res.holz`) > 9999, 'Paket nicht übers Lager');
+  // Eine Baustelle mehr, einmalig
+  g.run(`state.shop.gold = 1000;`);
+  ok(g.run(`constructionLimit()`) === 2 && g.run(`buySlot()`) === null && g.run(`constructionLimit()`) === 3 && g.run(`buySlot()`) === 'Hast du schon', 'Baustelle');
+  // Zu wenig Gold
+  g.run(`state.shop.gold = 1;`);
+  ok(g.run(`buyGoods('gross')`) === 'Nicht genug Gold' && g.run(`state.shop.gold`) === 1, 'Kauf ohne Gold');
+  // Verdienen
+  g.run(`state.shop.gold = 0; state.daily.pending = 7; claimDailyReward();`);
+  ok(g.run(`state.shop.gold`) === 20, 'Truhe ohne Gold');
+  // Fenster
+  ok(g.run(`shopHtml()`).includes('Testmodus') && g.run(`shopHtml()`).includes('Warenpaket') && g.run(`shopHtml()`).includes('€'), 'Fenster falsch');
+  // Speichern, alter und kaputter Stand
+  g.run(`state.shop = { gold: 77, spent: 3, slots: 1 };`);
+  ok(g.run(`loadFromText(serialize()) && state.shop.gold === 77 && state.shop.slots === 1 && constructionLimit() === 3`), 'Laden');
+  g.run(`const d = JSON.parse(serialize()); delete d.shop; window.__t = JSON.stringify(d);`);
+  ok(g.run(`loadFromText(window.__t) && state.shop.gold === 0 && constructionLimit() === 2`), 'Alter Stand');
+  g.run(`const b = JSON.parse(serialize()); b.shop = { gold: -5, slots: 'x' }; window.__t = JSON.stringify(b);`);
+  ok(g.run(`loadFromText(window.__t) && state.shop.gold === 0 && state.shop.slots === 0`), 'Kaputter Stand');
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

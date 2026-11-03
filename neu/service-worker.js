@@ -1,6 +1,6 @@
 // Epochia – offline spielen. Bei Änderungen die Versionsnummer erhöhen (gleiche Nummer wie
 // APP_VERSION in js/daten.js und <meta name="app-version"> in index.html).
-const CACHE = 'v84';
+const CACHE = 'v85';
 const ASSETS = [
   './',
   'index.html',
@@ -19,6 +19,7 @@ const ASSETS = [
   'js/oberflaeche.js',
   'js/funde.js',
   'js/wunder.js',
+  'js/shop.js',
   'js/einstieg.js',
   'js/konto.js',
   'js/start.js',

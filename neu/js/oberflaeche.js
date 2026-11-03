@@ -253,6 +253,7 @@ function renderSideButtons() {
   show($('research-badge'), canResearch);
   show($('btn-trader'), traderHere());
   show($('btn-daily'), !!state.daily.pending);
+  show($('btn-shop'), state.tutorial < 0);
   show($('btn-chest'), state.tutorial < 0 || Object.keys(state.finds).length > 0);
   const chest = chestBadge();
   $('chest-badge').textContent = chest || '';
@@ -592,7 +593,7 @@ function closeDialog(fromHistory = false) {
 let pageOpen = null;
 const pageStack = [];        // darunterliegende Seiten (z. B. Menü unter Spielstände) – „Zurück“ führt dorthin
 let reopening = false;
-const PAGE_OPENERS = { menu: () => openMenu(), slots: () => openSlots(true), research: () => openResearch(), quests: () => openQuests(), chest: () => openChest(), wonder: () => { if (wonderPageId) openWonder(wonderPageId); }, konto: () => openKonto() };
+const PAGE_OPENERS = { menu: () => openMenu(), slots: () => openSlots(true), research: () => openResearch(), quests: () => openQuests(), chest: () => openChest(), shop: () => openShop(), wonder: () => { if (wonderPageId) openWonder(wonderPageId); }, konto: () => openKonto() };
 
 function openPage(title, html, name) {
   $('page-title').textContent = title;
@@ -696,7 +697,7 @@ function showBuildingWindow(i) {
     <div class="dlg-head">${iconHtml(def.bild, def.icon, 'huge')}<div><h2>${esc(def.name)}</h2><p>${esc(def.info)}</p></div></div>
     ${road}
     <ul class="lines">${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
-    ${b.build ? '' : buildingDetailsHtml(i)}
+    ${b.build > 0 ? shopSpeedButton() : buildingDetailsHtml(i)}
     ${upgrade}
     <div class="buttons">
       ${def.workers && !b.build ? `<button class="btn" onclick="doTogglePause(${i})">${b.paused ? '▶ Weiter' : '⏸ Pause'}</button>` : ''}
@@ -973,7 +974,7 @@ function techDetailHtml() {
   const buildSec = buildNeeds.length && status !== 'done' ? `<div class="rs-sec"><h4>Dafür bauen</h4><div class="rs-costs">${buildNeeds.map(g => `<span class="cost${g.have < g.need ? ' short' : ''}">${iconHtml(BUILDINGS[g.type].bild, BUILDINGS[g.type].icon, 'mini')}${esc(BUILDINGS[g.type].name)} ${g.have}/${g.need}</span>`).join(' ')}</div></div>` : '';
   const { label, hint } = researchHint(id);
   const button = status === 'done' ? '<button class="rs-go good" disabled>✔ Erforscht</button>'
-    : status === 'running' ? `<button class="rs-go run" disabled>⏳ Läuft … noch ${formatTime(state.research.left)}</button>`
+    : status === 'running' ? `<button class="rs-go run" disabled>⏳ Läuft … noch ${formatTime(state.research.left)}</button><button class="btn small" onclick="openShop()">⚡ Beschleunigen</button>`
     : state.researchNext === id ? `<button class="rs-go ready" onclick="doQueue('${id}')">📌 Vormerkung aufheben</button>`
     : state.research && !queueProblem(id) ? `<button class="rs-go ready" onclick="doQueue('${id}')">📌 Danach erforschen</button>`
     : `<button class="rs-go${label === '📜 Erforschen' ? ' ready' : ''}" ${label === '📜 Erforschen' ? '' : 'disabled'} onclick="doResearch('${id}')">${esc(label)}</button>`;

@@ -111,10 +111,10 @@ function wonderStepHtml(id, k) {
   const goal = g ? `<small class="${g.done ? '' : 'bad'}">${esc(step.goal.text)}: ${g.have} / ${g.need}</small>` : '';
   const state1 = past ? '✔' : now ? '🔨' : '🔒';
   let action = '';
-  if (now && w.left > 0) action = `<span class="q-bar"><i style="width:${Math.round(100 * (1 - w.left / step.seconds))}%"></i><em>noch ${formatTime(w.left)}</em></span>`;
+  if (now && w.left > 0) action = `<span class="q-bar"><i style="width:${Math.round(100 * (1 - w.left / step.seconds))}%"></i><em>noch ${formatTime(w.left)}</em></span><button class="btn small" onclick="openShop()">⚡ Beschleunigen</button>`;
   else if (now) {
     const problem = wonderStepProblem(id);
-    action = `<button class="btn primary" ${problem ? 'disabled' : ''} onclick="doWonderStep('${id}')">Abschnitt bauen (${formatTime(step.seconds)})</button>${problem ? `<small>${esc(problem)}</small>` : ''}`;
+    action = `<button class="btn primary" ${problem ? 'disabled' : ''} onclick="doWonderStep('${id}')">Abschnitt bauen (${formatTime(step.seconds)})</button>${problem ? `<small>${esc(problem)}</small>` : ''}${problem && problem.startsWith('Es fehlt noch') ? '<button class="btn small" onclick="openShop()">🪙 Im Shop kaufen</button>' : ''}`;
   }
   return `<div class="quest-card wonder-step${past ? ' done' : ''}${!past && !now ? ' locked' : ''}"><div class="q-medal"><span class="ic emoji big">${state1}</span></div><div class="q-main">
     <b>${k + 1}. ${esc(step.title)}</b>${past || now ? `<small>${esc(step.story)}</small>` : ''}

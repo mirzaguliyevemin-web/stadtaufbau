@@ -158,8 +158,8 @@ function buildProblem(type, x, y, ignore = -1, rot) {
   const p = placeProblem(type, x, y, ignore, rot);
   if (p) return p;
   if (!canAfford(def.cost)) return missingText(def.cost);
-  if (def.time > 0 && constructionCount() >= CONFIG.maxConstructions)
-    return `Schon ${CONFIG.maxConstructions} Baustellen – warte, bis eine fertig ist`;
+  if (def.time > 0 && constructionCount() >= constructionLimit())
+    return `Schon ${constructionLimit()} Baustellen – warte, bis eine fertig ist`;
   return null;
 }
 
@@ -251,7 +251,7 @@ function upgradeProblem(i) {
   const p = placeProblem(to, b.x, b.y, i);
   if (p) return BUILDINGS[to].size > BUILDINGS[b.type].size ? `Braucht mehr Platz (${BUILDINGS[to].size}×${BUILDINGS[to].size}): ${p}` : p;
   if (!canAfford(BUILDINGS[to].cost)) return missingText(BUILDINGS[to].cost);
-  if (constructionCount() >= CONFIG.maxConstructions) return `Schon ${CONFIG.maxConstructions} Baustellen`;
+  if (constructionCount() >= constructionLimit()) return `Schon ${constructionLimit()} Baustellen`;
   return null;
 }
 
@@ -1206,6 +1206,7 @@ function fulfillWish() {
   const wish = currentWish();
   if (!wish || !canAfford({ [wish.id]: wish.amount })) return null;
   payCost({ [wish.id]: wish.amount });
+  addGold(CONFIG.shop.earn.wish);
   addReward({ wissen: wish.wissen });
   const faster = state.research ? Math.min(CONFIG.wishes.researchSeconds, Math.max(0, state.research.left - 1)) : 0;
   if (state.research) state.research.left -= faster;
@@ -1262,7 +1263,7 @@ function claimDailyReward() {
   const reward = dailyRewardOf(day);
   addReward(reward);
   state.daily.pending = 0;
-  if (day === DAILY_REWARDS.length) { const id = anyAvailableFind(); if (id) addFind(id); }   // in der großen Truhe liegt ein Fundstück
+  if (day === DAILY_REWARDS.length) { const id = anyAvailableFind(); if (id) addFind(id); addGold(CONFIG.shop.earn.chest); }   // in der großen Truhe liegen ein Fundstück und Gold
   return reward;
 }
 

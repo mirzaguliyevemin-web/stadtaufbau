@@ -147,6 +147,7 @@ function loop(now) {
     checkFindHint();
     checkWonderHint();
     tickWonderPage();
+    tickShopPage();
     updateStoryEvening();
   }
   saveTimer += dt;

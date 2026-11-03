@@ -1,6 +1,6 @@
 # Plan: Item-Shop mit echtem Geld
 
-Stand 2026-11-03. **Nur ein Plan, noch nichts gebaut.** Wunsch von Emin: Im Shop kann man mit Geld zum Beispiel Materialien für die Wunderwerke und Beschleunigungen für Forschung und Gebäudebau kaufen.
+Stand 2026-11-03. **Schritt 1 ist zum Ausprobieren gebaut, ohne echtes Geld.** Wunsch von Emin: Im Shop kann man mit Geld zum Beispiel Materialien für die Wunderwerke und Beschleunigungen für Forschung und Gebäudebau kaufen.
 
 Zeichen: 💡 Vorschlag · ❓ Frage an Emin · ⚠️ muss vor dem Start geklärt sein
 
@@ -96,11 +96,11 @@ Das Spiel läuft heute im Browser, der Spielstand liegt auf dem Handy und lässt
 
 💡 Der Shop kommt am besten **nach** der Eisenzeit und den Arbeitsbewegungen. Wer Geld ausgibt, erwartet ein fertiges und schönes Spiel, und Schritt 1 lässt sich schon vorher zum Ausprobieren bauen.
 
-## 7 · Fragen an Emin
+## 7 · Entscheidungen von Emin (2026-11-03)
 
-1. Spielwährung oder direkt in Euro? 💡 Spielwährung, mit Euro-Wert beim Preis.
-2. Kann man Gold auch ohne Geld verdienen? 💡 Ja, ein wenig über Aufträge und die Truhe.
-3. Darf man den Aufbruch ins nächste Zeitalter beschleunigen? 💡 Ja, aber nicht das Bauen des Pflicht-Wunderwerks überspringen.
-4. Schmuck: Im Konto-Plan steht „Geschenke nur Schmuck, keine Spielhilfen“. Bleiben die kostenlosen Stufen-Geschenke so, und nur der Shop verkauft Spielhilfen? 💡 Ja.
-5. Wer verkauft: du als Privatperson mit Gewerbe oder eine Firma? Das entscheidet Steuern und Impressum.
-6. Wann soll der Shop kommen? 💡 Schritt 1 nach den Arbeitsbewegungen, echtes Geld erst mit dem Play Store oder einer fertigen Web-Version.
+1. **Spielwährung** (Gold), der Euro-Wert steht beim Preis.
+2. Gold kann man auch **ohne Geld verdienen**: Aufträge 5, Wünsche 2, große Truhe 20.
+3. Den Aufbruch ins nächste Zeitalter darf man **beschleunigen**; das Pflicht-Wunderwerk bleibt Pflicht.
+4. Kostenlose Stufen-Geschenke bleiben **Schmuck**, nur der Shop verkauft Spielhilfen.
+5. Verkauft wird von **Emin mit Gewerbe**.
+6. **Erst ohne Geld ausprobieren:** Schritt 1 ist gebaut (`neu/js/shop.js`). Im Testmodus ist Gold kostenlos, die Preise sind Startwerte. Schmuck und der Server kommen später.

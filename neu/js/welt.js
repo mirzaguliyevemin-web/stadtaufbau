@@ -38,6 +38,7 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     huntsDone: 0,            // so oft waren die Jäger auf Mammutjagd
     trader: { wait: CONFIG.trader.firstWait, left: 0, visit: 0, done: [] },   // Händler: Sekunden bis er kommt, bis er geht, Besuch Nr., schon getauschte Angebote
     tradesDone: 0,           // so oft wurde mit dem Händler getauscht
+    shop: { gold: 0, spent: 0, slots: 0 },   // Shop: Gold, ausgegeben, zusätzliche Baustelle (später auf dem Server)
     wonders: {},             // Wunderwerk → { step: fertige Abschnitte, left: Restzeit des laufenden Abschnitts }
     finds: {},               // Fundstück → Anzahl
     spots: [],               // Fundstellen auf der Karte: { kind, x, y, find }

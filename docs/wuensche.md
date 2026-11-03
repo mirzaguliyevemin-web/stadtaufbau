@@ -11,7 +11,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten von Ahnenplatz, Töpferei, Vorratsspeicher (Canva, das Spiel legt bis dahin selbst Schnee drauf). Bei Canva Option `--schnee` beim Einbauen; Prompt ohne „Fenster“.
+- Gebäude 4× drehen (Emin, 31.10.): alle Rückansichten fertig; noch offen: Winterbilder der Rückansichten von Töpferei, Vorratsspeicher (Canva, das Spiel legt bis dahin selbst Schnee drauf). Bei Canva Option `--schnee` beim Einbauen; Prompt ohne „Fenster“.
 
 - Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, noch ohne Bilder (ab 27.11.). Plan: `docs/epoche-2-bronzezeit.md`.
 
@@ -20,7 +20,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
-- 2026-11-03, Epochia Version 81 – Wunsch Emin: Ordner aufgeräumt: altes Spiel ins Archiv, Hauptadresse leitet zu Epochia, Bilder nach Art und Gebäude sortiert. Der alte Ruckel-Fehler entfällt damit. Dazu Baustufen des Steinkreises, Winterbilder von Höhle, Halle, Feuerplatz- und Fellmacherin-Rückseite.
+- 2026-11-03, Epochia Version 82 – Wunsch Emin: altes Spiel und ungenutzte Dateien entfernt (alte Fischerplatz-Bilder, zwei alte Zweige, nicht mehr gebrauchte Werkzeuge); Winterbilder der Rückseiten von Steinschläger und Ahnenplatz.
+- 2026-11-03, Epochia Version 81 – Wunsch Emin: Ordner aufgeräumt: altes Spiel entfernt, Hauptadresse leitet zu Epochia, Bilder nach Art und Gebäude sortiert. Der alte Ruckel-Fehler entfällt damit. Dazu Baustufen des Steinkreises, Winterbilder von Höhle, Halle, Feuerplatz- und Fellmacherin-Rückseite.
 - 2026-11-03, Epochia Version 80 – Wunsch Emin: Fundstellen glitzern und pulsieren richtig (drehender Stern, Lichtwellen, Funken, Farbe je Gelände), ohne Canva-Bilder; Bild der halb fertigen Halle.
 - 2026-11-03, Epochia Version 79 – Wunsch Emin: Halle der Himmelsscheibe (4 Abschnitte setzen die Scheibe aus 5 Teilen zusammen, Goldblättchen, Zinn-Perlen, großer Bernstein vom Händler; Bronzegießer +20 %, Händler 5 Minuten früher, Großes Sonnwendfest), Bilder der Höhle.
 - 2026-11-03, Epochia Version 78 – Fehler von Emin: Ältester meldete direkt nach dem Bau „hier arbeitet niemand“, obwohl Leute frei waren (Arbeiter werden nur 4× je Sekunde verteilt). Wunsch Emin: Wunderwerke Schritt 3: Steinkreis in 4 Abschnitten (Sternkarten, Riesenfindlinge rollen, Sonnenstein, Blumenkränze), Sonnenkalender warnt vor Katastrophen, Äcker +10 %, Sonnwendfest mit Geschenk; fertiger Steinkreis und alte Baustelle bleiben erhalten. Schritt 2: Höhle der Geschichten (4 Kapitel mit Fundstücken, Platz selbst wählen an Felsen, Wissen, Bonus, Wärme, Geschichtenabend, Fest im Herbst, Album-Seite, eigenes Bild).

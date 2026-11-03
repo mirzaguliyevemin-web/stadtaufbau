@@ -8,7 +8,7 @@ Pläne in `docs/` (`konzept-neu.md`, `epoche-1-steinzeit.md`, `epoche-2-bronzeze
 Bilder in `bilder/epochia/` nach Art sortiert, jedes Gebäude im eigenen Ordner (`gebaeude/sammlerin/…`), Originale genauso
 unter `quelle/`. Der Pfad folgt aus dem Namen (`imagePath` in `neu/js/zeichnen.js`). Neue Bilder dorthin legen, der Test „Bilder“ prüft das.
 
-Das alte Spiel mit Draufsicht liegt in `archiv/altes-spiel/` und wird nicht mehr bearbeitet (Emin, 03.11.2026).
+Das alte Spiel mit Draufsicht wurde am 03.11.2026 auf Emins Wunsch entfernt (zuletzt im Commit b680374 unter `archiv/altes-spiel/`). `index.html` und `service-worker.js` im Hauptordner leiten alte Installationen weiter und bleiben.
 
 ## Sprache
 

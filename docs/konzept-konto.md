@@ -89,4 +89,4 @@ Jede Stufe braucht etwas mehr EP. Server prüft grob auf Glaubwürdigkeit (max. 
 | C | Schmuck-Geschenke: Deko-Gebäude (Canva), Profilbilder, Rahmen, Titel |
 | D | Freundesliste (ID-Suche, Einladungslink, Anfragen) |
 | E | Siedlung besuchen |
-| F | Google-Anmeldung, Play-Store-Paket |
+| F | Google-Anmeldung, Play-Store-Paket (wartet auf Emins Gewerbe, Stand 03.11.2026) |

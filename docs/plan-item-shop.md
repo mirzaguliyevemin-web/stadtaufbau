@@ -102,5 +102,5 @@ Das Spiel läuft heute im Browser, der Spielstand liegt auf dem Handy und lässt
 2. Gold kann man auch **ohne Geld verdienen**: Aufträge 5, Wünsche 2, große Truhe 20.
 3. Den Aufbruch ins nächste Zeitalter darf man **beschleunigen**; das Pflicht-Wunderwerk bleibt Pflicht.
 4. Kostenlose Stufen-Geschenke bleiben **Schmuck**, nur der Shop verkauft Spielhilfen.
-5. Verkauft wird von **Emin mit Gewerbe**.
+5. Verkauft wird von **Emin mit Gewerbe**. Das Gewerbe gibt es noch nicht (Stand 03.11.2026), darum gibt es bis dahin weder Play Store noch echtes Geld. Der Shop bleibt im Testmodus.
 6. **Erst ohne Geld ausprobieren:** Schritt 1 ist gebaut (`neu/js/shop.js`). Im Testmodus ist Gold kostenlos, die Preise sind Startwerte. Schmuck und der Server kommen später.

@@ -71,6 +71,7 @@ function enterGame() {
   centerOnCamp();
   recalcStats();
   lastTopbar = lastBar = lastAction = '';
+  resetStockWatch();
   renderAll();
   renderTutorial();
   gameRunning = true;
@@ -148,6 +149,7 @@ function loop(now) {
     checkWonderHint();
     tickWonderPage();
     tickShopPage();
+    tickLagerPage();
     updateStoryEvening();
   }
   saveTimer += dt;

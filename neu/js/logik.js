@@ -1292,6 +1292,7 @@ function update(dt) {
   if ((state.res.wein || 0) > 0) state.res.wein = Math.max(0, state.res.wein - state.pop * CONFIG.wine.perPerson * dt / 60);   // Wein ist nur ein Bonus
   updateDisaster(dt);
   updateWishes(dt);
+  updateStockWatch(dt);
 }
 
 // Läuft die Zeit nach, in der das Spiel zu war. Gibt zurück, was dazugekommen ist.

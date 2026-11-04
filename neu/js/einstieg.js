@@ -92,7 +92,8 @@ function flyReward(amounts) {
     $('game').appendChild(el);
     if (!el.animate) { if (el.remove) el.remove(); return; }
     const chip = document.querySelector(`#topbar .chip[onclick*="'${id}'"]`);
-    const r = chip ? chip.getBoundingClientRect() : { left: from.x, top: 8, width: 0, height: 0 };
+    const target = chip || document.getElementById('btn-lager');   // steht die Ware nicht oben, fliegt sie ins Lager
+    const r = target ? target.getBoundingClientRect() : { left: from.x, top: 8, width: 0, height: 0 };
     const a = el.animate([
       { transform: `translate(${from.x - 20}px,${from.y - 60}px) scale(.7)`, opacity: 0 },
       { transform: `translate(${from.x - 20}px,${from.y - 86}px) scale(1.1)`, opacity: 1, offset: 0.28 },

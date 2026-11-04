@@ -148,6 +148,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .chip b { min-width: 18px; font-variant-numeric: tabular-nums; }
 .chip.empty b { color: var(--red); }
 .chip.full b { color: #b07800; }
+.chip.warned { background: #ffe0d0; box-shadow: var(--shadow), inset 0 0 0 2px var(--red); }
+.chip.warned b { color: var(--red); }
+.lager-chip { padding-left: 6px; }
+
+/* Lagerfenster */
+.lager-cap { margin: 2px 0 8px; }
+.lager-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 5px; margin: 4px 0 10px; }
+.lager-row { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 10px; padding: 6px 10px; background: rgba(120, 80, 40, 0.08); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.lager-row > span:not(.ic) { flex: 1 1 auto; min-width: 0; }
+.lager-row small { display: block; font-size: 12px; font-weight: 600; }
+.lager-row small.warn { color: #b07800; }
+.lager-row small.bad { color: var(--red); }
+.lager-row em { font-style: normal; font-size: 13px; font-variant-numeric: tabular-nums; }
+.lager-row b { min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
 
 #side {
   position: absolute;

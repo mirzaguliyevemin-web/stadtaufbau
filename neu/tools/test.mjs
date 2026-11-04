@@ -39,6 +39,84 @@ test('Start: Lagerfeuer, zwei Wohnhöhlen, 6 Einwohner, Land in der Mitte', () =
   noErrors(g);
 });
 
+test('Lager: jede Ware steht in genau einem Bereich', () => {
+  const g = fresh();
+  const bad = g.run(`
+    const all = LAGER_GROUPS.flatMap(x => x.goods);
+    [...Object.keys(RESOURCES).filter(id => all.filter(k => k === id).length !== 1), ...all.filter(id => !RESOURCES[id])].join()`);
+  ok(!bad, 'falsche Einteilung: ' + bad);
+  noErrors(g);
+});
+
+test('Lager: Leiste zeigt nur Nahrung, Wissen und den Lagerknopf', () => {
+  const g = fresh();
+  g.run(`state.stage = 'eisen3'; for (const id of Object.keys(RESOURCES)) state.res[id] = 50; recalcStats(); updateProduction(0.25); resetStockWatch(); renderTopbar();`);
+  const html = g.run('lastTopbar');
+  ok(html.includes("resourceTip('nahrung')") && html.includes("resourceTip('wissen')") && html.includes('openLager()'), 'Leiste unvollständig');
+  ok(!html.includes("resourceTip('holz')") && !html.includes("resourceTip('bronze')"), 'zu viele Waren oben');
+  ok(g.run('lagerHtml()').includes("resourceTip('bronze')"), 'Bronze fehlt im Lager');
+  noErrors(g);
+});
+
+test('Lager: Fundstücke stehen im Fenster', () => {
+  const g = fresh();
+  ok(g.run('lagerHtml()').includes('Noch nichts gefunden'), 'leerer Hinweis fehlt');
+  g.run("state.finds.roetel = 2; state.fund.ever.roetel = 2;");
+  ok(g.run('lagerHtml()').includes(g.run('FINDS.roetel.name')) && g.run('lagerHtml()').includes('2 / 5'), 'Rötel fehlt');
+  noErrors(g);
+});
+
+test('Lager: Warnung „bald leer“ erscheint, flackert nicht und geht wieder', () => {
+  const g = fresh();
+  g.run(`state.res.holz = 10; stats.rates = { holz: -4 }; state.playTime = 1000; updateSoonEmpty();`);
+  ok(g.run('warnedGoods().includes("holz")'), 'Warnung fehlt bei 2,5 Minuten');
+  ok(g.run('(renderTopbar(), lastTopbar.includes("resourceTip(\'holz\')"))'), 'Holz nicht in der Leiste');
+  g.run('stats.rates = { holz: 1 }; state.playTime = 1010; updateSoonEmpty();');
+  ok(g.run('warnedGoods().includes("holz")'), 'Warnung flackert');
+  g.run('state.playTime = 1040; updateSoonEmpty();');
+  ok(!g.run('warnedGoods().includes("holz")'), 'Warnung bleibt, obwohl Holz steigt');
+  g.run('state.res.holz = 20; stats.rates = { holz: -3 }; state.playTime = 2000; updateSoonEmpty();');
+  ok(!g.run('warnedGoods().includes("holz")'), 'Warnung schon bei 6,7 Minuten');
+  noErrors(g);
+});
+
+test('Lager: Verlustmeldung nach einer Minute, mit Pause und Grund', () => {
+  const g = fresh();
+  g.run(`state.res.holz = 100; stats.rates = { holz: -3 }; state.playTime = 1000; state.yearTime = 0;
+    for (let i = 0; i < 59; i++) { state.playTime++; updateLosses(1); }`);
+  ok(!g.run('stockWatch.lastText'), 'Meldung zu früh');
+  g.run('state.playTime++; updateLosses(1);');
+  ok(g.run('stockWatch.lastText').startsWith('📉 Holz −3,0 je Minute'), 'Meldung falsch: ' + g.run('stockWatch.lastText'));
+  g.run("stockWatch.lastText = ''; for (let i = 0; i < 1100; i++) { state.playTime++; updateLosses(1); }");
+  ok(!g.run('stockWatch.lastText'), 'Meldung trotz Pause');
+  g.run('for (let i = 0; i < 101; i++) { state.playTime++; updateLosses(1); }');
+  ok(g.run('stockWatch.lastText'), 'keine neue Meldung nach der Pause');
+  g.run("resetStockWatch(); state.res.holz = 3000; for (let i = 0; i < 100; i++) { state.playTime++; updateLosses(1); }");
+  ok(!g.run('stockWatch.lastText'), 'Meldung bei kleinem Verlust aus großem Vorrat');
+  g.run("resetStockWatch(); state.res.holz = 100; state.res.stein = 100; stats.rates = { holz: -3 }; for (let i = 0; i < 61; i++) { state.playTime++; updateLosses(1); }");
+  ok(g.run('stockWatch.lastText').includes('Holz'), 'Holz nicht gemeldet');
+  g.run("stockWatch.lastText = ''; stats.rates = { holz: -3, stein: -3 }; for (let i = 0; i < 100; i++) { state.playTime++; updateLosses(1); }");
+  ok(!g.run('stockWatch.lastText'), 'zweite Meldung zu schnell nach der ersten');
+  ok(!g.run("effectHurts({ effect: { buildings: { acker: 1.2 }, happy: 5 } }, 'nahrung')") && g.run("effectHurts({ effect: { buildings: { acker: 0.5 } } }, 'nahrung')"), 'guter Grund falsch erkannt');
+  g.run("resetStockWatch(); state.res.holz = 4; stats.rates = { holz: -3 }; for (let i = 0; i < 100; i++) { state.playTime++; updateLosses(1); }");
+  ok(!g.run('stockWatch.lastText'), 'Meldung trotz fast leerem Bestand');
+  noErrors(g);
+});
+
+test('Lager: im Winter nur eine Nahrungsmeldung, offline und im Einstieg keine', () => {
+  const g = fresh();
+  g.run(`state.res.nahrung = 150; stats.rates = { nahrung: -5 }; state.yearTime = CONFIG.yearSeconds * 0.8; state.playTime = 1000;
+    for (let i = 0; i < 61; i++) { state.playTime++; updateLosses(1); }`);
+  ok(g.run('stockWatch.lastText').includes('Nahrung'), 'Wintermeldung fehlt');
+  g.run("stockWatch.lastText = ''; for (let i = 0; i < 700; i++) { state.playTime++; updateLosses(1); }");
+  ok(!g.run('stockWatch.lastText'), 'zweite Wintermeldung');
+  g.run(`resetStockWatch(); state.yearTime = 0; state.tutorial = 2; for (let i = 0; i < 100; i++) { state.playTime++; updateLosses(1); }`);
+  ok(!g.run('stockWatch.lastText'), 'Meldung im Einstieg');
+  g.run(`state.tutorial = -1; resetStockWatch(); offlineRunning = true; for (let i = 0; i < 100; i++) updateStockWatch(1); offlineRunning = false;`);
+  ok(!g.run('stockWatch.lastText') && !g.run('Object.keys(stockWatch.lossFor).length'), 'Meldung bei der Abwesenheit');
+  noErrors(g);
+});
+
 test('Schrägansicht: Feld → Bildschirm → Feld ergibt dasselbe Feld', () => {
   const g = fresh();
   const bad = g.run(`

@@ -1,6 +1,6 @@
 # Plan: Lagerfenster, kurze Leiste und Träger
 
-Stand 2026-11-04. **Noch nichts gebaut.** Wunsch von Emin: Die Leiste oben wird immer voller (Jungsteinzeit 9 Waren, späte Eisenzeit 22, dazu Einwohner, Laune und Wetter). Oben bleiben nur zwei wichtige Waren, alles andere steht im Lager, und die Arbeiter bringen die Waren dorthin.
+Stand 2026-11-04. **Schritt 1 gebaut in Version 88 (`neu/js/lager.js`), die Träger folgen.** Wunsch von Emin: Die Leiste oben wird immer voller (Jungsteinzeit 9 Waren, späte Eisenzeit 22, dazu Einwohner, Laune und Wetter). Oben bleiben nur zwei wichtige Waren, alles andere steht im Lager, und die Arbeiter bringen die Waren dorthin.
 
 ## 1 · Entscheidungen von Emin (04.11.)
 
@@ -14,13 +14,13 @@ Stand 2026-11-04. **Noch nichts gebaut.** Wunsch von Emin: Die Leiste oben wird 
 
 Links: 🍖 Nahrung, 💡 Wissen, 📦 Lager, dazu vorübergehend gewarnte Waren. Rechts wie bisher: Einwohner, Laune, Wetter.
 
-**Warnung „bald leer“:** Die Ware erscheint, wenn der Bestand bei gleichem Verlauf in unter 5 Minuten aufgebraucht ist oder schon bei 0 steht und jemand sie braucht. Sie verschwindet erst wieder, wenn sie über 10 Minuten reichen würde oder wieder steigt, damit sie nicht flackert. Volle Lager werden nur im Fenster markiert. Die Zeiten sind Startwerte.
+**Warnung „bald leer“:** Die Ware erscheint, wenn der Bestand bei gleichem Verlauf in unter 5 Minuten aufgebraucht ist oder schon bei 0 steht und jemand sie braucht. Sie verschwindet erst wieder, wenn sie über 10 Minuten reichen würde oder wieder steigt, damit sie nicht flackert. Es erscheinen höchstens 4 Waren gleichzeitig, die dringendsten zuerst. Volle Lager werden nur im Fenster markiert. Die Zeiten sind Startwerte.
 
 Waren, die bei 0 stehen und von niemandem gebraucht werden, lösen nichts aus. Beim Bauen, Forschen und bei Aufträgen zählt weiter, was die jeweiligen Fenster anzeigen. Beim Bau prüfen, dass überall Bestand und Bedarf zu sehen sind, wo bisher der Blick in die Leiste nötig war.
 
 ## 3 · Das Lagerfenster
 
-Öffnet sich über den Knopf 📦 oder durch Antippen von Lagerfeuer, Vorratsspeicher, Kornspeicher oder Vorratshof. Bei den Gebäuden kommt dafür ein Knopf „Lager öffnen“ in das bisherige Infofeld, dessen übrige Angaben bleiben.
+Öffnet sich über den Knopf 📦 oder durch Antippen von Lagerfeuer, Vorratsspeicher, Kornspeicher oder Vorratshof. Bei den Gebäuden öffnet das Infofeld das Lager, „Mehr“ führt weiter zu den Gebäudeangaben.
 
 Kopf: Platz je Ware. Jede Zeile: Bild, Name, Menge, Plus oder Minus je Minute, Hinweis „voll“ oder „bald leer“. Tippen öffnet die bekannten Einnahmen und Ausgaben (`resourceTip`) mit Rückweg ins Lager. Gezeigt wird nur, was schon sichtbar wäre (`visibleResources`).
 
@@ -32,15 +32,15 @@ Kopf: Platz je Ware. Jede Zeile: Bild, Name, Menge, Plus oder Minus je Minute, H
 | Wissen | Wissen, mit eigenem Speicher |
 | Besonderes | Fundstücke: Anzahl und wie viele das Wunderwerk noch braucht, nur bereits entdeckte |
 
-Die Einteilung kommt als neues Feld `group` in `RESOURCES`. Ein Test prüft, dass jede Ware einen Bereich hat, damit keine künftige Ware im Fenster fehlt.
+Die Einteilung steht in `LAGER_GROUPS` (`neu/js/daten.js`). Ein Test prüft, dass jede Ware einen Bereich hat, damit keine künftige Ware im Fenster fehlt.
 
 ## 4 · Verlustmeldung
 
 Kurze Meldung über das vorhandene `toast`, Beispiel: „📉 Holz −3 je Minute · Dauerregen“.
 
-- **Auslöser:** `stats.rates` der Ware bleibt mindestens 60 Sekunden negativ, bei mindestens −0,5 je Minute, und es sind mehr als 5 Stück da.
-- **Grund:** die wirkenden Wetterfolgen, die `resourceTip` schon ermittelt. Ohne Wetter steht dort „mehr Ausgaben als Einnahmen“.
-- **Nicht zu oft:** dieselbe Ware höchstens alle 10 Minuten, mehrere Waren in einer Meldung. Danach erst wieder, wenn sie zwischendurch nicht mehr gesunken ist oder die Pause um ist.
+- **Auslöser:** `stats.rates` der Ware bleibt mindestens 60 Sekunden negativ, bei mindestens −0,5 je Minute, es sind mehr als 5 Stück da, und die Ware wäre in unter 60 Minuten leer. So melden sich kleine Verluste aus großen Vorräten nicht.
+- **Grund:** die wirkenden Wetterfolgen, die `resourceTip` schon ermittelt, aber nur solche, die schaden (Sonne erklärt keinen Verlust). Ohne Wetter steht dort „mehr Ausgaben als Einnahmen“.
+- **Nicht zu oft:** dieselbe Ware höchstens alle 20 Minuten, zwischen zwei Meldungen mindestens 5 Minuten, mehrere Waren in einer Meldung. Hält der Verlust an, kommt nach der Pause eine neue Meldung.
 - **Keine Meldung** während der Berechnung der Abwesenheit und in der Einführung.
 - **Einmalige Zahlungen** (Bau, Forschung) lösen nichts aus, sie stecken nicht in `stats.rates`.
 - **Winter:** Nahrung sinkt dort immer. Sie wird einmal je Winter gemeldet und taucht nicht laufend auf.
@@ -64,7 +64,7 @@ Nur Darstellung in `neu/js/leben.js`, nichts davon landet im Spielstand.
 | `neu/js/einstieg.js:94` | Gewonnene Waren fliegen zum Lagerknopf, wenn die Ware nicht oben steht |
 | `neu/js/einstieg.js` | Einführungstexte prüfen, die auf die Leiste zeigen; Leiste bleibt Hindernis für den Ältesten |
 | `neu/style.css` | Leiste auf schmalen Handys, Fenster mit Bereichen |
-| `neu/js/daten.js` | Feld `group` je Ware |
+| `neu/js/daten.js` | `LAGER_GROUPS` und `CONFIG.stockWatch` |
 | `neu/tools/test.mjs` | Tests zu Bereichen, Warnung und Meldung |
 
 **Spielstände:** kein neues Feld nötig. Die Pausen der Meldungen gelten nur bis zum Neuladen. Testspieler und Balance sind nicht betroffen, weil sich die Spielrechnung nicht ändert.

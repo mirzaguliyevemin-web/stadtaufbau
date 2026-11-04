@@ -139,11 +139,15 @@ function applyEpochTheme() {
 function renderTopbar() {
   applyEpochTheme();
   const cap = storageCap();
-  const chips = visibleResources().map(id => {
+  const chip = (id, warn) => {
     const n = Math.floor(state.res[id] || 0);
-    const cls = n <= 0 ? ' empty' : n >= (RESOURCES[id].knowledge ? knowledgeCap() : cap) ? ' full' : '';
+    const cls = warn ? ' warned' : n <= 0 ? ' empty' : n >= (RESOURCES[id].knowledge ? knowledgeCap() : cap) ? ' full' : '';
     return `<button class="chip${cls}" onclick="resourceTip('${id}')">${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon)}<b>${n}</b></button>`;
-  }).join('');
+  };
+  // Oben nur das Wichtigste, der Rest steht im Lager (docs/plan-lager.md)
+  const chips = CONFIG.stockWatch.topGoods.map(id => chip(id)).join('')
+    + '<button class="chip lager-chip" id="btn-lager" onclick="openLager()" aria-label="Lager öffnen">📦<b>Lager</b></button>'
+    + warnedGoods().map(id => chip(id, true)).join('');
   const happy = stats.happiness;
   const face = happy >= 75 ? '😊' : happy >= 50 ? '🙂' : happy >= 25 ? '😐' : '😟';
   const stage = STAGES[stageIndex()];
@@ -165,6 +169,14 @@ function renderTopbar() {
 
 const perMin = n => (n >= 10 ? Math.round(n) : n.toFixed(1)).toString().replace('.', ',');
 
+// Wetter und Katastrophen, die gerade auf die Herstellung dieser Ware wirken
+function goodEffects(id) {
+  const makers = Object.keys(BUILDINGS).filter(t => (BUILDINGS[t].produces || {})[id] !== undefined);
+  const touches = e => makers.some(t => { const b = e.effect.buildings || {}; return b[t] !== undefined || (e.effect.outdoor !== undefined && OUTDOOR_WORK.includes(t)) || (e.effect.water !== undefined && BUILDINGS[t].needsWater) || e.effect.workers !== undefined; })
+    || (id === 'nahrung' && e.effect.food);
+  return activeEffects().filter(e => e.k > 0.3 && e.effect.text && touches(e));
+}
+
 // Ware antippen: Einnahmen und Ausgaben je Gebäude, Saldo, Lager und was gerade wirkt
 function resourceTip(id) {
   const r = RESOURCES[id], f = (stats.flows || {})[id] || { in: {}, out: {} };
@@ -174,10 +186,7 @@ function resourceTip(id) {
     .map(([k, n]) => `<div><span>${who(k)}</span><b class="${sign === '+' ? 'good' : 'bad'}">${sign}${perMin(n)}</b></div>`).join('') || '<div><small>nichts</small></div>';
   const net = stats.rates[id] || 0, stock = state.res[id] || 0, cap = storageCap();
   const when = stock >= (r.knowledge ? knowledgeCap() : cap) ? 'Lager voll' : net < -0.01 ? `leer in ${formatTime(stock / -net * 60)}` : net > 0.01 && stock < (r.knowledge ? knowledgeCap() : cap) ? `voll in ${formatTime(((r.knowledge ? knowledgeCap() : cap) - stock) / net * 60)}` : '';
-  const makers = Object.keys(BUILDINGS).filter(t => (BUILDINGS[t].produces || {})[id] !== undefined);
-  const touches = e => makers.some(t => { const b = e.effect.buildings || {}; return b[t] !== undefined || (e.effect.outdoor !== undefined && OUTDOOR_WORK.includes(t)) || (e.effect.water !== undefined && BUILDINGS[t].needsWater) || e.effect.workers !== undefined; })
-    || (id === 'nahrung' && e.effect.food);
-  const eff = activeEffects().filter(e => e.k > 0.3 && e.effect.text && touches(e)).map(e => `${e.icon} ${esc(e.name)}: ${esc(e.effect.text)}`);
+  const eff = goodEffects(id).map(e => `${e.icon} ${esc(e.name)}: ${esc(e.effect.text)}`);
   openDialog(`<h2>${iconHtml(r.bild, r.icon)} ${esc(r.name)}</h2>
     <p>Im Lager: <b>${Math.floor(stock)}</b> von ${r.knowledge ? knowledgeCap() : cap}${when ? ` · ${when}` : ''}</p>
     <h3>Einnahmen je Minute</h3><div class="info-list">${rows(f.in, '+')}</div>
@@ -419,7 +428,9 @@ function infoPopHtml(i) {
   // zwei getrennte, gleich große Knöpfe – „Mehr“ war vorher nur ein Text unter Pause und schwer zu treffen
   const pause = BUILDINGS[b.type].workers && !b.build
     ? `<button class="btn small" onclick="event.stopPropagation(); togglePause(${i}); showInfo(${i})">${b.paused ? '▶ Weiter' : '⏸ Pause'}</button>` : '';
-  return `${esc(infoText(i))}<span class="pop-buttons">${pause}<button class="btn small primary" onclick="event.stopPropagation(); closeInfo(); showBuildingWindow(${i})">ℹ️ Mehr</button></span>`;
+  const lager = BUILDINGS[b.type].storage && !b.build
+    ? '<button class="btn small" onclick="event.stopPropagation(); openLager()">📦 Lager</button>' : '';
+  return `${esc(infoText(i))}<span class="pop-buttons">${pause}${lager}<button class="btn small primary" onclick="event.stopPropagation(); closeInfo(); showBuildingWindow(${i})">ℹ️ Mehr</button></span>`;
 }
 
 function showInfo(i) {
@@ -427,7 +438,14 @@ function showInfo(i) {
   const el = $('info-pop');
   el.classList.remove('tool');
   el.innerHTML = infoPopHtml(i);
-  el.onclick = () => { const k = infoFor; closeInfo(); if (k && k.kind === 'b') showBuildingWindow(k.i); };
+  el.onclick = () => {
+    const k = infoFor;
+    const b = k && k.kind === 'b' && state.buildings[k.i];
+    closeInfo();
+    if (!b) return;
+    if (BUILDINGS[b.type].storage && !b.build) openLager();   // Lagerfeuer und Speicher: gleich ins Lager
+    else showBuildingWindow(k.i);
+  };
   show(el, true);
   positionInfo();
   clearTimeout(infoTimer);
@@ -593,7 +611,7 @@ function closeDialog(fromHistory = false) {
 let pageOpen = null;
 const pageStack = [];        // darunterliegende Seiten (z. B. Menü unter Spielstände) – „Zurück“ führt dorthin
 let reopening = false;
-const PAGE_OPENERS = { menu: () => openMenu(), slots: () => openSlots(true), research: () => openResearch(), quests: () => openQuests(), chest: () => openChest(), shop: () => openShop(), wonder: () => { if (wonderPageId) openWonder(wonderPageId); }, konto: () => openKonto() };
+const PAGE_OPENERS = { menu: () => openMenu(), slots: () => openSlots(true), research: () => openResearch(), quests: () => openQuests(), chest: () => openChest(), lager: () => openLager(), shop: () => openShop(), wonder: () => { if (wonderPageId) openWonder(wonderPageId); }, konto: () => openKonto() };
 
 function openPage(title, html, name) {
   $('page-title').textContent = title;
@@ -700,6 +718,7 @@ function showBuildingWindow(i) {
     ${b.build > 0 ? shopSpeedButton() : buildingDetailsHtml(i)}
     ${upgrade}
     <div class="buttons">
+      ${def.storage && !b.build ? '<button class="btn primary" onclick="closeDialog(); openLager()">📦 Lager öffnen</button>' : ''}
       ${def.workers && !b.build ? `<button class="btn" onclick="doTogglePause(${i})">${b.paused ? '▶ Weiter' : '⏸ Pause'}</button>` : ''}
       ${def.isPath ? '' : `<button class="btn" onclick="closeDialog(); liftBuilding(${i})">✋ Verschieben</button>`}
       ${canRemove ? `<button class="btn danger" onclick="askDemolish(${i})">🗑 Abreißen</button>` : ''}

@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 87;
+const APP_VERSION = 88;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -30,6 +30,8 @@ const CONFIG = {
   goodsPerPerson: 0.03,   // Kleidung / Töpferwaren je Einwohner und Minute (wenn das Bedürfnis zählt)
   growthSeconds: 45,      // so oft zieht jemand ein (seit Version 24: 45 s statt 15 s – sonst Hunger und zu große Stämme)
   growthMinHappy: 50,     // ab dieser Zufriedenheit ziehen Leute zu
+  // Kurze Leiste, Warnung „bald leer“ und Verlustmeldung (docs/plan-lager.md); Zeiten in Minuten bzw. Sekunden sind Startwerte
+  stockWatch: { topGoods: ['nahrung', 'wissen'], soonIn: 5, soonOut: 10, minShow: 30, maxChips: 4, lossRate: 0.5, lossStock: 5, lossWithin: 60, lossHold: 60, lossPause: 1200, lossGap: 300 },
   baseStorage: 200,       // Lagerplatz je Ware am Lagerfeuer (seit Version 24: 200, damit der lange Winter zu überstehen ist)
   stageStorage: { alt: 0, mittel: 100, jung: 200, kupfer: 200, frueh: 300, spaet: 400, eisen1: 550, eisen2: 700, eisen3: 850 },   // so viel mehr fasst das Lager je Zeitalter (Emin, 03.11.)
   bonusRadius: 3,         // Umkreis für Geländebonus (Wald, Felsen)
@@ -208,6 +210,14 @@ const RESOURCES = {
   glas:         { name: 'Glas',        icon: '🟢', from: 'eisen3' },
   wein:         { name: 'Wein',        icon: '🍇', from: 'eisen3' },
 };
+
+// Bereiche im Lagerfenster: Jede Ware muss genau einmal vorkommen (Test „Lager“)
+const LAGER_GROUPS = [
+  { id: 'versorgung', name: 'Nahrung und Versorgung', icon: '🍖', goods: ['nahrung', 'kleidung', 'toepferwaren', 'salz', 'wein'] },
+  { id: 'rohstoffe',  name: 'Rohstoffe',              icon: '🪵', goods: ['holz', 'stein', 'felle', 'ton', 'wolle', 'kupfererz', 'eisenerz', 'zinn', 'holzkohle', 'bernstein'] },
+  { id: 'werkstoffe', name: 'Werkstoffe und Waren',   icon: '🔨', goods: ['werkzeug', 'kupfer', 'bronze', 'eisen', 'glas', 'schmuck'] },
+  { id: 'wissen',     name: 'Wissen',                 icon: '💡', goods: ['wissen'] },
+];
 
 // Stufen der Steinzeit (Unterteilungen = Abschnitte im Forschungsbaum)
 const STAGES = [

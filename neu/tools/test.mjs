@@ -2436,6 +2436,9 @@ test('Arbeitsbewegungen: Jedes Gebäude mit Arbeitern hat eine eigene, passende 
   // Alle eigenen Bewegungen: drei Bilder, und die Bilder gibt es
   const fehlt = g.run(`Object.values(ANIM_POSES).flat().map(f => f[0]).filter(n => !imageNames().includes(n)).join()`);
   ok(!fehlt, 'Bild wird nicht geladen: ' + fehlt);
+  // Bogen: eigener Ablauf ohne Rückkehr zum gespannten Bild nach dem Schuss
+  const bogen = g.run(`[poseMix(3, 0.1, ANIM_TIMING.bogen.keys)[0][0], poseMix(3, 0.5, ANIM_TIMING.bogen.keys)[0][0], poseMix(3, 0.85, ANIM_TIMING.bogen.keys)[0][0], poseMix(3, 0.99, ANIM_TIMING.bogen.keys).at(-1)[0]]`);
+  ok(bogen.join() === '0,1,2,0', 'Bogen-Ablauf falsch: ' + bogen);
   noErrors(g);
 });
 

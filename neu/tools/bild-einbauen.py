@@ -36,7 +36,8 @@ while q:
     if x < w - 1: q.append((x + 1, y))
     if y > 0: q.append((x, y - 1))
     if y < h - 1: q.append((x, y + 1))
-if '--loecher' in sys.argv:   # eingeschlossene Flächen in Hintergrundfarbe (ab 300 Punkten)
+holes = next((int(x.split('=')[1]) if '=' in x else 300 for x in sys.argv if x.startswith('--loecher')), 0)
+if holes:   # eingeschlossene Flächen in Hintergrundfarbe (ab 300 Punkten, kleine Figuren: --loecher=40, damit die Augen bleiben)
     seen = bytearray(w * h)
     for sy in range(h):
         for sx in range(w):
@@ -51,7 +52,7 @@ if '--loecher' in sys.argv:   # eingeschlossene Flächen in Hintergrundfarbe (ab
                     if 0 <= a < w and 0 <= b < h and not seen[b * w + a] and not m[a, b] and white(px[a, b]):
                         seen[b * w + a] = 1
                         st.append((a, b))
-            if len(part) >= 300:
+            if len(part) >= holes:
                 for x, y in part:
                     m[x, y] = 255
 if snow:   # Flecken im Hintergrund (bei kleiner Toleranz): nur das größte zusammenhängende Stück behalten

@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-unten'];
+const LIFE_NAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-unten'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -268,8 +268,8 @@ const WORK = {
   holzsammler:       { target: 'wald', tool: 'axt',   carry: 'ware-holz',    img: 'mensch-mann', chips: '#a8743f', swing: 'hack', carryLook: 'mensch-mann' },
   steinsammler:      { target: 'fels', tool: 'hacke', carry: 'ware-stein',   img: 'mensch-mann', chips: '#b9b4a8', swing: 'hack', carryLook: 'mensch-mann-stein' },
   sammlerin:         { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-frau', chips: '#d8344a', swing: 'pick', carryLook: 'mensch-frau' },
-  jaegerlager:       { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true, look: 'mensch-jaeger' },
-  mammutjaegerlager: { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true, look: 'mensch-jaeger' },
+  jaegerlager:       { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true, look: 'mensch-jaeger-bogen-1', anim: 'bogen', carryLook: 'mensch-jaeger-beute' },
+  mammutjaegerlager: { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true, look: 'mensch-jaeger', carryLook: 'mensch-jaeger-beute' },
   // Teil 2: am Ufer und im Einbaum fischen, an der Felswand malen, vor dem Haus arbeiten (target 'self')
   fischerplatz:      { target: 'wasser', tool: 'speer', carry: 'ware-nahrung', img: 'mensch-mann', chips: '#cfe9f7', swing: 'spear', boat: true },
   hoehlenmaler:      { target: 'fels',  tool: null,   carry: 'ware-wissen',  img: 'mensch-mann', chips: null,      swing: 'paint' },
@@ -558,15 +558,16 @@ function drawWorker(w, t) {
   if (!walking && (swing === 'tend' || swing === 'pan')) bob = (Math.sin(t * 2 + w.ph) + 1) * 0.9 * z;   // wiegt sich bei der Arbeit
   if (!walking && swing === 'chisel') bob = Math.abs(Math.sin(t * 6 + w.ph)) * 0.8 * z;
   // mit Last nur auf dem Rückweg (carryLook: das Grundbild zeigt schon Holz bzw. Korb), sonst leere Hände
-  const look = w.kind.look && images[w.kind.look] ? w.kind.look   // Jäger immer mit Speer
-    : w.phase === 'back' && w.kind.carryLook && images[w.kind.carryLook] ? w.kind.carryLook : personImg(w.kind.img, 'leer');
+  const look = w.phase === 'back' && w.kind.carryLook && images[w.kind.carryLook] ? w.kind.carryLook
+    : w.kind.look && images[w.kind.look] ? w.kind.look : personImg(w.kind.img, 'leer');   // Jäger immer mit Waffe
   const p = tileToScreen(w.x, w.y);
   // Arbeitshaltung aus Canva: ganz eigene Bewegung (anim) oder das Werkzeug in der Hand
   const pose = !walking && ((w.kind.anim && ANIM_POSES[w.kind.anim]) || (w.kind.tool && TOOL_POSES[w.kind.tool]));
   const frames = pose ? pose.filter(f => images[f[0]]) : [];
   const posed = frames.length >= 2;
   if (posed) {
-    const m = poseMix(frames.length, (t * 1.6 + w.ph) % 1);
+    const timing = ANIM_TIMING[w.kind.anim] || {};
+    const m = poseMix(frames.length, (t * (timing.speed || 1.6) + w.ph) % 1, timing.keys);
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.beginPath(); ctx.ellipse(p.x, p.y, 10 * z, 3.2 * z, 0, 0, 7); ctx.fill();
     ctx.save(); ctx.translate(p.x, p.y); if (w.face < 0) ctx.scale(-1, 1);
@@ -612,6 +613,16 @@ function drawWorker(w, t) {
     }
   }
   const hand = { x: p.x - 8 * z * w.face, y: p.y - 15 * z };
+  if (!walking && w.kind.anim === 'bogen' && posed) {   // beim Schuss fliegt der Pfeil davon
+    const cyc = (t * ANIM_TIMING.bogen.speed + w.ph) % 1;
+    if (cyc >= 0.75) {
+      const q = (cyc - 0.75) / 0.25, ax = p.x - w.face * (16 + 46 * q) * z, ay = p.y - (24 - 5 * q * q) * z;
+      ctx.globalAlpha = q < 0.8 ? 1 : (1 - q) / 0.2;
+      ctx.strokeStyle = '#4a3320'; ctx.lineWidth = 1.2 * z; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax + w.face * 8 * z, ay - 0.6 * z); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
   if (!walking && swing === 'spear' && posed) {   // Canva-Haltungen: beim Zustechen spritzt es an der Speerspitze
     const cyc = (t * 1.6 + w.ph) % 1;
     if (cyc >= 0.7) splash(p.x - w.face * 15 * z, p.y - 1 * z, z, 1 - (cyc - 0.7) / 0.3);
@@ -910,13 +921,19 @@ const TOOL_POSES = {
 };
 
 // Eigene Bewegungen je Beruf (je Bild: Name, Höhe, Versatz). Nur eintragen, was es als Bild gibt, sonst würde es umsonst geladen.
-const ANIM_POSES = {};
+const ANIM_POSES = {
+  bogen: [['mensch-jaeger-bogen-1', 34, 0.076], ['mensch-jaeger-bogen-2', 35, 0.12], ['mensch-jaeger-bogen-3', 36, 0.099]],
+};
+// Eigener Ablauf einer Bewegung: speed = Durchläufe je Sekunde, keys = [Bild, Beginn im Durchlauf]. Ohne Angabe wie die Werkzeuge.
+const ANIM_TIMING = {
+  bogen: { speed: 0.45, keys: [[0, 0], [1, 0.25], [2, 0.75]] },   // Pfeil nehmen, lange zielen, Schuss, wieder von vorn
+};
 for (const list of Object.values(ANIM_POSES)) for (const [name] of list) if (!LIFE_NAMES.includes(name)) LIFE_NAMES.push(name);
 
 // Welche Bilder gerade zu sehen sind: [[Bildnummer, Deckkraft], …]. Ausholen ist langsam, der Schlag schnell. Dazwischen wird
 // kurz überblendet, das macht die Bewegung weich. Zwei Bilder: oben, unten. Drei Bilder: oben, Mitte, unten, Mitte, oben.
-function poseMix(n, cyc) {
-  const keys = n >= 3 ? [[0, 0], [1, 0.58], [2, 0.7], [1, 0.9]] : [[0, 0], [1, 0.7]];
+function poseMix(n, cyc, own) {
+  const keys = own || (n >= 3 ? [[0, 0], [1, 0.58], [2, 0.7], [1, 0.9]] : [[0, 0], [1, 0.7]]);
   let k = keys.length - 1;
   while (keys[k][1] > cyc) k--;
   const next = keys[(k + 1) % keys.length], end = k === keys.length - 1 ? 1 : next[1];
@@ -926,7 +943,7 @@ function poseMix(n, cyc) {
 }
 
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
-const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, 'mensch-mann-leer': 0.62, 'mensch-frau-leer': 0.62, 'mensch-jaeger': 0.62, 'mensch-mann-stein': 0.62, 'mensch-hirte': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };
+const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, 'mensch-mann-leer': 0.62, 'mensch-frau-leer': 0.62, 'mensch-jaeger': 0.62, 'mensch-jaeger-bogen-1': 0.62, 'mensch-jaeger-beute': 0.66, 'mensch-mann-stein': 0.62, 'mensch-hirte': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };
 
 // Figur mit Schatten zeichnen. Bilder schauen nach links; face = -1 spiegelt nach rechts.
 // step = Laufphase (Bogenmaß) oder null im Stehen: Dann schwingen vordere und hintere Beine gegeneinander.

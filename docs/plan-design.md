@@ -1,6 +1,6 @@
 # Plan: Helleres Design je Zeitalter
 
-Stand 2026-11-04, Version 94. **Nur ein Plan, noch nichts gebaut.** Wunsch von Emin: Das Spiel ist viel zu braun, gewünscht sind helle Töne passend zum Zeitalter, das Lager braucht ein besseres Design. Danach werden die Bilder mit Canva erzeugt.
+Stand 2026-11-04, Version 94. **Entschieden von Emin (04.11.): die vier Farbwelten, gemalte helle Leisten, eigene Kupferzeit, erst Schritt 1–3, dann Canva.** Wunsch von Emin: Das Spiel ist viel zu braun, gewünscht sind helle Töne passend zum Zeitalter, das Lager braucht ein besseres Design. Danach werden die Bilder mit Canva erzeugt.
 
 ## 1 · Befund
 
@@ -40,6 +40,8 @@ Hell als Grundton, je ein kräftiger Akzent. Holz wird zur Ausnahme, nicht zur F
 Die Stufen teilen sich die Farben ihres Zeitalters.
 
 ## 3 · Schritte
+
+**Stand Version 95:** Schritt 1–3 gebaut. `html[data-zeit]` in `style.css`, Feld `zeit` in `STAGES`. Gemalte Leisten kommen später über `--bar-top`, `--bar-bottom` und `--title-band`. `pfad`, `erdsockel` und `wiese` sind nur als webp aufgehellt (Helligkeit 1,28 / 1,22 / 1,1), die Originale in `quelle/` sind unverändert. Gemessen: Braun auf der Karte Altsteinzeit 39 % auf 14 %, Späte Bronzezeit 59 % auf 43 %. Der Rest dort sind vor allem die Gebäude (Schritt 5).
 
 **Schritt 1, ohne Canva: Oberfläche.** Farbvariablen, vier Farbwelten, Wechsel in `applyEpochTheme`; Leisten, Knöpfe, Fensterköpfe und Rahmen hell; Schatzkiste, Shop und Menü überarbeiten. Bis die Bilder da sind, stehen Farbflächen statt Holz.
 

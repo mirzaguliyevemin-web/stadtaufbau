@@ -124,16 +124,11 @@ function setCssVar(name, value) {
   if (root && root.style) root.style.setProperty(name, value);
 }
 
-// Leisten oben und unten im Stil des Zeitalters (Bilder leiste-holz-<epoche>.webp und leiste-leder-<epoche>.webp)
-let themeEpoch = '';
+// Farbwelt des Zeitalters: <html data-zeit="stein|kupfer|bronze|eisen">, die Farben stehen in style.css
 function applyEpochTheme() {
   const st = STAGES[stageIndex()];
   BUILDINGS.lagerfeuer.name = stageReached('eisen1') ? 'Thingplatz' : stageReached('kupfer') ? 'Dorfplatz' : 'Lagerfeuer';
-  const key = st.theme || st.epoch.toLowerCase();
-  if (key === themeEpoch) return;
-  themeEpoch = key;
-  setCssVar('--bar-wood', `url(${imagePath('leiste-holz-' + key)})`);
-  setCssVar('--bar-leather', `url(${imagePath('leiste-leder-' + key)})`);
+  if (typeof document !== 'undefined' && document.documentElement && document.documentElement.dataset) document.documentElement.dataset.zeit = st.zeit;
 }
 
 function renderTopbar() {

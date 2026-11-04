@@ -2442,6 +2442,17 @@ test('Arbeitsbewegungen: Jedes Gebäude mit Arbeitern hat eine eigene, passende 
   noErrors(g);
 });
 
+test('Design: jede Stufe hat eine Farbwelt, Lager zeigt Füllstand und knappe Waren oben', () => {
+  const g = fresh();
+  const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  const welten = g.run(`[...new Set(STAGES.map(s => s.zeit))].join()`).split(',');
+  ok(g.run(`STAGES.every(s => s.zeit)`) && welten.length === 4, 'Farbwelten falsch: ' + welten);
+  for (const z of welten) ok(z === 'stein' || css.includes(`html[data-zeit=${z}]`), 'Farbwelt fehlt in style.css: ' + z);
+  ok(g.run(`state.res.holz = 100; state.res.stein = 0; stats.rates.holz = -100; stockWatch.warned = {}; const h = lagerHtml(); h.includes('lager-fill') && h.indexOf('Wird knapp') < h.indexOf('Rohstoffe')`), 'Knappe Ware steht nicht oben');
+  ok(g.run(`const h2 = lagerHtml(); (h2.match(/resourceTip\\('holz'\\)/g) || []).length === 1`), 'Knappe Ware steht doppelt');
+  noErrors(g);
+});
+
 test('Shop: Gold, Beschleunigen, Fundstücke, Pakete, Baustelle; Testkauf kostenlos, Spielstand bleibt', () => {
   const g = fresh();
   ok(g.run(`state.shop.gold`) === 0, 'Gold am Start');

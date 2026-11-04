@@ -19,13 +19,14 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 - Eisenzeit (Emin, 03.11.): Technik mit vorläufigen Bildern gebaut (Version 86). Offen: etwa 200 Bilder, später nach den Bildern für Steinzeit und Bronzezeit. Plan: `docs/epoche-3-eisenzeit.md`.
 
-- Design (Emin, 04.11.): Spiel ist zu braun, helle Töne passend zum Zeitalter, Lager schöner, danach Bilder mit Canva. Plan: `docs/plan-design.md`, → Frage: 4 Fragen an Emin, wird zusammen geplant.
+- Design (Emin, 04.11.): Schritt 1–3 gebaut (Version 95). Offen: gemalte helle Leisten, Symbole und Waren mit Canva, danach prüfen, welche Gebäude noch zu dunkel sind. Plan: `docs/plan-design.md`.
 
 - Zweite Karte und zweite Stadt (Emin, 03.11.): nur ein Plan, wichtigere Sachen gehen vor. Plan: `docs/plan-zweite-stadt.md`, → Frage: 6 Fragen an Emin, wenn es so weit ist.
 
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-04, Epochia Version 95 – Wunsch Emin: helles Design mit eigener Farbwelt für Steinzeit, Kupferzeit, Bronzezeit und Eisenzeit statt Braun; neues Lager mit Bereichen, Füllstand und knappen Waren oben; Wege, Erdsockel und Wiese heller.
 - 2026-11-04, Epochia Version 94 – Wunsch Emin: Axt und Hacke schwingen weicher (Zwischenbild, je 3 Haltungen), die Füße bleiben dabei an derselben Stelle.
 - 2026-11-04, Epochia Version 93 – Wunsch Emin: Töpferin sitzt am Brett, formt den Ton, glättet den Rand und betrachtet den fertigen Topf (3 Bilder).
 - 2026-11-04, Epochia Version 92 – Wunsch Emin: Hirte am Zaun hebt den Stab und ruft die Ziegen (3 Bilder), Arbeiter der Tongrube trägt auf dem Rückweg einen Korb mit Ton auf der Schulter.

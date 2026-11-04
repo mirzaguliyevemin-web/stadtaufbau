@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 94;
+const APP_VERSION = 95;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -221,15 +221,15 @@ const LAGER_GROUPS = [
 
 // Stufen der Steinzeit (Unterteilungen = Abschnitte im Forschungsbaum)
 const STAGES = [
-  { id: 'alt',    name: 'Altsteinzeit',    epoch: 'Steinzeit' },
-  { id: 'mittel', name: 'Mittelsteinzeit', epoch: 'Steinzeit' },
-  { id: 'jung',   name: 'Jungsteinzeit',   epoch: 'Steinzeit' },
-  { id: 'kupfer', name: 'Kupferzeit',      epoch: 'Bronzezeit', theme: 'steinzeit' },   // theme: Leisten-Bilder, bis es eigene gibt (ab 27.11.)
-  { id: 'frueh',  name: 'Frühe Bronzezeit', epoch: 'Bronzezeit', theme: 'steinzeit' },
-  { id: 'spaet',  name: 'Späte Bronzezeit', epoch: 'Bronzezeit', theme: 'steinzeit' },
-  { id: 'eisen1', name: 'Frühe Eisenzeit',   epoch: 'Eisenzeit', theme: 'steinzeit' },   // Entwurf: docs/epoche-3-eisenzeit.md, Bilder folgen
-  { id: 'eisen2', name: 'Mittlere Eisenzeit', epoch: 'Eisenzeit', theme: 'steinzeit' },
-  { id: 'eisen3', name: 'Späte Eisenzeit',   epoch: 'Eisenzeit', theme: 'steinzeit' },
+  { id: 'alt',    name: 'Altsteinzeit',    epoch: 'Steinzeit', zeit: 'stein' },
+  { id: 'mittel', name: 'Mittelsteinzeit', epoch: 'Steinzeit', zeit: 'stein' },
+  { id: 'jung',   name: 'Jungsteinzeit',   epoch: 'Steinzeit', zeit: 'stein' },
+  { id: 'kupfer', name: 'Kupferzeit',      epoch: 'Bronzezeit', zeit: 'kupfer' },   // zeit: Farbwelt in style.css (docs/plan-design.md)
+  { id: 'frueh',  name: 'Frühe Bronzezeit', epoch: 'Bronzezeit', zeit: 'bronze' },
+  { id: 'spaet',  name: 'Späte Bronzezeit', epoch: 'Bronzezeit', zeit: 'bronze' },
+  { id: 'eisen1', name: 'Frühe Eisenzeit',   epoch: 'Eisenzeit', zeit: 'eisen' },   // Entwurf: docs/epoche-3-eisenzeit.md, Bilder folgen
+  { id: 'eisen2', name: 'Mittlere Eisenzeit', epoch: 'Eisenzeit', zeit: 'eisen' },
+  { id: 'eisen3', name: 'Späte Eisenzeit',   epoch: 'Eisenzeit', zeit: 'eisen' },
 ];
 
 // Bedürfnisse der Einwohner. kind: 'stock' = Ware im Lager, 'area' = Gebäude im Umkreis der Wohnung

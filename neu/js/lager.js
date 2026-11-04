@@ -104,12 +104,19 @@ function lossText(ids) {
 // Das Fenster
 // ---------------------------------------------------------------------
 
+// Ist die Ware knapp? Dieselbe Regel wie die Warnung oben in der Leiste.
+function lagerSoon(id) {
+  return stockWatch.warned[id] !== undefined || minutesLeft(id) < CONFIG.stockWatch.soonIn;
+}
+
 function lagerRowHtml(id) {
   const r = RESOURCES[id], n = Math.floor(state.res[id] || 0), cap = capOf(id), net = stats.rates[id] || 0;
-  const full = n >= cap, soon = stockWatch.warned[id] !== undefined || minutesLeft(id) < CONFIG.stockWatch.soonIn;
-  const note = full ? '<small class="warn">voll</small>' : n <= 0 && soon ? '<small class="bad">leer</small>' : soon ? '<small class="bad">bald leer</small>' : '';
+  const full = n >= cap, soon = lagerSoon(id);
+  const mark = full ? '<i class="lager-mark voll">voll</i>' : n <= 0 && soon ? '<i class="lager-mark knapp">leer</i>' : soon ? '<i class="lager-mark knapp">bald leer</i>' : '';
   const rate = Math.abs(net) < 0.05 ? '' : `<em class="${net > 0 ? 'good' : 'bad'}">${net > 0 ? '+' : '−'}${perMin(Math.abs(net))}</em>`;
-  return `<button class="lager-row" onclick="resourceTip('${id}')">${iconHtml(r.bild, r.icon)}<span>${esc(r.name)}${note}</span>${rate}<b>${n}</b></button>`;
+  const cls = full ? ' voll' : soon ? ' knapp' : n <= 0 ? ' leer' : '';
+  const fill = cap > 0 ? Math.min(100, Math.round(100 * n / cap)) : 0;
+  return `<button class="lager-row${cls}" onclick="resourceTip('${id}')">${iconHtml(r.bild, r.icon)}<span class="lager-name">${esc(r.name)}${mark}</span>${rate}<b>${n}</b><span class="lager-fill"><i style="width:${fill}%"></i></span></button>`;
 }
 
 function lagerFindsHtml() {
@@ -117,19 +124,28 @@ function lagerFindsHtml() {
   if (!ids.length) return '<p class="hint">Noch nichts gefunden. Tippe glitzernde Stellen auf der Karte an.</p>';
   const rows = ids.map(id => {
     const f = FINDS[id], have = findCount(id), need = findNeed(id);
-    return `<button class="lager-row" onclick="openChest()">${iconHtml(f.bild, f.icon)}<span>${esc(f.name)}</span><small>${need > 0 ? `${have} / ${need}` : have ? `${have} übrig` : '✔ verbaut'}</small></button>`;
+    return `<button class="lager-row" onclick="openChest()">${iconHtml(f.bild, f.icon)}<span class="lager-name">${esc(f.name)}</span><small>${need > 0 ? `${have} / ${need}` : have ? `${have} übrig` : '✔ verbaut'}</small></button>`;
   }).join('');
   return `<div class="lager-list">${rows}</div>`;
 }
 
+function lagerGroupHtml(cls, title, body) {
+  return `<section class="lager-group ${cls}"><h3>${title}</h3>${body}</section>`;
+}
+
 function lagerHtml() {
   const seen = visibleResources();
+  // Knappe Waren stehen in einem eigenen Block ganz oben, nicht zweimal
+  const knapp = seen.filter(id => lagerSoon(id) && (state.res[id] || 0) < capOf(id));
   const groups = LAGER_GROUPS.map(g => {
-    const ids = g.goods.filter(id => seen.includes(id));
-    return ids.length ? `<h3>${g.icon} ${esc(g.name)}</h3><div class="lager-list">${ids.map(lagerRowHtml).join('')}</div>` : '';
+    const ids = g.goods.filter(id => seen.includes(id) && !knapp.includes(id));
+    return ids.length ? lagerGroupHtml('', `${g.icon} ${esc(g.name)}`, `<div class="lager-list">${ids.map(lagerRowHtml).join('')}</div>`) : '';
   }).join('');
-  return `<p class="lager-cap">📦 Platz je Ware: <b>${storageCap()}</b> · 💡 Wissen: <b>${knowledgeCap()}</b></p>
-    ${groups}<h3>💎 Besonderes</h3>${lagerFindsHtml()}`;
+  const warn = knapp.length ? lagerGroupHtml('achtung', '⚠️ Wird knapp', `<div class="lager-list">${knapp.map(lagerRowHtml).join('')}</div>`) : '';
+  return `<div class="lager">
+    <div class="lager-cap"><span>📦 Platz je Ware <b>${storageCap()}</b></span><span>💡 Platz für Wissen <b>${knowledgeCap()}</b></span></div>
+    ${warn}${groups}${lagerGroupHtml('', '💎 Besonderes', lagerFindsHtml())}
+  </div>`;
 }
 
 function openLager() {

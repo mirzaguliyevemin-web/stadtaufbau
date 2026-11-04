@@ -269,10 +269,10 @@ const WORK = {
   steinsammler:      { target: 'fels', tool: 'hacke', carry: 'ware-stein',   img: 'mensch-mann', chips: '#b9b4a8', swing: 'hack', carryLook: 'mensch-mann-stein' },
   sammlerin:         { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-frau', chips: '#d8344a', swing: 'pick', carryLook: 'mensch-frau' },
   jaegerlager:       { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true, look: 'mensch-jaeger-bogen-1', anim: 'bogen', carryLook: 'mensch-jaeger-beute' },
-  mammutjaegerlager: { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true, look: 'mensch-jaeger', carryLook: 'mensch-jaeger-beute' },
+  mammutjaegerlager: { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true, look: 'mensch-jaeger', anim: 'speerwurf', carryLook: 'mensch-jaeger-beute' },
   // Teil 2: am Ufer und im Einbaum fischen, an der Felswand malen, vor dem Haus arbeiten (target 'self')
   fischerplatz:      { target: 'wasser', tool: 'speer', carry: 'ware-nahrung', img: 'mensch-mann', chips: '#cfe9f7', swing: 'spear', boat: true },
-  hoehlenmaler:      { target: 'fels',  tool: null,   carry: 'ware-wissen',  img: 'mensch-mann', chips: null,      swing: 'paint' },
+  hoehlenmaler:      { target: 'fels',  tool: null,   carry: 'ware-wissen',  img: 'mensch-mann', chips: null,      swing: 'paint', anim: 'malen' },
   tongrube:          { target: 'wasser', tool: 'hacke', carry: 'ware-ton',   img: 'mensch-mann', chips: '#9a5a32', swing: 'hack' },
   fellmacherin:      { target: 'self',  tool: null,   carry: null, img: 'mensch-frau', chips: null,      swing: 'scrape', thing: 'ware-felle' },
   steinschlaeger:    { target: 'self',  tool: null,   carry: null, img: 'mensch-mann', chips: '#b9b4a8', swing: 'knap',   thing: 'ware-stein' },
@@ -623,6 +623,16 @@ function drawWorker(w, t) {
       ctx.globalAlpha = 1;
     }
   }
+  if (!walking && w.kind.anim === 'speerwurf' && posed) {   // der geworfene Speer fliegt davon
+    const cyc = (t * ANIM_TIMING.speerwurf.speed + w.ph) % 1;
+    if (cyc >= 0.68) {
+      const q = (cyc - 0.68) / 0.32, ax = p.x - w.face * (20 + 60 * q) * z, ay = p.y - (26 + 10 * Math.sin(q * Math.PI) - 8 * q) * z;
+      ctx.globalAlpha = q < 0.8 ? 1 : (1 - q) / 0.2;
+      ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 1.6 * z; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax + w.face * 20 * z, ay - (2 - 4 * q) * z); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
   if (!walking && swing === 'spear' && posed) {   // Canva-Haltungen: beim Zustechen spritzt es an der Speerspitze
     const cyc = (t * 1.6 + w.ph) % 1;
     if (cyc >= 0.7) splash(p.x - w.face * 15 * z, p.y - 1 * z, z, 1 - (cyc - 0.7) / 0.3);
@@ -647,9 +657,11 @@ function drawWorker(w, t) {
       ctx.fillStyle = cols[i % 4];
       ctx.beginPath(); ctx.arc(q.x + (hash(i, w.k + 3) - 0.5) * 16 * z, q.y - 10 * z - hash(w.k, i + 5) * 12 * z, 1.8 * z, 0, 7); ctx.fill();
     }
-    const dab = Math.sin(t * 5 + w.ph);
-    ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 1.5 * z; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(hand.x, hand.y); ctx.lineTo(hand.x - (6 + dab * 2) * z * w.face, hand.y - (5 + dab * 3) * z); ctx.stroke();
+    if (!posed) {   // sonst zeigen die Bilder den Pinsel schon
+      const dab = Math.sin(t * 5 + w.ph);
+      ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 1.5 * z; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(hand.x, hand.y); ctx.lineTo(hand.x - (6 + dab * 2) * z * w.face, hand.y - (5 + dab * 3) * z); ctx.stroke();
+    }
   }
   if (!walking && (swing === 'scrape' || swing === 'knap' || swing === 'pot')) {   // Hände über dem Werkstück
     const pw = tileToScreen(w.x, w.y);
@@ -923,10 +935,14 @@ const TOOL_POSES = {
 // Eigene Bewegungen je Beruf (je Bild: Name, Höhe, Versatz). Nur eintragen, was es als Bild gibt, sonst würde es umsonst geladen.
 const ANIM_POSES = {
   bogen: [['mensch-jaeger-bogen-1', 34, 0.076], ['mensch-jaeger-bogen-2', 35, 0.12], ['mensch-jaeger-bogen-3', 36, 0.099]],
+  speerwurf: [['mensch-mammutjaeger-1', 47, -0.136], ['mensch-mammutjaeger-2', 34, -0.02], ['mensch-mammutjaeger-3', 31, 0.142]],
+  malen: [['mensch-maler-1', 33, 0.054], ['mensch-maler-2', 33, 0.184], ['mensch-maler-3', 38, 0.175]],
 };
 // Eigener Ablauf einer Bewegung: speed = Durchläufe je Sekunde, keys = [Bild, Beginn im Durchlauf]. Ohne Angabe wie die Werkzeuge.
 const ANIM_TIMING = {
   bogen: { speed: 0.45, keys: [[0, 0], [1, 0.25], [2, 0.75]] },   // Pfeil nehmen, lange zielen, Schuss, wieder von vorn
+  speerwurf: { speed: 0.45, keys: [[0, 0], [1, 0.6], [2, 0.68]] },   // lange ausholen, schnell werfen, nachschauen
+  malen: { speed: 0.3, keys: [[0, 0], [1, 0.2], [2, 0.5], [1, 0.8]] },   // Pinsel eintauchen, in Kopfhöhe malen, hoch oben malen, wieder herunter
 };
 for (const list of Object.values(ANIM_POSES)) for (const [name] of list) if (!LIFE_NAMES.includes(name)) LIFE_NAMES.push(name);
 

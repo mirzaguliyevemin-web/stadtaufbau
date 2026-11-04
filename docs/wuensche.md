@@ -24,6 +24,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-04, Epochia Version 93 – Wunsch Emin: Töpferin sitzt am Brett, formt den Ton, glättet den Rand und betrachtet den fertigen Topf (3 Bilder).
 - 2026-11-04, Epochia Version 92 – Wunsch Emin: Hirte am Zaun hebt den Stab und ruft die Ziegen (3 Bilder), Arbeiter der Tongrube trägt auf dem Rückweg einen Korb mit Ton auf der Schulter.
 - 2026-11-04, Epochia Version 91 – Wunsch Emin: Fellmacherin kniet und schabt das Fell (3 Bilder), Steinschläger sitzt am Arbeitsstein, hebt den Schlagstein und schlägt zu, Splitter fliegen (3 Bilder).
 - 2026-11-04, Epochia Version 90 – Wunsch Emin: Mammutjäger holt mit dem Speer aus und wirft (3 Bilder, Speer fliegt), Höhlenmaler taucht den Pinsel ein und malt in Kopfhöhe und hoch oben (3 Bilder).

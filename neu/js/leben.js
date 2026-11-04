@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-unten'];
+const LIFE_NAMES = ['mensch-hacke-mitte', 'mensch-axt-mitte', 'mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-unten'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -927,8 +927,8 @@ function drawSitting(v, t) {
 
 // Arbeitshaltungen je Werkzeug: [Bild, Höhe in Bildpunkten bei Zoom 1, Versatz nach links (Anteil der Breite)]
 const TOOL_POSES = {
-  axt:   [['mensch-axt-oben', 38, 0], ['mensch-axt-unten', 34, 0.12]],
-  hacke: [['mensch-hacke-oben', 38, 0], ['mensch-hacke-unten', 34, 0.12]],
+  axt:   [['mensch-axt-oben', 38, -0.145], ['mensch-axt-mitte', 33, 0.144], ['mensch-axt-unten', 34, 0.175]],
+  hacke: [['mensch-hacke-oben', 38, -0.126], ['mensch-hacke-mitte', 33, 0.195], ['mensch-hacke-unten', 34, 0.154]],
   speer: [['fischer-speer-oben', 40, 0.05], ['fischer-speer-unten', 34, 0.12]],
   grabstock: [['mensch-frau-grabstock-oben', 36, 0], ['mensch-frau-grabstock-unten', 33, 0.1]],
 };

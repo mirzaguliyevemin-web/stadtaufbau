@@ -24,6 +24,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-04, Epochia Version 91 – Wunsch Emin: Fellmacherin kniet und schabt das Fell (3 Bilder), Steinschläger sitzt am Arbeitsstein, hebt den Schlagstein und schlägt zu, Splitter fliegen (3 Bilder).
 - 2026-11-04, Epochia Version 90 – Wunsch Emin: Mammutjäger holt mit dem Speer aus und wirft (3 Bilder, Speer fliegt), Höhlenmaler taucht den Pinsel ein und malt in Kopfhöhe und hoch oben (3 Bilder).
 - 2026-11-04, Epochia Version 89 – Wunsch Emin: Jäger spannt den Bogen und schießt (3 Bilder, Pfeil fliegt), kommt mit Hirsch über der Schulter zurück.
 - 2026-11-03, Epochia Version 87 – Fehler von Emin: Fischerhütten hatten im Winter ein halbes Boot im Wasser. Das gemalte Boot wurde nur aus dem Sommerbild gelöst, jetzt auch aus dem Winterbild.

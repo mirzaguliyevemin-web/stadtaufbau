@@ -274,8 +274,8 @@ const WORK = {
   fischerplatz:      { target: 'wasser', tool: 'speer', carry: 'ware-nahrung', img: 'mensch-mann', chips: '#cfe9f7', swing: 'spear', boat: true },
   hoehlenmaler:      { target: 'fels',  tool: null,   carry: 'ware-wissen',  img: 'mensch-mann', chips: null,      swing: 'paint', anim: 'malen' },
   tongrube:          { target: 'wasser', tool: 'hacke', carry: 'ware-ton',   img: 'mensch-mann', chips: '#9a5a32', swing: 'hack' },
-  fellmacherin:      { target: 'self',  tool: null,   carry: null, img: 'mensch-frau', chips: null,      swing: 'scrape', thing: 'ware-felle' },
-  steinschlaeger:    { target: 'self',  tool: null,   carry: null, img: 'mensch-mann', chips: '#b9b4a8', swing: 'knap',   thing: 'ware-stein' },
+  fellmacherin:      { target: 'self',  tool: null,   carry: null, img: 'mensch-frau', chips: null,      swing: 'scrape', thing: 'ware-felle', anim: 'schaben' },
+  steinschlaeger:    { target: 'self',  tool: null,   carry: null, img: 'mensch-mann', chips: '#b9b4a8', swing: 'knap',   thing: 'ware-stein', anim: 'steinschlag' },
   toepferei:         { target: 'self',  tool: null,   carry: null, img: 'mensch-frau', chips: null,      swing: 'pot',    thing: 'ware-toepferwaren' },
   // Teil 3: auf dem Acker graben, am Ziegengehege hüten, Setzlinge pflanzen
   acker:             { target: 'field',  tool: 'grabstock', carry: null, img: 'mensch-frau', chips: '#7a5230', swing: 'hack' },
@@ -544,8 +544,9 @@ function workerObjects(inView, t) {
 function drawWorker(w, t) {
   const z = cam.zoom, walking = w.phase !== 'work', step = t * 10 + w.ph;
   if (!walking && w.kind.boat && w.k === 1 && images.einbaum) return drawBoat(w, t);
-  // Werkstück vor dem Haus (Fell, Steinknolle, Topf) – liegt hinter der Figur
-  if (!walking && w.kind.thing && images[w.kind.thing]) {
+  // Werkstück vor dem Haus (Fell, Steinknolle, Topf) – liegt hinter der Figur. Zeigen es die Bewegungsbilder schon, entfällt es.
+  const ownThing = w.kind.anim && ANIM_POSES[w.kind.anim] && ANIM_POSES[w.kind.anim].filter(f => images[f[0]]).length >= 2;
+  if (!walking && w.kind.thing && images[w.kind.thing] && !ownThing) {
     // Fell liegt nicht auf dem Boden: die Fellmacherin hält es vor sich in den Händen und schabt es
     const held = w.kind.swing === 'scrape', pw = tileToScreen(w.x, w.y);
     const q = held ? { x: pw.x - 8 * z * w.face, y: pw.y - 9 * z } : tileToScreen(w.tx, w.ty), s = (held ? 13 : 15) * z;
@@ -663,7 +664,7 @@ function drawWorker(w, t) {
       ctx.beginPath(); ctx.moveTo(hand.x, hand.y); ctx.lineTo(hand.x - (6 + dab * 2) * z * w.face, hand.y - (5 + dab * 3) * z); ctx.stroke();
     }
   }
-  if (!walking && (swing === 'scrape' || swing === 'knap' || swing === 'pot')) {   // Hände über dem Werkstück
+  if (!walking && !posed && (swing === 'scrape' || swing === 'knap' || swing === 'pot')) {   // Hände über dem Werkstück
     const pw = tileToScreen(w.x, w.y);
     const q = swing === 'scrape' ? { x: pw.x - 8 * z * w.face, y: pw.y - 3 * z } : tileToScreen(w.tx, w.ty);
     const m = swing === 'knap' ? Math.abs(Math.sin(t * 4 + w.ph)) : (Math.sin(t * 3 + w.ph) + 1) / 2;
@@ -937,12 +938,16 @@ const ANIM_POSES = {
   bogen: [['mensch-jaeger-bogen-1', 34, 0.076], ['mensch-jaeger-bogen-2', 35, 0.12], ['mensch-jaeger-bogen-3', 36, 0.099]],
   speerwurf: [['mensch-mammutjaeger-1', 47, -0.136], ['mensch-mammutjaeger-2', 34, -0.02], ['mensch-mammutjaeger-3', 31, 0.142]],
   malen: [['mensch-maler-1', 33, 0.054], ['mensch-maler-2', 33, 0.184], ['mensch-maler-3', 38, 0.175]],
+  schaben: [['mensch-fellmacherin-1', 29.4, 0.033], ['mensch-fellmacherin-2', 27.2, 0.033], ['mensch-fellmacherin-3', 22.6, -0.014]],
+  steinschlag: [['mensch-steinschlaeger-1', 24.7, 0.006], ['mensch-steinschlaeger-2', 24.7, 0.006], ['mensch-steinschlaeger-3', 23.6, 0.006]],
 };
 // Eigener Ablauf einer Bewegung: speed = Durchläufe je Sekunde, keys = [Bild, Beginn im Durchlauf]. Ohne Angabe wie die Werkzeuge.
 const ANIM_TIMING = {
   bogen: { speed: 0.45, keys: [[0, 0], [1, 0.25], [2, 0.75]] },   // Pfeil nehmen, lange zielen, Schuss, wieder von vorn
   speerwurf: { speed: 0.45, keys: [[0, 0], [1, 0.6], [2, 0.68]] },   // lange ausholen, schnell werfen, nachschauen
   malen: { speed: 0.3, keys: [[0, 0], [1, 0.2], [2, 0.5], [1, 0.8]] },   // Pinsel eintauchen, in Kopfhöhe malen, hoch oben malen, wieder herunter
+  schaben: { speed: 0.5, keys: [[0, 0], [1, 0.25], [2, 0.5], [1, 0.75]] },   // Schaber gleichmäßig vor und zurück
+  steinschlag: { speed: 0.8, keys: [[0, 0], [1, 0.6], [2, 0.7], [1, 0.9]] },   // langsam heben, schnell schlagen, Splitter fliegen
 };
 for (const list of Object.values(ANIM_POSES)) for (const [name] of list) if (!LIFE_NAMES.includes(name)) LIFE_NAMES.push(name);
 

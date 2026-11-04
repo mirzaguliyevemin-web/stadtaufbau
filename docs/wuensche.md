@@ -19,6 +19,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 - Eisenzeit (Emin, 03.11.): Technik mit vorläufigen Bildern gebaut (Version 86). Offen: etwa 200 Bilder, später nach den Bildern für Steinzeit und Bronzezeit. Plan: `docs/epoche-3-eisenzeit.md`.
 
+- Design (Emin, 04.11.): Spiel ist zu braun, helle Töne passend zum Zeitalter, Lager schöner, danach Bilder mit Canva. Plan: `docs/plan-design.md`, → Frage: 4 Fragen an Emin, wird zusammen geplant.
+
 - Zweite Karte und zweite Stadt (Emin, 03.11.): nur ein Plan, wichtigere Sachen gehen vor. Plan: `docs/plan-zweite-stadt.md`, → Frage: 6 Fragen an Emin, wenn es so weit ist.
 
 ## Erledigt

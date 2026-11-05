@@ -33,8 +33,8 @@
 }
 
 html[data-zeit=kupfer] { --bar-top: url(../bilder/epochia/oberflaeche/leiste-oben-kupfer.webp); --bar-bottom: url(../bilder/epochia/oberflaeche/leiste-unten-kupfer.webp); --bar: #e4f1ea; --bar-2: #cde4d9; --line: #86b9a7; --line-soft: #d3e6dd; --accent: #2f8c7d; --accent-2: #d9794a; --page: #f6fbf7; --tint: #fbe9dd; --ink: #23423c; --ink-soft: #52756d; --paper: #ffffff; --shadow-rgb: 30, 60, 55; }
-html[data-zeit=bronze] { --bar-top: none; --bar-bottom: url(../bilder/epochia/oberflaeche/leiste-unten-bronze.webp); --bar: #fdf1c4; --bar-2: #f8e298; --line: #d9b24d; --line-soft: #f0e2b0; --accent: #2f83ba; --accent-2: #d99a1e; --page: #fffcef; --tint: #e3f2fb; --ink: #3f3412; --ink-soft: #77693a; --paper: #ffffff; --shadow-rgb: 70, 55, 15; }
-html[data-zeit=eisen]  { --bar-top: none; --bar-bottom: url(../bilder/epochia/oberflaeche/leiste-unten-eisen.webp); --bar: #e6eef4; --bar-2: #d0dee8; --line: #8fa8ba; --line-soft: #d5e0e8; --accent: #3f7d51; --accent-2: #b5473c; --page: #f6f9fb; --tint: #e4f0e6; --ink: #27353f; --ink-soft: #566a78; --paper: #ffffff; --shadow-rgb: 35, 50, 62; }
+html[data-zeit=bronze] { --bar-top: url(../bilder/epochia/oberflaeche/leiste-oben-bronze.webp); --bar-bottom: url(../bilder/epochia/oberflaeche/leiste-unten-bronze.webp); --bar: #fdf1c4; --bar-2: #f8e298; --line: #d9b24d; --line-soft: #f0e2b0; --accent: #2f83ba; --accent-2: #d99a1e; --page: #fffcef; --tint: #e3f2fb; --ink: #3f3412; --ink-soft: #77693a; --paper: #ffffff; --shadow-rgb: 70, 55, 15; }
+html[data-zeit=eisen]  { --bar-top: url(../bilder/epochia/oberflaeche/leiste-oben-eisen.webp); --bar-bottom: url(../bilder/epochia/oberflaeche/leiste-unten-eisen.webp); --bar: #e6eef4; --bar-2: #d0dee8; --line: #8fa8ba; --line-soft: #d5e0e8; --accent: #3f7d51; --accent-2: #b5473c; --page: #f6f9fb; --tint: #e4f0e6; --ink: #27353f; --ink-soft: #566a78; --paper: #ffffff; --shadow-rgb: 35, 50, 62; }
 
 /* Fredoka (SIL Open Font License, siehe fonts/OFL.txt) – liegt im Spiel, damit sie auch offline da ist */
 @font-face {

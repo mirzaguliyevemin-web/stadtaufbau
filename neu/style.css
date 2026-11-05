@@ -221,6 +221,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .side-btn span { font-size: 10px; font-weight: bold; }
+.side-btn .ic { width: 30px; height: 30px; }
 .side-prog { position: absolute; left: 6px; right: 6px; bottom: 4px; height: 5px; border-radius: 3px; background: rgba(0, 0, 0, 0.35); overflow: hidden; }
 .side-prog i { display: block; height: 100%; width: 0; background: linear-gradient(#9be067, #4caf50); }
 .side-btn:active { transform: translateY(2px); }
@@ -811,6 +812,7 @@ small.ok { color: var(--green-dark); }
 /* niedrige Bildschirme (Handy quer) */
 @media (max-height: 420px) {
   .side-btn { width: 50px; height: 46px; font-size: 19px; }
+  .side-btn .ic { width: 25px; height: 25px; }
   .ic.big { width: 38px; height: 38px; line-height: 38px; font-size: 27px; }
   .bar-item { width: 82px; }
   #tutorial { bottom: calc(var(--bar-h, 90px) + 36px); }

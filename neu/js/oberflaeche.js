@@ -43,6 +43,15 @@ function esc(text) {
 }
 
 // Kleines Bild (Gebäude, Ware, Forschung) – fehlt das Bild, das Zeichen
+const SIDE_SYMBOLS = {
+  'btn-research': 'symbol-forschung', 'btn-quests': 'symbol-auftraege', 'btn-trader': 'symbol-haendler', 'btn-chest': 'symbol-schaetze',
+  'btn-shop': 'symbol-shop', 'btn-footprint': 'symbol-grundriss', 'btn-menu': 'symbol-menue',
+};
+function iconElement(bild) {
+  const img = document.createElement('img');
+  img.className = 'ic'; img.alt = ''; img.src = imagePath(bild);
+  return img;
+}
 function iconHtml(bild, icon, cls = '') {
   return bild && images[bild]
     ? `<img class="ic ${cls}" src="${imagePath(bild)}" alt="">`
@@ -265,6 +274,11 @@ function renderSideButtons() {
   // Truhe statt 🎁, sobald das Bild geladen ist
   const daily = $('btn-daily');
   if (images.truhe && !daily.querySelector('img')) daily.innerHTML = `${iconHtml('truhe', '🎁')}<span>Belohnung</span>`;
+  // Gemalte Symbole statt Emojis, sobald die Bilder geladen sind; Punkte und Zähler am Knopf bleiben erhalten
+  for (const [id, bild] of Object.entries(SIDE_SYMBOLS)) {
+    const emoji = $(id).firstChild;
+    if (images[bild] && emoji && emoji.nodeType === 3) emoji.replaceWith(iconElement(bild));
+  }
 }
 
 // ---------------------------------------------------------------------

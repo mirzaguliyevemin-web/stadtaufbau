@@ -49,7 +49,7 @@ Die Stufen teilen sich die Farben ihres Zeitalters.
 
 **Schritt 3, ohne Canva: Karte aufhellen im Code.** Wege und Erdsockel heller einfärben, Wiese frischer. Der Helligkeitsfilter aus der Probe kann auf dem Handy bremsen, darum wird das an den Bildern selbst gemacht und auf dem Handy geprüft.
 
-**Schritt 4, Canva: Oberflächenbilder** (Stand Version 96: Leiste unten für Steinzeit und Kupferzeit eingebaut; aus dem Original werden zwei Planken ausgeschnitten.)
+**Schritt 4, Canva: Oberflächenbilder** (Stand Version 97: Leiste unten für alle vier Zeitalter eingebaut; aus dem Original werden zwei Planken ausgeschnitten.)
 
 | Was | Bilder |
 |---|---:|

@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 101;
+const APP_VERSION = 102;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -196,8 +196,8 @@ const RESOURCES = {
   ton:          { name: 'Ton',         icon: '🟤', bild: 'ware-ton',          from: 'jung' },
   toepferwaren: { name: 'Töpferwaren', icon: '🏺', bild: 'ware-toepferwaren', from: 'jung' },
   // Bronzezeit (Bilder folgen ab 27.11., bis dahin das Zeichen)
-  kupfererz:    { name: 'Kupfererz',   icon: '⛏️', from: 'kupfer' },
-  holzkohle:    { name: 'Holzkohle',   icon: '⚫', from: 'kupfer' },
+  kupfererz:    { name: 'Kupfererz',   icon: '⛏️', bild: 'ware-kupfererz', from: 'kupfer' },
+  holzkohle:    { name: 'Holzkohle',   icon: '⚫', bild: 'ware-holzkohle', from: 'kupfer' },
   kupfer:       { name: 'Kupfer',      icon: '🟠', from: 'kupfer' },
   zinn:         { name: 'Zinn',        icon: '⚪', from: 'frueh' },
   bronze:       { name: 'Bronze',      icon: '🥉', from: 'frueh' },

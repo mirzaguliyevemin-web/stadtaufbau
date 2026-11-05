@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 104;
+const APP_VERSION = 105;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -203,7 +203,7 @@ const RESOURCES = {
   bronze:       { name: 'Bronze',      icon: '🥉', bild: 'ware-bronze', from: 'frueh' },
   wolle:        { name: 'Wolle',       icon: '🐑', bild: 'ware-wolle', from: 'frueh' },
   bernstein:    { name: 'Bernstein',   icon: '🟡', bild: 'ware-bernstein', from: 'spaet' },
-  schmuck:      { name: 'Schmuck',     icon: '💍', from: 'spaet' },
+  schmuck:      { name: 'Schmuck',     icon: '💍', bild: 'ware-schmuck', from: 'spaet' },
   eisenerz:     { name: 'Eisenerz',    icon: '🪨', from: 'eisen1' },
   eisen:        { name: 'Eisen',       icon: '🔩', from: 'eisen1' },
   salz:         { name: 'Salz',        icon: '🧂', from: 'eisen2' },

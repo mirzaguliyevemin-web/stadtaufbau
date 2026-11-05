@@ -19,7 +19,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 - Eisenzeit (Emin, 03.11.): Technik mit vorläufigen Bildern gebaut (Version 86). Offen: etwa 200 Bilder, später nach den Bildern für Steinzeit und Bronzezeit. Plan: `docs/epoche-3-eisenzeit.md`.
 
-- Design (Emin, 04.11.): Schritt 1–3 gebaut (Version 95), Leisten, Titelband und Symbole gemalt (Version 104). Offen: 6 Waren und Boden mit Canva, danach prüfen, welche Gebäude noch zu dunkel sind. Plan: `docs/plan-design.md`.
+- Design (Emin, 04.11.): Schritt 1–3 gebaut (Version 95), Leisten, Titelband und Symbole gemalt (Version 105). Offen: 5 Waren und Boden mit Canva, danach prüfen, welche Gebäude noch zu dunkel sind. Plan: `docs/plan-design.md`.
 
 - Zweite Karte und zweite Stadt (Emin, 03.11.): nur ein Plan, wichtigere Sachen gehen vor. Plan: `docs/plan-zweite-stadt.md`, → Frage: 6 Fragen an Emin, wenn es so weit ist.
 

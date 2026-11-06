@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 108;
+const APP_VERSION = 109;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -401,7 +401,7 @@ const BUILDINGS = {
     info: 'Sammelt Steine. An Felsen und am Gebirge viel mehr. Felsen in der Nähe werden nach und nach abgebaut – am Gebirge gibt es Stein ohne Ende.',
   },
   geschichtenhoehle: {
-    name: 'Höhle der Geschichten', icon: '🎨', size: 4, line: 'wunder', tier: 0, stage: 'alt', bild: '1-hoehle', wonder: 'hoehle',
+    name: 'Höhle der Geschichten', icon: '🎨', size: 4, line: 'wunder', tier: 0, stage: 'alt', bild: '1-hoehle', views: ['r2'], wonder: 'hoehle',
     color: '#8a5a3a', cost: {}, time: 1, requires: 'hoehlenmalerei', needsRock: true, warmth: 8, produces: { wissen: 3 },
     info: 'Wunderwerk: Tippe es an, um Abschnitt für Abschnitt weiterzubauen. Muss an Felsen stehen.',
   },

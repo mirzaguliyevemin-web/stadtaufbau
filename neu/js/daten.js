@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 111;
+const APP_VERSION = 112;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -491,7 +491,7 @@ const BUILDINGS = {
     info: 'Feste Wände aus Lehm – Platz für 18 Menschen.',
   },
   gemuesegarten: {
-    name: 'Gemüsegarten', icon: '🥕', size: 2, line: 'sammeln', tier: 1, stage: 'kupfer', bild: '1-sammlerin', views: ['r2'],
+    name: 'Gemüsegarten', icon: '🥕', size: 2, line: 'sammeln', tier: 1, stage: 'kupfer', bild: '2-gemuesegarten',
     color: '#7da83f', cost: { holz: 15, stein: 5 }, time: 30, workers: 2, produces: { nahrung: 12 }, requires: 'gartenbau',
     bonus: { terrain: 'wald', perTile: 0.04, max: 0.5 },
     info: 'Gemüse und Kräuter direkt am Haus. Bringt mehr als das Sammeln, im Winter wenig.',
@@ -502,7 +502,7 @@ const BUILDINGS = {
     info: 'Fischen mit Netzen statt mit dem Speer – viel mehr Fisch.',
   },
   holzfaeller: {
-    name: 'Holzfäller', icon: '🪓', size: 2, line: 'holz', tier: 1, stage: 'kupfer', bild: '1-holzsammler', views: ['r2'],
+    name: 'Holzfäller', icon: '🪓', size: 2, line: 'holz', tier: 1, stage: 'kupfer', bild: '2-holzfaeller',
     color: '#7a5230', cost: { stein: 10 }, time: 30, workers: 2, produces: { holz: 12 }, requires: 'kupferbeil',
     bonus: { terrain: 'wald', perTile: 0.04, max: 0.6 }, fellsTrees: true,
     info: 'Mit dem Kupferbeil geht das Fällen viel schneller. Eine Pflanzerin setzt neue Bäume.',

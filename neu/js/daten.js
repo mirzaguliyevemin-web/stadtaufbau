@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 110;
+const APP_VERSION = 111;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -486,7 +486,7 @@ const BUILDINGS = {
   // ----- Bronzezeit, Stufe Kupferzeit. Bilder folgen ab 27.11.: Weiterentwicklungen zeigen so lange das Bild der Vorstufe,
   // neue Gebäude ein Platzhalter-Feld.
   lehmhaus: {
-    name: 'Lehmhaus', icon: '🧱', size: 3, line: 'wohnen', tier: 4, stage: 'kupfer', bild: '1-langhaus', views: ['r2'],
+    name: 'Lehmhaus', icon: '🧱', size: 3, line: 'wohnen', tier: 4, stage: 'kupfer', bild: '2-lehmhaus',
     color: '#a8703f', cost: { holz: 120, stein: 60, ton: 30 }, time: 200, housing: 18, requires: 'lehmbau', upgradeTo: 'hallenhaus',
     info: 'Feste Wände aus Lehm – Platz für 18 Menschen.',
   },
@@ -604,7 +604,7 @@ const BUILDINGS = {
   },
   // ----- Bronzezeit, Stufe Späte Bronzezeit (Bilder folgen, wie bei den anderen Stufen)
   hallenhaus: {
-    name: 'Hallenhaus', icon: '🏛️', size: 3, line: 'wohnen', tier: 5, stage: 'spaet', bild: '1-langhaus', views: ['r2'],
+    name: 'Hallenhaus', icon: '🏛️', size: 3, line: 'wohnen', tier: 5, stage: 'spaet', bild: '2-hallenhaus',
     color: '#a8703f', cost: { holz: 160, stein: 80, bronze: 10 }, time: 220, housing: 24, requires: 'hallenhaus',
     info: 'Ein großes, stolzes Haus mit langem Dach – Platz für 24 Menschen.',
   },

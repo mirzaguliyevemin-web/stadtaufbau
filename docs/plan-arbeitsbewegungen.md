@@ -108,7 +108,7 @@ Grob 30–45 Arbeitsbilder je Zeitalter, dazu ein Satz Alltagsfiguren für die n
 | Teil | Bilder |
 |---|---|
 | Steinzeit, neue Bewegungen (7 Bewegungen zu je 3, dazu 2 Tragebilder) | 23 |
-| Steinzeit, vorhandene Bewegungen auf 3 Bilder bringen (Axt, Hacke, Speer, Grabstock je 1, Pflücken und Pflanzen je 2) | 8 |
+| Steinzeit, vorhandene Bewegungen auf 3 Bilder bringen (Axt, Hacke, Speer, Grabstock je 1, Pflücken und Pflanzen je 2), **fertig seit Version 107** | 8 |
 | Bronzezeit (14 Bewegungen zu je 3, dazu 1 Tragebild) | 43 |
 | **Zusammen** | **74** |
 

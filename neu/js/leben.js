@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-hacke-mitte', 'mensch-axt-mitte', 'mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-unten'];
+const LIFE_NAMES = ['mensch-hacke-mitte', 'mensch-axt-mitte', 'mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-frau-grabstock-tief', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-mitte', 'fischer-speer-unten'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -267,7 +267,7 @@ function mammothAtScreen(sx, sy) {
 const WORK = {
   holzsammler:       { target: 'wald', tool: 'axt',   carry: 'ware-holz',    img: 'mensch-mann', chips: '#a8743f', swing: 'hack', carryLook: 'mensch-mann' },
   steinsammler:      { target: 'fels', tool: 'hacke', carry: 'ware-stein',   img: 'mensch-mann', chips: '#b9b4a8', swing: 'hack', carryLook: 'mensch-mann-stein' },
-  sammlerin:         { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-frau', chips: '#d8344a', swing: 'pick', carryLook: 'mensch-frau' },
+  sammlerin:         { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-frau', chips: '#d8344a', swing: 'pick', carryLook: 'mensch-frau', anim: 'pfluecken' },
   jaegerlager:       { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true, look: 'mensch-jaeger-bogen-1', anim: 'bogen', carryLook: 'mensch-jaeger-beute' },
   mammutjaegerlager: { target: 'wald', tool: null,    carry: 'ware-nahrung', img: 'mensch-mann', chips: null,      swing: 'look', far: true, look: 'mensch-jaeger', anim: 'speerwurf', carryLook: 'mensch-jaeger-beute' },
   // Teil 2: am Ufer und im Einbaum fischen, an der Felswand malen, vor dem Haus arbeiten (target 'self')
@@ -280,7 +280,7 @@ const WORK = {
   // Teil 3: auf dem Acker graben, am Ziegengehege hüten, Setzlinge pflanzen
   acker:             { target: 'field',  tool: 'grabstock', carry: null, img: 'mensch-frau', chips: '#7a5230', swing: 'hack' },
   ziegengehege:      { target: 'pen',    tool: null,  carry: null, img: 'mensch-mann', chips: null,      swing: 'herd', look: 'mensch-hirte', anim: 'hirte' },
-  pflanzerin:        { target: 'sapling', tool: null, carry: null, img: 'mensch-frau', chips: '#7a5230', swing: 'plant' },
+  pflanzerin:        { target: 'sapling', tool: null, carry: null, img: 'mensch-frau', chips: '#7a5230', swing: 'plant', anim: 'pflanzen' },
 };
 // Gebückte/kniende Arbeitshaltungen (Canva) je Bewegung
 const BEND_POSES = { pick: 'mensch-frau-pflueckt', plant: 'mensch-frau-pflanzt' };
@@ -321,7 +321,7 @@ function targetGone(w) {
 Object.assign(WORK, {
   holzfaeller: WORK.holzsammler, steinbruch: WORK.steinsammler, lehmgrube: WORK.tongrube, fischerhuette: WORK.fischerplatz,
   jagdhuette: WORK.mammutjaegerlager, feld: WORK.acker, viehhof: WORK.ziegengehege, baumgaertnerin: WORK.pflanzerin, toepferwerkstatt: WORK.toepferei,
-  gemuesegarten:  { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: '#d8344a', swing: 'pick' },   // bleibt auf dem Beet
+  gemuesegarten:  { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: '#d8344a', swing: 'pick', anim: 'pfluecken' },   // bleibt auf dem Beet
   felsritzer:     { target: 'fels',   tool: null,    carry: 'ware-wissen', img: 'mensch-mann', chips: '#b9b4a8', swing: 'chisel' },
   sternkundiger:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: null, swing: 'gaze' },       // schaut zum Himmel
   kupferschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug' },
@@ -333,7 +333,7 @@ Object.assign(WORK, {
   schmelzofen:    { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'tend' },
   bronzegiesser:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffd166', swing: 'tend' },
   // Eisenzeit: vorläufig passende Bewegungen, eigene Bilder folgen
-  obstgarten: { target: 'self', tool: null, carry: null, img: 'mensch-frau', chips: '#d8344a', swing: 'pick' },
+  obstgarten: { target: 'self', tool: null, carry: null, img: 'mensch-frau', chips: '#d8344a', swing: 'pick', anim: 'pfluecken' },
   holzhof: WORK.holzsammler, grosser_steinbruch: WORK.steinsammler, grosse_lehmgrube: WORK.tongrube, fischerei: WORK.fischerplatz,
   jagdhof: WORK.mammutjaegerlager, eisenfeld: WORK.acker, rindergut: WORK.ziegengehege, forstmeisterin: WORK.pflanzerin, drehscheibe: WORK.toepferei,
   druide:       { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: null, swing: 'gaze' },
@@ -555,7 +555,7 @@ function drawWorker(w, t) {
   }
   let bob = walking ? Math.abs(Math.sin(step)) * 1.2 * z : 0;
   const swing = w.kind.swing;
-  if (!walking && swing === 'pick') bob = -Math.max(0, Math.sin(t * 3 + w.ph)) * 3 * z;   // bückt sich zum Busch
+  if (!walking && swing === 'pick' && !w.kind.anim) bob = -Math.max(0, Math.sin(t * 3 + w.ph)) * 3 * z;   // bückt sich zum Busch
   if (!walking && (swing === 'tend' || swing === 'pan')) bob = (Math.sin(t * 2 + w.ph) + 1) * 0.9 * z;   // wiegt sich bei der Arbeit
   if (!walking && swing === 'chisel') bob = Math.abs(Math.sin(t * 6 + w.ph)) * 0.8 * z;
   // mit Last nur auf dem Rückweg (carryLook: das Grundbild zeigt schon Holz bzw. Korb), sonst leere Hände
@@ -929,8 +929,8 @@ function drawSitting(v, t) {
 const TOOL_POSES = {
   axt:   [['mensch-axt-oben', 38, -0.145], ['mensch-axt-mitte', 33, 0.144], ['mensch-axt-unten', 34, 0.175]],
   hacke: [['mensch-hacke-oben', 38, -0.126], ['mensch-hacke-mitte', 33, 0.195], ['mensch-hacke-unten', 34, 0.154]],
-  speer: [['fischer-speer-oben', 40, 0.05], ['fischer-speer-unten', 34, 0.12]],
-  grabstock: [['mensch-frau-grabstock-oben', 36, 0], ['mensch-frau-grabstock-unten', 33, 0.1]],
+  speer: [['fischer-speer-oben', 40, 0.05], ['fischer-speer-mitte', 29, 0.1], ['fischer-speer-unten', 34, 0.12]],
+  grabstock: [['mensch-frau-grabstock-oben', 36, 0.117], ['mensch-frau-grabstock-unten', 33, 0.103], ['mensch-frau-grabstock-tief', 31, 0.082]],
 };
 
 // Eigene Bewegungen je Beruf (je Bild: Name, Höhe, Versatz). Nur eintragen, was es als Bild gibt, sonst würde es umsonst geladen.
@@ -942,6 +942,8 @@ const ANIM_POSES = {
   steinschlag: [['mensch-steinschlaeger-1', 24.7, 0.006], ['mensch-steinschlaeger-2', 24.7, 0.006], ['mensch-steinschlaeger-3', 23.6, 0.006]],
   hirte: [['mensch-hirte-1', 32.6, 0.18], ['mensch-hirte-2', 34.2, 0.201], ['mensch-hirte-3', 44, 0.085]],
   toepfern: [['mensch-toepferin-1', 29.0, -0.007], ['mensch-toepferin-2', 29.4, -0.004], ['mensch-toepferin-3', 30.4, -0.004]],
+  pfluecken: [['mensch-frau-pflueckt-greift', 30, 0.118], ['mensch-frau-pflueckt', 30, 0.1], ['mensch-frau-pflueckt-korb', 33.6, -0.164]],
+  pflanzen: [['mensch-frau-pflanzt-graben', 30.5, 0.156], ['mensch-frau-pflanzt', 30, 0.1], ['mensch-frau-pflanzt-fertig', 30.7, 0.054]],
 };
 // Eigener Ablauf einer Bewegung: speed = Durchläufe je Sekunde, keys = [Bild, Beginn im Durchlauf]. Ohne Angabe wie die Werkzeuge.
 const ANIM_TIMING = {
@@ -951,7 +953,9 @@ const ANIM_TIMING = {
   schaben: { speed: 0.5, keys: [[0, 0], [1, 0.25], [2, 0.5], [1, 0.75]] },   // Schaber gleichmäßig vor und zurück
   steinschlag: { speed: 0.8, keys: [[0, 0], [1, 0.6], [2, 0.7], [1, 0.9]] },   // langsam heben, schnell schlagen, Splitter fliegen
   hirte: { speed: 0.22, keys: [[0, 0], [1, 0.45], [2, 0.6], [1, 0.8]] },   // steht lange ruhig, hebt den Stab, ruft die Ziegen
-  toepfern: { speed: 0.2, keys: [[0, 0], [1, 0.35], [2, 0.75]] },   // Klumpen formen, Rand glätten, fertigen Topf betrachten, dann der nächste
+  toepfern: { speed: 0.2, keys: [[0, 0], [1, 0.35], [2, 0.75]] },
+  pflanzen: { speed: 0.22, keys: [[0, 0], [1, 0.4], [2, 0.75]] },   // Loch graben, Setzling hineindrücken, aufrichten und anschauen
+  pfluecken: { speed: 0.35, keys: [[0, 0], [1, 0.3], [2, 0.65]] },   // nach der Beere greifen, pflücken, in den Korb legen   // Klumpen formen, Rand glätten, fertigen Topf betrachten, dann der nächste
 };
 for (const list of Object.values(ANIM_POSES)) for (const [name] of list) if (!LIFE_NAMES.includes(name)) LIFE_NAMES.push(name);
 

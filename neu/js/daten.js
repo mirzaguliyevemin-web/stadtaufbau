@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 112;
+const APP_VERSION = 113;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -508,7 +508,7 @@ const BUILDINGS = {
     info: 'Mit dem Kupferbeil geht das Fällen viel schneller. Eine Pflanzerin setzt neue Bäume.',
   },
   steinbruch: {
-    name: 'Steinbruch', icon: '⛏️', size: 2, line: 'stein', tier: 1, stage: 'kupfer', bild: '1-steinsammler', views: ['r2'],
+    name: 'Steinbruch', icon: '⛏️', size: 2, line: 'stein', tier: 1, stage: 'kupfer', bild: '2-steinbruch',
     color: '#8a8a8a', cost: { holz: 20 }, time: 30, workers: 2, produces: { stein: 9 }, requires: 'kupferbeil',
     bonus: { terrain: ['fels', 'berg'], perTile: 0.06, max: 0.6 }, minesRocks: true,
     info: 'Bricht Steine mit Kupferwerkzeug. An Felsen und am Gebirge viel mehr.',

@@ -49,7 +49,7 @@ Die Stufen teilen sich die Farben ihres Zeitalters.
 
 **Schritt 3, ohne Canva: Karte aufhellen im Code.** Wege und Erdsockel heller einfärben, Wiese frischer. Der Helligkeitsfilter aus der Probe kann auf dem Handy bremsen, darum wird das an den Bildern selbst gemacht und auf dem Handy geprüft.
 
-**Schritt 4, Canva: Oberflächenbilder** (Stand Version 105: Leisten, Titelband und Symbole der Seitenknöpfe fertig (Truhe war schon gemalt, also 7 statt 8 Symbole), Waren 8 von 13: offen Eisenerz, Eisen, Salz, Glas, Wein; Boden noch offen; aus dem Original werden zwei Planken ausgeschnitten.)
+**Schritt 4, Canva: Oberflächenbilder** (Stand Version 106: Leisten, Titelband und Symbole der Seitenknöpfe fertig (Truhe war schon gemalt, also 7 statt 8 Symbole), alle 13 Waren fertig; Boden noch offen; aus dem Original werden zwei Planken ausgeschnitten.)
 
 | Was | Bilder |
 |---|---:|

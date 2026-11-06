@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 105;
+const APP_VERSION = 106;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -204,11 +204,11 @@ const RESOURCES = {
   wolle:        { name: 'Wolle',       icon: '🐑', bild: 'ware-wolle', from: 'frueh' },
   bernstein:    { name: 'Bernstein',   icon: '🟡', bild: 'ware-bernstein', from: 'spaet' },
   schmuck:      { name: 'Schmuck',     icon: '💍', bild: 'ware-schmuck', from: 'spaet' },
-  eisenerz:     { name: 'Eisenerz',    icon: '🪨', from: 'eisen1' },
-  eisen:        { name: 'Eisen',       icon: '🔩', from: 'eisen1' },
-  salz:         { name: 'Salz',        icon: '🧂', from: 'eisen2' },
-  glas:         { name: 'Glas',        icon: '🟢', from: 'eisen3' },
-  wein:         { name: 'Wein',        icon: '🍇', from: 'eisen3' },
+  eisenerz:     { name: 'Eisenerz',    icon: '🪨', bild: 'ware-eisenerz', from: 'eisen1' },
+  eisen:        { name: 'Eisen',       icon: '🔩', bild: 'ware-eisen', from: 'eisen1' },
+  salz:         { name: 'Salz',        icon: '🧂', bild: 'ware-salz', from: 'eisen2' },
+  glas:         { name: 'Glas',        icon: '🟢', bild: 'ware-glas', from: 'eisen3' },
+  wein:         { name: 'Wein',        icon: '🍇', bild: 'ware-wein', from: 'eisen3' },
 };
 
 // Bereiche im Lagerfenster: Jede Ware muss genau einmal vorkommen (Test „Lager“)

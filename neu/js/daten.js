@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 109;
+const APP_VERSION = 110;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -451,7 +451,7 @@ const BUILDINGS = {
     requires: 'sternenkunde', info: 'Wunderwerk der Steinzeit: Tippe es an, um Abschnitt für Abschnitt weiterzubauen. Glaube und Wärme im großen Umkreis. Nötig für den Aufbruch.',
   },
   himmelshalle: {
-    name: 'Halle der Himmelsscheibe', icon: '🌞', size: 4, line: 'wunder_bronze', tier: 0, stage: 'spaet', bild: '2-halle', wonder: 'himmelshalle',
+    name: 'Halle der Himmelsscheibe', icon: '🌞', size: 4, line: 'wunder_bronze', tier: 0, stage: 'spaet', bild: '2-halle', views: ['r2'], wonder: 'himmelshalle',
     color: '#c9a23a', cost: {}, time: 1, belief: 14, requires: 'himmelsscheibe',
     info: 'Wunderwerk der Bronzezeit: Tippe es an, um Abschnitt für Abschnitt weiterzubauen und die Himmelsscheibe zusammenzusetzen.',
   },

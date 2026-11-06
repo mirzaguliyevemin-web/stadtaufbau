@@ -13,7 +13,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 <!-- Hier Veränderungswünsche eintragen -->
 - Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, noch ohne Bilder (ab 27.11.). Plan: `docs/epoche-2-bronzezeit.md`.
 
-- Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit und Bronzezeit gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis, Halle der Himmelsscheibe). Offen: Fundstück-Bilder ab der Bronzezeit (Steinzeit fertig seit Version 108) und Rückseite der Halle (Rückseite der Höhle seit Version 109) (Canva); spätere Zeitalter mit deren Bau. Plan: `docs/konzept-wunderwerke.md`.
+- Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit und Bronzezeit gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis, Halle der Himmelsscheibe). Offen: Fundstück-Bilder ab der Bronzezeit (Steinzeit fertig seit Version 108); Rückseiten von Höhle und Halle fertig (Version 109/110); spätere Zeitalter mit deren Bau. Plan: `docs/konzept-wunderwerke.md`.
 
 - Arbeitsbewegungen (Emin, 03.11.): 74 Bilder mit je 3 Stufen, Plan `docs/plan-arbeitsbewegungen.md`. Item-Shop: Plan `docs/plan-item-shop.md`; Emin probiert Schritt 1 ohne Geld aus, Preise danach anpassen.
 

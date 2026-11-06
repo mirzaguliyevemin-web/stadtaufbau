@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 107;
+const APP_VERSION = 108;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -1130,10 +1130,10 @@ const FINDS = {
   stosszahn:   { name: 'Mammut-Stoßzahn', icon: '🦣', bild: 'fund-stosszahn', page: 'steinzeit', spot: 'fels', spotExtinct: true, hint: 'Von der Mammutjagd, später alt im Fels' },
   feder:       { name: 'Adlerfeder', icon: '🪶', bild: 'fund-feder', page: 'steinzeit', spot: 'wald', hint: 'Glitzert im Wald, Jäger finden manchmal eine' },
   muschel:     { name: 'Flussmuschel', icon: '🐚', bild: 'fund-muschel', page: 'steinzeit', need: 2, spot: 'ufer', hint: 'Glitzert am Ufer, nach Hochwasser mehr' },
-  sternkarte:  { name: 'Sternkarte', icon: '🗺️', page: 'steinzeit', need: 3, tech: 'sternenkunde', hint: 'Sternschnuppe in der Nacht (Sternenkunde)' },
-  findling:    { name: 'Riesenfindling', icon: '🪨', page: 'steinzeit', need: 5, tech: 'sternenkunde', hint: 'Liegt am Gebirge, wenn der Steinkreis gebaut wird' },
-  sonnenstein: { name: 'Sonnenstein', icon: '☀️', page: 'steinzeit', stage: 'jung', hint: 'Steinsammler finden ihn in der Jungsteinzeit' },
-  blumenkranz: { name: 'Blumenkranz', icon: '🌼', page: 'steinzeit', need: 3, stage: 'jung', hint: 'Sammlerinnen, nur Frühling und Sommer' },
+  sternkarte:  { name: 'Sternkarte', icon: '🗺️', bild: 'fund-sternkarte', page: 'steinzeit', need: 3, tech: 'sternenkunde', hint: 'Sternschnuppe in der Nacht (Sternenkunde)' },
+  findling:    { name: 'Riesenfindling', icon: '🪨', bild: 'fund-findling', page: 'steinzeit', need: 5, tech: 'sternenkunde', hint: 'Liegt am Gebirge, wenn der Steinkreis gebaut wird' },
+  sonnenstein: { name: 'Sonnenstein', icon: '☀️', bild: 'fund-sonnenstein', page: 'steinzeit', stage: 'jung', hint: 'Steinsammler finden ihn in der Jungsteinzeit' },
+  blumenkranz: { name: 'Blumenkranz', icon: '🌼', bild: 'fund-blumenkranz', page: 'steinzeit', need: 3, stage: 'jung', hint: 'Sammlerinnen, nur Frühling und Sommer' },
   goldblatt:   { name: 'Goldblättchen', icon: '🟡', page: 'bronze', need: 3, stage: 'kupfer', hint: 'Steckt manchmal in einer Erzader' },
   zinnperle:   { name: 'Zinn-Perle', icon: '⚪', page: 'bronze', need: 2, stage: 'frueh', spot: 'ufer', hint: 'Glitzert ab der Frühen Bronzezeit am Ufer' },
   bernsteinstueck: { name: 'Großer Bernstein', icon: '🟠', page: 'bronze', stage: 'spaet', hint: 'Gegen Bronze beim Händler, wenn die Himmelsscheibe erforscht ist' },

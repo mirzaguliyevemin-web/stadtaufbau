@@ -3,7 +3,7 @@
 Wunsch Emin, 07.11.2026: Produktionsgebäude sollen sich von Stufe 1 bis Stufe 5 ausbauen lassen. Bisher steigt der
 Ertrag nur, wenn man immer mehr Gebäude baut – das wird schnell eng und mühsam.
 
-Stand: **Entwurf, noch nichts gebaut.** Die Fragen unten entscheidet Emin; 💡 = mein Vorschlag.
+Stand: **gebaut mit Version 132** (Emin, 07.11.: alle 💡-Vorschläge). Zahlen in `CONFIG.levels` (`neu/js/daten.js`), Logik `levelUp`/`levelProblem`/`workersOf`/`levelFactor` in `neu/js/logik.js`, Knopf im Gebäudefenster, Stufenschild an der vorderen Ecke, Gold-Beschleunigen im Shop, Bot baut aus (`botTryLevel`). Noch offen: Aufträge zum Ausbauen, Lager-/Wohnhaus-Stufen, Balancing nach Emins Spielprobe.
 
 ## Wie es heute ist
 

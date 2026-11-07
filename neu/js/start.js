@@ -156,6 +156,7 @@ function loop(now) {
   if (saveTimer > 10) { saveTimer = 0; saveGame(); }
 }
 
+on('levelDone', b => { if (gameRunning && !offlineRunning) toast(`⭐ ${BUILDINGS[b.type].name} ist jetzt Stufe ${levelOf(b)}!`); });
 on('finished', b => { if (gameRunning && !offlineRunning && BUILDINGS[b.type].time > 0 && !BUILDINGS[b.type].wonder) toast(`${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name} ist fertig!`); });
 on('evolved', list => {
   if (!gameRunning) return;

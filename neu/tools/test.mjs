@@ -2402,6 +2402,50 @@ test('Halle der Himmelsscheibe: 4 Abschnitte setzen die Scheibe zusammen, Händl
   noErrors(g);
 });
 
+test('Stufen: Ausbauen kostet, dauert, bringt Arbeiter und Ertrag; Grenze je Zeitalter; Speichern, Abreißen, Weiterentwickeln', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const sp = findFreeSpot('sammlerin', N / 2, N / 2), k = state.buildings.length;
+    state.buildings.push({ type: 'sammlerin', x: sp.x, y: sp.y, rot: 0, build: 0 }); setOccupied(state.buildings[k], k + 1);
+    isConnected = () => true; state.pop = 200; for (const id of Object.keys(RESOURCES)) state.res[id] = 500; recalcStats();
+    const b = state.buildings[k], out = [];
+    out.push(levelOf(b), workersOf(b), BUILDINGS.sammlerin.workers);
+    const f1 = outputFactor(k);
+    const holz = state.res.holz, cost = levelCost('sammlerin', 2);
+    out.push(levelUp(k), holz - state.res.holz === cost.holz, b.up === levelTime('sammlerin', 2), constructionCount());
+    out.push(levelProblem(k));                          // läuft schon
+    updateConstruction(b.up + 0.1); recalcStats();
+    out.push(levelOf(b), workersOf(b), b.up === undefined, Math.round(outputFactor(k) / f1 * 100));
+    levelUp(k); updateConstruction(1e6); recalcStats();
+    out.push(levelOf(b), levelProblem(k));              // Steinzeit: höchstens Stufe 3
+    state.stage = 'kupfer'; out.push(levelProblem(k), levelCost('sammlerin', 4).werkzeug);
+    // Speichern und Laden behält Stufe und laufenden Ausbau
+    levelUp(k); saveGame(); loadSlot(currentSlot);
+    const c = state.buildings.find(x => x.type === 'sammlerin');
+    out.push(levelOf(c), c.up > 0);
+    return out;
+  })()`);
+  ok(r[0] === 1 && r[1] === r[2], 'Neues Gebäude nicht Stufe 1: ' + r);
+  ok(r[3] === null && r[4] && r[5] && r[6] >= 1, 'Ausbau startet nicht richtig: ' + r);
+  ok(r[7] === 'Wird schon ausgebaut', 'Doppelter Ausbau möglich: ' + r[7]);
+  ok(r[8] === 2 && r[9] === r[2] + 1 && r[10] && r[11] === 150, 'Stufe 2 bringt nicht +1 Arbeiter und +50 %: ' + r);
+  ok(r[12] === 3 && /Bronzezeit/.test(r[13]), 'Steinzeit-Grenze falsch: ' + r[13]);
+  ok(r[14] === null && r[15] === 5, 'Bronzezeit erlaubt Stufe 4 nicht: ' + r);
+  ok(r[16] === 3 && r[17] === true, 'Stufe/Ausbau nach dem Laden verloren: ' + r);
+  // Weiterentwickeln behält die Stufe, Abreißen gibt die Hälfte der Ausbauten zurück, alte Stände ohne Stufe = 1
+  const r2 = g.run(`(() => {
+    const k = state.buildings.findIndex(x => x.type === 'sammlerin'), b = state.buildings[k];
+    delete b.up; state.techs = {}; for (const id in TECHS) if (['alt', 'mittel', 'jung', 'kupfer'].includes(TECHS[id].stage)) state.techs[id] = true;
+    evolveBuildings();
+    const ref = refundOf(b), base = Math.floor(BUILDINGS[b.from].cost.holz * CONFIG.refundShare);
+    return [b.type, levelOf(b), ref.holz > base, levelOf({ type: 'sammlerin' }), levelOf({ type: 'wohnhoehle', level: 3 })];
+  })()`);
+  ok(r2[0] !== 'sammlerin' && r2[1] === 3, 'Stufe bei der Weiterentwicklung verloren: ' + r2);
+  ok(r2[2], 'Abreißen gibt nichts für den Ausbau zurück');
+  ok(r2[3] === 1 && r2[4] === 1, 'Stufe ohne Feld oder bei Gebäude ohne Stufen falsch: ' + r2);
+  noErrors(g);
+});
+
 test('Wassergebäude: Was aus einem Gebäude halb im Wasser entsteht, steht auch halb im Wasser (sonst passt der Platz nicht mehr)', () => {
   const g = fresh();
   const bad = g.run(`Object.entries(BUILDINGS).filter(([id, d]) => halfInWater(d) && d.upgradeTo && BUILDINGS[d.upgradeTo] && !halfInWater(BUILDINGS[d.upgradeTo]) && !BUILDINGS[d.upgradeTo].stilts).map(([id, d]) => id + ' → ' + d.upgradeTo).join(', ')`);

@@ -389,13 +389,13 @@ function infoText(i) {
   const def = BUILDINGS[b.type];
   if (b.build > 0) return `🔨 ${def.name} · noch ${formatTime(b.build)}`;
   if (!isConnected(i)) return `${def.icon} ${def.name} · 🛤️ Kein Weg zum Lagerfeuer!`;
-  const parts = [`${def.icon} ${def.name}`];
+  const parts = [`${def.icon} ${def.name}${hasLevels(def) ? ' · ⭐' + levelOf(b) : ''}`];
   if (def.housing) parts.push(`🏠 ${housingOf(b.type)} Plätze`);
   if (def.produces) {
     const out = outputPerMinute(i);
     parts.push(Object.entries(out).map(([id, n]) => `+${perMin(n)} ${RESOURCES[id].icon}/min`).join(' '));
   }
-  if (def.workers) parts.push(`👤 ${stats.staff[i] || 0}/${def.workers}`);
+  if (def.workers) parts.push(`👤 ${stats.staff[i] || 0}/${workersOf(b)}`);
   const lacking = def.consumes && Object.keys(def.consumes).find(id => (state.res[id] || 0) < 0.5);
   if (lacking) parts.push(`❗ Fehlt: ${RESOURCES[lacking].name}${sourceText(lacking)}`);
   if (def.warmth) parts.push(`🔥 Umkreis ${warmthRadius(def)}`);
@@ -408,7 +408,7 @@ function infoText(i) {
 function understaffedText() {
   const missing = {};
   for (const i of workerOrder()) {
-    const b = state.buildings[i], gap = BUILDINGS[b.type].workers - (stats.staff[i] || 0);
+    const b = state.buildings[i], gap = workersOf(b) - (stats.staff[i] || 0);
     if (gap > 0) missing[b.type] = (missing[b.type] || 0) + gap;
   }
   const list = Object.entries(missing).sort((a, b) => b[1] - a[1]);
@@ -694,7 +694,7 @@ function showBuildingWindow(i) {
       lines.push(near('belief', d => d.belief) ? '🗿 Ahnenplatz in der Nähe' : '🗿 Kein Ahnenplatz mit Weg in der Nähe');
   }
   if (def.workers && !b.build) lines.push(b.paused ? '⏸ Pausiert – die Arbeiter helfen in anderen Gebäuden'
-    : `👤 Arbeiter: ${stats.staff[i] || 0} von ${def.workers}${(stats.staff[i] || 0) < def.workers ? ' – alle Einwohner arbeiten schon woanders' : ''}`);
+    : `👤 Arbeiter: ${stats.staff[i] || 0} von ${workersOf(b)}${(stats.staff[i] || 0) < workersOf(b) ? ' – alle Einwohner arbeiten schon woanders' : ''}`);
   if (def.produces && !b.build) {
     const out = outputPerMinute(i);
     lines.push('Stellt her: ' + Object.entries(out).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n)}/min`).join(', '));
@@ -709,11 +709,28 @@ function showBuildingWindow(i) {
   if (def.storage) lines.push(`📦 Lagerplatz +${def.storage} je Ware`);
 
   let upgrade = '';
+  // Stufen 1–5: Ausbauen bringt einen Arbeiterplatz und +50 % Ertrag (docs/plan-stufen.md)
+  if (hasLevels(def) && !b.build) {
+    const lv = levelOf(b), next = lv + 1, stars = '⭐'.repeat(lv);
+    if (b.up > 0) upgrade += `<div class="upgrade"><h3>${stars} Stufe ${lv} – wird auf Stufe ${next} ausgebaut</h3>
+      <p>🔨 noch ${formatTime(b.up)} · arbeitet währenddessen weiter</p>${shopSpeedButton()}</div>`;
+    else if (next > 5) upgrade += `<div class="upgrade"><h3>${stars} Stufe 5 – höchste Stufe</h3></div>`;
+    else {
+      const problem = levelProblem(i), more = Math.round(CONFIG.levels.outputPerLevel * 100);
+      upgrade += `<div class="upgrade">
+        <h3>${stars} Stufe ${lv} von ${maxLevel()}${maxLevel() < 5 ? ' <small>(mehr in späteren Zeitaltern)</small>' : ''}</h3>
+        <p>Ausbau auf Stufe ${next}: 👤 ${workersOf(b)} → ${workersOf(b) + CONFIG.levels.workersPerLevel} Arbeiter, Ertrag ×${perMin(levelFactor(b))} → ×${perMin(levelFactor(b) + CONFIG.levels.outputPerLevel)} (+${more} % vom Grundwert)</p>
+        <p>${costHtml(levelCost(b.type, next))} · ⏱ ${formatTime(levelTime(b.type, next))}</p>
+        <button class="btn primary" ${problem ? 'disabled' : ''} onclick="doLevelUp(${i})">⬆ Ausbauen auf Stufe ${next}</button>
+        ${problem ? `<small class="bad">${esc(problem)}</small>` : ''}
+      </div>`;
+    }
+  }
   const to = upgradeTarget(b);
   if (to) {
     const t = BUILDINGS[to];
     const problem = upgradeProblem(i);
-    upgrade = `<div class="upgrade">
+    upgrade += `<div class="upgrade">
       <h3>Weiterentwickeln zu ${t.icon} ${esc(t.name)}</h3>
       <p>${esc(t.info)}</p>
       <p>${costHtml(t.cost)} · ⏱ ${formatTime(buildTimeOf(to))}${t.size > def.size ? ` · braucht ${t.size}×${t.size} Felder` : ''}</p>
@@ -758,10 +775,11 @@ function buildingDetailsHtml(i) {
     row('🏠 Wohnplätze', housingOf(b.type), `Einwohner essen je ${perMin(foodPerHead())} Nahrung pro Minute. Sie brauchen Wärme${stageReached('mittel') ? ' und Glaube' : ''} in der Nähe.`);
   }
   if (def.produces) {
-    const staff = def.workers ? (stats.staff[i] || 0) / def.workers : 1;
+    const staff = def.workers ? (stats.staff[i] || 0) / workersOf(b) : 1;
     const seasonF = SEASON_FACTORS[b.type] ? SEASON_FACTORS[b.type][seasonIndex()] : 1;
     const parts = [
-      ['👤 Arbeiter', staff, `${stats.staff[i] || 0} von ${def.workers || 0}`],
+      ['👤 Arbeiter', staff, `${stats.staff[i] || 0} von ${workersOf(b)}`],
+      ...(hasLevels(def) ? [[`⭐ Stufe ${levelOf(b)}`, levelFactor(b), `+${Math.round(CONFIG.levels.outputPerLevel * 100)} % je Stufe`]] : []),
       [`${season().icon} Jahreszeit`, seasonF, season().name],
       [`${currentWeather().icon} Wetter${state.disaster ? ' & ' + DISASTERS[state.disaster.id].name : ''}`, effectFactor(b.type), ''],
       ['😊 Zufriedenheit', happinessFactor(), `${stats.happiness} %`],
@@ -770,7 +788,7 @@ function buildingDetailsHtml(i) {
     ];
     const base = Object.entries(def.produces).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n)}`).join(' ');
     row('Grundwert je Minute', base, 'bei voller Besetzung, ohne Einflüsse');
-    for (const [label, f, note] of parts) if (Math.abs(f - 1) > 0.005 || label.startsWith('👤')) row(label, '×' + perMin(f), note);
+    for (const [label, f, note] of parts) if (Math.abs(f - 1) > 0.005 || label.startsWith('👤') || label.startsWith('⭐')) row(label, '×' + perMin(f), note);
     const out = outputPerMinute(i);
     row('= Ergebnis je Minute', Object.entries(out).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n)}`).join(' '));
     const share = stats.inputShare && stats.inputShare[i] !== undefined ? stats.inputShare[i] : 1;
@@ -795,6 +813,14 @@ function doBuildRoute(i) {
   if (problem) { toast(problem); return; }
   closeDialog();
   toast('🛤️ Weg gebaut');
+  renderAll();
+}
+
+function doLevelUp(i) {
+  const problem = levelUp(i);
+  if (problem) { toast(problem); return; }
+  closeDialog();
+  toast(`🔨 ${BUILDINGS[state.buildings[i].type].name} wird ausgebaut …`);
   renderAll();
 }
 

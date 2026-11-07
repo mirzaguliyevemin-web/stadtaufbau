@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 131;
+const APP_VERSION = 132;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -11,6 +11,13 @@ const CONFIG = {
   tileW: 64,              // Breite einer Raute in Bildpunkten (Zoom 1)
   tileH: 44,              // Höhe einer Raute – so flach wie die Grasplatten auf Emins Bildern (≈ 0,69 × Breite)
   maxConstructions: 2,    // höchstens so viele Baustellen gleichzeitig
+  levels: {               // Stufen 1–5 für Produktionsgebäude (docs/plan-stufen.md, Emin 07.11.2026)
+    workersPerLevel: 1,   // je Stufe ein Arbeiterplatz mehr
+    outputPerLevel: 0.5,  // je Stufe +50 % Ertrag (Stufe 5: ×3)
+    costFactor: [0, 0, 1.5, 2.5, 4, 6],   // Baukosten des Gebäudes × Faktor für Stufe 2, 3, 4, 5
+    tools: [0, 0, 0, 0, 5, 10],           // ab Stufe 4 zusätzlich Werkzeug
+    // höchste Stufe: Steinzeit 3, Bronzezeit 4, Eisenzeit 5 (maxLevel in logik.js); Bauzeit = Bauzeit des Gebäudes × neue Stufe
+  },
   yearSeconds: 7200,      // ein Jahr = 4 Jahreszeiten à 30 Minuten (Emin, 31.10.; bis Version 22: 2 Minuten)
   daySeconds: 1800,       // ein Tag mit Nacht dauert 30 Minuten (bis Version 22: 160 Sekunden)
   weatherSeconds: 360,    // so lange hält ein Wetter an (6 Minuten), dann wird neu ausgewürfelt

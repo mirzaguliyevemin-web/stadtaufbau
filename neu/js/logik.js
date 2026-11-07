@@ -147,7 +147,7 @@ function lockText(type) {
 // ---------------------------------------------------------------------
 
 function constructionCount() {
-  return state.buildings.filter(b => b.build > 0 && !BUILDINGS[b.type].wonder).length;
+  return state.buildings.filter(b => (b.build > 0 && !BUILDINGS[b.type].wonder) || b.up > 0).length;
 }
 
 function buildProblem(type, x, y, ignore = -1, rot) {
@@ -213,7 +213,9 @@ function buildRoute(i) {
 function refundOf(b) {
   const def = BUILDINGS[b.from && BUILDINGS[b.from] ? b.from : b.type];   // von selbst weiterentwickelt: zählt das Bezahlte
   const out = {};
-  for (const [id, n] of Object.entries(def.cost || {})) out[id] = Math.floor(n * CONFIG.refundShare);
+  const paid = { ...(def.cost || {}) };
+  for (let n = 2; n <= levelOf(b); n++) for (const [id, k] of Object.entries(levelCost(b.type, n))) paid[id] = (paid[id] || 0) + k;   // bezahlte Ausbauten
+  for (const [id, n] of Object.entries(paid)) out[id] = Math.floor(n * CONFIG.refundShare);
   return out;
 }
 
@@ -247,6 +249,7 @@ function upgradeProblem(i) {
   const to = b && upgradeTarget(b);
   if (!to) return 'Keine Weiterentwicklung';
   if (b.build) return 'Erst fertig bauen';
+  if (b.up > 0) return 'Erst fertig ausbauen';
   if (!isUnlocked(to)) return lockText(to);
   const p = placeProblem(to, b.x, b.y, i);
   if (p) return BUILDINGS[to].size > BUILDINGS[b.type].size ? `Braucht mehr Platz (${BUILDINGS[to].size}×${BUILDINGS[to].size}): ${p}` : p;
@@ -281,7 +284,52 @@ function updateConstruction(dt) {
       b.build -= dt;
       if (b.build <= 0) finishBuilding(b);
     }
+    if (b.up > 0) {   // Ausbau auf die nächste Stufe: das Gebäude arbeitet währenddessen weiter
+      b.up -= dt;
+      if (b.up <= 0) { delete b.up; b.level = levelOf(b) + 1; recalcStats(); emit('levelDone', b); }
+    }
   }
+}
+
+// ---------------------------------------------------------------------
+// Stufen 1–5 (docs/plan-stufen.md, Emin 07.11.2026): Produktionsgebäude lassen sich ausbauen –
+// je Stufe ein Arbeiterplatz mehr und +50 % Ertrag. Die Stufe bleibt bei der Weiterentwicklung erhalten.
+// ---------------------------------------------------------------------
+function hasLevels(def) { return !!(def && def.produces && def.workers && !def.wonder); }
+function levelOf(b) { return hasLevels(BUILDINGS[b.type]) ? Math.max(1, Math.min(5, Math.floor(b.level) || 1)) : 1; }
+function workersOf(b) { const def = BUILDINGS[b.type]; return def.workers ? def.workers + (levelOf(b) - 1) * CONFIG.levels.workersPerLevel : 0; }
+function levelFactor(b) { return 1 + (levelOf(b) - 1) * CONFIG.levels.outputPerLevel; }
+function maxLevel() { return stageReached('eisen1') ? 5 : stageReached('kupfer') ? 4 : 3; }
+// Was der Ausbau auf Stufe level kostet und wie lange er dauert
+function levelCost(type, level) {
+  const out = {}, f = CONFIG.levels.costFactor[level] || 0;
+  for (const [id, n] of Object.entries(BUILDINGS[type].cost || {})) out[id] = Math.ceil(n * f);
+  const tools = CONFIG.levels.tools[level] || 0;
+  if (tools) out.werkzeug = (out.werkzeug || 0) + tools;
+  return out;
+}
+function levelTime(type, level) { return Math.max(10, buildTimeOf(type) * level); }
+function levelProblem(i) {
+  const b = state.buildings[i];
+  if (!b || !hasLevels(BUILDINGS[b.type])) return 'Hat keine Stufen';
+  if (b.build) return 'Erst fertig bauen';
+  if (b.up > 0) return 'Wird schon ausgebaut';
+  const next = levelOf(b) + 1;
+  if (next > 5) return 'Höchste Stufe erreicht';
+  if (next > maxLevel()) return `Stufe ${next} gibt es erst ${next === 4 ? 'in der Bronzezeit' : 'in der Eisenzeit'}`;
+  if (constructionCount() >= constructionLimit()) return `Schon ${constructionLimit()} Baustellen`;
+  const cost = levelCost(b.type, next);
+  if (!canAfford(cost)) return missingText(cost);
+  return null;
+}
+function levelUp(i) {
+  const problem = levelProblem(i);
+  if (problem) return problem;
+  const b = state.buildings[i];
+  payCost(levelCost(b.type, levelOf(b) + 1));
+  b.up = levelTime(b.type, levelOf(b) + 1);
+  emit('levelStarted', b);
+  return null;
 }
 
 // ---------------------------------------------------------------------
@@ -332,7 +380,7 @@ function recalcStats() {
   const order = workerOrder();
   let free = Math.floor(state.pop);
   for (const i of order) {
-    const want = BUILDINGS[state.buildings[i].type].workers;
+    const want = workersOf(state.buildings[i]);
     s.jobs += want;
     const got = Math.min(want, free);
     s.staff[i] = got;
@@ -401,14 +449,14 @@ function workerShortage() {
   };
   for (const i of order) {
     const def = BUILDINGS[state.buildings[i].type];
-    if (staff(i) >= def.workers || !def.produces) continue;
+    if (staff(i) >= workersOf(state.buildings[i]) || !def.produces) continue;
     if (Object.keys(def.consumes || {}).some(id => (state.res[id] || 0) < 0.5)) continue;   // da helfen auch keine Arbeiter
     const good = Object.keys(def.produces).find(id => !RESOURCES[id].knowledge && (state.res[id] || 0) < LOW && (rates[id] || 0) <= 0.05);
     if (!good) continue;
     const donor = order.filter(k => k !== i && staff(k) > 0 && full(k)).sort((a, b) => staff(b) - staff(a))[0];
     if (donor === undefined) return { i, good, donor: null, helps: false };
     // Wer vor dem Gebäude in der Reihe ebenfalls Leute sucht, bekommt die frei werdenden zuerst
-    const before = order.slice(0, order.indexOf(i)).filter(k => k !== donor).reduce((n, k) => n + BUILDINGS[state.buildings[k].type].workers - staff(k), 0);
+    const before = order.slice(0, order.indexOf(i)).filter(k => k !== donor).reduce((n, k) => n + workersOf(state.buildings[k]) - staff(k), 0);
     return { i, good, donor, helps: staff(donor) > before };
   }
   return null;
@@ -631,9 +679,9 @@ function outputFactor(i) {
   const b = state.buildings[i];
   const def = BUILDINGS[b.type];
   if (b.build || !isConnected(i)) return 0;
-  const staffShare = def.workers ? (stats.staff[i] || 0) / def.workers : 1;
+  const staffShare = def.workers ? (stats.staff[i] || 0) / workersOf(b) : 1;
   const seasonF = SEASON_FACTORS[b.type] ? SEASON_FACTORS[b.type][seasonIndex()] : 1;
-  return staffShare * seasonF * effectFactor(b.type) * happinessFactor() * (1 + terrainBonus(b)) * (1 + techSum('bonus', b.type)) * wonderBonus(b.type);
+  return staffShare * levelFactor(b) * seasonF * effectFactor(b.type) * happinessFactor() * (1 + terrainBonus(b)) * (1 + techSum('bonus', b.type)) * wonderBonus(b.type);
 }
 
 // Was ein Gebäude je Minute herstellt (für Anzeige und Logik)

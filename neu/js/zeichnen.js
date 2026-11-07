@@ -1551,12 +1551,13 @@ function drawWonderProgress(b) {
   if (state.wonders[def.wonder] && state.wonders[def.wonder].left > 0) drawProgress(b, def.size, def.size * TW * cam.zoom * 0.45);
 }
 
-function drawProgress(b, s, height) {
+// leftIn/totalIn: für den Ausbau auf die nächste Stufe (sonst Baustelle bzw. Abschnitt des Wunderwerks)
+function drawProgress(b, s, height, leftIn, totalIn) {
   const def = BUILDINGS[b.type];
   const w = def.wonder ? wonderState(def.wonder) : null, step = w ? WONDERS[def.wonder].steps[w.step] : null;
   if (w && !(w.left > 0)) return;   // Wunderwerk wartet auf den nächsten Abschnitt
-  const total = step ? step.seconds : def.time || 1;
-  const left = step ? w.left : b.build;
+  const total = totalIn || (step ? step.seconds : def.time || 1);
+  const left = leftIn !== undefined ? leftIn : step ? w.left : b.build;
   const done = 1 - left / total;
   const top = tileToScreen(b.x + s / 2, b.y + s / 2);
   const bw = Math.max(40, s * TW * 0.5 * cam.zoom), bh = Math.max(6, 8 * cam.zoom);
@@ -1570,6 +1571,20 @@ function drawProgress(b, s, height) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   ctx.fillText('🔨 ' + formatTime(left), top.x, by - 3);
+}
+
+// Stufenschild an der vorderen Ecke des Gebäudes (ab Stufe 2): goldener Stern mit Zahl
+function drawLevelBadge(b) {
+  if (cam.zoom < 0.45) return;
+  const s = BUILDINGS[b.type].size, p = tileToScreen(b.x + s, b.y + s), z = cam.zoom;
+  const r = Math.max(8, 10 * z), y = p.y - TH * z * 0.55;
+  ctx.beginPath(); ctx.arc(p.x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#f2c14e'; ctx.fill();
+  ctx.lineWidth = Math.max(1.5, 2 * z); ctx.strokeStyle = '#7a4a12'; ctx.stroke();
+  ctx.fillStyle = '#4a2a08';
+  ctx.font = `700 ${Math.round(r * 1.2)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(String(levelOf(b) + (b.up > 0 ? 1 : 0)), p.x, y + r * 0.08);
+  if (b.up > 0) { ctx.font = `${Math.round(r * 0.9)}px sans-serif`; ctx.fillText('🔨', p.x + r * 1.1, y - r * 0.6); }
 }
 
 function roundRect(x, y, w, h, r) {
@@ -1980,7 +1995,11 @@ function drawScene(dt) {
       const b = state.buildings[o.i];
       if (b.build > 0 && BUILDINGS[b.type].wonder && buildingView(BUILDINGS[b.type], b.rot, b.x, b.y).img) { drawBuildingSprite(b.type, b.x, b.y, b.rot); drawWonderProgress(b); }
       else if (b.build > 0) drawConstruction(b);
-      else drawBuildingSprite(b.type, b.x, b.y, b.rot);
+      else {
+        drawBuildingSprite(b.type, b.x, b.y, b.rot);
+        if (b.up > 0) { const s = BUILDINGS[b.type].size; drawProgress(b, s, s * TW * cam.zoom * 0.45, b.up, levelTime(b.type, levelOf(b) + 1)); }
+        if (levelOf(b) > 1 || b.up > 0) drawLevelBadge(b);
+      }
     } else if (o.kind === 'leben') o.draw();
     else if (o.kind === 'berg') drawMountain(o.x, o.y, o.m);
     else drawTerrainObject(o.x, o.y, o.kind);

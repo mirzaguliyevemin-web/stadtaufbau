@@ -22,6 +22,7 @@ function speedTargets() {
   const out = [];
   if (state.research) out.push({ key: 'r', name: `${TECHS[state.research.id].icon} ${TECHS[state.research.id].name}`, left: state.research.left });
   state.buildings.forEach((b, i) => { if (b.build > 0 && !BUILDINGS[b.type].wonder) out.push({ key: 'b' + i, name: `${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name}`, left: b.build }); });
+  state.buildings.forEach((b, i) => { if (b.up > 0) out.push({ key: 'u' + i, name: `${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name} → Stufe ${levelOf(b) + 1}`, left: b.up }); });
   for (const id of Object.keys(WONDERS)) if (state.wonders[id] && state.wonders[id].left > 0) out.push({ key: 'w' + id, name: `${WONDERS[id].icon} ${WONDERS[id].name}`, left: state.wonders[id].left });
   return out;
 }
@@ -36,6 +37,7 @@ function speedUp(key, seconds, price) {
   const left = Math.max(0.01, t.left - seconds);
   if (key === 'r') state.research.left = left;
   else if (key[0] === 'b') state.buildings[Number(key.slice(1))].build = left;
+  else if (key[0] === 'u') state.buildings[Number(key.slice(1))].up = left;
   else state.wonders[key.slice(1)].left = left;
   emit('speedUsed', key);
   return null;

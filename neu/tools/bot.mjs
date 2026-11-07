@@ -130,7 +130,7 @@ function botPotential(b, res, season) {
   const def = BUILDINGS[b.type];
   if (!def.produces || !def.produces[res]) return 0;
   const sf = SEASON_FACTORS[b.type] ? SEASON_FACTORS[b.type][season === undefined ? seasonIndex() : season] : 1;
-  return def.produces[res] * sf * happinessFactor() * (1 + terrainBonus(b)) * (1 + techSum('bonus', b.type));
+  return def.produces[res] * levelFactor(b) * sf * happinessFactor() * (1 + terrainBonus(b)) * (1 + techSum('bonus', b.type));
 }
 function botSupply(res, season) {
   let n = 0;
@@ -252,7 +252,7 @@ function botWants() {
     if (techStatus(id) !== 'available') continue;
     for (const g of techBuildGaps(id)) {
       const type = botBest(BUILDINGS[g.type].line);
-      if (type) w.push([type]);
+      if (type) w.push([type, undefined, true]);   // die Forschung verlangt ein weiteres Gebäude – Ausbauen zählt nicht
     }
   }
   // Wissen: so viele Höhlenmaler, dass die Forschung nicht warten muss
@@ -384,6 +384,16 @@ function botWonders() {
   for (const id of Object.keys(WONDERS)) if (wonderOpen(id) && wonderBuilt(id) && !wonderStepProblem(id)) startWonderStep(id);
 }
 
+// Stufen (docs/plan-stufen.md): Statt ein weiteres Gebäude zu bauen, baut der Bot lieber ein vorhandenes aus –
+// das spart Platz, Wege und einen Arbeiter. Die niedrigste Stufe zuerst.
+function botTryLevel(type) {
+  if (!type || !hasLevels(BUILDINGS[type])) return false;
+  const line = BUILDINGS[type].line;
+  const list = state.buildings.map((b, i) => i).filter(i => BUILDINGS[state.buildings[i].type].line === line && !levelProblem(i))
+    .sort((a, b) => levelOf(state.buildings[a]) - levelOf(state.buildings[b]));
+  return list.length > 0 && levelUp(list[0]) === null;
+}
+
 function botStep() {
   botWonders();
   botQuests();
@@ -396,15 +406,16 @@ function botStep() {
   if (state.res.stein < 5 && botCount('steinsammler') === 0) botClear('fels');
   if (state.res.holz < 15 && state.res.stein < 5) { botClear('wald'); botClear('fels'); }
   if (constructionCount() >= CONFIG.maxConstructions) return;
-  for (const [want, near] of botWants()) {
+  for (const [want, near, gap] of botWants()) {
     if (want === 'house') {
       if (botUpgradeHousing() || botTryBuild(botBest('wohnen'))) return;
       continue;
     }
     if (want === 'food') {
-      if (botTryBuild(botFoodType())) return;
+      if (botTryLevel(botFoodType()) || botTryBuild(botFoodType())) return;
       continue;
     }
+    if (!gap && !near && botTryLevel(want)) return;
     if (botTryBuild(want, near)) return;
   }
 }
@@ -425,7 +436,7 @@ function botRun(minutes, seed) {
     for (const id of ['mittelsteinzeit', 'jungsteinzeit', 'kupferfund'])
       if (state.techs[id] && botReport[id] === null) botReport[id] = Math.round(sec / 6) / 10;
   }
-  botReport.final = { needs: JSON.stringify(stats.needs), counts: JSON.stringify(state.buildings.reduce((m, b) => (m[b.type] = (m[b.type] || 0) + 1, m), {})), jobs: stats.jobs, workers: stats.workers, housing: stats.housing, pop: state.pop, stage: state.stage, techs: Object.keys(state.techs).length, res: Object.fromEntries(Object.entries(state.res).map(([k, v]) => [k, Math.floor(v)])) };
+  botReport.final = { needs: JSON.stringify(stats.needs), counts: JSON.stringify(state.buildings.reduce((m, b) => (m[b.type] = (m[b.type] || 0) + 1, m), {})), levels: JSON.stringify(state.buildings.reduce((m, b) => (levelOf(b) > 1 && (m[b.type] = (m[b.type] || '') + levelOf(b)), m), {})), jobs: stats.jobs, workers: stats.workers, housing: stats.housing, pop: state.pop, stage: state.stage, techs: Object.keys(state.techs).length, res: Object.fromEntries(Object.entries(state.res).map(([k, v]) => [k, Math.floor(v)])) };
   return botReport;
 }
 `;
@@ -450,6 +461,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.log(`  Waren: ${JSON.stringify(report.final.res)}`);
     console.log(`  Bedürfnisse: ${report.final.needs} · Arbeit ${report.final.workers}/${report.final.jobs} · Wohnplätze ${report.final.housing}`);
     console.log(`  Gebäude: ${report.final.counts}`);
+    console.log(`  Ausgebaut (Stufen je Gebäude): ${report.final.levels}`);
     console.log(`  Fehlte oft: ${Object.entries(report.blocked).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t, n]) => t + ' ' + n).join(', ')}`);
     console.log(`  Dabei fehlte: ${Object.entries(report.missing).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([t, n]) => t + ' ' + n).join(', ')}`);
     console.log(`  Forschung wartete auf: ${Object.entries(report.wait).sort((a, b) => b[1] - a[1]).map(([t, n]) => t + ' ' + Math.round(n) + ' min').join(', ') || 'nichts'}`);

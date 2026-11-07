@@ -2531,6 +2531,38 @@ test('Spiellogik-Prüfung 07.11.: Bau-Aufträge zählen Weiterentwicklungen, Stu
   noErrors(g);
 });
 
+test('Handy: Nach der Rückkehr werden vorgezeichnete Leinwände (Wolken, Boden) neu angelegt, ohne Fehler', () => {
+  const g = fresh();
+  g.run(`drawScene(); resetCanvasCaches(); drawScene();`);
+  ok(g.run(`cloudLayer.z === 0 || cloudLayer.canvas !== null`) !== undefined, 'Wolkendecke kaputt');
+  ok(g.run(`canvasLost(null) === false && canvasLost({ isContextLost: () => true }) === true`), 'Verlorene Leinwand wird nicht erkannt');
+  noErrors(g);
+});
+
+test('Ausbauen-Liste und „Jetzt bauen“ aus der Forschung (Wünsche von Emins Bruder, 07.11.)', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const sp = findFreeSpot('sammlerin', N / 2, N / 2), k = state.buildings.length;
+    state.buildings.push({ type: 'sammlerin', x: sp.x, y: sp.y, rot: 0, build: 0 }); setOccupied(state.buildings[k], k + 1);
+    state.res.holz = 300; state.res.stein = 300;
+    const groups = upgradeGroups(), html = upgradesHtml();
+    const i = groups.findIndex(x => x.type === 'sammlerin');
+    goUpgrade(i);
+    const level = !!(infoFor && infoFor.level), pop = infoPopHtml(k);
+    // Forschung, die ein Gebäude verlangt: Knopf führt zur Karte und legt das Gebäude bereit
+    state.techs = { feuer_hueten: true }; state.res.wissen = 400; state.pop = 50;
+    const gaps = techBuildGaps('flechtkoerbe');
+    researchSelected = 'flechtkoerbe';
+    const btn = techDetailHtml();
+    goBuildFor('flechtkoerbe');
+    return { n: groups.length, i, html: html.includes('goUpgrade'), level, pop: pop.includes('Ausbauen auf'), gaps: gaps.length, btn: btn.includes('goBuildFor'), ghost: ghost && ghost.type };
+  })()`);
+  ok(r.i >= 0 && r.html, 'Sammlerin fehlt in der Ausbauen-Liste');
+  ok(r.level && r.pop, 'Antippen zeigt nicht gleich das Ausbauen');
+  ok(r.gaps > 0 && r.btn && r.ghost === 'sammlerin', 'Jetzt bauen legt das Gebäude nicht bereit: ' + JSON.stringify(r));
+  noErrors(g);
+});
+
 test('Dorfplatz: Ab der Kupferzeit zeigt das Lagerfeuer das Dorfplatz-Bild, sobald es geladen ist', () => {
   const g = fresh();
   const r = g.run(`(() => { const r = []; applyEpochTheme(); r.push(BUILDINGS.lagerfeuer.bild);

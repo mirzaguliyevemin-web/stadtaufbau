@@ -1,4 +1,17 @@
 'use strict';
+
+// Jede vorgezeichnete Leinwand meldet, wenn Chrome am Handy sie geleert hat (contextlost/contextrestored) – dann wird
+// alles Vorgezeichnete neu angelegt (Emin, 07.11.: Boden, Wolken, Pfahlbau und Fischer fehlten nach einer Weile)
+let canvasResetSoon = false;
+function newCanvas() {
+  const c = document.createElement('canvas');
+  if (c && c.addEventListener) {
+    const again = () => { if (!canvasResetSoon) { canvasResetSoon = true; setTimeout(() => { canvasResetSoon = false; resetCanvasCaches(); }, 50); } };
+    c.addEventListener('contextlost', again);
+    c.addEventListener('contextrestored', again);
+  }
+  return c;
+}
 // Epochia – Zeichnen in Schrägansicht (isometrisch). Jedes Feld ist eine Raute, doppelt so breit wie hoch.
 // Hintere Dinge werden zuerst gezeichnet, vordere davor. Der Boden wird vorab in Stücke gezeichnet.
 
@@ -68,12 +81,12 @@ function splitStiltBoat(name, img) {
     const k = img.width / 538, xs = d.outline.map(p => p[0] * k), ys = d.outline.map(p => p[1] * k);
     const trace = g => { g.beginPath(); xs.forEach((x, i) => g.lineTo(x, ys[i])); g.closePath(); };
     const x0 = Math.floor(Math.min(...xs)), y0 = Math.floor(Math.min(...ys));
-    const b = document.createElement('canvas'); b.width = Math.ceil(Math.max(...xs)) - x0; b.height = Math.ceil(Math.max(...ys)) - y0;
+    const b = newCanvas(); b.width = Math.ceil(Math.max(...xs)) - x0; b.height = Math.ceil(Math.max(...ys)) - y0;
     const bg = b.getContext('2d');
     bg.translate(-x0, -y0); trace(bg); bg.clip(); bg.drawImage(img, 0, 0);
     b.spanPx = d.spanPx * k;
     if (d.boat) images[d.boat] = b;
-    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+    const c = newCanvas(); c.width = img.width; c.height = img.height;
     const g = c.getContext('2d');
     g.drawImage(img, 0, 0);
     g.globalCompositeOperation = 'destination-out'; trace(g); g.fill();
@@ -118,7 +131,7 @@ function featherWater(img) {
   try {
     if (typeof document === 'undefined' || !img.sockel) return img;
     const w = img.width, h = img.height, p = img.sockel;
-    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const c = newCanvas(); c.width = w; c.height = h;
     const g = c.getContext('2d'); g.drawImage(img, 0, 0);
     const data = g.getImageData(0, 0, w, h), px = data.data;
     if (!px || px.length !== w * h * 4) return img;
@@ -162,7 +175,7 @@ function featherWater(img) {
 function measurePlate(img) {
   try {
     const w = Math.min(512, img.width), h = Math.round(img.height * w / img.width);
-    const c = document.createElement('canvas');
+    const c = newCanvas();
     c.width = w; c.height = h;
     const g = c.getContext('2d');
     g.drawImage(img, 0, 0, w, h);
@@ -433,7 +446,7 @@ const isMountainAt = (x, y) => terrain[y * N + x] === TERRAIN.berg.id;
 const isShoreAt = (x, y) => terrain[y * N + x] === TERRAIN.wasser.id || terrain[y * N + x] === TERRAIN.sand.id;
 
 function renderChunk(cx, cy) {
-  const c = typeof document !== 'undefined' ? document.createElement('canvas') : null;
+  const c = typeof document !== 'undefined' ? newCanvas() : null;
   if (!c || !c.getContext) return null;
   const x0 = cx * CHUNK, y0 = cy * CHUNK;
   const left = (x0 - (y0 + CHUNK)) * TW / 2, top = (x0 + y0) * TH / 2;
@@ -527,7 +540,7 @@ function renderDepthLayer(x0, y0, left, top) {
   for (let y = Math.max(0, y0 - 2); y < Math.min(N, y0 + CHUNK + 2) && !any; y++)
     for (let x = Math.max(0, x0 - 2); x < Math.min(N, x0 + CHUNK + 2); x++) if (isWaterAt(x, y)) { any = true; break; }
   if (!any || !waterDepth) return null;
-  const c = document.createElement('canvas');
+  const c = newCanvas();
   c.width = Math.ceil(CHUNK * TW * DEPTH_SCALE);
   c.height = Math.ceil((CHUNK * TH + 2) * DEPTH_SCALE);
   const g = c.getContext('2d');
@@ -562,7 +575,7 @@ function renderDepthLayer(x0, y0, left, top) {
   g.lineCap = 'round'; g.lineJoin = 'round';
   const box = [x0 - 2, y0 - 2, x0 + CHUNK + 1, y0 + CHUNK + 1];
   // nur innerhalb der runden Wasserfläche
-  const mask = document.createElement('canvas'); mask.width = W; mask.height = H;
+  const mask = newCanvas(); mask.width = W; mask.height = H;
   const mg = mask.getContext('2d');
   mg.setTransform(DEPTH_SCALE * TW / 2, DEPTH_SCALE * TH / 2, -DEPTH_SCALE * TW / 2, DEPTH_SCALE * TH / 2, -left * DEPTH_SCALE, -top * DEPTH_SCALE);
   mg.lineCap = 'round'; mg.lineJoin = 'round';
@@ -745,7 +758,7 @@ function cloudSprite(v) {
   if (cloudSprites[v] !== undefined) return cloudSprites[v];
   if (typeof document === 'undefined') return (cloudSprites[v] = null);
   const ps = CONFIG.plotSize, W = (ps + 2 * CLOUD_PAD) * TW, H = (ps + 2 * CLOUD_PAD) * TH;
-  const c = document.createElement('canvas');
+  const c = newCanvas();
   c.width = Math.ceil(W * CLOUD_SCALE); c.height = Math.ceil(H * CLOUD_SCALE);
   const g = c.getContext('2d');
   if (!g) return (cloudSprites[v] = null);
@@ -794,11 +807,27 @@ function cloudCovers(p) { return state.plots[p] !== 1 || cloudLifts.has(p); }
 const CLOUD_OVER = 0.3, CLOUD_RES = 0.65;
 const cloudLayer = { canvas: null, g: null, x: 0, y: 0, z: 0, w: 0, h: 0, plots: -1 };
 
+// Chrome am Handy darf vorgezeichnete Leinwände leeren, wenn das Spiel im Hintergrund war (Emin, 07.11.: Wolken fehlten,
+// unter ihnen lagen Fluss und Bäume frei – vermutlich auch die Ursache verschwindender Gebäude). Beim Zurückkommen und wenn
+// eine Leinwand meldet, dass sie verloren ist, wird alles Vorgezeichnete neu angelegt. Bilder aus Dateien bleiben.
+function canvasLost(g) { return !!(g && typeof g.isContextLost === 'function' && g.isContextLost()); }
+function resetCanvasCaches() {
+  cloudSprites.length = 0;
+  cloudPuffSprite = null;
+  cloudLayer.canvas = null; cloudLayer.g = null; cloudLayer.z = 0;
+  for (const k of Object.keys(sprites)) delete sprites[k];
+  chunks = []; chunksAlive = 0;
+  // aus Bildern gebaute Leinwände (Pfahlbau ohne Boot, Wasserrand): aus der Datei neu bauen
+  for (const [name, img] of Object.entries(images))
+    if (img && typeof HTMLCanvasElement !== 'undefined' && img instanceof HTMLCanvasElement) loadImage(name);
+  if (typeof onTerrainChanged === 'function') onTerrainChanged();
+}
+
 function paintCloudLayer() {
   const L = cloudLayer, z = cam.zoom, ps = CONFIG.plotSize;
   if (!L.canvas) {
     if (typeof document === 'undefined') return false;
-    L.canvas = document.createElement('canvas');
+    L.canvas = newCanvas();
     L.g = L.canvas.getContext('2d');
     if (!L.g) { L.canvas = null; return false; }
   }
@@ -839,6 +868,7 @@ function drawClouds(dt) {
   // reicht die fertige Leinwand noch? (Verschieben und leichtes Zoomen gehen ohne neues Malen)
   const k = L.z ? z / L.z : 0;
   const dx = (cam.x - L.x) * L.z, dy = (cam.y - L.y) * L.z;
+  if (canvasLost(L.g) || canvasLost(cloudSprites[0] && cloudSprites[0].getContext && cloudSprites[0].getContext('2d'))) resetCanvasCaches();
   const fits = L.canvas && k > 0.8 && k < 1.3 && L.plots === landVersion && Math.abs(dx) + viewW / 2 / k <= L.w / 2 - 6 && Math.abs(dy) + viewH / 2 / k <= L.h / 2 - 6;
   if (!fits && !paintCloudLayer()) return;
   // leichtes Treiben: die ganze Decke wandert ein paar Bildpunkte hin und her
@@ -882,7 +912,7 @@ const sprites = {};
 
 function makeSprite(key, w, h, draw) {
   if (sprites[key] !== undefined) return sprites[key];
-  const c = typeof document !== 'undefined' ? document.createElement('canvas') : null;
+  const c = typeof document !== 'undefined' ? newCanvas() : null;
   if (!c || !c.getContext) return (sprites[key] = null);
   c.width = w; c.height = h;
   draw(c.getContext('2d'), w, h);
@@ -977,7 +1007,7 @@ function snowSprite(img, building = false) {
   let out = null;
   try {
     const k = Math.min(1, (building ? 560 : 320) / Math.max(img.width, img.height)), w = Math.max(1, Math.round(img.width * k)), h = Math.max(1, Math.round(img.height * k));
-    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const c = newCanvas(); c.width = w; c.height = h;
     const g = c.getContext('2d'); g.drawImage(img, 0, 0, w, h);
     const d = g.getImageData(0, 0, w, h), a = d.data;
     if (a && a.length === w * h * 4) {
@@ -1244,7 +1274,7 @@ function alphaAt(img, u, v) {   // u, v = Anteile 0–1; null = unbekannt
     a = null;
     try {
       const w = 96, h = Math.max(1, Math.round(96 * img.height / img.width));
-      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const c = newCanvas(); c.width = w; c.height = h;
       const g = c.getContext('2d'); g.drawImage(img, 0, 0, w, h);
       const data = g.getImageData(0, 0, w, h).data;
       if (data && data.length === w * h * 4) { a = { w, h, data }; }

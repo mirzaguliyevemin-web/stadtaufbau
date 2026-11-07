@@ -264,6 +264,8 @@ function renderSideButtons() {
   const wish = currentWish();
   const ready = activeQuests().filter(questDone).length + (wish && canAfford({ [wish.id]: wish.amount }) ? 1 : 0) + (wonderReady() ? 1 : 0);
   $('quest-badge').textContent = ready || '';
+  const ups = upgradeReadyCount(), ub = $('upgrade-badge');
+  if (ub) { ub.textContent = ups || ''; show(ub, ups > 0); }
   show($('quest-badge'), ready > 0);
   const canResearch = !r && Object.keys(TECHS).some(id => !researchProblem(id));
   show($('research-badge'), canResearch);
@@ -658,7 +660,7 @@ function closeDialog(fromHistory = false) {
 let pageOpen = null;
 const pageStack = [];        // darunterliegende Seiten (z. B. Menü unter Spielstände) – „Zurück“ führt dorthin
 let reopening = false;
-const PAGE_OPENERS = { menu: () => openMenu(), slots: () => openSlots(true), research: () => openResearch(), quests: () => openQuests(), chest: () => openChest(), lager: () => openLager(), shop: () => openShop(), wonder: () => { if (wonderPageId) openWonder(wonderPageId); }, konto: () => openKonto() };
+const PAGE_OPENERS = { menu: () => openMenu(), upgrades: () => openUpgrades(), slots: () => openSlots(true), research: () => openResearch(), quests: () => openQuests(), chest: () => openChest(), lager: () => openLager(), shop: () => openShop(), wonder: () => { if (wonderPageId) openWonder(wonderPageId); }, konto: () => openKonto() };
 
 function openPage(title, html, name) {
   $('page-title').textContent = title;
@@ -1093,6 +1095,7 @@ function techDetailHtml() {
     : status === 'running' ? `<button class="rs-go run" disabled>⏳ Läuft … noch ${formatTime(state.research.left)}</button><button class="btn small" onclick="openShop()">⚡ Beschleunigen</button>`
     : state.researchNext === id ? `<button class="rs-go ready" onclick="doQueue('${id}')">📌 Vormerkung aufheben</button>`
     : state.research && !queueProblem(id) ? `<button class="rs-go ready" onclick="doQueue('${id}')">📌 Danach erforschen</button>`
+    : label === '🔨 Erst bauen' ? `<button class="rs-go ready" onclick="goBuildFor('${id}')">🔨 Jetzt bauen: ${esc(BUILDINGS[techBuildGaps(id)[0].type].name)}</button>`
     : `<button class="rs-go${label === '📜 Erforschen' ? ' ready' : ''}" ${label === '📜 Erforschen' ? '' : 'disabled'} onclick="doResearch('${id}')">${esc(label)}</button>`;
   return `${close}<div class="rs-dhead"><span class="rs-med ${status}">${iconHtml(t.bild, t.icon)}</span><div><h3>${esc(t.name)}</h3>
       ${others.length ? `<div class="rs-effects">${others.map(e => `<span class="tag">${esc(e)}</span>`).join('')}</div>` : ''}</div></div>
@@ -1102,6 +1105,33 @@ function techDetailHtml() {
     ${state.researchNext === id ? `<p class="rs-hint neutral">Startet von selbst, sobald die laufende Forschung fertig und alles dafür da ist – auch wenn das Spiel zu ist. Bezahlt wird beim Start.${researchProblem(id) && !state.research ? ' Gerade fehlt: ' + esc(researchProblem(id)) : ''}</p>` : hint && status === 'available' && !stallText(id) && !(state.research && !queueProblem(id)) ? `<p class="rs-hint">${esc(hint)}</p>` : ''}
     ${status === 'available' && !t.soon && stallText(id) ? `<p class="rs-hint">⚠ ${esc(stallText(id))}</p>` : ''}
     <div class="rs-action">${button}</div>`;
+}
+
+// „Erst bauen“ (Wunsch von Emins Bruder, 07.11.): zur Karte, die Leiste zeigt das gesuchte Gebäude. Reicht alles zum Bauen,
+// liegt es gleich zum Hinsetzen bereit; sonst blinkt es nur in der Leiste und eine Meldung sagt, was fehlt.
+function goBuildFor(id) {
+  const gap = techBuildGaps(id)[0];
+  if (!gap) return;
+  const line = BUILDINGS[gap.type].line;
+  const entry = barEntries().find(e => BUILDINGS[e.type].line === line && !e.locked) || barEntries().find(e => BUILDINGS[e.type].line === line);
+  closeAllPages();
+  if (!entry) { toast(lockText(gap.type) || `${BUILDINGS[gap.type].name} kann man gerade nicht bauen`); return; }
+  const type = entry.type, def = BUILDINGS[type];
+  const placed = def.wonder ? state.buildings.findIndex(b => b.type === type) : -1;
+  if (placed >= 0) { openWonder(def.wonder); return; }   // Wunderwerk steht schon: dort weiterbauen
+  if (settings.barHidden) toggleBuildBar(false);
+  setBarCategory(categoryOf(type));
+  const why = entry.locked ? lockText(type) : !canAfford(def.cost) ? missingText(def.cost)
+    : def.time > 0 && constructionCount() >= constructionLimit() ? `Schon ${constructionLimit()} Baustellen – warte, bis eine fertig ist` : null;
+  if (!why) { beginBuild(type); toast(`${def.icon} ${def.name}: Platz wählen und mit ✔ bauen`); return; }
+  toast(`${def.icon} ${def.name} – ${why}`);
+  setTimeout(() => {
+    const el = document.querySelector && document.querySelector(`#buildbar .bar-item[data-type="${type}"]`);
+    if (!el) return;
+    if (el.scrollIntoView) el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    el.classList.add('pulse');
+    setTimeout(() => el.classList.remove('pulse'), 2400);
+  }, 60);
 }
 
 // showDetail: von außen gezielt eine Forschung öffnen (z. B. gesperrtes Gebäude in der Bauleiste)
@@ -1261,6 +1291,67 @@ function questsHtml() {
       ${done ? `<button class="btn primary" onclick="doClaim('${q.id}')">🎁 Abholen</button>` : `<span class="q-pct">${pct}%</span>`}
     </div>`;
   }).join('') + '</div>';
+}
+
+// ---------------------------------------------------------------------
+// Ausbauen-Liste (Wunsch von Emins Bruder, 07.11.): 🔨 am Rand zeigt, was man jetzt ausbauen oder weiterentwickeln kann.
+// Antippen: Die Karte springt zum Gebäude, das kleine Fenster zeigt Kosten und ✔.
+// ---------------------------------------------------------------------
+
+// Gruppen gleicher Gebäude auf gleicher Stufe: [{ kind: 'level'|'evolve', type, level, list: [i…], problem }]
+function upgradeGroups() {
+  const groups = new Map();
+  state.buildings.forEach((b, i) => {
+    const def = BUILDINGS[b.type];
+    if (b.build || b.up > 0) return;
+    if (canLevelHere(i)) {
+      const key = 'l:' + b.type + ':' + levelOf(b);
+      if (!groups.has(key)) groups.set(key, { kind: 'level', type: b.type, level: levelOf(b), list: [] });
+      groups.get(key).list.push(i);
+    }
+    const to = upgradeTarget(b);
+    if (to && isUnlocked(to) && (BUILDINGS[to].size !== def.size || BUILDINGS[to].manualUpgrade)) {
+      const key = 'e:' + b.type;
+      if (!groups.has(key)) groups.set(key, { kind: 'evolve', type: b.type, to, list: [] });
+      groups.get(key).list.push(i);
+    }
+  });
+  const out = [...groups.values()];
+  for (const g of out) g.problem = g.kind === 'level' ? levelProblem(g.list[0]) : upgradeProblem(g.list[0]);
+  return out.sort((a, b) => (!!a.problem - !!b.problem) || (a.kind === 'level' ? a.level : 0) - (b.kind === 'level' ? b.level : 0));
+}
+function upgradeReadyCount() { return upgradeGroups().filter(g => !g.problem).length; }
+
+function upgradesHtml() {
+  const groups = upgradeGroups();
+  if (!groups.length) return '<p class="hint">Gerade lässt sich nichts ausbauen. Neue Stufen gibt es in jedem Zeitalter, Weiterentwicklungen mit neuen Forschungen.</p>';
+  return `<p class="hint">Tippe ein Gebäude an: Die Karte springt hin, dann mit ✔ ausbauen.</p><div class="quests">${groups.map((g, k) => {
+    const def = BUILDINGS[g.type];
+    const title = g.kind === 'level' ? `${esc(def.name)} ★${g.level} → ★${g.level + 1}` : `${esc(def.name)} → ${BUILDINGS[g.to].icon} ${esc(BUILDINGS[g.to].name)}`;
+    const cost = g.kind === 'level' ? levelCost(g.type, g.level + 1) : BUILDINGS[g.to].cost;
+    return `<div class="quest-card${g.problem ? '' : ' ready'}"><div class="q-medal">${iconHtml(def.bild, def.icon, 'big')}</div><div class="q-main">
+      <b>${title}</b><small>${g.list.length > 1 ? `${g.list.length} Gebäude · ` : ''}${costHtml(cost)}</small>
+      ${g.problem ? `<small class="why">⏳ ${esc(g.problem)}</small>` : ''}</div>
+      <button class="btn${g.problem ? '' : ' primary'}" onclick="goUpgrade(${k})">${g.problem ? '👁 Ansehen' : '⬆ Ausbauen'}</button></div>`;
+  }).join('')}</div>`;
+}
+
+function openUpgrades() {
+  closeInfo();
+  openPage('🔨 Ausbauen', upgradesHtml(), 'upgrades');
+}
+
+function goUpgrade(k) {
+  const g = upgradeGroups()[k];
+  if (!g) return;
+  const i = g.list[0], b = state.buildings[i], s = BUILDINGS[b.type].size;
+  closeAllPages();
+  centerOnTile(b.x + s / 2, b.y + s / 2);
+  if (g.kind === 'evolve') { showBuildingWindow(i); return; }
+  showInfo(i);
+  infoFor.level = true;
+  clearTimeout(infoTimer);
+  positionInfo();
 }
 
 function openQuests() {

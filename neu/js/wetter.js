@@ -148,15 +148,7 @@ function drawWeather(dt) {
     for (const g of weatherFx.gusts) { ctx.moveTo(g.x, g.y); ctx.lineTo(g.x - g.len, g.y - g.len * 0.12); }
     ctx.stroke();
   }
-  for (const c of weatherFx.clouds) {
-    if (c.wx === undefined) continue;
-    const z = cam.zoom || 1, cx = (c.wx - cam.x) * z + viewW / 2, cy = (c.wy - cam.y) * z + viewH / 2, cr = c.r * z;
-    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr);
-    g.addColorStop(0, `rgba(30,40,60,${0.13 * k})`);
-    g.addColorStop(1, 'rgba(30,40,60,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.ellipse(cx, cy, cr, cr * 0.55, 0, 0, 7); ctx.fill();
-  }
+  // Wolkenschatten werden nicht mehr gezeichnet: Emin und sein Bruder (iPhone) hielten die runden dunklen Flecken für einen Fehler (07.11.)
   // Regen
   if (weatherFx.drops.length) {
     ctx.strokeStyle = 'rgba(200,215,240,0.55)';
@@ -215,7 +207,7 @@ function drawDayNight() {
   if (d <= 0.01) return;
   // Dunkelheit auf einer halb so großen Leinwand, Löcher um die Feuer
   if (!nightCanvas && typeof document !== 'undefined') {
-    nightCanvas = document.createElement('canvas');
+    nightCanvas = newCanvas();
     nightCtx = nightCanvas.getContext('2d');
   }
   if (!nightCtx) return;

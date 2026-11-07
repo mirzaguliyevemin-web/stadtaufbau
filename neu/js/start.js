@@ -312,6 +312,7 @@ function boot() {
     if (document.visibilityState === 'hidden' && gameRunning) saveGame();
     updateMusic();
     if (document.visibilityState === 'visible') checkForUpdate();
+    if (document.visibilityState === 'visible' && typeof resetCanvasCaches === 'function') resetCanvasCaches();   // Handy: Leinwände können geleert sein
     if (document.visibilityState === 'visible' && gameRunning) {
       // Zeit im Hintergrund nachholen
       const r = applyOfflineProgress(state.savedAt);

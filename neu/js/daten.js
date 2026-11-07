@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 113;
+const APP_VERSION = 114;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -519,7 +519,7 @@ const BUILDINGS = {
     bonus: { terrain: 'fels', perTile: 0.05, max: 0.5 }, upgradeTo: 'sternkundiger', info: 'Ritzt Geschichten in den Fels – mehr Wissen als das Malen.',
   },
   dorfbrunnen: {
-    name: 'Dorfbrunnen', icon: '⛲', size: 2, line: 'waerme', tier: 1, stage: 'kupfer', bild: '1-feuerplatz', views: ['r2'],
+    name: 'Dorfbrunnen', icon: '⛲', size: 2, line: 'waerme', tier: 1, stage: 'kupfer', bild: '2-dorfbrunnen',
     color: '#6f9ab0', cost: { holz: 20, stein: 15 }, time: 30, warmth: 6, happy: 5, requires: 'brunnenbau',
     info: 'Hier trifft sich das Dorf: Gemeinschaft im Umkreis und bessere Laune.',
   },

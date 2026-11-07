@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 121;
+const APP_VERSION = 122;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -573,7 +573,7 @@ const BUILDINGS = {
     info: 'Zieht Setzlinge und pflanzt schneller als die Pflanzerin. Holzfäller und Köhler brauchen viel Holz.',
   },
   weberin: {
-    name: 'Weberin', icon: '🧶', size: 2, line: 'kleidung', tier: 1, stage: 'frueh', bild: '1-fellmacherin', views: ['r2'],
+    name: 'Weberin', icon: '🧶', size: 2, line: 'kleidung', tier: 1, stage: 'frueh', bild: '2-weberin',
     color: '#a8784a', cost: { holz: 50, stein: 25, bronze: 2 }, time: 90, workers: 2, consumes: { wolle: 4 }, produces: { kleidung: 4 }, requires: 'webstuhl', manualUpgrade: true,
     info: 'Webt aus Wolle Kleidung – mehr, als die Fellmacherin aus Fellen näht. Braucht Wolle: darum nur per Knopf umbauen, wenn sie da ist.',
   },

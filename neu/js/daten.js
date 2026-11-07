@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 123;
+const APP_VERSION = 124;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -583,7 +583,7 @@ const BUILDINGS = {
     info: 'Schmiedet aus 1 Bronze und 1 Holz 4 Werkzeuge. Lässt etwas Bronze für Bauen und Forschung liegen. Braucht Bronze: darum nur per Knopf umbauen, wenn sie da ist.',
   },
   toepferwerkstatt: {
-    name: 'Töpferwerkstatt', icon: '🏺', size: 2, line: 'toepfern', tier: 1, stage: 'frueh', bild: '1-toepferei', views: ['r2'],
+    name: 'Töpferwerkstatt', icon: '🏺', size: 2, line: 'toepfern', tier: 1, stage: 'frueh', bild: '2-toepferwerkstatt',
     color: '#b8643a', cost: { holz: 65, stein: 50, bronze: 2 }, time: 120, workers: 3, consumes: { ton: 2, holzkohle: 1 }, produces: { toepferwaren: 2 }, requires: 'brennofen', manualUpgrade: true,
     info: 'Der Brennofen mit Holzkohle macht aus 2 Ton und 1 Holzkohle 2 Töpferwaren. Braucht Holzkohle: darum nur per Knopf umbauen.',
   },

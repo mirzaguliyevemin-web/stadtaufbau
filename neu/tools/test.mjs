@@ -2458,6 +2458,22 @@ test('Wassergebäude: Was aus einem Gebäude halb im Wasser entsteht, steht auch
   noErrors(g);
 });
 
+test('Zeichnen: Ein Fehler bei einem Gebäude lässt die anderen nicht verschwinden und landet im Fehlerprotokoll', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const sp = findFreeSpot('sammlerin', N / 2, N / 2), k = state.buildings.length;
+    state.buildings.push({ type: 'sammlerin', x: sp.x, y: sp.y, rot: 0, build: 0 }); setOccupied(state.buildings[k], k + 1);
+    centerOnTile(sp.x, sp.y);
+    const alt = drawBuildingSprite; let n = 0;
+    drawBuildingSprite = (type, ...a) => { n++; if (type === 'sammlerin') throw new Error('Testfehler'); return alt(type, ...a); };
+    drawScene(0.016); drawBuildingSprite = alt;
+    return [n, errorLog.some(x => x.text.includes('Testfehler') && x.text.includes('sammlerin')), menuHtml().includes('Letzte Fehler')];
+  })()`);
+  ok(r[0] >= 2, 'Nach dem Fehler wurde nichts mehr gezeichnet: ' + r);
+  ok(r[1] && r[2], 'Fehler nicht im Protokoll oder Menü: ' + r);
+  noErrors(g);
+});
+
 test('Dorfplatz: Ab der Kupferzeit zeigt das Lagerfeuer das Dorfplatz-Bild, sobald es geladen ist', () => {
   const g = fresh();
   const r = g.run(`(() => { const r = []; applyEpochTheme(); r.push(BUILDINGS.lagerfeuer.bild);

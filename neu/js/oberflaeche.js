@@ -1297,6 +1297,9 @@ function menuHtml() {
         ${tile('🔄', 'Nach Updates suchen', 'checkForUpdate(true)')}
       </div>
     </section>
+    ${typeof errorLog !== 'undefined' && errorLog.length ? `<section class="card"><details><summary>⚠️ Letzte Fehler (${errorLog.length}) – Bildschirmfoto an Claude</summary>
+      <ul class="lines">${errorLog.map(x => `<li><small>${esc(new Date(x.t).toLocaleString('de-DE'))} · V${x.v}</small><br>${esc(x.text)}<br><small>${esc(x.line || '')}</small></li>`).join('')}</ul>
+      <button class="btn small" onclick="errorLog = []; try { localStorage.removeItem(ERROR_KEY); } catch (e) {} openMenu()">Liste leeren</button></details></section>` : ''}
     <p class="version">Epochia · Version ${APP_VERSION}</p>
   </div>`;
 }

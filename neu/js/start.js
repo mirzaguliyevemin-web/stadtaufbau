@@ -156,6 +156,26 @@ function loop(now) {
   if (saveTimer > 10) { saveTimer = 0; saveGame(); }
 }
 
+// Fehlerprotokoll (Emin, 07.11.2026): Fehler auf dem Handy sieht man sonst nicht. Die letzten 10 stehen im Menü.
+const ERROR_KEY = 'epochia-fehler';
+let errorLog = [];
+try { errorLog = JSON.parse(localStorage.getItem(ERROR_KEY) || '[]'); if (!Array.isArray(errorLog)) errorLog = []; } catch (e) { errorLog = []; }
+const errorSeen = new Set();
+function noteError(where, e) {
+  const text = `${where}: ${e && e.message ? e.message : e}`;
+  if (errorSeen.has(text)) return;   // jeden Fehler nur einmal je Sitzung (sonst 60-mal je Sekunde)
+  errorSeen.add(text);
+  const line = (e && e.stack ? String(e.stack).split('\n').find(l => /\.js:\d+/.test(l)) || '' : '').trim().replace(/^at\s+/, '').replace(/https?:\/\/[^ )]*\//, '');
+  errorLog.unshift({ t: Date.now(), v: APP_VERSION, text, line });
+  errorLog = errorLog.slice(0, 10);
+  try { localStorage.setItem(ERROR_KEY, JSON.stringify(errorLog)); } catch (x) { /* voll */ }
+  if (typeof console !== 'undefined') console.warn(text, e);
+}
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('error', ev => noteError('Fehler', ev.error || ev.message));
+  window.addEventListener('unhandledrejection', ev => noteError('Versprechen', ev.reason));
+}
+
 on('levelDone', b => { if (gameRunning && !offlineRunning) toast(`⭐ ${BUILDINGS[b.type].name} ist jetzt Stufe ${levelOf(b)}!`); });
 on('finished', b => { if (gameRunning && !offlineRunning && BUILDINGS[b.type].time > 0 && !BUILDINGS[b.type].wonder) toast(`${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name} ist fertig!`); });
 on('evolved', list => {

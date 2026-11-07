@@ -1587,6 +1587,11 @@ function drawLevelBadge(b) {
   if (b.up > 0) { ctx.font = `${Math.round(r * 0.9)}px sans-serif`; ctx.fillText('🔨', p.x + r * 1.1, y - r * 0.6); }
 }
 
+// Nach einem Fehler mitten im Zeichnen: Transformation, Durchsichtigkeit und Ausschnitt zurücksetzen
+function resetDrawState() {
+  try { for (let k = 0; k < 8; k++) ctx.restore(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = 1; } catch (e) { /* egal */ }
+}
+
 function roundRect(x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -1991,6 +1996,9 @@ function drawScene(dt) {
   objects.push(...lifeObjects(range));
   objects.sort((a, b) => a.d - b.d || (a.x || 0) - (b.x || 0));
   for (const o of objects) {
+   // Jedes Objekt einzeln absichern: Ein Fehler (z. B. ein Bild, das das Handy verworfen hat) ließ sonst alle
+   // folgenden Gebäude, Bäume und Figuren verschwinden (Emin, 07.11.2026)
+   try {
     if (o.kind === 'b') {
       const b = state.buildings[o.i];
       if (b.build > 0 && BUILDINGS[b.type].wonder && buildingView(BUILDINGS[b.type], b.rot, b.x, b.y).img) { drawBuildingSprite(b.type, b.x, b.y, b.rot); drawWonderProgress(b); }
@@ -2003,6 +2011,10 @@ function drawScene(dt) {
     } else if (o.kind === 'leben') o.draw();
     else if (o.kind === 'berg') drawMountain(o.x, o.y, o.m);
     else drawTerrainObject(o.x, o.y, o.kind);
+   } catch (e) {
+    resetDrawState();
+    noteError('Zeichnen ' + (o.kind === 'b' ? state.buildings[o.i].type : o.kind), e);
+   }
   }
   drawSmoke();
   drawSky();

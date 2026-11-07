@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 117;
+const APP_VERSION = 118;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -552,7 +552,7 @@ const BUILDINGS = {
   },
   // ----- Bronzezeit, Stufe Frühe Bronzezeit (Bilder folgen, wie bei der Kupferzeit)
   jagdhuette: {
-    name: 'Jagdhütte', icon: '🦌', size: 3, line: 'jagen', tier: 2, stage: 'frueh', bild: '1-mammutjaegerlager', views: ['r2'],
+    name: 'Jagdhütte', icon: '🦌', size: 3, line: 'jagen', tier: 2, stage: 'frueh', bild: '2-jagdhuette',
     color: '#6f5030', cost: { holz: 80, stein: 50, bronze: 3 }, time: 120, workers: 4, produces: { nahrung: 26, felle: 3 }, requires: 'bronzewerkzeug',
     bonus: { terrain: 'wald', perTile: 0.03, max: 0.5 },
     info: 'Jäger mit Pfeilspitzen aus Bronze: mehr Fleisch und mehr Felle. Am Wald mehr.',

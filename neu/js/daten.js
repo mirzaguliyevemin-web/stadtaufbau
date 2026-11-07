@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 114;
+const APP_VERSION = 115;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -514,7 +514,7 @@ const BUILDINGS = {
     info: 'Bricht Steine mit Kupferwerkzeug. An Felsen und am Gebirge viel mehr.',
   },
   felsritzer: {
-    name: 'Felsritzer', icon: '🪨', size: 2, line: 'wissen', tier: 1, stage: 'kupfer', bild: '1-hoehlenmaler', views: ['r2'],
+    name: 'Felsritzer', icon: '🪨', size: 2, line: 'wissen', tier: 1, stage: 'kupfer', bild: '2-felsritzer',
     color: '#c05a3a', cost: { holz: 20, stein: 20 }, time: 45, workers: 1, produces: { wissen: 6 }, requires: 'felsritzungen',
     bonus: { terrain: 'fels', perTile: 0.05, max: 0.5 }, upgradeTo: 'sternkundiger', info: 'Ritzt Geschichten in den Fels – mehr Wissen als das Malen.',
   },

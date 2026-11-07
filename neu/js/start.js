@@ -333,6 +333,9 @@ function boot() {
     // ?direkt überspringt die Startseite (zum Ausprobieren und für Bildschirmfotos)
     if (typeof location !== 'undefined' && /direkt/.test(location.search || '')) enterGame();
   });
+  // Android: Das installierte Spiel war im Manifest auf „quer“ festgelegt und merkt sich das, bis Chrome das Manifest neu liest.
+  // Hochkant und quer frei geben (Emin, 07.11.); geht nur im installierten Spiel, sonst passiert nichts.
+  try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('any').catch(() => {}); } catch (e) { /* egal */ }
   if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
     navigator.serviceWorker.register('service-worker.js').catch(err => console.warn('Service Worker', err));
   }

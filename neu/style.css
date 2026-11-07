@@ -1070,9 +1070,10 @@ details.more[open] summary::before { content: '▾ '; }
 .quest-card .why { color: #b06a00; font-weight: bold; }
 
 /* Info vor dem Bauen (Emin, 07.11.): ⓘ an jeder Karte der Bauleiste, Kurzinfo beim Hinsetzen */
-.bar-info { position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #2e7d32; padding: 0;
-  background: linear-gradient(#7ed957, #4caf50); color: #fff; font: italic bold 14px Georgia, serif; line-height: 20px; z-index: 2; box-shadow: 0 1px 0 #2e7d32; opacity: 0.92; }
-/* links oben über dem Gebäudebild: verdeckt weder Namen noch Kosten (Emin, 07.11.) */
+.bar-info { position: absolute; top: -8px; left: -8px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #2e7d32; padding: 0;
+  background: linear-gradient(#7ed957, #4caf50); color: #fff; font: italic bold 14px Georgia, serif; line-height: 20px; z-index: 2; box-shadow: 0 1px 0 #2e7d32; opacity: 1; font-size: 13px; line-height: 18px; }
+/* außen auf der linken oberen Ecke der Karte: verdeckt weder Bild noch Namen noch Kosten (Emin, 07.11.) */
+#buildbar { padding-top: 10px; }
 .bar-item .new + .bar-info, .bar-item .bar-info { touch-action: manipulation; }
 .round.info { background: linear-gradient(#7ed957, #4caf50); font: italic bold 22px Georgia, serif; color: #fff; }
 .action-text .ghost-info { display: block; color: var(--ink-soft); font-size: 12px; margin-top: 1px; }

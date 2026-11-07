@@ -258,6 +258,7 @@ function renderSideButtons() {
   if (rb && rb.querySelector) {
     const label = rb.querySelector('span'), bar = $('research-prog');
     if (label) label.textContent = r ? formatTime(r.left) : 'Forschung';
+    if (rb.classList) rb.classList.toggle('running', !!r);   // schmale Leiste: Name nur als Restzeit, solange geforscht wird
     if (bar) { bar.style.width = r ? Math.round((1 - r.left / TECHS[r.id].time) * 100) + '%' : '0'; show(bar.parentNode, !!r); }
   }
   const wish = currentWish();
@@ -434,21 +435,54 @@ function sourceText(id) {
   return names.length ? ' – kommt von: ' + names.join(', ') + (id === 'felle' && !mammothsExtinct() && state.techs.mammutjagd ? ', Mammutjagd' : '') : '';
 }
 
-function infoPopHtml(i) {
+// Kleines Fenster beim Antippen (Emin, 07.11.): schmale Leiste mit Bild, Name, wichtigster Zahl und runden Knöpfen.
+// Bei Gebäuden mit Stufen ein ⬆-Knopf: erst antippen zeigt die Kosten, ✔ baut aus.
+function infoLine(i) {
+  const b = state.buildings[i], def = BUILDINGS[b.type];
+  if (b.build > 0) return `🔨 noch ${formatTime(b.build)}`;
+  if (b.up > 0) return `🔨 Ausbau auf ★${levelOf(b) + 1} · noch ${formatTime(b.up)}`;
+  if (!isConnected(i)) return '<span class="bad">🛤️ Kein Weg zum Lagerfeuer</span>';
+  const lacking = def.consumes && Object.keys(def.consumes).find(id => (state.res[id] || 0) < 0.5);
+  if (lacking) return `<span class="bad">❗ Es fehlt ${esc(RESOURCES[lacking].name)}</span>`;
+  const parts = [];
+  if (def.produces) parts.push(Object.entries(outputPerMinute(i)).map(([id, n]) => `+${perMin(n)} ${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')}`).join(' ') + ' je Minute');
+  if (def.housing) parts.push(`👥 ${housingOf(b.type)} Plätze`);
+  if (def.workers) parts.push(`👤 ${stats.staff[i] || 0}/${workersOf(b)}`);
+  if (def.storage) parts.push(`📦 +${def.storage}`);
+  if (def.warmth && !def.produces) parts.push(`🔥 Umkreis ${warmthRadius(def)}`);
+  if (def.belief) parts.push(`🗿 Umkreis ${def.belief}`);
+  return parts.join(' · ');
+}
+
+function canLevelHere(i) {
   const b = state.buildings[i];
-  // zwei getrennte, gleich große Knöpfe – „Mehr“ war vorher nur ein Text unter Pause und schwer zu treffen
-  const pause = BUILDINGS[b.type].workers && !b.build
-    ? `<button class="btn small" onclick="event.stopPropagation(); togglePause(${i}); showInfo(${i})">${b.paused ? '▶ Weiter' : '⏸ Pause'}</button>` : '';
-  const lager = BUILDINGS[b.type].storage && !b.build
-    ? '<button class="btn small" onclick="event.stopPropagation(); openLager()">📦 Lager</button>' : '';
-  return `${esc(infoText(i))}<span class="pop-buttons">${pause}${lager}<button class="btn small primary" onclick="event.stopPropagation(); closeInfo(); showBuildingWindow(${i})">ℹ️ Mehr</button></span>`;
+  return hasLevels(BUILDINGS[b.type]) && !b.build && !(b.up > 0) && levelOf(b) < Math.min(maxLevel(), CONFIG.levels.max);
+}
+
+function infoPopHtml(i) {
+  const b = state.buildings[i], def = BUILDINGS[b.type];
+  const stop = 'event.stopPropagation();';
+  const name = `${esc(def.name)}${hasLevels(def) ? ` <span class="lvl-badge">★${levelOf(b)}</span>` : ''}`;
+  if (infoFor && infoFor.level && canLevelHere(i)) {
+    const next = levelOf(b) + 1, problem = levelProblem(i);
+    return `<div class="pop-chip">${iconHtml(def.bild, def.icon, 'pop-pic')}<div class="pop-text"><b>Ausbauen auf ★${next}</b>
+      <small>${costHtml(levelCost(b.type, next))} · ⏱ ${formatTime(levelTime(b.type, next))}${problem ? ` · <span class="bad">${esc(problem)}</span>` : ''}</small></div>
+      <button class="rb" aria-label="Abbrechen" onclick="${stop} infoFor.level = false; positionInfo()">✕</button>
+      <button class="rb main" aria-label="Ausbauen" ${problem ? 'disabled' : ''} onclick="${stop} infoFor.level = false; doLevelUp(${i}); closeInfo()">✔</button></div>`;
+  }
+  const btn = [];
+  if (def.workers && !b.build) btn.push(`<button class="rb" aria-label="${b.paused ? 'Weiter' : 'Pause'}" onclick="${stop} togglePause(${i}); showInfo(${i})">${b.paused ? '▶' : '⏸'}</button>`);
+  if (canLevelHere(i)) btn.push(`<button class="rb up" aria-label="Ausbauen" onclick="${stop} infoFor.level = true; clearTimeout(infoTimer); positionInfo()">⬆</button>`);
+  if (def.storage && !b.build) btn.push(`<button class="rb" aria-label="Lager" onclick="${stop} closeInfo(); openLager()">📦</button>`);
+  btn.push(`<button class="rb main" aria-label="Mehr über das Gebäude" onclick="${stop} closeInfo(); showBuildingWindow(${i})">i</button>`);
+  return `<div class="pop-chip">${iconHtml(def.bild, def.icon, 'pop-pic')}<div class="pop-text"><b>${name}</b><small>${infoLine(i)}</small></div>${btn.join('')}</div>`;
 }
 
 function showInfo(i) {
   infoFor = { kind: 'b', i };
   const el = $('info-pop');
-  el.classList.remove('tool');
-  el.innerHTML = infoPopHtml(i);
+  el.classList.remove('tool'); el.classList.add('chip');
+  el.innerHTML = el.dataset.html = infoPopHtml(i);
   el.onclick = () => {
     const k = infoFor;
     const b = k && k.kind === 'b' && state.buildings[k.i];
@@ -467,7 +501,7 @@ function showInfo(i) {
 function showSaplingInfo(x, y) {
   infoFor = { kind: 'tile', x, y };
   const el = $('info-pop');
-  el.classList.add('tool');
+  el.classList.add('tool'); el.classList.remove('chip');
   el.innerHTML = `<span class="tool-ic">${iconHtml('setzling', '🌱', 'big')}</span><span>Setzling ausreißen<small>macht den Platz frei</small></span>`;
   el.onclick = () => { removeSapling(x, y); toast('🌱 Setzling ausgerissen'); closeInfo(); };
   show(el, true);
@@ -481,7 +515,7 @@ function showTerrainInfo(x, y) {
   const el = $('info-pop');
   // Baum: Axt, Felsen: Spitzhacke – antippen, und schon wird gefällt bzw. abgetragen
   const tool = t === TERRAIN.wald ? iconHtml('axt', '🪓', 'big') : iconHtml('hacke', '⛏️', 'big');
-  el.classList.add('tool');
+  el.classList.add('tool'); el.classList.remove('chip');
   el.innerHTML = `<span class="tool-ic">${tool}</span><span>${esc(t.clearName)}<small>+${formatAmounts(t.clear)}</small></span>`;
   el.onclick = () => {
     const kind = t === TERRAIN.wald ? 'wald' : 'fels';
@@ -504,7 +538,7 @@ function showHuntInfo(a) {
   if (problem) { closeInfo(); toast('🦣 ' + problem); return; }
   infoFor = { kind: 'herd', a };
   const el = $('info-pop');
-  el.classList.add('tool');
+  el.classList.add('tool'); el.classList.remove('chip');
   el.innerHTML = `<span class="tool-ic">${iconHtml('f-speer', '🗡️', 'big')}</span><span>Mammut jagen<small>+${formatAmounts(huntReward())}</small></span>`;
   el.onclick = () => {
     const err = startHunt(a.x, a.y);
@@ -527,7 +561,9 @@ function positionInfo() {
     const s = BUILDINGS[b.type].size;
     p = tileToScreen(b.x + s, b.y + s);
     const html = infoPopHtml(infoFor.i);
-    if (el.innerHTML !== html) el.innerHTML = html;
+    // mit dem zuletzt geschriebenen Text vergleichen: innerHTML liest sich anders zurück (disabled=""), sonst würde jedes Bild
+    // in jedem Bild neu geladen und bliebe leer
+    if (el.dataset.html !== html) { el.dataset.html = html; el.innerHTML = html; }
   } else {
     // Werkzeug schwebt über dem Baum bzw. Felsen (oder über dem Mammut)
     const c = infoFor.kind === 'herd' ? tileToScreen(infoFor.a.x, infoFor.a.y) : tileToScreen(infoFor.x + 0.5, infoFor.y + 0.5);
@@ -672,7 +708,10 @@ function showBuildingWindow(i) {
   const b = state.buildings[i];
   if (!b) return;
   const def = BUILDINGS[b.type];
-  const lines = [];
+  // Werte als Kacheln, Hinweise als kurze Zeilen darunter (Design-Bewertung 07.11.)
+  const tiles = [], lines = [];
+  const tile = (big, label, bad) => tiles.push(`<div class="vtile${bad ? ' bad' : ''}"><b>${big}</b><small>${label}</small></div>`);
+  const ware = id => iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini');
   if (b.build > 0) lines.push(`🔨 Baustelle – noch ${formatTime(b.build)}`);
   let road = '';
   if (!isConnected(i)) {
@@ -686,27 +725,34 @@ function showBuildingWindow(i) {
     </div>`;
   }
   if (def.housing) {
-    lines.push(`🏠 Platz für ${housingOf(b.type)} Menschen`);
+    tile(`👥 ${housingOf(b.type)}`, 'Plätze');
     // gleiche Regel wie bei den Bedürfnissen: die Quelle braucht einen Weg
     const near = (key, r) => state.buildings.some((s, k) => !s.build && BUILDINGS[s.type][key] && isConnected(k) && distance(s, b) <= r(BUILDINGS[s.type]) + def.size / 2);
-    lines.push(near('warmth', warmthRadius) ? '🔥 Hat es warm (Feuer in der Nähe)' : '❄️ Kein Feuer mit Weg in der Nähe – baue einen Feuerplatz');
-    if (activeNeeds().some(n => n.id === 'glaube'))
-      lines.push(near('belief', d => d.belief) ? '🗿 Ahnenplatz in der Nähe' : '🗿 Kein Ahnenplatz mit Weg in der Nähe');
+    const warm = near('warmth', warmthRadius);
+    tile(warm ? '🔥 ✔' : '❄️ ✖', 'Wärme', !warm);
+    if (!warm) lines.push('❄️ Kein Feuer mit Weg in der Nähe – baue einen Feuerplatz');
+    if (activeNeeds().some(n => n.id === 'glaube')) {
+      const holy = near('belief', d => d.belief);
+      tile(holy ? '🗿 ✔' : '🗿 ✖', 'Glaube', !holy);
+      if (!holy) lines.push('🗿 Kein Ahnenplatz mit Weg in der Nähe');
+    }
   }
-  if (def.workers && !b.build) lines.push(b.paused ? '⏸ Pausiert – die Arbeiter helfen in anderen Gebäuden'
-    : `👤 Arbeiter: ${stats.staff[i] || 0} von ${workersOf(b)}${(stats.staff[i] || 0) < workersOf(b) ? ' – alle Einwohner arbeiten schon woanders' : ''}`);
+  if (def.workers && !b.build) {
+    const staff = stats.staff[i] || 0;
+    tile(`👤 ${staff}/${workersOf(b)}`, 'Arbeiter', staff < workersOf(b));
+    if (b.paused) lines.push('⏸ Pausiert – die Arbeiter helfen in anderen Gebäuden');
+    else if (staff < workersOf(b)) lines.push('👤 Es fehlen Arbeiter – alle Einwohner arbeiten schon woanders');
+  }
   if (def.produces && !b.build) {
-    const out = outputPerMinute(i);
-    lines.push('Stellt her: ' + Object.entries(out).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n)}/min`).join(', '));
-    if (def.consumes) lines.push('Braucht: ' + Object.entries(def.consumes).map(([id, n]) => `${RESOURCES[id].icon} ${perMin(n * outputFactor(i))}/min`).join(', '));
+    for (const [id, n] of Object.entries(outputPerMinute(i))) tile(`${perMin(n)} ${ware(id)}`, 'je Minute');
+    for (const [id, n] of Object.entries(def.consumes || {})) tile(`−${perMin(n * outputFactor(i))} ${ware(id)}`, 'braucht je Min.', (state.res[id] || 0) < 0.5);
     for (const id of Object.keys(def.consumes || {})) if ((state.res[id] || 0) < 0.5) lines.push(`❗ Fehlt: ${RESOURCES[id].name} – darum steht es still${sourceText(id)}`);
-    const tb = terrainBonus(b);
-    if (def.bonus) lines.push(`🌲 Geländebonus (${terrainNames(def.bonus.terrain)}): +${Math.round(tb * 100)} %`);
-    if (SEASON_FACTORS[b.type]) lines.push(`${season().icon} ${season().name}: ${Math.round(SEASON_FACTORS[b.type][seasonIndex()] * 100)} %`);
+    if (def.bonus) tile(`🌲 +${Math.round(terrainBonus(b) * 100)} %`, 'Gelände: ' + terrainNames(def.bonus.terrain));
+    if (SEASON_FACTORS[b.type]) tile(`${season().icon} ${Math.round(SEASON_FACTORS[b.type][seasonIndex()] * 100)} %`, season().name);
   }
-  if (def.warmth) lines.push(`🔥 Wärme im Umkreis von ${warmthRadius(def)} Feldern`);
-  if (def.belief) lines.push(`🗿 Glaube im Umkreis von ${def.belief} Feldern`);
-  if (def.storage) lines.push(`📦 Lagerplatz +${def.storage} je Ware`);
+  if (def.warmth) tile(`🔥 ${warmthRadius(def)}`, 'Felder Wärme');
+  if (def.belief) tile(`🗿 ${def.belief}`, 'Felder Glaube');
+  if (def.storage) tile(`📦 +${def.storage}`, 'je Ware');
 
   let upgrade = '';
   // Stufen 1–5: Ausbauen bringt einen Arbeiterplatz und +50 % Ertrag (docs/plan-stufen.md)
@@ -717,12 +763,14 @@ function showBuildingWindow(i) {
     else if (next > CONFIG.levels.max) upgrade += `<div class="upgrade"><h3>⭐ Stufe ${lv} – höchste Stufe</h3></div>`;
     else {
       const problem = levelProblem(i), more = Math.round(CONFIG.levels.outputPerLevel * 100);
-      upgrade += `<div class="upgrade">
-        <h3>${stars} Stufe ${lv} von ${maxLevel()}${maxLevel() < CONFIG.levels.max ? ' <small>(mehr in späteren Zeitaltern)</small>' : ''}</h3>
+      const row = Array.from({ length: maxLevel() }, (_, k) => k < lv ? '★' : '<i>★</i>').join('');
+      upgrade += `<div class="upgrade level-card">
+        <h3><span>Ausbauen auf Stufe ${next}</span><span class="stars" title="Stufe ${lv} von ${maxLevel()}">${row}</span></h3>
+        ${maxLevel() < CONFIG.levels.max ? `<small>Stufe ${lv} von ${maxLevel()} – mehr Stufen in späteren Zeitaltern</small>` : ''}
         <p>Ausbau auf Stufe ${next}: Ertrag ×${perMin(levelFactor(b))} → ×${perMin(levelFactor(b) + CONFIG.levels.outputPerLevel)} (+${more} % vom Grundwert)${workersOf({ type: b.type, level: next }) > workersOf(b) ? `, 👤 ${workersOf(b)} → ${workersOf({ type: b.type, level: next })} Arbeiter` : ', gleich viele Arbeiter'}</p>
         <p>${costHtml(levelCost(b.type, next))} · ⏱ ${formatTime(levelTime(b.type, next))}</p>
-        <button class="btn primary" ${problem ? 'disabled' : ''} onclick="doLevelUp(${i})">⬆ Ausbauen auf Stufe ${next}</button>
-        ${problem ? `<small class="bad">${esc(problem)}</small>` : ''}
+        <div class="why-row"><button class="btn primary" ${problem ? 'disabled' : ''} onclick="doLevelUp(${i})">⬆ Ausbauen auf Stufe ${next}</button>
+        ${problem ? `<span class="why">⏳ ${esc(problem)}</span>` : ''}</div>
       </div>`;
     }
   }
@@ -750,17 +798,18 @@ function showBuildingWindow(i) {
   }
   const canRemove = def.buildable !== false;
   openDialog(`
-    <div class="dlg-head">${iconHtml(def.bild, def.icon, 'huge')}<div><h2>${esc(def.name)}</h2><p>${esc(def.info)}</p></div></div>
+    <button class="rb dlg-x" aria-label="Schließen" onclick="closeDialog()">✕</button>
+    <div class="dlg-head">${iconHtml(def.bild, def.icon, 'huge')}<div><h2>${esc(def.name)}${hasLevels(def) && !b.build ? ` <span class="lvl-badge">★ Stufe ${levelOf(b)}</span>` : ''}</h2><p>${esc(def.info)}</p></div></div>
     ${road}
-    <ul class="lines">${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
+    ${tiles.length ? `<div class="vtiles">${tiles.join('')}</div>` : ''}
+    ${lines.length ? `<ul class="lines notes">${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>` : ''}
     ${b.build > 0 ? shopSpeedButton() : buildingDetailsHtml(i)}
     ${upgrade}
     <div class="buttons">
       ${def.storage && !b.build ? '<button class="btn primary" onclick="closeDialog(); openLager()">📦 Lager öffnen</button>' : ''}
       ${def.workers && !b.build ? `<button class="btn" onclick="doTogglePause(${i})">${b.paused ? '▶ Weiter' : '⏸ Pause'}</button>` : ''}
       ${def.isPath ? '' : `<button class="btn" onclick="closeDialog(); liftBuilding(${i})">✋ Verschieben</button>`}
-      ${canRemove ? `<button class="btn danger" onclick="askDemolish(${i})">🗑 Abreißen</button>` : ''}
-      <button class="btn" onclick="closeDialog()">Schließen</button>
+      ${canRemove ? `<button class="btn text-danger" onclick="askDemolish(${i})">🗑 Abreißen …</button>` : ''}
     </div>`);
 }
 
@@ -1293,6 +1342,9 @@ function menuHtml() {
       <h3>⚙️ Einstellungen</h3>
       ${sw('sound', '🔊', 'Geräusche', 'jedes Gebäude klingt anders')}
       ${sw('music', '🎵', 'Musik', 'Flöten und Trommeln')}
+      <div class="switch-row"><span>💬 Blasen über Gebäuden<small>Probleme zeigen sie immer, außer bei „Aus“</small></span>
+        <span class="seg">${[['probleme', 'Probleme'], ['alle', 'Alle'], ['aus', 'Aus']].map(([v, t]) =>
+          `<button class="${(settings.bubbles || 'probleme') === v ? 'on' : ''}" onclick="settings.bubbles='${v}'; saveSettings(); refreshMenu()">${t}</button>`).join('')}</span></div>
       <div class="tiles">${tile('👴', 'Einstieg neu starten', 'closeAllPages(); restartTutorial()')}</div>
     </section>
     <section class="card">
@@ -1319,6 +1371,7 @@ function openMenu() {
   closeInfo();
   openPage('⚙️ Menü', menuHtml(), 'menu');
 }
+function refreshMenu() { if (pageOpen === 'menu') $('page-body').innerHTML = menuHtml(); }
 
 const SLOT_PICTURES = { alt: '1-lagerfeuer', mittel: '1-grubenhaus', jung: '1-langhaus', kupfer: '1-langhaus', eisen1: '1-langhaus', eisen2: '1-langhaus', eisen3: '1-langhaus' };
 

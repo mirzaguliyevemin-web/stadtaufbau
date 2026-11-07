@@ -130,10 +130,22 @@ function wonderHtml(id) {
     road = `<div class="upgrade"><h3>🛤️ Kein Weg zum Lagerfeuer</h3>
       ${route ? `<button class="btn primary" ${canAfford(cost) ? '' : 'disabled'} onclick="doWonderRoute('${id}')">🛤️ Weg bauen (${costHtml(cost)})</button>` : '<small class="bad">Kein Weg möglich – erst Bäume oder Felsen räumen.</small>'}</div>`;
   }
-  const where = placed ? '' : `<p class="hint">${esc(W.where)}</p>`;
-  return `<div class="wonder-head">${iconHtml(name, W.icon, 'wonder-pic')}<div><p>${esc(wonderDone(id) ? W.doneText : W.intro)}</p></div></div>
-    <div class="info-list wonder-bonus">${W.bonus.map(t => `<div><small>${esc(t)}</small></div>`).join('')}</div>
-    ${where}${road}<div class="quests">${W.steps.map((_, k) => wonderStepHtml(id, k)).join('')}</div>`;
+  const steps = W.steps.map((_, k) => wonderStepHtml(id, k)).join('');
+  // Fertig (Emin, 07.11.): nur noch Bild, Schlusstext und Effekte – die Bauschritte klappen zusammen
+  if (wonderDone(id)) return `<div class="wonder-head">${iconHtml(name, W.icon, 'wonder-pic')}<div><span class="done-badge">✔ Fertig gebaut</span><p>${esc(W.doneText)}</p></div></div>
+    <div class="effect-grid">${W.bonus.map(effectTile).join('')}</div>${road}
+    <details class="history"><summary>📜 So wurde es gebaut</summary><div class="quests">${steps}</div></details>`;
+  // noch nicht gesetzt: der wichtigste Schritt steht oben als Knopf
+  const where = placed ? '' : `<div class="wonder-where"><p>${esc(W.where)}</p>${isUnlocked(W.building) ? `<button class="btn primary" onclick="closeAllPages(); beginBuild('${W.building}')">📍 Platz wählen</button>` : ''}</div>`;
+  return `<div class="wonder-head">${iconHtml(name, W.icon, 'wonder-pic')}<div><p>${esc(W.intro)}</p></div></div>
+    ${where}${road}<div class="effect-grid">${W.bonus.map(effectTile).join('')}</div>
+    <div class="quests">${steps}</div>`;
+}
+
+// Effekt als Kachel: das erste Zeichen (Emoji) groß, der Rest als Text
+function effectTile(t) {
+  const m = t.match(/^(\S+)\s+(.*)$/);
+  return `<div class="effect"><span class="emoji">${esc(m ? m[1] : '✨')}</span><span>${esc(m ? m[2] : t)}</span></div>`;
 }
 
 function openWonder(id) {

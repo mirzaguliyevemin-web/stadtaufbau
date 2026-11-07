@@ -1602,50 +1602,72 @@ function roundRect(x, y, w, h, r) {
   ctx.closePath();
 }
 
-// Sprechblase über einem Gebäude: was es gerade herstellt (oder was fehlt)
+// Sprechblase über einem Gebäude (Emin, 07.11.: das Blinken störte). Seitdem:
+// - Probleme (Ware fehlt, kein Weg, niemand arbeitet, Pause) stehen ruhig da, mit farbigem Rand
+// - was hergestellt wird, steigt nur ab und zu als kleines „+13“ auf und verblasst
+// settings.bubbles: 'probleme' (Standard), 'alle' (Herstellung als ruhige Blase), 'aus'
+function bubbleProblem(i) {
+  const b = state.buildings[i], def = BUILDINGS[b.type];
+  if (!isConnected(i)) return { icon: '🛤️', ring: '#e8843a' };
+  if (b.paused) return { icon: '⏸', ring: '#9a8a60' };
+  if (def.workers && !(stats.staff[i] > 0)) return { icon: '👤', ring: '#e8843a' };
+  const lacking = def.consumes && Object.keys(def.consumes).find(id => (state.res[id] || 0) < 0.5);
+  if (lacking) return { icon: RESOURCES[lacking].icon, pic: images[RESOURCES[lacking].bild], ring: '#d6332a' };
+  return null;
+}
+
+function bubbleTop(b, def, size) {
+  const s = def.size, top = tileToScreen(b.x + s / 2, b.y + s / 2);
+  return { x: top.x, y: top.y - (0.55 + s * 0.22) * TH * cam.zoom - size * 1.6 - (images[def.bild] ? s * TH * 0.5 * cam.zoom : 0) };
+}
+
 function drawBubble(i) {
   const b = state.buildings[i];
   const def = BUILDINGS[b.type];
-  if (b.build || def.isPath || b.type === 'lagerfeuer' || cam.zoom < 0.45) return;
-  let icon, pic = null, warn = false;
-  const road = isConnected(i);
-  if (road && !def.produces) return;
-  const lacking = def.consumes && Object.keys(def.consumes).find(id => (state.res[id] || 0) < 0.5);
-  if (!road) icon = '🛤️❗';
-  else if (b.paused) icon = '⏸';
-  else if (def.workers && !(stats.staff[i] > 0)) icon = '👤❗';
-  else if (lacking) { icon = RESOURCES[lacking].icon + '❗'; pic = images[RESOURCES[lacking].bild]; warn = true; }
-  else {
-    // Blasen kommen und gehen, damit nicht alles gleichzeitig blinkt
-    const phase = (frameTime / 4 + hash(b.x, b.y)) % 1;
-    if (phase > 0.55) return;
-    icon = RESOURCES[Object.keys(def.produces)[0]].icon;
-    pic = images[RESOURCES[Object.keys(def.produces)[0]].bild];   // Warenbild statt Emoji (wie oben in der Leiste)
-  }
-  const s = def.size;
-  const top = tileToScreen(b.x + s / 2, b.y + s / 2);
-  const bob = Math.sin(frameTime * 2.5 + b.x) * 2 * cam.zoom;
+  const mode = settings.bubbles || 'probleme';
+  if (mode === 'aus' || b.build || def.isPath || b.type === 'lagerfeuer' || cam.zoom < 0.45) return;
+  if (!def.produces && isConnected(i)) return;
   const size = Math.max(14, 18 * cam.zoom);
-  const y = top.y - (0.55 + s * 0.22) * TH * cam.zoom - size * 1.6 + bob - (images[def.bild] ? s * TH * 0.5 * cam.zoom : 0);
+  const p = bubbleTop(b, def, size);
+  const problem = bubbleProblem(i);
+  if (problem) return drawBubbleBox(p.x, p.y, size, problem.icon, problem.pic, problem.ring, true);
+  const id = Object.keys(def.produces)[0];
+  if (mode === 'alle') return drawBubbleBox(p.x, p.y, size, RESOURCES[id].icon, images[RESOURCES[id].bild], null, false);
+  // „+13“ steigt kurz auf: jedes Gebäude zu einer anderen Zeit, etwa alle 9 Sekunden für 1,6 Sekunden
+  const phase = (frameTime / 9 + hash(b.x, b.y)) % 1, show = 1.6 / 9;
+  if (phase > show) return;
+  const t = phase / show, rate = Math.round(def.produces[id] * outputFactor(i));
+  if (rate < 1) return;
+  ctx.save();
+  ctx.globalAlpha = t < 0.2 ? t / 0.2 : 1 - (t - 0.2) / 0.8;
+  const y = p.y + size * 0.6 - t * size * 1.6;
+  ctx.font = `700 ${Math.round(size * 0.95)}px ${FONT}`;
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(40,30,10,0.75)'; ctx.fillStyle = '#fff';
+  ctx.strokeText('+' + rate, p.x, y); ctx.fillText('+' + rate, p.x, y);
+  const pic = images[RESOURCES[id].bild];
+  if (pic) ctx.drawImage(pic, p.x + 2, y - size * 0.6, size * 1.2, size * 1.2);
+  else { ctx.textAlign = 'left'; ctx.fillText(RESOURCES[id].icon, p.x + 2, y); }
+  ctx.restore();
+}
+
+// Ruhige Blase (wippt nicht, blinkt nicht). ring: farbiger Rand und „!“ für Probleme
+function drawBubbleBox(x, y, size, icon, pic, ring, warn) {
   ctx.font = `${Math.round(size)}px sans-serif`;
-  const w = (pic ? size * 1.15 + (warn ? size * 0.7 : 0) : ctx.measureText(icon).width) + size * 0.8;
-  ctx.fillStyle = 'rgba(255,255,255,0.95)';
-  roundRect(top.x - w / 2, y - size * 0.75, w, size * 1.5, size * 0.6); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(top.x - 5, y + size * 0.7); ctx.lineTo(top.x + 5, y + size * 0.7); ctx.lineTo(top.x, y + size * 1.1); ctx.fill();
-  if (pic) {
-    const q = size * 1.25, ox = warn ? -size * 0.35 : 0;
-    ctx.drawImage(pic, top.x - q / 2 + ox, y - q / 2, q, q);
-    if (warn) {   // rotes Ausrufezeichen: diese Ware fehlt
-      ctx.fillStyle = '#d6332a'; ctx.font = `900 ${Math.round(size * 1.1)}px ${FONT}`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('!', top.x + q / 2 + ox + size * 0.25, y);
-    }
-    return;
+  const w = (pic ? size * 1.15 : ctx.measureText(icon).width) + (warn ? size * 0.7 : 0) + size * 0.8;
+  ctx.fillStyle = 'rgba(255,255,255,0.96)';
+  roundRect(x - w / 2, y - size * 0.75, w, size * 1.5, size * 0.6); ctx.fill();
+  if (ring) { ctx.lineWidth = Math.max(2, size * 0.16); ctx.strokeStyle = ring; ctx.stroke(); }
+  ctx.fillStyle = ring || 'rgba(255,255,255,0.96)';
+  ctx.beginPath(); ctx.moveTo(x - 5, y + size * 0.75); ctx.lineTo(x + 5, y + size * 0.75); ctx.lineTo(x, y + size * 1.15); ctx.fill();
+  const ox = warn ? -size * 0.35 : 0;
+  if (pic) { const q = size * 1.25; ctx.drawImage(pic, x - q / 2 + ox, y - q / 2, q, q); }
+  else { ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(icon, x + ox, y); }
+  if (warn) {
+    ctx.fillStyle = ring; ctx.font = `900 ${Math.round(size * 1.1)}px ${FONT}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('!', x + w / 2 - size * 0.55, y);
   }
-  ctx.fillStyle = '#000';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(icon, top.x, y);
 }
 
 // ---------------------------------------------------------------------

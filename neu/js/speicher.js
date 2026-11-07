@@ -8,7 +8,7 @@ const SETTINGS_KEY = 'epochia-settings';
 const SLOTS = [1, 2, 3];
 
 let currentSlot = 1;
-let settings = { sound: true, music: true, footprint: false };
+let settings = { sound: true, music: true, footprint: false, bubbles: 'probleme' };
 
 function storageGet(key) {
   try { return localStorage.getItem(key); } catch (e) { return null; }

@@ -7,8 +7,50 @@ let saveTimer = 0;
 let uiTimer = 0;
 
 function setLoading(progress) {
-  const bar = $('loading-bar');
+  const bar = $('loading-bar'), pct = $('loading-pct');
   if (bar) bar.style.width = Math.round(progress * 100) + '%';
+  if (pct) pct.textContent = Math.round(progress * 100) + ' %';
+}
+
+// Ladeschritte (Emin, 07.11.): Sobald eine Gruppe Bilder fertig ist, erscheint „✔ … geladen“ – nacheinander, je mindestens
+// eine halbe Sekunde lang zu sehen (das Laden selbst wird dadurch nicht langsamer).
+const LOAD_GROUPS = [
+  { id: 'gelaende', text: 'Wiesen, Bäume und der Fluss' },
+  { id: 'wege', text: 'Wege und Brücken' },
+  { id: 'haeuser', text: 'Häuser' },
+  { id: 'werk', text: 'Werkstätten und Felder' },
+  { id: 'wunder', text: 'Wunderwerke' },
+  { id: 'figuren', text: 'Leute und Tiere' },
+  { id: 'waren', text: 'Waren und Fundstücke' },
+  { id: 'forschung', text: 'Forschungen' },
+  { id: 'oberflaeche', text: 'Knöpfe und Leisten' },
+];
+function loadGroupOf(name) {
+  const folder = imageFolder(name);
+  if (/^(pfad|bruecke)/.test(name)) return 'wege';
+  if (folder === 'gelaende') return 'gelaende';
+  if (folder === 'figuren') return 'figuren';
+  if (folder === 'waren' || folder === 'fundstuecke') return 'waren';
+  if (folder === 'forschung') return 'forschung';
+  if (folder.startsWith('gebaeude/')) {
+    const def = Object.values(BUILDINGS).find(d => d.bild && imageFolder(d.bild) === folder);
+    if (!def) return /hoehle|steinkreis|halle|salzberg/.test(folder) ? 'wunder' : 'werk';
+    if (def.wonder || def.line === 'wahrzeichen') return 'wunder';
+    return ['wohnen', 'grosswohnen', 'wasserwohnen'].includes(def.line) ? 'haeuser' : 'werk';
+  }
+  return 'oberflaeche';
+}
+const loadSteps = [];
+let loadStepTimer = null;
+function loadStepDone(text) {
+  loadSteps.push('✔ ' + text + ' geladen');
+  if (!loadStepTimer) nextLoadStep();
+}
+function nextLoadStep() {
+  const el = $('loading-step');
+  if (!loadSteps.length) { loadStepTimer = null; return; }
+  if (el) el.textContent = loadSteps.shift();
+  loadStepTimer = setTimeout(nextLoadStep, 500);
 }
 
 // Logo-Bild statt Text-Logo (sobald Emins Schriftzug geladen ist)
@@ -23,7 +65,13 @@ async function preloadImages() {
   const seasonal = n => /-(winter|herbst|fruehling)$/.test(n);
   const names = imageNames().filter(n => n !== 'logo' && !seasonal(n));
   let done = 0;
-  await Promise.all(names.map(n => loadImage(n).then(() => setLoading(++done / names.length))));
+  const left = {};
+  for (const n of names) { const g = loadGroupOf(n); left[g] = (left[g] || 0) + 1; }
+  await Promise.all(names.map(n => loadImage(n).then(() => {
+    setLoading(++done / names.length);
+    const g = loadGroupOf(n);
+    if (--left[g] === 0) loadStepDone(LOAD_GROUPS.find(x => x.id === g).text);
+  })));
   setTimeout(() => imageNames().filter(seasonal).forEach(n => loadImage(n)), 1500);
 }
 

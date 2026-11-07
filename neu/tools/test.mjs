@@ -2185,7 +2185,11 @@ test('Schatzkiste: Fenster zeigt Fundstücke, Unbekanntes grau, Knöpfe tun, was
   g.run(`state.finds = { roetel: 7, feder: 3 }; state.basket = ['muschel']; addSpot('wald', 'feder');`);
   const html = g.run(`chestHtml()`);
   ok(html.includes('Rötel') && !html.includes('Sonnenstein') && html.includes('???'), 'Unbekanntes wird verraten oder Bekanntes fehlt');
-  ok(html.includes('Fundkorb') && html.includes('Hinschauen') && html.includes('Eintauschen'), 'Knöpfe fehlen');
+  ok(html.includes('Fundkorb') && html.includes('Hinschauen') && html.includes('doSwapFind') && html.includes('doGiveSpare'), 'Knöpfe fehlen');
+  // Tauschen nur bei Stücken, die noch fehlen; Doppelte lassen sich gegen Wissen abgeben (Emin, 07.11.)
+  ok(!html.includes("doSwapFind('roetel')"), 'Tausch-Knopf bei einem Stück, das schon reicht');
+  const w = g.run(`(() => { const before = state.res.wissen || 0, n = spareTotal(); const got = giveSpareFinds(); return [n, got, (state.res.wissen || 0) - before, spareTotal()]; })()`);
+  ok(w[0] > 0 && w[1] === w[0] * 5 && w[2] > 0 && w[3] === 0, 'Doppelte abgeben ging nicht: ' + w);
   ok(g.run(`FIND_PAGES.every(p => Object.values(FINDS).some(f => f.page === p.id)) && Object.values(FINDS).every(f => FIND_PAGES.some(p => p.id === f.page) && f.hint)`), 'Fundstück ohne Seite oder Hinweis');
   ok(g.run(`chestBadge()`) === 2, 'Zähler am Knopf');
   ok(g.run(`Object.values(FINDS).filter(f => f.spot).every(f => SPOT_STYLE[f.spot]) && CONFIG.finds.luck.every(r => FINDS[r.find]) && !!FINDS.goldblatt && !!FINDS.holzkohle`), 'Falsche Verweise in den Daten');

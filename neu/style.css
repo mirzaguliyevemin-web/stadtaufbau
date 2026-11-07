@@ -425,8 +425,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #turn-hint .btn { padding: 6px 14px; }
 #toast {
   position: fixed;
-  left: 50%; top: 50px;
-  transform: translate(-50%, -20px);
+  left: 50%; top: auto; bottom: calc(var(--bar-h, 100px) + 18px + var(--safe-b));   /* unten: oben verdeckte sie die Titel der Fenster (07.11.) */
+  transform: translate(-50%, 20px);
   background: var(--paper);
   color: var(--ink);
   padding: 8px 16px;
@@ -983,3 +983,80 @@ details.more[open] summary { margin-bottom: 4px; }
 .shop-pack small, .shop-euro { display: block; font-size: 11px; font-weight: normal; opacity: 0.8; }
 .shop-speed .q-main { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 .shop-speed-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+
+/* Auswahl mit mehreren Knöpfen (Menü: Blasen) */
+.seg { display: inline-flex; border: 2px solid var(--line); border-radius: 12px; overflow: hidden; flex: none; }
+.seg button { border: 0; background: var(--paper); padding: 6px 10px; font-weight: bold; font-size: 13px; }
+.seg button + button { border-left: 1px solid var(--line-soft); }
+.seg button.on { background: linear-gradient(#7ed957, #4caf50); color: #fff; }
+
+/* Wunderwerke: Effekte als Kacheln, fertige Bauschritte eingeklappt (Emin, 07.11.) */
+.effect-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; margin: 10px 0; }
+.effect { display: flex; gap: 10px; align-items: center; background: var(--tint); border-radius: 12px; padding: 9px 12px; font-size: 14px; font-weight: bold; }
+.effect .emoji { font-size: 22px; }
+.done-badge { display: inline-block; background: #dff0cf; color: var(--green-dark); border-radius: 99px; padding: 3px 10px; font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+details.history { margin-top: 10px; border-top: 1px dashed var(--line-soft); padding-top: 8px; }
+details.history summary { cursor: pointer; font-weight: bold; color: var(--ink-soft); padding: 6px 2px; }
+.wonder-where { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--tint); border: 2px solid var(--accent); border-radius: 14px; padding: 10px 14px; margin: 8px 0; }
+.wonder-where p { margin: 0; flex: 1; min-width: 200px; }
+
+/* Kleines Gebäudefenster als schmale Leiste, tags und nachts gleich (Emin, 07.11.) */
+#info-pop.chip { border-radius: 40px; padding: 5px 6px 5px 8px; max-width: min(440px, calc(100vw - 16px)); background: linear-gradient(#fff, #fffdf6); color: #3a3a22; border-color: #b9a878; }
+.pop-chip { display: flex; align-items: center; gap: 8px; }
+.pop-chip .pop-pic { width: 40px; height: 40px; font-size: 28px; line-height: 40px; flex: none; }
+.pop-text { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.pop-text b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#info-pop .pop-text small { margin: 1px 0 0; font-size: 12px; font-weight: bold; color: #6e6a4a; }
+.lvl-badge { background: #f2b632; color: #4a3200; border-radius: 99px; padding: 1px 7px; font-size: 12px; vertical-align: 1px; }
+/* Runder Knopf: Schließen, Info, Pause, Ausbauen – überall gleich, mindestens fingergroß */
+.rb { width: 44px; height: 44px; flex: none; border-radius: 50%; border: 2px solid #b9a878; background: #eef4dc; color: #3a3a22;
+  display: inline-grid; place-items: center; font-size: 18px; font-weight: bold; padding: 0; box-shadow: 0 2px 0 #b9a878; }
+.rb:active { transform: translateY(2px); box-shadow: 0 0 0 #b9a878; }
+.rb.main { background: linear-gradient(#7ed957, #4caf50); border-color: #2e7d32; color: #fff; box-shadow: 0 2px 0 #2e7d32; font-family: Georgia, serif; font-style: italic; font-size: 20px; }
+.rb.up { background: linear-gradient(#ffe08a, #f2b632); border-color: #b07a10; color: #4a3200; box-shadow: 0 2px 0 #b07a10; }
+.rb:disabled { opacity: 0.45; }
+
+/* Ladefenster: Prozent und Ladeschritte (Emin, 07.11.) */
+.load-row { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
+.load-row .load-track { margin-top: 0; }
+#loading-pct { color: #fff; font-size: 20px; min-width: 3.2em; text-align: left; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6); font-variant-numeric: tabular-nums; }
+#loading-step { color: #fff; font-weight: bold; font-size: 16px; margin: 10px 0 0; min-height: 1.3em; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); }
+#loading-text { margin-top: 4px; font-size: 13px; opacity: 0.9; }
+
+/* Das kleine Fenster liegt über dem Ältesten, der Älteste ist kleiner (verdeckte das Fenster, 07.11.) */
+#info-pop { z-index: 30; }
+#tutorial .elder { width: 72px; height: 72px; }
+#tutorial { max-width: min(400px, 62vw); }
+#info-pop .pop-text small { white-space: normal; }
+
+/* Großes Gebäudefenster: Werte als Kacheln, ✕ oben rechts, Abreißen als roter Text (Design-Bewertung 07.11.) */
+#dialog-box { position: relative; }
+.dlg-x { position: absolute; top: 8px; right: 8px; width: 38px; height: 38px; font-size: 15px; z-index: 2; }
+.dlg-head h2 { padding-right: 40px; text-align: left !important; }
+.vtiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; margin: 8px 0; }
+.vtile { background: var(--tint); border-radius: 12px; padding: 6px 4px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+.vtile b { font-size: 17px; display: flex; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; }
+.vtile b .ic.mini { width: 22px; height: 22px; }
+.vtile small { font-size: 11px; color: var(--ink-soft); font-weight: bold; }
+.vtile.bad { background: #fde3dc; }
+.vtile.bad b { color: #b0392b; }
+ul.lines.notes { margin: 4px 0; padding-left: 4px; list-style: none; font-size: 13px; }
+.level-card h3 { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.level-card .stars { color: #f2b632; letter-spacing: 2px; font-size: 17px; }
+.level-card .stars i { font-style: normal; color: var(--line-soft); }
+.why-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.why { color: #b06a00; font-weight: bold; font-size: 13px; }
+.btn.text-danger { background: transparent; box-shadow: none; color: #c0392b; margin-left: auto; }
+details.more summary { background: transparent; color: var(--green-dark); padding: 6px 2px; }
+details.more summary::before { content: '▸ '; }
+details.more[open] summary::before { content: '▾ '; }
+
+/* Schmale Seitenleiste: nur Symbole mit Zahl-Punkt, die Forschung zeigt ihre Restzeit (Design-Bewertung 07.11.) */
+.side-btn { width: 50px; height: 50px; }
+.side-btn span { display: none; }
+.side-btn.running { height: 58px; }
+.side-btn.running span { display: block; font-size: 10px; }
+.side-btn .ic { width: 32px; height: 32px; }
+@media (max-height: 420px) { .side-btn { width: 44px; height: 44px; } .side-btn.running { height: 52px; } .side-btn .ic { width: 28px; height: 28px; } }
+.find-card.finished { opacity: 0.75; }
+.swap-help .q-main small { display: block; }

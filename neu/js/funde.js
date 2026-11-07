@@ -252,15 +252,26 @@ function claimBasket() {
 function findSpare(id) { return Math.max(0, findCount(id) - findNeed(id)); }
 function spareTotal(except) { return Object.keys(FINDS).reduce((n, id) => n + (id === except ? 0 : findSpare(id)), 0); }
 
+// Getauscht wird nur gegen ein Stück, das noch fehlt (vorher ging es auch bei schon verbauten – dann war es wieder doppelt)
 function swapFinds(target) {
   const cost = CONFIG.finds.swapCost;
-  if (!findAvailable(target) || spareTotal(target) < cost) return false;
+  if (!findAvailable(target) || findCount(target) >= findNeed(target) || spareTotal(target) < cost) return false;
   for (let left = cost; left > 0; left--) {
     const id = Object.keys(FINDS).filter(k => k !== target && findSpare(k) > 0).sort((a, b) => findSpare(b) - findSpare(a))[0];
     state.finds[id]--;
   }
   addFind(target);
   return true;
+}
+
+// Alle Doppelten dem Ältesten geben: je Stück etwas Wissen. Gibt das Wissen zurück (0 = nichts zu geben).
+function giveSpareFinds() {
+  let n = 0;
+  for (const id of Object.keys(FINDS)) { const k = findSpare(id); if (k > 0) { state.finds[id] -= k; n += k; } }
+  if (!n) return 0;
+  const w = n * CONFIG.finds.spareWissen;
+  addReward({ wissen: w });
+  return w;
 }
 
 // ---------------------------------------------------------------------
@@ -416,13 +427,15 @@ function chestBadge() { return state.spots.length + state.basket.length; }
 
 function findCardHtml(id) {
   const f = FINDS[id], have = findCount(id), need = findNeed(id), open = findAvailable(id), known = findEver(id);
-  const canSwap = open && spareTotal(id) >= CONFIG.finds.swapCost;
-  return `<div class="find-card${known ? ' got' : ''}">
+  // Tauschen nur, wo noch etwas fehlt (Emin, 07.11.: der Knopf stand auch bei fertig verbauten Stücken)
+  const missing = open && have < need, canSwap = missing && spareTotal(id) >= CONFIG.finds.swapCost;
+  const status = need > 0 ? `${have} / ${need}` : have ? `✔ verbaut · ${have} doppelt` : '✔ verbaut';
+  return `<div class="find-card${known ? ' got' : ''}${need === 0 && known ? ' finished' : ''}">
     <div class="find-ic">${known ? iconHtml(f.bild, f.icon, 'big') : '<span class="ic emoji big">❓</span>'}</div>
     <b>${known ? esc(f.name) : '???'}</b>
-    ${open || known ? `<em>${need > 0 ? `${have} / ${need}` : have ? `${have} übrig` : '✔ verbaut'}</em>` : ''}
+    ${open || known ? `<em>${status}</em>` : ''}
     <small>${esc(f.hint)}</small>
-    ${canSwap ? `<button class="btn small" onclick="doSwapFind('${id}')">Eintauschen</button>` : ''}
+    ${canSwap ? `<button class="btn small primary" onclick="doSwapFind('${id}')">🔄 ${CONFIG.finds.swapCost} Doppelte → 1 Stück</button>` : ''}
   </div>`;
 }
 
@@ -437,7 +450,15 @@ function chestHtml() {
       <button class="btn" onclick="goToSpot(${i})">Hinschauen</button></div>`);
   });
   const spare = spareTotal();
-  if (spare) top.push(`<p class="hint">Doppelte Stücke: ${spare}. ${CONFIG.finds.swapCost} davon tauscht der Älteste gegen ein Stück deiner Wahl.</p>`);
+  if (spare) {
+    const wanted = Object.keys(FINDS).filter(id => findAvailable(id) && findCount(id) < findNeed(id));
+    top.push(`<div class="quest-card swap-help"><div class="q-medal"><span class="ic emoji big">🔄</span></div><div class="q-main">
+      <b>Du hast ${spare} doppelte Stücke</b>
+      <small>Doppelt ist, was dein Wunderwerk nicht mehr braucht. ${wanted.length
+        ? `Der Älteste tauscht ${CONFIG.finds.swapCost} Doppelte gegen 1 Stück, das dir noch fehlt – tippe dort auf „🔄“.`
+        : 'Gerade fehlt dir kein Stück, das man finden kann. Gib die Doppelten dem Ältesten, er macht daraus Wissen.'}</small></div>
+      <button class="btn" onclick="doGiveSpare()">💡 Abgeben: +${spare * CONFIG.finds.spareWissen} Wissen</button></div>`);
+  }
   const pages = FIND_PAGES.map(p => {
     const ids = Object.keys(FINDS).filter(id => FINDS[id].page === p.id), got = ids.filter(findEver).length;
     return `<h3 class="find-page">${esc(p.name)} <small>${got} von ${ids.length}</small></h3>${wonderAlbumHtml(p.id)}<div class="find-grid">${ids.map(findCardHtml).join('')}</div>`;
@@ -455,6 +476,13 @@ function refreshChest() { if (pageOpen === 'chest') $('page-body').innerHTML = c
 function doClaimBasket() {
   const list = claimBasket();
   if (list.length) { toast('🧺 ' + list.map(id => `${FINDS[id].icon} ${FINDS[id].name}`).join(', ')); playSound('muenze'); }
+  refreshChest();
+  renderAll();
+}
+
+function doGiveSpare() {
+  const w = giveSpareFinds();
+  if (w) { toast(`💡 Der Älteste schreibt die Geschichten der Fundstücke auf: +${w} Wissen`); playSound('muenze'); }
   refreshChest();
   renderAll();
 }

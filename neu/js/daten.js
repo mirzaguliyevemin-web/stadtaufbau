@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 141;
+const APP_VERSION = 142;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -146,6 +146,7 @@ const CONFIG = {
     basketFirst: 900,     // … das erste nach 15 Minuten Abwesenheit
     basketSecond: 3600,   // … das zweite nach 1 Stunde
     swapCost: 3,          // so viele doppelte Stücke ergeben ein Stück nach Wahl
+    spareWissen: 5,       // so viel Wissen bringt ein doppeltes Stück, das man abgibt (Emin, 07.11.: Doppelte waren sonst nutzlos)
     luck: [               // Glück bei der Arbeit: pity = Sekunden Arbeit, nach denen das Stück sicher kommt
       { find: 'sonnenstein', line: 'stein', pity: 1800 },
       { find: 'salzkristall', line: 'salz', pity: 900 },

@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 120;
+const APP_VERSION = 121;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -568,7 +568,7 @@ const BUILDINGS = {
     info: 'Schafe und Rinder geben Fleisch, Milch und Wolle – das ganze Jahr.',
   },
   baumgaertnerin: {
-    name: 'Baumgärtnerin', icon: '🌳', size: 2, line: 'pflanzen', tier: 1, stage: 'frueh', bild: '1-pflanzerin', views: ['r2'],
+    name: 'Baumgärtnerin', icon: '🌳', size: 2, line: 'pflanzen', tier: 1, stage: 'frueh', bild: '2-baumgaertnerin',
     color: '#6a9a3a', cost: { holz: 25, stein: 8 }, time: 40, workers: 1, plants: true, plantSeconds: 40, requires: 'kupferbeil',
     info: 'Zieht Setzlinge und pflanzt schneller als die Pflanzerin. Holzfäller und Köhler brauchen viel Holz.',
   },

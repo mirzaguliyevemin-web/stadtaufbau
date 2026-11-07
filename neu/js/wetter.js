@@ -109,9 +109,18 @@ function updateWeatherFx(dt, w) {
   for (const sm of weatherFx.smoke) { sm.k += dt / 6; if (sm.k > 1) { sm.k = 0; sm.i = Math.floor(weatherRandom() * 1e6); } }
   for (const s of weatherFx.splashes) s.k += dt / 0.35;
   weatherFx.splashes = weatherFx.splashes.filter(s => s.k < 1);
-  // Wolkenschatten ziehen langsam über das Land
-  keepCount(weatherFx.clouds, w.id === 'klar' ? 0 : 5, i => ({ x: weatherRandom() * viewW * 1.4 - viewW * 0.2, y: weatherRandom() * viewH, r: 120 + weatherRandom() * 140 }));
-  for (const c of weatherFx.clouds) { c.x += 14 * dt; if (c.x - c.r > viewW) { c.x = -c.r; c.y = weatherRandom() * viewH; } }
+  // Wolkenschatten ziehen langsam über das Land. Sie liegen auf der Karte (Weltkoordinaten), nicht auf dem Bildschirm –
+  // sonst blieben sie beim Verschieben stehen und das Land rutschte darunter weg (Emin, 07.11.2026).
+  const z = cam.zoom || 1, halfW = viewW / 2 / z, halfH = viewH / 2 / z;
+  const spawn = (left) => { const r = (120 + weatherRandom() * 140) / Math.max(0.5, Math.min(1.5, z));
+    return { wx: left ? cam.x - halfW - r : cam.x + (weatherRandom() * 2.8 - 1.4) * halfW, wy: cam.y + (weatherRandom() * 2 - 1) * halfH, r }; };
+  keepCount(weatherFx.clouds, w.id === 'klar' ? 0 : 5, () => spawn(false));
+  for (const c of weatherFx.clouds) {
+    if (c.wx === undefined) Object.assign(c, spawn(false));
+    c.wx += 14 * dt / z;
+    // weit aus dem Bild (gezogen oder verschoben): links neu hereinziehen lassen
+    if (Math.abs(c.wx - cam.x) > halfW * 1.6 + c.r || Math.abs(c.wy - cam.y) > halfH * 1.6 + c.r) Object.assign(c, spawn(c.wx > cam.x));
+  }
 }
 
 function drawWeather(dt) {
@@ -140,11 +149,13 @@ function drawWeather(dt) {
     ctx.stroke();
   }
   for (const c of weatherFx.clouds) {
-    const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r);
+    if (c.wx === undefined) continue;
+    const z = cam.zoom || 1, cx = (c.wx - cam.x) * z + viewW / 2, cy = (c.wy - cam.y) * z + viewH / 2, cr = c.r * z;
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr);
     g.addColorStop(0, `rgba(30,40,60,${0.13 * k})`);
     g.addColorStop(1, 'rgba(30,40,60,0)');
     ctx.fillStyle = g;
-    ctx.beginPath(); ctx.ellipse(c.x, c.y, c.r, c.r * 0.55, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx, cy, cr, cr * 0.55, 0, 0, 7); ctx.fill();
   }
   // Regen
   if (weatherFx.drops.length) {

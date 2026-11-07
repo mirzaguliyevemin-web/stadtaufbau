@@ -26,6 +26,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-07, Epochia Version 139 – Fehler Emin: runde Schatten wanderten beim Verschieben mit dem Bildschirm. Die Wolkenschatten (bewölktes Wetter) liegen jetzt auf der Karte und ziehen über das Land.
 - 2026-11-07, Epochia Version 138 – Fehler Emin: Gebäude verschwinden am Handy, beim Verschieben kurz sichtbar. Ursache wahrscheinlich ein Fehler beim Zeichnen eines einzelnen Objekts, der die ganze Zeichenschleife abbrach (am PC nicht nachstellbar). Jetzt wird jedes Objekt einzeln abgesichert; Fehler stehen im Menü unter „Letzte Fehler“ (für die genaue Ursache).
 - 2026-11-07, Epochia Version 136 – Wunsch Emin: Stufen an die Zeitalter angepasst (3 je Zeitalter, weitergezählt bis 24; jetzt bis 9 spielbar), zwei Wohn-Reihen: kleines Haus wird feiner (neu Flechtwerkhaus, Steinhaus), Langhaus ist eigene Reihe und muss nicht mehr ins kleine Haus passen.
 - 2026-11-07, Epochia Version 132 – Wunsch Emin: Produktionsgebäude haben Stufen 1–5 (je Stufe +1 Arbeiter und +50 % Ertrag; Ausbau kostet Baukosten ×1,5/2,5/4/6, ab Stufe 4 Werkzeug; Steinzeit bis 3, Bronzezeit 4, Eisenzeit 5; Stufe bleibt beim Weiterentwickeln, Bot baut mit aus). Plan: `docs/plan-stufen.md`.

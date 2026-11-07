@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 116;
+const APP_VERSION = 117;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -529,7 +529,7 @@ const BUILDINGS = {
     info: 'Gräbt Lehm und Ton am Ufer. Muss am Wasser stehen.',
   },
   kupferschmied: {
-    name: 'Kupferschmied', icon: '🔨', size: 2, line: 'werkzeug', tier: 1, stage: 'kupfer', bild: '1-steinschlaeger', views: ['r2'],
+    name: 'Kupferschmied', icon: '🔨', size: 2, line: 'werkzeug', tier: 1, stage: 'kupfer', bild: '2-kupferschmied',
     color: '#b5683a', cost: { holz: 40, stein: 50, kupfer: 10 }, time: 90, workers: 2, consumes: { kupfer: 1, holz: 1 }, produces: { werkzeug: 2 },
     requires: 'kupferschmied', manualUpgrade: true, upgradeTo: 'bronzeschmied',
     info: 'Schmiedet aus 1 Kupfer und 1 Holz 2 Werkzeuge. Lässt etwas Kupfer für Bauen und Forschung liegen. Braucht Kupfer – darum nur per Knopf umbauen, wenn es da ist.',

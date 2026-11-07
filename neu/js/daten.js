@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 136;
+const APP_VERSION = 137;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -498,7 +498,7 @@ const BUILDINGS = {
   // Zwei Wohn-Reihen (Emin, 07.11.2026): das kleine Haus (2×2) wird mit jedem Zeitalter feiner, das große Wohnhaus
   // (3×3, ab dem Langhaus) ist eine eigene Reihe und wird später mehrstöckig. Bild bis Canva: das Grubenhaus.
   flechtwerkhaus: {
-    name: 'Flechtwerkhaus', icon: '🏠', size: 2, line: 'wohnen', tier: 3, stage: 'kupfer', bild: '1-grubenhaus', views: ['r2'],
+    name: 'Flechtwerkhaus', icon: '🏠', size: 2, line: 'wohnen', tier: 3, stage: 'kupfer', bild: '2-flechtwerkhaus',
     color: '#b08a50', cost: { holz: 50, ton: 15 }, time: 90, housing: 8, requires: 'lehmbau', upgradeTo: 'steinhaus',
     info: 'Wände aus Weidengeflecht und Lehm, ein kleiner Garten – Platz für 8 Menschen.',
   },

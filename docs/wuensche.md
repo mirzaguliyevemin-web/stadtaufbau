@@ -14,7 +14,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 - Design der Fenster (Emin, 07.11., mit Bildern): 1. Der Info-Knopf „Mehr“ im kleinen Gebäudefenster ist zu groß und nicht schön.
   2. Die Waren-Blasen über den Gebäuden blinken, das stört nach einer Weile und sieht nicht gut aus. 3. Fertige Wunderwerke zeigen
   weiter alle Bauschritte mit Kosten – nach dem Bau sollen nur noch die Effekte zu sehen sein.
-  → Claude macht zuerst eine bebilderte Design-Bewertung aller Fenster mit Vorschlägen (Emin: „Ja, bitte“), danach umsetzen.
+  → Claude macht zuerst eine bebilderte Design-Bewertung aller Fenster mit Vorschlägen (Emin: „Ja, bitte“), danach umsetzen. Bewertung fertig (07.11.): https://claude.ai/artifact/7D27xk8LvXA9Us368aRMTT – Reihenfolge dort am Ende.
+- Ladebildschirm (Emin, 07.11.): Ladebalken mit Prozent; solange es lädt, nacheinander Texte wie „Straßen geladen“, „Häuser geladen“ usw.
 
 - Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, noch ohne Bilder (ab 27.11.). Plan: `docs/epoche-2-bronzezeit.md`.
 

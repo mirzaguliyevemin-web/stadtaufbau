@@ -816,6 +816,9 @@ function resetCanvasCaches() {
   cloudPuffSprite = null;
   cloudLayer.canvas = null; cloudLayer.g = null; cloudLayer.z = 0;
   for (const k of Object.keys(sprites)) delete sprites[k];
+  snowSprites.clear();   // selbst verschneite Gebäude im Winter (Emin, 07.11.: Häuser ohne eigenes Winterbild fehlten)
+  alphaCache.clear();    // Durchsichtigkeit zum Antippen – aus einer geleerten Leinwand gelesen wäre alles durchsichtig
+  if (typeof guideSprite !== 'undefined') guideSprite = null;
   chunks = []; chunksAlive = 0;
   // aus Bildern gebaute Leinwände (Pfahlbau ohne Boot, Wasserrand): aus der Datei neu bauen
   for (const [name, img] of Object.entries(images))

@@ -636,7 +636,7 @@ function guideFigure() {
   const img = images[GUIDE_FACE];
   if (!img || !img.width) return null;
   if (guideSprite || typeof document === 'undefined') return guideSprite;
-  const c = document.createElement('canvas');
+  const c = newCanvas();
   c.width = img.width; c.height = img.height;
   const g = c.getContext('2d');
   g.drawImage(img, 0, 0);

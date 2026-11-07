@@ -2536,6 +2536,8 @@ test('Handy: Nach der Rückkehr werden vorgezeichnete Leinwände (Wolken, Boden)
   g.run(`drawScene(); resetCanvasCaches(); drawScene();`);
   ok(g.run(`cloudLayer.z === 0 || cloudLayer.canvas !== null`) !== undefined, 'Wolkendecke kaputt');
   ok(g.run(`canvasLost(null) === false && canvasLost({ isContextLost: () => true }) === true`), 'Verlorene Leinwand wird nicht erkannt');
+  // auch die selbst verschneiten Winterbilder und die Durchsichtigkeit zum Antippen werden neu angelegt
+  ok(g.run(`(() => { snowSprites.set({}, {}); alphaCache.set({}, null); resetCanvasCaches(); return snowSprites.size === 0 && alphaCache.size === 0; })()`), 'Schnee-Bilder bleiben nach dem Leeren stehen');
   noErrors(g);
 });
 

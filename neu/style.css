@@ -1067,3 +1067,12 @@ details.more[open] summary::before { content: '▾ '; }
 @media (prefers-reduced-motion: reduce) { .bar-item.pulse { animation: none; } }
 .quest-card.ready { border-color: #f2c94c; }
 .quest-card .why { color: #b06a00; font-weight: bold; }
+
+/* Info vor dem Bauen (Emin, 07.11.): ⓘ an jeder Karte der Bauleiste, Kurzinfo beim Hinsetzen */
+.bar-info { position: absolute; top: 3px; right: 3px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #2e7d32; padding: 0;
+  background: linear-gradient(#7ed957, #4caf50); color: #fff; font: italic bold 15px Georgia, serif; line-height: 22px; z-index: 2; box-shadow: 0 1px 0 #2e7d32; }
+.bar-item .new + .bar-info, .bar-item .bar-info { touch-action: manipulation; }
+.bar-item .new { right: auto; left: 3px; }
+.round.info { background: linear-gradient(#7ed957, #4caf50); font: italic bold 22px Georgia, serif; color: #fff; }
+.action-text .ghost-info { display: block; color: var(--ink-soft); font-size: 12px; margin-top: 1px; }
+.bar-facts { background: var(--tint); border-radius: 12px; padding: 8px 10px; font-weight: bold; }

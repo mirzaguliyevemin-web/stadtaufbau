@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 144;
+const APP_VERSION = 145;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -466,7 +466,7 @@ const BUILDINGS = {
     info: 'Wunderwerk der Bronzezeit: Tippe es an, um Abschnitt für Abschnitt weiterzubauen und die Himmelsscheibe zusammenzusetzen.',
   },
   // ----- Eisenzeit (Entwurf: docs/epoche-3-eisenzeit.md). Weiterentwicklungen zeigen so lange das Bild der Vorstufe, neue Gebäude den Platzhalter.
-  steinhaus: { name: 'Steinhaus', icon: '🏠', size: 2, line: 'wohnen', tier: 4, stage: 'eisen1', bild: '1-grubenhaus', views: ['r2'], color: '#9a8a70', cost: { stein: 70, holz: 40, werkzeug: 3 }, time: 120, housing: 10, requires: 'gehoefte', info: 'Steinsockel, Fachwerk und ein festes Dach – Platz für 10 Menschen.' },
+  steinhaus: { name: 'Steinhaus', icon: '🏠', size: 2, line: 'wohnen', tier: 4, stage: 'eisen1', bild: '3-steinhaus', color: '#9a8a70', cost: { stein: 70, holz: 40, werkzeug: 3 }, time: 120, housing: 10, requires: 'gehoefte', info: 'Steinsockel, Fachwerk und ein festes Dach – Platz für 10 Menschen.' },
   gehoeft: { name: 'Gehöft', icon: '🏠', size: 3, line: 'grosswohnen', tier: 3, stage: 'eisen1', bild: '1-langhaus', views: ['r2'], color: '#9a6a3a', cost: { holz: 200, stein: 110, eisen: 5 }, time: 240, housing: 30, requires: 'gehoefte', manualUpgrade: true, info: 'Ein großer Hof mit Stall und Vorrat, Platz für 30 Menschen. Braucht Eisen: darum nur per Knopf umbauen.' },
   stadthaus: { name: 'Stadthaus', icon: '🏘️', size: 3, line: 'grosswohnen', tier: 4, stage: 'eisen3', bild: '1-langhaus', views: ['r2'], color: '#8a5f36', cost: { holz: 240, stein: 160, eisen: 15 }, time: 270, housing: 36, requires: 'stadthaeuser', manualUpgrade: true, info: 'Dicht gebaute Häuser einer kleinen Stadt, Platz für 36 Menschen. Braucht Eisen: darum nur per Knopf umbauen.' },
   seehof: { name: 'Seehof', icon: '🛶', size: 3, line: 'wasserwohnen', tier: 2, stage: 'eisen2', bild: '1-pfahlbau', views: ['r1', 'r2'], color: '#7a6a4a', cost: { holz: 220, stein: 60, eisen: 10 }, time: 240, housing: 22, needsWater: true, requires: 'seehoefe', info: 'Große Häuser auf Pfählen, Platz für 22 Menschen.' },

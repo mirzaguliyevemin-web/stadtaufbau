@@ -339,6 +339,7 @@ function renderBuildBar() {
         onpointerdown="onBarPointerDown(event,'${type}',${locked})" onpointermove="onBarPointerMove(event)"
         onpointerup="onBarPointerUp(event)" onpointercancel="onBarPointerUp(event)">
       ${isNew ? '<span class="new">Neu</span>' : ''}
+      <button class="bar-info" aria-label="Was macht ${esc(def.name)}?" onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation(); showBarInfo('${type}')">i</button>
       ${iconHtml(def.bild, def.icon, 'big')}
       <span class="txt"><span class="name">${esc(def.name)}</span>
       <span class="costs">${locked ? '🔒' : costHtml(def.cost)}</span></span>
@@ -366,8 +367,10 @@ function renderActionBar() {
     const s = def.size;
     const road = ghost.from >= 0 ? touchesNetwork(ghost.x, ghost.y, s) || state.buildings[ghost.from].type === 'lagerfeuer' : touchesNetwork(ghost.x, ghost.y, s);
     const title = ghost.from < 0 ? `${def.icon} ${esc(def.name)} · ${costHtml(def.cost)} · ⏱ ${formatTime(buildTimeOf(ghost.type))}` : `${def.icon} ${esc(def.name)} verschieben`;
-    html = `<div class="action-text">${title}<small class="${problem ? 'bad' : road ? 'good' : 'warn'}">${esc(problem || (road ? (ghost.from < 0 ? 'Passt! Mit ✔ bauen' : 'Passt! Mit ✔ abstellen') : 'Passt – danach einen Trampelpfad zum Lagerfeuer legen'))}</small></div>
+    const what = ghost.from < 0 ? `<small class="ghost-info">${buildFactsHtml(ghost.type)}</small>` : '';
+    html = `<div class="action-text">${title}${what}<small class="${problem ? 'bad' : road ? 'good' : 'warn'}">${esc(problem || (road ? (ghost.from < 0 ? 'Passt! Mit ✔ bauen' : 'Passt! Mit ✔ abstellen') : 'Passt – danach einen Trampelpfad zum Lagerfeuer legen'))}</small></div>
       <button class="round no" onclick="cancelGhost()">✖</button>
+      ${ghost.from < 0 ? `<button class="round info" aria-label="Was macht das Gebäude?" onclick="showBarInfo('${ghost.type}')">i</button>` : ''}
       <button class="round turn" onclick="rotateGhost()">↻</button>
       <button class="round yes" ${problem ? 'disabled' : ''} onclick="confirmGhost()">✔</button>`;
   } else if (pathMode) {
@@ -378,6 +381,37 @@ function renderActionBar() {
   if (html !== lastAction) { el.innerHTML = html; lastAction = html; }
   show($('buildbar'), !html);
   show($('bar-tabs'), !html);
+}
+
+// Was macht ein Gebäude, bevor man es baut? (Emin, 07.11.) Kurz: die wichtigsten Zahlen in einer Zeile
+function buildFactsHtml(type) {
+  const def = BUILDINGS[type], parts = [];
+  const ware = id => iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini');
+  if (def.produces) parts.push('macht ' + Object.entries(def.produces).map(([id, n]) => `${perMin(n)} ${ware(id)}`).join(' ') + ' je Min.');
+  if (def.consumes) parts.push('braucht ' + Object.entries(def.consumes).map(([id, n]) => `${perMin(n)} ${ware(id)}`).join(' '));
+  if (def.workers) parts.push(`👤 ${def.workers} Arbeiter`);
+  if (def.housing) parts.push(`👥 ${housingOf(type)} Plätze`);
+  if (def.warmth) parts.push(`🔥 Wärme ${def.warmth} Felder`);
+  if (def.belief) parts.push(`🗿 Glaube ${def.belief} Felder`);
+  if (def.happy) parts.push(`😊 Laune +${def.happy}`);
+  if (def.storage) parts.push(`📦 +${def.storage} Lager`);
+  if (def.needsWater) parts.push('🌊 am Wasser');
+  if (def.needsRock) parts.push('🪨 an Felsen');
+  return parts.join(' · ');
+}
+
+// Info-Fenster aus der Bauleiste (ⓘ an der Karte oder beim Hinsetzen)
+function showBarInfo(type) {
+  const def = BUILDINGS[type], lock = lockText(type);
+  const can = !lock && canAfford(def.cost);
+  openDialog(`
+    <button class="rb dlg-x" aria-label="Schließen" onclick="closeDialog()">✕</button>
+    <div class="dlg-head">${iconHtml(def.bild, def.icon, 'huge')}<div><h2>${esc(def.name)}</h2><p>${esc(def.info || '')}</p></div></div>
+    <p class="bar-facts">${buildFactsHtml(type) || '–'}</p>
+    <p>Kostet: ${costHtml(def.cost)}${def.time > 0 ? ` · ⏱ ${formatTime(buildTimeOf(type))}` : ''}</p>
+    ${lock ? `<p class="why">${esc(lock)}</p>` : !can ? `<p class="why">⏳ ${esc(missingText(def.cost))}</p>` : ''}
+    <div class="buttons">${ghost && ghost.type === type ? '<button class="btn primary" onclick="closeDialog()">✋ Weiter hinsetzen</button>'
+      : `<button class="btn primary" ${lock ? 'disabled' : ''} onclick="closeDialog(); beginBuild('${type}')">🔨 Bauen</button>`}</div>`);
 }
 
 // ---------------------------------------------------------------------

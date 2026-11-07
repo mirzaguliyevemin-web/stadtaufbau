@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 125;
+const APP_VERSION = 126;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -619,7 +619,7 @@ const BUILDINGS = {
     bonus: { terrain: 'fels', perTile: 0.05, max: 0.5 }, info: 'Liest mit der Himmelsscheibe Sonne, Mond und Sterne – noch mehr Wissen.',
   },
   heiliger_hain: {
-    name: 'Heiliger Hain', icon: '🌳', size: 3, line: 'glaube', tier: 1, stage: 'spaet', bild: '1-ahnenplatz', views: ['r2'],
+    name: 'Heiliger Hain', icon: '🌳', size: 3, line: 'glaube', tier: 1, stage: 'spaet', bild: '2-heiliger-hain',
     color: '#5f8a4a', cost: { holz: 80, stein: 70, bronze: 3 }, time: 120, belief: 11, requires: 'heiliger_hain',
     info: 'Ein Kreis alter Eichen – Glaube für Wohnungen in einem größeren Umkreis.',
   },

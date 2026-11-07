@@ -32,6 +32,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-07, Epochia Version 148 – Wunsch Emin: Lager zeigt Einnahmen (▲ grün) und Ausgaben (▼ rot) je Minute getrennt; bei vollem Lager zählt, was die Gebäude herstellen könnten.
 - 2026-11-07, Epochia Version 147 – Fehler Emin: Android blieb quer (installiertes Spiel merkt sich das alte Manifest) – Drehung wird beim Start freigegeben; ⓘ in der Bauleiste verdeckte das Gebäudebild – sitzt jetzt außen auf der Kartenecke.
 - 2026-11-07, Epochia Version 146 – Wunsch Emin: Hochkant und quer frei wählbar, auch auf Android (manifest „any“), Hinweis „Dreh dein Handy quer“ entfällt; ⓘ in der Bauleiste links über dem Bild (verdeckte die Kosten). Design-Kontrolle auf iPhone, Android und Rechner (6 Größen, 17 Fenster): Hinweis über Seiten weg, Schatzkiste hochkant lesbar, Hinsetz-Leiste mit Platz für den Text, Shop gleich breit, „Zurück“ einzeilig, Abstand oben für Kerbe/Kamera-Insel.
 - 2026-11-07, Epochia Version 145 – Fehler Emin: Im Winter fehlten Häuser ohne eigenes Winterbild (die selbst verschneiten Bilder wurden nach dem Leeren durch Chrome nicht neu angelegt). Wunsch Emin: Info vor dem Bauen – ⓘ an jeder Karte der Bauleiste und Kurzinfo mit ⓘ beim Hinsetzen. Bild Steinhaus aus Canva.

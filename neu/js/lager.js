@@ -113,7 +113,13 @@ function lagerRowHtml(id) {
   const r = RESOURCES[id], n = Math.floor(state.res[id] || 0), cap = capOf(id), net = stats.rates[id] || 0;
   const full = n >= cap, soon = lagerSoon(id);
   const mark = full ? '<i class="lager-mark voll">voll</i>' : n <= 0 && soon ? '<i class="lager-mark knapp">leer</i>' : soon ? '<i class="lager-mark knapp">bald leer</i>' : '';
-  const rate = Math.abs(net) < 0.05 ? '' : `<em class="${net > 0 ? 'good' : 'bad'}">${net > 0 ? '+' : '−'}${perMin(Math.abs(net))}</em>`;
+  // Einnahmen und Ausgaben getrennt (Emin, 07.11.): grüner Pfeil nach oben, roter nach unten, je Minute
+  const f = (stats.flows || {})[id], sum = o => Object.values(o || {}).reduce((a, x) => a + x, 0);
+  let made = f ? sum(f.in) : Math.max(0, net);
+  const used = f ? sum(f.out) : Math.max(0, -net);
+  // volles Lager: die Herstellung wird gedrosselt – dann zeigen, was die Gebäude schaffen könnten
+  if (n >= cap - 1 && stats.potential && stats.potential[id] > made) made = stats.potential[id];
+  const rate = made < 0.05 && used < 0.05 ? '' : `<span class="lager-flow">${made >= 0.05 ? `<em class="good">▲ ${perMin(made)}</em>` : ''}${used >= 0.05 ? `<em class="bad">▼ ${perMin(used)}</em>` : ''}</span>`;
   const cls = full ? ' voll' : soon ? ' knapp' : n <= 0 ? ' leer' : '';
   const fill = cap > 0 ? Math.min(100, Math.round(100 * n / cap)) : 0;
   return `<button class="lager-row${cls}" onclick="resourceTip('${id}')">${iconHtml(r.bild, r.icon)}<span class="lager-name">${esc(r.name)}${mark}</span>${rate}<b>${n}</b><span class="lager-fill"><i style="width:${fill}%"></i></span></button>`;

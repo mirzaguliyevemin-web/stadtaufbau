@@ -1097,3 +1097,6 @@ details.more[open] summary::before { content: '▾ '; }
 /* Seitenkopf hochkant: „← Zurück“ bleibt einzeilig, lange Titel werden etwas kleiner */
 .page-head .back { white-space: nowrap; flex: none; }
 @media (max-width: 460px) { .page-head h2 { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; } }
+/* Lager: Einnahmen ▲ grün und Ausgaben ▼ rot nebeneinander (Emin, 07.11.) */
+.lager-flow { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; margin-left: auto; }
+.lager-flow em { white-space: nowrap; font-weight: bold; }

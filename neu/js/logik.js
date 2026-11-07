@@ -911,6 +911,7 @@ function updateProductionStep(dt) {
   }
   stats.rates = rates;
   stats.flows = flows;
+  stats.potential = potential;   // was alle Gebäude ohne Lagergrenze herstellen könnten (Lager-Anzeige bei vollem Lager)
   stats.inputShare = inputShare;
 }
 

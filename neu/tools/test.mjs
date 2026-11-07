@@ -2402,6 +2402,13 @@ test('Halle der Himmelsscheibe: 4 Abschnitte setzen die Scheibe zusammen, Händl
   noErrors(g);
 });
 
+test('Wassergebäude: Was aus einem Gebäude halb im Wasser entsteht, steht auch halb im Wasser (sonst passt der Platz nicht mehr)', () => {
+  const g = fresh();
+  const bad = g.run(`Object.entries(BUILDINGS).filter(([id, d]) => halfInWater(d) && d.upgradeTo && BUILDINGS[d.upgradeTo] && !halfInWater(BUILDINGS[d.upgradeTo]) && !BUILDINGS[d.upgradeTo].stilts).map(([id, d]) => id + ' → ' + d.upgradeTo).join(', ')`);
+  ok(!bad, 'Nicht mehr halb im Wasser: ' + bad);
+  noErrors(g);
+});
+
 test('Dorfplatz: Ab der Kupferzeit zeigt das Lagerfeuer das Dorfplatz-Bild, sobald es geladen ist', () => {
   const g = fresh();
   const r = g.run(`(() => { const r = []; applyEpochTheme(); r.push(BUILDINGS.lagerfeuer.bild);

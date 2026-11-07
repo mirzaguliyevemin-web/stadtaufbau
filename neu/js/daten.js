@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 126;
+const APP_VERSION = 127;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -624,7 +624,7 @@ const BUILDINGS = {
     info: 'Ein Kreis alter Eichen – Glaube für Wohnungen in einem größeren Umkreis.',
   },
   kornspeicher: {
-    name: 'Kornspeicher', icon: '🌾', size: 3, line: 'lager', tier: 1, stage: 'spaet', bild: '1-vorratsspeicher', views: ['r2'],
+    name: 'Kornspeicher', icon: '🌾', size: 3, line: 'lager', tier: 1, stage: 'spaet', bild: '2-kornspeicher',
     color: '#b09060', cost: { holz: 100, stein: 50, bronze: 3 }, time: 120, storage: 250, requires: 'kornspeicher',
     info: 'Ein großer Speicher auf Steinfüßen – viel mehr Lagerplatz für alle Waren.',
   },

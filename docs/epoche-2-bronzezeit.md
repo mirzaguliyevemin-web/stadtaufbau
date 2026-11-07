@@ -10,7 +10,7 @@ Zeichen: ✅ entschieden · ❓ offene Frage an Emin · 💡 Vorschlag
 
 Gebaut, ohne Bilder: **Kupferzeit** (Version 60), **Frühe Bronzezeit** (Version 61) und **Späte Bronzezeit** (Version 62). Weiterentwicklungen zeigen das Bild der Vorstufe,
 neue Waren und Forschungen ihr Zeichen. Die 8 neuen Gebäude (Kupfermine, Köhler, Schmelzofen, Zinnwäscherin, Bronzegießer, Handelsplatz, Schmuckmacherin, Fürstenhügel) haben seit Version 65 ein Bild, aber nur die Vorderansicht (beim Drehen gespiegelt, Schnee legt das Spiel selbst darüber).
-Seit Version 111–122 eigene Vorderansichten für Lehmhaus, Hallenhaus, Gemüsegarten, Holzfäller, Steinbruch, Dorfbrunnen, Felsritzer, Lehmgrube, Kupferschmied, Jagdhütte, Feld, Viehhof, Baumgärtnerin und Weberin (Stilvorlage: Köhler); die übrigen Weiterentwicklungen zeigen noch die Vorstufe.
+Seit Version 111–123 eigene Vorderansichten für Lehmhaus, Hallenhaus, Gemüsegarten, Holzfäller, Steinbruch, Dorfbrunnen, Felsritzer, Lehmgrube, Kupferschmied, Jagdhütte, Feld, Viehhof, Baumgärtnerin, Weberin und Bronzeschmied (Stilvorlage: Köhler); die übrigen Weiterentwicklungen zeigen noch die Vorstufe.
 Der Händler ist eine Figur mit Ochsen-Zeichen und einer Blase zum Antippen, bis es Bilder gibt.
 
 Noch nicht gebaut: Häuptling-Bild, Bronzezeit-Leisten. Die Erzader kam mit Version 76, die Bronzezeit-Waren in der täglichen Belohnung mit Version 73.

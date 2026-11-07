@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 122;
+const APP_VERSION = 123;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -578,7 +578,7 @@ const BUILDINGS = {
     info: 'Webt aus Wolle Kleidung – mehr, als die Fellmacherin aus Fellen näht. Braucht Wolle: darum nur per Knopf umbauen, wenn sie da ist.',
   },
   bronzeschmied: {
-    name: 'Bronzeschmied', icon: '⚒️', size: 2, line: 'werkzeug', tier: 2, stage: 'frueh', bild: '1-steinschlaeger', views: ['r2'],
+    name: 'Bronzeschmied', icon: '⚒️', size: 2, line: 'werkzeug', tier: 2, stage: 'frueh', bild: '2-bronzeschmied',
     color: '#b5683a', cost: { holz: 40, stein: 60, bronze: 10 }, time: 90, workers: 2, consumes: { bronze: 1, holz: 1 }, produces: { werkzeug: 4 }, requires: 'bronzewerkzeug', manualUpgrade: true,
     info: 'Schmiedet aus 1 Bronze und 1 Holz 4 Werkzeuge. Lässt etwas Bronze für Bauen und Forschung liegen. Braucht Bronze: darum nur per Knopf umbauen, wenn sie da ist.',
   },

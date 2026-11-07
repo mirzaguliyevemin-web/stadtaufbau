@@ -133,11 +133,16 @@ function enterGame() {
 let turnHintDone = false;
 function checkTurnHint() {
   if (typeof window === 'undefined' || !window.innerWidth) return;
-  const portrait = window.innerHeight > window.innerWidth && window.innerWidth < 700;
-  if (portrait && (state.tutorial >= 0 || dialogOpen)) { show($('turn-hint'), false); return; }   // nicht über dem Ältesten oder einem Fenster
+  // Emin, 07.11.: Hochkant spielen ist gewollt – der Hinweis „Dreh dein Handy quer“ erscheint nicht mehr
+  const portrait = false;
+  // nicht über dem Ältesten, einem Fenster oder einer Seite (Design-Kontrolle 07.11.: verdeckte hochkant jede Seite)
+  if (portrait && (state.tutorial >= 0 || dialogOpen || (typeof pageOpen !== 'undefined' && pageOpen))) { show($('turn-hint'), false); return; }
+  // nach 12 Sekunden verschwindet der Hinweis von selbst
+  if (portrait && !turnHintDone && !turnHintTimer) turnHintTimer = setTimeout(hideTurnHint, 12000);
   if (!portrait) turnHintDone = true;   // einmal quer gehalten: nicht mehr erinnern
   show($('turn-hint'), portrait && !turnHintDone);
 }
+let turnHintTimer = 0;
 function hideTurnHint() { turnHintDone = true; show($('turn-hint'), false); }
 
 // Nach „Willkommen zurück“: tägliche Belohnung zeigen (nicht mitten im Einstieg)

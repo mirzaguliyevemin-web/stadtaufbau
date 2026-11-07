@@ -119,6 +119,18 @@ function shopHtml() {
   }).join('');
   const slot = state.shop.slots >= 1 ? '<p class="empty-note">✔ Du hast eine zusätzliche Baustelle.</p>'
     : shopRow('<span class="ic emoji big">🏗️</span>', 'Eine Baustelle mehr', `Dauerhaft ${CONFIG.maxConstructions + 1} statt ${CONFIG.maxConstructions} gleichzeitig`, c.slotPrice, 'doBuySlot()');
+  return `<div class="shop">${shopInner()}</div>`;
+}
+function shopInner() {
+  const c = CONFIG.shop;
+  const packs = c.packs.map((p, i) => `<button class="btn shop-pack" onclick="doPack(${i})"><b>${goldText(p.gold)}</b><span>${esc(p.euro)} €</span>${c.testMode ? '<small>Test: kostenlos</small>' : ''}</button>`).join('');
+  const finds = shopFinds().map(id => shopRow(iconHtml(FINDS[id].bild, FINDS[id].icon, 'big'), FINDS[id].name, `Hast du ${findCount(id)}, gebraucht werden ${findNeed(id)}`, findPrice(id), `doBuyFind('${id}')`)).join('');
+  const goods = Object.keys(c.goods).map(k => {
+    const p = goodsPack(k);
+    return shopRow('<span class="ic emoji big">📦</span>', c.goods[k].name, formatAmounts(p.goods), p.price, `doBuyGoods('${k}')`);
+  }).join('');
+  const slot = state.shop.slots >= 1 ? '<p class="empty-note">✔ Du hast eine zusätzliche Baustelle.</p>'
+    : shopRow('<span class="ic emoji big">🏗️</span>', 'Eine Baustelle mehr', `Dauerhaft ${CONFIG.maxConstructions + 1} statt ${CONFIG.maxConstructions} gleichzeitig`, c.slotPrice, 'doBuySlot()');
   return `<div class="shop-head"><span class="shop-gold">${goldText(state.shop.gold)}</span><small>${c.testMode ? 'Testmodus: Es fließt kein echtes Geld.' : ''} Gold gibt es auch für Aufträge, Wünsche und die große Truhe.</small></div>
     <h3 class="find-page">Gold</h3><div class="shop-packs">${packs}</div>
     <h3 class="find-page">Beschleunigen</h3><div class="quests">${shopSpeedHtml()}</div>

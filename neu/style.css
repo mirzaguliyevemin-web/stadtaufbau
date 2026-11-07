@@ -31,6 +31,7 @@
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);   /* Kerbe oder Kamera-Insel oben (Handy hochkant, Vollbild) */
 }
 
 html[data-zeit=kupfer] { --title-band: url(../bilder/epochia/oberflaeche/titelband-kupfer.webp); --bar-top: url(../bilder/epochia/oberflaeche/leiste-oben-kupfer.webp); --bar-bottom: url(../bilder/epochia/oberflaeche/leiste-unten-kupfer.webp); --bar: #e4f1ea; --bar-2: #cde4d9; --line: #86b9a7; --line-soft: #d3e6dd; --accent: #2f8c7d; --accent-2: #d9794a; --page: #f6fbf7; --tint: #fbe9dd; --ink: #23423c; --ink-soft: #52756d; --paper: #ffffff; --shadow-rgb: 30, 60, 55; }
@@ -145,7 +146,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   display: flex;
   justify-content: space-between;
   gap: 6px;
-  padding: 5px calc(6px + var(--safe-r)) 9px calc(6px + var(--safe-l));
+  padding: calc(5px + var(--safe-t)) calc(6px + var(--safe-r)) 9px calc(6px + var(--safe-l));
   pointer-events: none;
   /* später gemalt: Stoff oder helles Leder je Zeitalter (--bar-top) */
   background: var(--bar-top, none) bottom left / auto 100% repeat-x, linear-gradient(var(--bar), var(--bar-2));
@@ -1069,10 +1070,29 @@ details.more[open] summary::before { content: '▾ '; }
 .quest-card .why { color: #b06a00; font-weight: bold; }
 
 /* Info vor dem Bauen (Emin, 07.11.): ⓘ an jeder Karte der Bauleiste, Kurzinfo beim Hinsetzen */
-.bar-info { position: absolute; top: 3px; right: 3px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #2e7d32; padding: 0;
-  background: linear-gradient(#7ed957, #4caf50); color: #fff; font: italic bold 15px Georgia, serif; line-height: 22px; z-index: 2; box-shadow: 0 1px 0 #2e7d32; }
+.bar-info { position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #2e7d32; padding: 0;
+  background: linear-gradient(#7ed957, #4caf50); color: #fff; font: italic bold 14px Georgia, serif; line-height: 20px; z-index: 2; box-shadow: 0 1px 0 #2e7d32; opacity: 0.92; }
+/* links oben über dem Gebäudebild: verdeckt weder Namen noch Kosten (Emin, 07.11.) */
 .bar-item .new + .bar-info, .bar-item .bar-info { touch-action: manipulation; }
-.bar-item .new { right: auto; left: 3px; }
 .round.info { background: linear-gradient(#7ed957, #4caf50); font: italic bold 22px Georgia, serif; color: #fff; }
 .action-text .ghost-info { display: block; color: var(--ink-soft); font-size: 12px; margin-top: 1px; }
 .bar-facts { background: var(--tint); border-radius: 12px; padding: 8px 10px; font-weight: bold; }
+
+/* Design-Kontrolle 07.11. (iPhone, Android, Rechner) */
+/* Shop: alles gleich breit wie die übrigen Listen, auch am großen Bildschirm */
+.shop { width: 100%; max-width: 760px; margin: 0 auto; }
+/* Beim Hinsetzen: Text bekommt Platz, auf schmalen Bildschirmen stehen die Knöpfe darunter */
+.action-text { flex: 1 1 auto; min-width: min(230px, 55vw); max-width: 420px; }
+@media (max-width: 560px) {
+  #action-bar { flex-wrap: wrap; justify-content: flex-end; border-radius: 22px; width: calc(100vw - 20px); box-sizing: border-box; }
+  #action-bar .action-text { flex-basis: 100%; max-width: none; }
+}
+/* Karten mit Text und Knopf: auf schmalen Bildschirmen rutscht der Knopf unter den Text (Schatzkiste hochkant) */
+@media (max-width: 560px) {
+  .quest-card.swap-help { flex-wrap: wrap; }
+  .quest-card.swap-help .q-main { flex: 1 1 60%; min-width: 0; }
+  .quest-card.swap-help > .btn { flex-basis: 100%; }
+}
+/* Seitenkopf hochkant: „← Zurück“ bleibt einzeilig, lange Titel werden etwas kleiner */
+.page-head .back { white-space: nowrap; flex: none; }
+@media (max-width: 460px) { .page-head h2 { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; } }

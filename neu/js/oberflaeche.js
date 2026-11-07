@@ -727,7 +727,17 @@ function showBuildingWindow(i) {
     }
   }
   const to = upgradeTarget(b);
-  if (to) {
+  // Gleich groß und ohne neue Zutaten: entwickelt sich von selbst und kostenlos, sobald es freigeschaltet ist (evolveBuildings) –
+  // dann kein Knopf, nur ein Hinweis (Emin, 07.11.: Knopf war verwirrend)
+  const auto = to && BUILDINGS[to].size === def.size && !BUILDINGS[to].manualUpgrade;
+  if (auto) {
+    const t = BUILDINGS[to], lock = lockText(to).replace('🔒 ', '');
+    upgrade += `<div class="upgrade">
+      <h3>Wird zu ${t.icon} ${esc(t.name)}</h3>
+      <p>${esc(t.info)}</p>
+      <p>✨ Von selbst und kostenlos${lock ? ' – ' + esc(lock.charAt(0).toLowerCase() + lock.slice(1)) : ''}.</p>
+    </div>`;
+  } else if (to) {
     const t = BUILDINGS[to];
     const problem = upgradeProblem(i);
     upgrade += `<div class="upgrade">
@@ -1126,6 +1136,7 @@ function questIcon(q) {
   if (g.wishes) return '<span class="ic emoji big">🤲</span>';
   if (g.hunts) return '<span class="ic emoji big">🦣</span>';
   if (g.trades) return '<span class="ic emoji big">🤝</span>';
+  if (g.level) return '<span class="ic emoji big">⭐</span>';
   return '<span class="ic emoji big">📜</span>';
 }
 

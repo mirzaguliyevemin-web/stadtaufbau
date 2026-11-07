@@ -1192,6 +1192,7 @@ function questProgress(q) {
   if (g.wishes) return { have: Math.min(state.wishesDone, g.wishes), need: g.wishes };
   if (g.hunts) return { have: Math.min(state.huntsDone, g.hunts), need: g.hunts };
   if (g.trades) return { have: Math.min(state.tradesDone, g.trades), need: g.trades };
+  if (g.level) return { have: Math.min(state.buildings.filter(b => !b.build && levelOf(b) >= g.level).length, g.count), need: g.count };   // Stufen (seit Version 140)
   return { have: 0, need: 1 };
 }
 
@@ -1207,6 +1208,7 @@ function questBlocked(q) {
   if (g.tech) return true;   // Fernziel: nimmt erst einen Platz ein, wenn sonst nichts zu tun ist
   if (g.build) return !isUnlocked(g.build);
   if (g.resource) return !hasMaker(g.resource);
+  if (g.level) return maxLevel() < g.level;   // die Stufe gibt es erst in einem späteren Zeitalter
   return false;
 }
 

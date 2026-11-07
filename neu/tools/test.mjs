@@ -2474,6 +2474,26 @@ test('Zeichnen: Ein Fehler bei einem Gebäude lässt die anderen nicht verschwin
   noErrors(g);
 });
 
+test('Aufträge: Stufen-Aufträge zählen ausgebaute Gebäude und warten auf das Zeitalter; Häuser ohne Knopf zum Weiterentwickeln', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const q2 = QUESTS.find(q => q.id === 'q_s_stufe2'), q4 = QUESTS.find(q => q.id === 'q_b_stufe4');
+    const sp = findFreeSpot('sammlerin', N / 2, N / 2), k = state.buildings.length;
+    state.buildings.push({ type: 'sammlerin', x: sp.x, y: sp.y, rot: 0, build: 0, level: 2 }); setOccupied(state.buildings[k], k + 1);
+    const out = [questDone(q2), questBlocked(q4)];
+    state.stage = 'kupfer'; out.push(questBlocked(q4));
+    const h = state.buildings.findIndex(b => b.type === 'lagerfeuer');
+    state.buildings.push({ type: 'grubenhaus', x: sp.x + 4, y: sp.y, rot: 0, build: 0 }); rebuildOccupancy(); isConnected = () => true;
+    showBuildingWindow(state.buildings.length - 1);
+    const html = $('dialog-box').innerHTML;
+    out.push(typeof html === 'string' ? html.includes('doUpgrade') : 'kein html', typeof html === 'string' && html.includes('Von selbst'));
+    return out;
+  })()`);
+  ok(r[0] === true && r[1] === true && r[2] === false, 'Stufen-Auftrag falsch: ' + r);
+  ok(r[3] === false && r[4] === true, 'Haus zeigt noch den Knopf zum Weiterentwickeln: ' + r);
+  noErrors(g);
+});
+
 test('Dorfplatz: Ab der Kupferzeit zeigt das Lagerfeuer das Dorfplatz-Bild, sobald es geladen ist', () => {
   const g = fresh();
   const r = g.run(`(() => { const r = []; applyEpochTheme(); r.push(BUILDINGS.lagerfeuer.bild);

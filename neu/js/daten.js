@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 139;
+const APP_VERSION = 140;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -954,6 +954,8 @@ const QUESTS = [
   { id: 'q_ahnen',      text: 'Baue einen Ahnenplatz',   goal: { build: 'ahnenplatz', count: 1 }, reward: { wissen: 30 } },
   { id: 'q_kleidung20', text: 'Habe 20 Kleidung im Lager', goal: { resource: 'kleidung', count: 20 }, reward: { wissen: 30 } },
   { id: 'q_wunsch6',    text: 'Erfülle 6 Wünsche des Stammes', goal: { wishes: 6 }, reward: { wissen: 30 } },
+  { id: 'q_s_stufe2',   text: 'Baue ein Gebäude auf Stufe 2 aus', goal: { level: 2, count: 1 }, reward: { holz: 40 } },   // Aufträge seit Version 140 (Emin, 07.11.)
+  { id: 'q_s_stufe2x3', text: 'Baue 3 Gebäude auf Stufe 2 aus', goal: { level: 2, count: 3 }, reward: { stein: 50 } },
   { id: 'q_jung',       text: 'Erreiche die Jungsteinzeit', goal: { tech: 'jungsteinzeit' }, reward: { holz: 100, stein: 80 } },
   // Jungsteinzeit
   { id: 'q_acker2',     text: 'Baue 2 Äcker',            goal: { build: 'acker', count: 2 }, reward: { werkzeug: 10 } },
@@ -966,6 +968,7 @@ const QUESTS = [
   { id: 'q_pop100',     text: 'Erreiche 100 Einwohner',  goal: { population: 100 }, reward: { werkzeug: 20 } },
   { id: 'q_toepfer30',  text: 'Habe 30 Töpferwaren im Lager', goal: { resource: 'toepferwaren', count: 30 }, reward: { wissen: 40 } },
   { id: 'q_wunsch12',   text: 'Erfülle 12 Wünsche des Stammes', goal: { wishes: 12 }, reward: { wissen: 40 } },
+  { id: 'q_s_stufe3',   text: 'Baue ein Gebäude auf Stufe 3 aus', goal: { level: 3, count: 1 }, reward: { werkzeug: 15 } },
   { id: 'q_steinkreis', text: 'Baue einen Steinkreis',   goal: { build: 'steinkreis', count: 1 }, reward: { holz: 100, nahrung: 100 } },
   { id: 'q_pop120',     text: 'Erreiche 120 Einwohner – bereit für den Aufbruch', goal: { population: 120 }, reward: { holz: 150, nahrung: 150 } },
   // Kupferzeit
@@ -974,6 +977,13 @@ const QUESTS = [
   { id: 'q_b_kupfer20', text: 'Habe 20 Kupfer im Lager', goal: { resource: 'kupfer', count: 20 }, reward: { wissen: 40 } },
   { id: 'q_b_garten3',  text: 'Baue 3 Gemüsegärten',     goal: { build: 'gemuesegarten', count: 3 }, reward: { nahrung: 80 } },
   { id: 'q_b_pop140',   text: 'Erreiche 140 Einwohner',  goal: { population: 140 }, reward: { holzkohle: 20 } },
+  { id: 'q_b_stufe4',   text: 'Baue ein Gebäude auf Stufe 4 aus', goal: { level: 4, count: 1 }, reward: { kupfer: 15 } },
+  { id: 'q_b_flecht5',  text: 'Habe 5 Flechtwerkhäuser', goal: { build: 'flechtwerkhaus', count: 5 }, reward: { ton: 30 } },
+  { id: 'q_b_brunnen',  text: 'Baue einen Dorfbrunnen', goal: { build: 'dorfbrunnen', count: 1 }, reward: { nahrung: 60 } },
+  { id: 'q_b_kschmied2', text: 'Baue 2 Kupferschmiede', goal: { build: 'kupferschmied', count: 2 }, reward: { stein: 60 } },
+  { id: 'q_b_felsritzer', text: 'Baue einen Felsritzer', goal: { build: 'felsritzer', count: 1 }, reward: { wissen: 40 } },
+  { id: 'q_b_lehmhaus3', text: 'Baue 3 Lehmhäuser',     goal: { build: 'lehmhaus', count: 3 }, reward: { holz: 80 } },
+  { id: 'q_b_wunsch15', text: 'Erfülle 15 Wünsche des Stammes', goal: { wishes: 15 }, reward: { wissen: 50 } },
   { id: 'q_b_frueh',    text: 'Erreiche die Frühe Bronzezeit', goal: { tech: 'fruehe_bronzezeit' }, reward: { holz: 100, kupfer: 20 } },
   // Frühe Bronzezeit
   { id: 'q_b_handel',   text: 'Baue einen Handelsplatz', goal: { build: 'handelsplatz', count: 1 }, reward: { toepferwaren: 15 } },
@@ -981,10 +991,22 @@ const QUESTS = [
   { id: 'q_b_bronze20', text: 'Habe 20 Bronze im Lager', goal: { resource: 'bronze', count: 20 }, reward: { wissen: 60 } },
   { id: 'q_b_viehhof2', text: 'Baue 2 Viehhöfe',         goal: { build: 'viehhof', count: 2 }, reward: { nahrung: 100 } },
   { id: 'q_b_pop180',   text: 'Erreiche 180 Einwohner',  goal: { population: 180 }, reward: { werkzeug: 20 } },
+  { id: 'q_b_weberin2', text: 'Baue 2 Weberinnen',     goal: { build: 'weberin', count: 2 }, reward: { wolle: 15 } },
+  { id: 'q_b_wolle30',  text: 'Habe 30 Wolle im Lager', goal: { resource: 'wolle', count: 30 }, reward: { kleidung: 20 } },
+  { id: 'q_b_bschmied2', text: 'Baue 2 Bronzeschmiede', goal: { build: 'bronzeschmied', count: 2 }, reward: { zinn: 10 } },
+  { id: 'q_b_jagd2',    text: 'Baue 2 Jagdhütten',     goal: { build: 'jagdhuette', count: 2 }, reward: { felle: 20 } },
+  { id: 'q_b_werkzeug30', text: 'Habe 30 Werkzeug im Lager', goal: { resource: 'werkzeug', count: 30 }, reward: { wissen: 60 } },
   { id: 'q_b_spaet',    text: 'Erreiche die Späte Bronzezeit', goal: { tech: 'spaete_bronzezeit' }, reward: { bronze: 20 } },
   // Späte Bronzezeit
   { id: 'q_b_schmuck20', text: 'Habe 20 Schmuck im Lager', goal: { resource: 'schmuck', count: 20 }, reward: { wissen: 80 } },
   { id: 'q_b_pop230',   text: 'Erreiche 230 Einwohner',  goal: { population: 230 }, reward: { holz: 150, stein: 100 } },
+  { id: 'q_b_stufe6',   text: 'Baue ein Gebäude auf Stufe 6 aus', goal: { level: 6, count: 1 }, reward: { bronze: 20 } },
+  { id: 'q_b_hallen3',  text: 'Baue 3 Hallenhäuser',   goal: { build: 'hallenhaus', count: 3 }, reward: { holz: 120 } },
+  { id: 'q_b_hain',     text: 'Baue einen Heiligen Hain', goal: { build: 'heiliger_hain', count: 1 }, reward: { nahrung: 120 } },
+  { id: 'q_b_stern2',   text: 'Baue 2 Sternkundige',   goal: { build: 'sternkundiger', count: 2 }, reward: { wissen: 60 } },
+  { id: 'q_b_korn',     text: 'Baue einen Kornspeicher', goal: { build: 'kornspeicher', count: 1 }, reward: { nahrung: 150 } },
+  { id: 'q_b_fischhaus2', text: 'Baue 2 Fischerhäuser', goal: { build: 'fischerhaus', count: 2 }, reward: { holz: 120 } },
+  { id: 'q_b_wunsch20', text: 'Erfülle 20 Wünsche des Stammes', goal: { wishes: 20 }, reward: { wissen: 80 } },
   { id: 'q_b_fuerstenhuegel', text: 'Baue den Fürstenhügel', goal: { build: 'fuerstenhuegel', count: 1 }, reward: { bronze: 30, nahrung: 150 } },
   { id: 'q_b_pop280',   text: 'Erreiche 280 Einwohner – bereit für den Aufbruch', goal: { population: 280 }, reward: { holz: 200, nahrung: 200 } },
   // Eisenzeit
@@ -993,15 +1015,20 @@ const QUESTS = [
   { id: 'q_e_eisen20',  text: 'Habe 20 Eisen im Lager',  goal: { resource: 'eisen', count: 20 }, reward: { wissen: 100 } },
   { id: 'q_e_gehoeft5', text: 'Baue 5 Gehöfte',          goal: { build: 'gehoeft', count: 5 }, reward: { holz: 200 } },
   { id: 'q_e_pop320',   text: 'Erreiche 320 Einwohner',  goal: { population: 320 }, reward: { eisen: 20 } },
+  { id: 'q_e_stufe7',   text: 'Baue ein Gebäude auf Stufe 7 aus', goal: { level: 7, count: 1 }, reward: { eisen: 15 } },
+  { id: 'q_e_stein6',   text: 'Habe 6 Steinhäuser',    goal: { build: 'steinhaus', count: 6 }, reward: { stein: 120 } },
   { id: 'q_e_mittel',   text: 'Erreiche die Mittlere Eisenzeit', goal: { tech: 'mittlere_eisenzeit' }, reward: { eisen: 20, nahrung: 200 } },
   { id: 'q_e_salz',     text: 'Baue eine Salzsiederei',  goal: { build: 'salzsiederei', count: 1 }, reward: { holz: 200 } },
   { id: 'q_e_salz30',   text: 'Habe 30 Salz im Lager',   goal: { resource: 'salz', count: 30 }, reward: { wissen: 120 } },
   { id: 'q_e_druide',   text: 'Baue 3 Druiden',          goal: { build: 'druide', count: 3 }, reward: { kleidung: 30 } },
   { id: 'q_e_pop380',   text: 'Erreiche 380 Einwohner',  goal: { population: 380 }, reward: { eisen: 30 } },
+  { id: 'q_e_wunsch25', text: 'Erfülle 25 Wünsche des Stammes', goal: { wishes: 25 }, reward: { wissen: 120 } },
   { id: 'q_e_spaet',    text: 'Erreiche die Späte Eisenzeit', goal: { tech: 'spaete_eisenzeit' }, reward: { salz: 40 } },
   { id: 'q_e_glas',     text: 'Baue eine Glasmacherin',  goal: { build: 'glasmacherin', count: 1 }, reward: { holzkohle: 60 } },
   { id: 'q_e_stadt4',   text: 'Baue 4 Stadthäuser',      goal: { build: 'stadthaus', count: 4 }, reward: { stein: 200 } },
   { id: 'q_e_ringwall', text: 'Baue den Ringwall',       goal: { build: 'ringwall', count: 1 }, reward: { eisen: 40, nahrung: 300 } },
+  { id: 'q_e_stufe9',   text: 'Baue ein Gebäude auf Stufe 9 aus', goal: { level: 9, count: 1 }, reward: { eisen: 30, nahrung: 200 } },
+  { id: 'q_e_eschmied3', text: 'Baue 3 Eisenschmiede', goal: { build: 'eisenschmied', count: 3 }, reward: { eisen: 20 } },
   { id: 'q_e_pop480',   text: 'Erreiche 480 Einwohner – bereit für den Aufbruch', goal: { population: 480 }, reward: { holz: 300, nahrung: 300 } },
 ];
 

@@ -233,6 +233,7 @@ function imageNames() {
   for (const f of Object.values(FINDS)) if (f.bild) names.add(f.bild);
   for (const t of Object.values(TECHS)) if (t.bild) names.add(t.bild);
   for (const s of [2, 3, 4]) names.add('1-baustelle-' + s);
+  names.add('2-dorfplatz'); names.add('2-dorfplatz-winter');   // Lagerfeuer ab der Kupferzeit (applyEpochTheme)
   return [...names];
 }
 
@@ -1325,6 +1326,7 @@ let lastImagePoint = null;
 // feuer = Größe des Flackerns, rauch = Stärke des Rauchs (0 = keiner)
 const EFFECTS = {
   '1-lagerfeuer':        [{ u: 0.50, v: 0.50, feuer: 1.5, rauch: 1.2, rv: 0.38 }],
+  '2-dorfplatz':         [{ u: 0.465, v: 0.55, feuer: 1.1, rauch: 1.0, rv: 0.47 }],
   '1-feuerplatz':        [{ u: 0.47, v: 0.47, feuer: 1.0, rauch: 0.9, rv: 0.32 }],
   '1-wohnhoehle':        [{ u: 0.45, v: 0.47, feuer: 0.6, rauch: 0 }],
   '1-jaegerlager':       [{ u: 0.50, v: 0.54, feuer: 0.9, rauch: 0.8, rv: 0.49 }],

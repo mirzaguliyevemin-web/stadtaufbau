@@ -137,6 +137,8 @@ function setCssVar(name, value) {
 function applyEpochTheme() {
   const st = STAGES[stageIndex()];
   BUILDINGS.lagerfeuer.name = stageReached('eisen1') ? 'Thingplatz' : stageReached('kupfer') ? 'Dorfplatz' : 'Lagerfeuer';
+  // Ab der Kupferzeit zeigt der Dorfplatz sein eigenes Bild (sobald es geladen ist, bis dahin das Lagerfeuer)
+  BUILDINGS.lagerfeuer.bild = stageReached('kupfer') && typeof images !== 'undefined' && images['2-dorfplatz'] ? '2-dorfplatz' : '1-lagerfeuer';
   if (typeof document !== 'undefined' && document.documentElement && document.documentElement.dataset) document.documentElement.dataset.zeit = st.zeit;
 }
 

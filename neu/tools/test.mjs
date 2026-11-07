@@ -2402,6 +2402,17 @@ test('Halle der Himmelsscheibe: 4 Abschnitte setzen die Scheibe zusammen, Händl
   noErrors(g);
 });
 
+test('Dorfplatz: Ab der Kupferzeit zeigt das Lagerfeuer das Dorfplatz-Bild, sobald es geladen ist', () => {
+  const g = fresh();
+  const r = g.run(`(() => { const r = []; applyEpochTheme(); r.push(BUILDINGS.lagerfeuer.bild);
+    state.stage = 'kupfer'; applyEpochTheme(); r.push(BUILDINGS.lagerfeuer.bild);
+    images['2-dorfplatz'] = { width: 640, height: 588 }; applyEpochTheme(); r.push(BUILDINGS.lagerfeuer.bild);
+    state.stage = 'alt'; applyEpochTheme(); r.push(BUILDINGS.lagerfeuer.bild); delete images['2-dorfplatz']; return r.join(); })()`);
+  ok(r === '1-lagerfeuer,1-lagerfeuer,2-dorfplatz,1-lagerfeuer', 'Bildwechsel falsch: ' + r);
+  ok(g.run(`imageNames().includes('2-dorfplatz')`), 'Dorfplatz-Bild wird nicht geladen');
+  noErrors(g);
+});
+
 test('Bilder: Jede Datei liegt dort, wo imagePath sie erwartet; alles, was das Spiel lädt, ist unter bilder/epochia/', () => {
   const g = fresh();
   const dir = new URL('../../bilder/epochia/', import.meta.url);

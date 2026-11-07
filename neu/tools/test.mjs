@@ -261,11 +261,13 @@ test('Weiterentwickeln: Wohnhöhle → Fellzelt; größeres Langhaus braucht Pla
   ok(g.run(`state.buildings[1].type === 'fellzelt' && state.buildings[1].build > 0`), 'keine Baustelle');
   g.run('for (let i = 0; i < 46; i++) update(1)');
   ok(g.run('housingOf("fellzelt")') === 5 && g.run('stats.housing') === 8, 'Wohnplätze falsch: ' + g.run('stats.housing'));
-  // Grubenhaus (2×2) → Langhaus (3×3) neben einem Hindernis
-  g.run(`state.techs.grubenhaus = state.techs.langhausbau = true; state.buildings[1].type = 'grubenhaus'; rebuildOccupancy();`);
-  const b = g.run('JSON.stringify(state.buildings[1])');
-  const blocked = g.run(`const bb = state.buildings[1]; addBuilding('feuerplatz', bb.x + 2, bb.y, false, true); rebuildOccupancy(); upgradeProblem(1)`);
-  ok(blocked && blocked.includes('mehr Platz'), 'Langhaus trotz Hindernis erlaubt: ' + blocked + ' ' + b);
+  // Zwei Wohn-Reihen (Emin, 07.11.): das kleine Haus bleibt 2×2 und wird feiner, das Langhaus ist eine eigene Reihe
+  const reihe = g.run(`(() => { const r = []; let t = 'wohnhoehle'; while (t) { r.push(t + ':' + BUILDINGS[t].size); t = BUILDINGS[t].upgradeTo; } return r.join(' '); })()`);
+  ok(reihe === 'wohnhoehle:2 fellzelt:2 grubenhaus:2 flechtwerkhaus:2 steinhaus:2', 'Kleine Häuser falsch: ' + reihe);
+  ok(g.run(`BUILDINGS.langhaus.line !== BUILDINGS.grubenhaus.line && !BUILDINGS.langhaus.upgradeOnly`), 'Langhaus nicht eigene Reihe');
+  ok(g.run(`BAR_CATEGORIES.find(c => c.id === 'wohnen').lines.includes(BUILDINGS.langhaus.line)`), 'Langhaus fehlt in der Bauleiste');
+  // Große Häuser zählen weiter als Wohnungen (Aufträge, Forschungen)
+  ok(g.run(`(() => { const n = lineCount('wohnhoehle'); state.buildings[1].type = 'langhaus'; rebuildOccupancy(); return lineCount('wohnhoehle') === n; })()`), 'Langhaus zählt nicht als Wohnung');
   noErrors(g);
 });
 
@@ -2402,7 +2404,7 @@ test('Halle der Himmelsscheibe: 4 Abschnitte setzen die Scheibe zusammen, Händl
   noErrors(g);
 });
 
-test('Stufen: Ausbauen kostet, dauert, bringt Arbeiter und Ertrag; Grenze je Zeitalter; Speichern, Abreißen, Weiterentwickeln', () => {
+test('Stufen: 3 je Zeitalter, Ausbauen kostet und dauert, bringt Ertrag und alle 2 Stufen einen Arbeiter; Speichern, Abreißen, Weiterentwickeln', () => {
   const g = fresh();
   const r = g.run(`(() => {
     const sp = findFreeSpot('sammlerin', N / 2, N / 2), k = state.buildings.length;
@@ -2416,9 +2418,11 @@ test('Stufen: Ausbauen kostet, dauert, bringt Arbeiter und Ertrag; Grenze je Zei
     out.push(levelProblem(k));                          // läuft schon
     updateConstruction(b.up + 0.1); recalcStats();
     out.push(levelOf(b), workersOf(b), b.up === undefined, Math.round(outputFactor(k) / f1 * 100));
+    out.push(levelCost('sammlerin', 3).werkzeug, levelCost('sammlerin', 2).werkzeug || 0);
     levelUp(k); updateConstruction(1e6); recalcStats();
-    out.push(levelOf(b), levelProblem(k));              // Steinzeit: höchstens Stufe 3
-    state.stage = 'kupfer'; out.push(levelProblem(k), levelCost('sammlerin', 4).werkzeug);
+    out.push(levelOf(b), levelProblem(k), workersOf(b));   // Steinzeit: höchstens Stufe 3
+    state.stage = 'kupfer'; out.push(levelProblem(k), levelCost('sammlerin', 6).bronze, maxLevel());
+    state.stage = 'eisen1'; out.push(maxLevel(), levelCost('sammlerin', 9).eisen); state.stage = 'kupfer';
     // Speichern und Laden behält Stufe und laufenden Ausbau
     levelUp(k); saveGame(); loadSlot(currentSlot);
     const c = state.buildings.find(x => x.type === 'sammlerin');
@@ -2428,10 +2432,11 @@ test('Stufen: Ausbauen kostet, dauert, bringt Arbeiter und Ertrag; Grenze je Zei
   ok(r[0] === 1 && r[1] === r[2], 'Neues Gebäude nicht Stufe 1: ' + r);
   ok(r[3] === null && r[4] && r[5] && r[6] >= 1, 'Ausbau startet nicht richtig: ' + r);
   ok(r[7] === 'Wird schon ausgebaut', 'Doppelter Ausbau möglich: ' + r[7]);
-  ok(r[8] === 2 && r[9] === r[2] + 1 && r[10] && r[11] === 150, 'Stufe 2 bringt nicht +1 Arbeiter und +50 %: ' + r);
-  ok(r[12] === 3 && /Bronzezeit/.test(r[13]), 'Steinzeit-Grenze falsch: ' + r[13]);
-  ok(r[14] === null && r[15] === 5, 'Bronzezeit erlaubt Stufe 4 nicht: ' + r);
-  ok(r[16] === 3 && r[17] === true, 'Stufe/Ausbau nach dem Laden verloren: ' + r);
+  ok(r[8] === 2 && r[9] === r[2] && r[10] && r[11] === 150, 'Stufe 2 bringt nicht +50 % (bei gleich vielen Arbeitern): ' + r);
+  ok(r[12] === 3 && r[13] === 0, 'Stufe 3 braucht kein Werkzeug: ' + r);
+  ok(r[14] === 3 && /Bronzezeit/.test(r[15]) && r[16] === r[2] + 1, 'Steinzeit-Grenze oder Arbeiter auf Stufe 3 falsch: ' + r);
+  ok(r[17] === null && r[18] === 4 && r[19] === 6 && r[20] === 9 && r[21] === 5, 'Bronze-/Eisenzeit-Stufen falsch: ' + r);
+  ok(r[22] === 3 && r[23] === true, 'Stufe/Ausbau nach dem Laden verloren: ' + r);
   // Weiterentwickeln behält die Stufe, Abreißen gibt die Hälfte der Ausbauten zurück, alte Stände ohne Stufe = 1
   const r2 = g.run(`(() => {
     const k = state.buildings.findIndex(x => x.type === 'sammlerin'), b = state.buildings[k];

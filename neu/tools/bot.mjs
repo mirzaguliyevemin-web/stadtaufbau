@@ -409,7 +409,7 @@ function botStep() {
   if (constructionCount() >= CONFIG.maxConstructions) return;
   for (const [want, near, gap] of botWants()) {
     if (want === 'house') {
-      if (botUpgradeHousing() || botTryBuild(botBest('wohnen'))) return;
+      if (botUpgradeHousing() || botTryBuild(botBest('grosswohnen')) || botTryBuild(botBest('wohnen'))) return;   // große Wohnhäuser zuerst, sobald es sie gibt
       continue;
     }
     if (want === 'food') {

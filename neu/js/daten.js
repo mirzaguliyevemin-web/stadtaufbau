@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 135;
+const APP_VERSION = 136;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -11,12 +11,14 @@ const CONFIG = {
   tileW: 64,              // Breite einer Raute in Bildpunkten (Zoom 1)
   tileH: 44,              // Höhe einer Raute – so flach wie die Grasplatten auf Emins Bildern (≈ 0,69 × Breite)
   maxConstructions: 2,    // höchstens so viele Baustellen gleichzeitig
-  levels: {               // Stufen 1–5 für Produktionsgebäude (docs/plan-stufen.md, Emin 07.11.2026)
-    workersPerLevel: 1,   // je Stufe ein Arbeiterplatz mehr
-    outputPerLevel: 0.5,  // je Stufe +50 % Ertrag (Stufe 5: ×3)
-    costFactor: [0, 0, 1.5, 2.5, 4, 6],   // Baukosten des Gebäudes × Faktor für Stufe 2, 3, 4, 5
-    tools: [0, 0, 0, 0, 5, 10],           // ab Stufe 4 zusätzlich Werkzeug
-    // höchste Stufe: Steinzeit 3, Bronzezeit 4, Eisenzeit 5 (maxLevel in logik.js); Bauzeit = Bauzeit des Gebäudes × neue Stufe
+  levels: {               // Stufen für Produktionsgebäude (docs/plan-stufen.md, Emin 07.11.2026)
+    perEpoch: 3,          // je Zeitalter 3 Stufen, weitergezählt: Steinzeit 1–3, Bronzezeit 4–6, Eisenzeit 7–9 … Zeitgeschichte bis 24
+    max: 24,
+    outputPerLevel: 0.5,  // je Stufe +50 % vom Grundwert (Stufe 3: ×2, Stufe 9: ×5)
+    workersEvery: 2,      // alle 2 Stufen ein Arbeiterplatz mehr (bei Stufe 3, 5, 7 …)
+    costPerLevel: 0.5,    // Ausbau auf Stufe n kostet die Baukosten × (1 + 0,5 × (n − 1))
+    epochGoods: [{ werkzeug: 3 }, { bronze: 4 }, { eisen: 5 }],   // die letzte Stufe eines Zeitalters braucht zusätzlich dessen Ware
+    // Bauzeit = Bauzeit des Gebäudes × neue Stufe
   },
   yearSeconds: 7200,      // ein Jahr = 4 Jahreszeiten à 30 Minuten (Emin, 31.10.; bis Version 22: 2 Minuten)
   daySeconds: 1800,       // ein Tag mit Nacht dauert 30 Minuten (bis Version 22: 160 Sekunden)
@@ -342,11 +344,11 @@ const BUILDINGS = {
   },
   grubenhaus: {
     name: 'Grubenhaus', icon: '🏠', size: 2, line: 'wohnen', tier: 2, stage: 'mittel', bild: '1-grubenhaus', views: ['r2'],
-    color: '#a07040', cost: { holz: 30, stein: 20 }, time: 60, housing: 6, requires: 'grubenhaus', upgradeTo: 'langhaus',
+    color: '#a07040', cost: { holz: 30, stein: 20 }, time: 60, housing: 6, requires: 'grubenhaus', upgradeTo: 'flechtwerkhaus',
     info: 'Halb in den Boden gegraben, mit Schilfdach – Platz für 6 Menschen.',
   },
   langhaus: {
-    name: 'Langhaus', icon: '🏡', size: 3, line: 'wohnen', tier: 3, stage: 'jung', bild: '1-langhaus', views: ['r2'],
+    name: 'Langhaus', icon: '🏡', size: 3, line: 'grosswohnen', tier: 0, stage: 'jung', bild: '1-langhaus', views: ['r2'],
     color: '#8d5a32', cost: { holz: 100, stein: 50, werkzeug: 10 }, time: 180, housing: 14, requires: 'langhausbau', upgradeTo: 'lehmhaus',
     info: 'Großes Haus aus Holz und Lehm – Platz für 14 Menschen.',
   },
@@ -463,8 +465,9 @@ const BUILDINGS = {
     info: 'Wunderwerk der Bronzezeit: Tippe es an, um Abschnitt für Abschnitt weiterzubauen und die Himmelsscheibe zusammenzusetzen.',
   },
   // ----- Eisenzeit (Entwurf: docs/epoche-3-eisenzeit.md). Weiterentwicklungen zeigen so lange das Bild der Vorstufe, neue Gebäude den Platzhalter.
-  gehoeft: { name: 'Gehöft', icon: '🏠', size: 3, line: 'wohnen', tier: 6, stage: 'eisen1', bild: '1-langhaus', views: ['r2'], color: '#9a6a3a', cost: { holz: 200, stein: 110, eisen: 5 }, time: 240, housing: 30, requires: 'gehoefte', info: 'Ein großer Hof mit Stall und Vorrat, Platz für 30 Menschen.' },
-  stadthaus: { name: 'Stadthaus', icon: '🏘️', size: 3, line: 'wohnen', tier: 7, stage: 'eisen3', bild: '1-langhaus', views: ['r2'], color: '#8a5f36', cost: { holz: 240, stein: 160, eisen: 15 }, time: 270, housing: 36, requires: 'stadthaeuser', info: 'Dicht gebaute Häuser einer kleinen Stadt, Platz für 36 Menschen.' },
+  steinhaus: { name: 'Steinhaus', icon: '🏠', size: 2, line: 'wohnen', tier: 4, stage: 'eisen1', bild: '1-grubenhaus', views: ['r2'], color: '#9a8a70', cost: { stein: 70, holz: 40, werkzeug: 3 }, time: 120, housing: 10, requires: 'gehoefte', info: 'Steinsockel, Fachwerk und ein festes Dach – Platz für 10 Menschen.' },
+  gehoeft: { name: 'Gehöft', icon: '🏠', size: 3, line: 'grosswohnen', tier: 3, stage: 'eisen1', bild: '1-langhaus', views: ['r2'], color: '#9a6a3a', cost: { holz: 200, stein: 110, eisen: 5 }, time: 240, housing: 30, requires: 'gehoefte', info: 'Ein großer Hof mit Stall und Vorrat, Platz für 30 Menschen.' },
+  stadthaus: { name: 'Stadthaus', icon: '🏘️', size: 3, line: 'grosswohnen', tier: 4, stage: 'eisen3', bild: '1-langhaus', views: ['r2'], color: '#8a5f36', cost: { holz: 240, stein: 160, eisen: 15 }, time: 270, housing: 36, requires: 'stadthaeuser', info: 'Dicht gebaute Häuser einer kleinen Stadt, Platz für 36 Menschen.' },
   seehof: { name: 'Seehof', icon: '🛶', size: 3, line: 'wasserwohnen', tier: 2, stage: 'eisen2', bild: '1-pfahlbau', views: ['r1', 'r2'], color: '#7a6a4a', cost: { holz: 220, stein: 60, eisen: 10 }, time: 240, housing: 22, needsWater: true, requires: 'seehoefe', info: 'Große Häuser auf Pfählen, Platz für 22 Menschen.' },
   obstgarten: { name: 'Obstgarten', icon: '🍎', size: 2, line: 'sammeln', tier: 2, stage: 'eisen1', bild: '1-sammlerin', views: ['r2'], color: '#7a9a4a', cost: { holz: 60, stein: 20 }, time: 90, workers: 2, produces: { nahrung: 16 }, requires: 'obstbau', info: 'Äpfel und Birnen, viel Nahrung.' },
   jagdhof: { name: 'Jagdhof', icon: '🐕', size: 3, line: 'jagen', tier: 3, stage: 'eisen2', bild: '1-mammutjaegerlager', views: ['r2'], color: '#7a5a3a', cost: { holz: 130, stein: 50, eisen: 5 }, time: 150, workers: 4, produces: { nahrung: 30, felle: 4 }, requires: 'hunde', info: 'Jäger mit Hunden: Nahrung und Felle.' },
@@ -492,8 +495,15 @@ const BUILDINGS = {
   salzberg: { name: 'Salzberg', icon: '⛰️', size: 4, line: 'wunder_eisen', tier: 0, stage: 'eisen2', wonder: 'salzberg', needsRock: true, color: '#bdbdb0', cost: {}, time: 1, produces: { salz: 4 }, requires: 'salzbergbau', info: 'Wunderwerk der Eisenzeit: Tippe es an, um Abschnitt für Abschnitt weiterzubauen. Muss an Felsen oder am Gebirge stehen.' },
   // ----- Bronzezeit, Stufe Kupferzeit. Bilder folgen ab 27.11.: Weiterentwicklungen zeigen so lange das Bild der Vorstufe,
   // neue Gebäude ein Platzhalter-Feld.
+  // Zwei Wohn-Reihen (Emin, 07.11.2026): das kleine Haus (2×2) wird mit jedem Zeitalter feiner, das große Wohnhaus
+  // (3×3, ab dem Langhaus) ist eine eigene Reihe und wird später mehrstöckig. Bild bis Canva: das Grubenhaus.
+  flechtwerkhaus: {
+    name: 'Flechtwerkhaus', icon: '🏠', size: 2, line: 'wohnen', tier: 3, stage: 'kupfer', bild: '1-grubenhaus', views: ['r2'],
+    color: '#b08a50', cost: { holz: 50, ton: 15 }, time: 90, housing: 8, requires: 'lehmbau', upgradeTo: 'steinhaus',
+    info: 'Wände aus Weidengeflecht und Lehm, ein kleiner Garten – Platz für 8 Menschen.',
+  },
   lehmhaus: {
-    name: 'Lehmhaus', icon: '🧱', size: 3, line: 'wohnen', tier: 4, stage: 'kupfer', bild: '2-lehmhaus',
+    name: 'Lehmhaus', icon: '🧱', size: 3, line: 'grosswohnen', tier: 1, stage: 'kupfer', bild: '2-lehmhaus',
     color: '#a8703f', cost: { holz: 120, stein: 60, ton: 30 }, time: 200, housing: 18, requires: 'lehmbau', upgradeTo: 'hallenhaus',
     info: 'Feste Wände aus Lehm – Platz für 18 Menschen.',
   },
@@ -611,7 +621,7 @@ const BUILDINGS = {
   },
   // ----- Bronzezeit, Stufe Späte Bronzezeit (Bilder folgen, wie bei den anderen Stufen)
   hallenhaus: {
-    name: 'Hallenhaus', icon: '🏛️', size: 3, line: 'wohnen', tier: 5, stage: 'spaet', bild: '2-hallenhaus',
+    name: 'Hallenhaus', icon: '🏛️', size: 3, line: 'grosswohnen', tier: 2, stage: 'spaet', bild: '2-hallenhaus',
     color: '#a8703f', cost: { holz: 160, stein: 80, bronze: 10 }, time: 220, housing: 24, requires: 'hallenhaus',
     info: 'Ein großes, stolzes Haus mit langem Dach – Platz für 24 Menschen.',
   },
@@ -898,7 +908,7 @@ const NEXT_EPOCH = { name: 'Antike', icon: '🏛️', text: 'Schrift, Geld, Temp
 
 // Kategorien der Bauleiste (je Kategorie die Linien aus BUILDINGS)
 const BAR_CATEGORIES = [
-  { id: 'wohnen',    name: 'Wohnen',    icon: '🏠', lines: ['wohnen', 'wasserwohnen'] },
+  { id: 'wohnen',    name: 'Wohnen',    icon: '🏠', lines: ['wohnen', 'grosswohnen', 'wasserwohnen'] },
   { id: 'nahrung',   name: 'Nahrung',   icon: '🍖', lines: ['sammeln', 'jagen', 'fischen', 'feld', 'tiere'] },
   { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton', 'erz', 'eisenerz', 'kohle', 'zinn'] },
   { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'bronze', 'eisen', 'kleidung', 'werkzeug', 'toepfern', 'schmuck', 'glas', 'salz', 'wagner', 'lager', 'handel'] },

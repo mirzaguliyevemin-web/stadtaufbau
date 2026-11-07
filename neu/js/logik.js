@@ -292,20 +292,23 @@ function updateConstruction(dt) {
 }
 
 // ---------------------------------------------------------------------
-// Stufen 1–5 (docs/plan-stufen.md, Emin 07.11.2026): Produktionsgebäude lassen sich ausbauen –
-// je Stufe ein Arbeiterplatz mehr und +50 % Ertrag. Die Stufe bleibt bei der Weiterentwicklung erhalten.
+// Stufen (docs/plan-stufen.md, Emin 07.11.2026): Produktionsgebäude lassen sich ausbauen – 3 Stufen je Zeitalter,
+// weitergezählt. Je Stufe +50 % Ertrag, alle 2 Stufen ein Arbeiterplatz mehr. Die Stufe bleibt bei der Weiterentwicklung erhalten.
 // ---------------------------------------------------------------------
+const EPOCH_NAMES = ['Steinzeit', 'Bronzezeit', 'Eisenzeit', 'Antike', 'Mittelalter', 'Frühen Neuzeit', 'Jüngeren Neuzeit', 'Zeitgeschichte'];
 function hasLevels(def) { return !!(def && def.produces && def.workers && !def.wonder); }
-function levelOf(b) { return hasLevels(BUILDINGS[b.type]) ? Math.max(1, Math.min(5, Math.floor(b.level) || 1)) : 1; }
-function workersOf(b) { const def = BUILDINGS[b.type]; return def.workers ? def.workers + (levelOf(b) - 1) * CONFIG.levels.workersPerLevel : 0; }
+function levelOf(b) { return hasLevels(BUILDINGS[b.type]) ? Math.max(1, Math.min(CONFIG.levels.max, Math.floor(b.level) || 1)) : 1; }
+function workersOf(b) { const def = BUILDINGS[b.type]; return def.workers ? def.workers + Math.floor((levelOf(b) - 1) / CONFIG.levels.workersEvery) : 0; }
 function levelFactor(b) { return 1 + (levelOf(b) - 1) * CONFIG.levels.outputPerLevel; }
-function maxLevel() { return stageReached('eisen1') ? 5 : stageReached('kupfer') ? 4 : 3; }
+// Höchste Stufe im jetzigen Zeitalter: Steinzeit 3, Bronzezeit 6, Eisenzeit 9 …
+function epochNumber() { const epochs = [...new Set(STAGES.map(s => s.epoch))]; return epochs.indexOf(STAGES[stageIndex()].epoch) + 1; }
+function maxLevel() { return Math.min(CONFIG.levels.max, epochNumber() * CONFIG.levels.perEpoch); }
 // Was der Ausbau auf Stufe level kostet und wie lange er dauert
 function levelCost(type, level) {
-  const out = {}, f = CONFIG.levels.costFactor[level] || 0;
+  const out = {}, f = 1 + CONFIG.levels.costPerLevel * (level - 1);
   for (const [id, n] of Object.entries(BUILDINGS[type].cost || {})) out[id] = Math.ceil(n * f);
-  const tools = CONFIG.levels.tools[level] || 0;
-  if (tools) out.werkzeug = (out.werkzeug || 0) + tools;
+  const extra = level % CONFIG.levels.perEpoch === 0 ? CONFIG.levels.epochGoods[level / CONFIG.levels.perEpoch - 1] : null;
+  for (const [id, n] of Object.entries(extra || {})) out[id] = (out[id] || 0) + n;
   return out;
 }
 function levelTime(type, level) { return Math.max(10, buildTimeOf(type) * level); }
@@ -315,8 +318,8 @@ function levelProblem(i) {
   if (b.build) return 'Erst fertig bauen';
   if (b.up > 0) return 'Wird schon ausgebaut';
   const next = levelOf(b) + 1;
-  if (next > 5) return 'Höchste Stufe erreicht';
-  if (next > maxLevel()) return `Stufe ${next} gibt es erst ${next === 4 ? 'in der Bronzezeit' : 'in der Eisenzeit'}`;
+  if (next > CONFIG.levels.max) return 'Höchste Stufe erreicht';
+  if (next > maxLevel()) return `Stufe ${next} gibt es erst in der ${EPOCH_NAMES[Math.ceil(next / CONFIG.levels.perEpoch) - 1]}`;
   if (constructionCount() >= constructionLimit()) return `Schon ${constructionLimit()} Baustellen`;
   const cost = levelCost(b.type, next);
   if (!canAfford(cost)) return missingText(cost);
@@ -951,10 +954,11 @@ function techStatus(id) {
   return TECHS[id].requires.every(r => state.techs[r]) ? 'available' : 'locked';
 }
 
-// Fertige Gebäude derselben Linie ab dieser Stufe (ein Fellzelt zählt auch als Wohnhöhle)
+// Fertige Gebäude derselben Linie ab dieser Stufe (ein Fellzelt zählt auch als Wohnhöhle).
+// Große Wohnhäuser zählen auch als kleine Häuser jeder Stufe (sie waren bis Version 136 dieselbe Linie).
 function lineCount(type) {
   const def = BUILDINGS[type];
-  return state.buildings.filter(b => { const d = BUILDINGS[b.type]; return !b.build && d.line === def.line && d.tier >= def.tier; }).length;
+  return state.buildings.filter(b => { const d = BUILDINGS[b.type]; return !b.build && ((d.line === def.line && d.tier >= def.tier) || (def.line === 'wohnen' && d.line === 'grosswohnen')); }).length;
 }
 
 // Welche Gebäude verlangt eine Forschung? Alle: [{ type, have, need }]; Lücken: nur die, die noch fehlen

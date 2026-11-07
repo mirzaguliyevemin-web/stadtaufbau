@@ -26,6 +26,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-07, Epochia Version 136 – Wunsch Emin: Stufen an die Zeitalter angepasst (3 je Zeitalter, weitergezählt bis 24; jetzt bis 9 spielbar), zwei Wohn-Reihen: kleines Haus wird feiner (neu Flechtwerkhaus, Steinhaus), Langhaus ist eigene Reihe und muss nicht mehr ins kleine Haus passen.
 - 2026-11-07, Epochia Version 132 – Wunsch Emin: Produktionsgebäude haben Stufen 1–5 (je Stufe +1 Arbeiter und +50 % Ertrag; Ausbau kostet Baukosten ×1,5/2,5/4/6, ab Stufe 4 Werkzeug; Steinzeit bis 3, Bronzezeit 4, Eisenzeit 5; Stufe bleibt beim Weiterentwickeln, Bot baut mit aus). Plan: `docs/plan-stufen.md`.
 - 2026-11-07, Epochia Version 131 – Wunsch Emin: Wasser in den Gebäudebildern hat die Farbe des Flusses (`neu/tools/wasser-farbe.py`).
 - 2026-11-04, Epochia Version 95 – Wunsch Emin: helles Design mit eigener Farbwelt für Steinzeit, Kupferzeit, Bronzezeit und Eisenzeit statt Braun; neues Lager mit Bereichen, Füllstand und knappen Waren oben; Wege, Erdsockel und Wiese heller.

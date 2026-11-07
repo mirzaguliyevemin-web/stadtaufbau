@@ -711,15 +711,15 @@ function showBuildingWindow(i) {
   let upgrade = '';
   // Stufen 1–5: Ausbauen bringt einen Arbeiterplatz und +50 % Ertrag (docs/plan-stufen.md)
   if (hasLevels(def) && !b.build) {
-    const lv = levelOf(b), next = lv + 1, stars = '⭐'.repeat(lv);
+    const lv = levelOf(b), next = lv + 1, stars = '⭐';
     if (b.up > 0) upgrade += `<div class="upgrade"><h3>${stars} Stufe ${lv} – wird auf Stufe ${next} ausgebaut</h3>
       <p>🔨 noch ${formatTime(b.up)} · arbeitet währenddessen weiter</p>${shopSpeedButton()}</div>`;
-    else if (next > 5) upgrade += `<div class="upgrade"><h3>${stars} Stufe 5 – höchste Stufe</h3></div>`;
+    else if (next > CONFIG.levels.max) upgrade += `<div class="upgrade"><h3>⭐ Stufe ${lv} – höchste Stufe</h3></div>`;
     else {
       const problem = levelProblem(i), more = Math.round(CONFIG.levels.outputPerLevel * 100);
       upgrade += `<div class="upgrade">
-        <h3>${stars} Stufe ${lv} von ${maxLevel()}${maxLevel() < 5 ? ' <small>(mehr in späteren Zeitaltern)</small>' : ''}</h3>
-        <p>Ausbau auf Stufe ${next}: 👤 ${workersOf(b)} → ${workersOf(b) + CONFIG.levels.workersPerLevel} Arbeiter, Ertrag ×${perMin(levelFactor(b))} → ×${perMin(levelFactor(b) + CONFIG.levels.outputPerLevel)} (+${more} % vom Grundwert)</p>
+        <h3>${stars} Stufe ${lv} von ${maxLevel()}${maxLevel() < CONFIG.levels.max ? ' <small>(mehr in späteren Zeitaltern)</small>' : ''}</h3>
+        <p>Ausbau auf Stufe ${next}: Ertrag ×${perMin(levelFactor(b))} → ×${perMin(levelFactor(b) + CONFIG.levels.outputPerLevel)} (+${more} % vom Grundwert)${workersOf({ type: b.type, level: next }) > workersOf(b) ? `, 👤 ${workersOf(b)} → ${workersOf({ type: b.type, level: next })} Arbeiter` : ', gleich viele Arbeiter'}</p>
         <p>${costHtml(levelCost(b.type, next))} · ⏱ ${formatTime(levelTime(b.type, next))}</p>
         <button class="btn primary" ${problem ? 'disabled' : ''} onclick="doLevelUp(${i})">⬆ Ausbauen auf Stufe ${next}</button>
         ${problem ? `<small class="bad">${esc(problem)}</small>` : ''}
@@ -779,7 +779,7 @@ function buildingDetailsHtml(i) {
     const seasonF = SEASON_FACTORS[b.type] ? SEASON_FACTORS[b.type][seasonIndex()] : 1;
     const parts = [
       ['👤 Arbeiter', staff, `${stats.staff[i] || 0} von ${workersOf(b)}`],
-      ...(hasLevels(def) ? [[`⭐ Stufe ${levelOf(b)}`, levelFactor(b), `+${Math.round(CONFIG.levels.outputPerLevel * 100)} % je Stufe`]] : []),
+      ...(hasLevels(def) ? [[`⭐ Stufe ${levelOf(b)}`, levelFactor(b), `+${Math.round(CONFIG.levels.outputPerLevel * 100)} % je Stufe, alle ${CONFIG.levels.workersEvery} Stufen ein Arbeiter mehr`]] : []),
       [`${season().icon} Jahreszeit`, seasonF, season().name],
       [`${currentWeather().icon} Wetter${state.disaster ? ' & ' + DISASTERS[state.disaster.id].name : ''}`, effectFactor(b.type), ''],
       ['😊 Zufriedenheit', happinessFactor(), `${stats.happiness} %`],

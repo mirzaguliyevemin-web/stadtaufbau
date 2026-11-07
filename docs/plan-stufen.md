@@ -1,9 +1,27 @@
-# Plan: Stufen für Produktionsgebäude (Stufe 1 bis 5)
+# Plan: Stufen für Produktionsgebäude (3 je Zeitalter, bis Stufe 24)
 
 Wunsch Emin, 07.11.2026: Produktionsgebäude sollen sich von Stufe 1 bis Stufe 5 ausbauen lassen. Bisher steigt der
 Ertrag nur, wenn man immer mehr Gebäude baut – das wird schnell eng und mühsam.
 
 Stand: **gebaut mit Version 132** (Emin, 07.11.: alle 💡-Vorschläge). Zahlen in `CONFIG.levels` (`neu/js/daten.js`), Logik `levelUp`/`levelProblem`/`workersOf`/`levelFactor` in `neu/js/logik.js`, Knopf im Gebäudefenster, Stufenschild an der vorderen Ecke, Gold-Beschleunigen im Shop, Bot baut aus (`botTryLevel`). Noch offen: Aufträge zum Ausbauen, Lager-/Wohnhaus-Stufen, Balancing nach Emins Spielprobe.
+
+## Neu seit Version 136 (Emin, 07.11.2026): 3 Stufen je Zeitalter, zwei Wohn-Reihen
+
+| Zeitalter | Stufen | Extra-Ware für die letzte Stufe |
+|---|---|---|
+| Steinzeit | 1–3 | Werkzeug (3) |
+| Bronzezeit | 4–6 | Bronze (4) |
+| Eisenzeit | 7–9 | Eisen (5) |
+| Antike … Zeitgeschichte | 10–24 | kommt mit dem Zeitalter |
+
+- Weitergezählt, die Stufe bleibt beim Weiterentwickeln (Sammlerin Stufe 5 → Gemüsegarten Stufe 5).
+- Je Stufe +50 % vom Grundwert (Stufe 3 ×2, Stufe 9 ×5), alle 2 Stufen ein Arbeiter mehr (Sammlerin: 2 · 2 · 3 · 3 · 4 · 4 · 5 · 5 · 6).
+- Kosten: Baukosten × (1 + 0,5 × (Stufe − 1)), Bauzeit × Stufe. Gilt auch für alle Nahrungsgebäude.
+- Wohnen getrennt: kleines Haus (2×2) Wohnhöhle → Fellzelt → Grubenhaus → **Flechtwerkhaus** (Bronzezeit, 8) → **Steinhaus**
+  (Eisenzeit, 10), wird später immer feiner. Großes Wohnhaus (3×3, eigene Reihe `grosswohnen`) Langhaus → Lehmhaus →
+  Hallenhaus → Gehöft → Stadthaus, später mehrstöckig. Flechtwerkhaus und Steinhaus zeigen bis zu ihren Canva-Bildern das Grubenhaus.
+
+Die Abschnitte darunter sind der erste Entwurf (Version 132, Stufen 1–5).
 
 ## Wie es heute ist
 

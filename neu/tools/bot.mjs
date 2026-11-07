@@ -385,9 +385,10 @@ function botWonders() {
 }
 
 // Stufen (docs/plan-stufen.md): Statt ein weiteres Gebäude zu bauen, baut der Bot lieber ein vorhandenes aus –
-// das spart Platz, Wege und einen Arbeiter. Die niedrigste Stufe zuerst.
+// das spart Platz, Wege und einen Arbeiter. Die niedrigste Stufe zuerst, und nur wenn sonst nichts gebaut wird.
 function botTryLevel(type) {
   if (!type || !hasLevels(BUILDINGS[type])) return false;
+  if (constructionCount() > 0) return false;   // Ausbauten dauern lange: ein Bauplatz bleibt frei für Gebäude, die die Forschung verlangt
   const line = BUILDINGS[type].line;
   const list = state.buildings.map((b, i) => i).filter(i => BUILDINGS[state.buildings[i].type].line === line && !levelProblem(i))
     .sort((a, b) => levelOf(state.buildings[a]) - levelOf(state.buildings[b]));

@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 118;
+const APP_VERSION = 119;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -558,7 +558,7 @@ const BUILDINGS = {
     info: 'Jäger mit Pfeilspitzen aus Bronze: mehr Fleisch und mehr Felle. Am Wald mehr.',
   },
   feld: {
-    name: 'Feld', icon: '🐂', size: 3, line: 'feld', tier: 1, stage: 'frueh', bild: '1-acker', views: ['r2'],
+    name: 'Feld', icon: '🐂', size: 3, line: 'feld', tier: 1, stage: 'frueh', bild: '2-feld',
     color: '#d8b44a', cost: { holz: 55, werkzeug: 8 }, time: 90, workers: 4, produces: { nahrung: 45 }, requires: 'hakenpflug',
     info: 'Mit Ochse und Hakenpflug – sehr viel Nahrung. Im Sommer am meisten, im Winter nichts.',
   },

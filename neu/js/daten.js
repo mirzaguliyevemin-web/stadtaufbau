@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 115;
+const APP_VERSION = 116;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -524,7 +524,7 @@ const BUILDINGS = {
     info: 'Hier trifft sich das Dorf: Gemeinschaft im Umkreis und bessere Laune.',
   },
   lehmgrube: {
-    name: 'Lehmgrube', icon: '🟤', size: 2, line: 'ton', tier: 1, stage: 'kupfer', bild: '1-tongrube', views: ['r1', 'r2'],
+    name: 'Lehmgrube', icon: '🟤', size: 2, line: 'ton', tier: 1, stage: 'kupfer', bild: '2-lehmgrube',
     color: '#a0603a', cost: { holz: 40, werkzeug: 3 }, time: 60, workers: 3, produces: { ton: 6 }, needsWater: true, requires: 'lehmbau',
     info: 'Gräbt Lehm und Ton am Ufer. Muss am Wasser stehen.',
   },

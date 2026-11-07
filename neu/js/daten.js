@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 119;
+const APP_VERSION = 120;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -563,7 +563,7 @@ const BUILDINGS = {
     info: 'Mit Ochse und Hakenpflug – sehr viel Nahrung. Im Sommer am meisten, im Winter nichts.',
   },
   viehhof: {
-    name: 'Viehhof', icon: '🐑', size: 3, line: 'tiere', tier: 1, stage: 'frueh', bild: '1-ziegengehege', views: ['r2'],
+    name: 'Viehhof', icon: '🐑', size: 3, line: 'tiere', tier: 1, stage: 'frueh', bild: '2-viehhof',
     color: '#c8b48a', cost: { holz: 80, werkzeug: 6 }, time: 120, workers: 3, produces: { nahrung: 14, wolle: 4, felle: 1 }, requires: 'schafzucht',
     info: 'Schafe und Rinder geben Fleisch, Milch und Wolle – das ganze Jahr.',
   },

@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 132;
+const APP_VERSION = 133;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -616,7 +616,7 @@ const BUILDINGS = {
     info: 'Ein großes, stolzes Haus mit langem Dach – Platz für 24 Menschen.',
   },
   fischerhaus: {
-    name: 'Fischerhaus', icon: '🛶', size: 3, line: 'wasserwohnen', tier: 1, stage: 'spaet', bild: '1-pfahlbau', views: ['r1', 'r2'],
+    name: 'Fischerhaus', icon: '🛶', size: 3, line: 'wasserwohnen', tier: 1, stage: 'spaet', bild: '2-fischerhaus', views: ['r1', 'r2'],
     color: '#7d6040', cost: { holz: 150, werkzeug: 12, bronze: 3 }, time: 180, housing: 16, needsWater: true, produces: { nahrung: 4 }, requires: 'plankenboote',
     info: 'Häuser am Wasser mit Plankenbooten – Platz für 16 Menschen und mehr Fisch.',
   },

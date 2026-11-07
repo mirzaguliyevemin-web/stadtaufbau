@@ -395,9 +395,26 @@ function botTryLevel(type) {
   return list.length > 0 && levelUp(list[0]) === null;
 }
 
+// Wünsche erfüllen, wenn danach genug übrig bleibt (Prüfung 07.11.: der Bot erfüllte nie einen Wunsch)
+function botWish() {
+  const w = currentWish();
+  if (w && (state.res[w.id] || 0) - w.amount >= capOf(w.id) * 0.4) fulfillWish();
+}
+
+// Offener Stufen-Auftrag: ein Gebäude gezielt hochziehen statt alle gleichmäßig
+function botLevelQuest() {
+  const q = activeQuests().find(x => x.goal.level && !questDone(x));
+  if (!q || constructionCount() > 0) return;
+  const list = state.buildings.map((b, i) => i).filter(i => !levelProblem(i) && levelOf(state.buildings[i]) < q.goal.level)
+    .sort((a, b) => levelOf(state.buildings[b]) - levelOf(state.buildings[a]));
+  if (list.length) levelUp(list[0]);
+}
+
 function botStep() {
   botWonders();
   botQuests();
+  botWish();
+  botLevelQuest();
   botHunt();
   botTrade();
   botResearch();

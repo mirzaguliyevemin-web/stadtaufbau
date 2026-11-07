@@ -435,8 +435,12 @@ test('Aufträge: gesperrte verstopfen die Liste nicht, Fernziel rückt nach', ()
     state.quests.q_holz100 = true;
     return activeQuests().map(q => q.id);
   })()`);
-  ok(blocked.length === 3, 'Es sollen weiter 3 Aufträge zu sehen sein: ' + blocked.join());
+  // in der Altsteinzeit bleiben nur Jagd (braucht Forschung) und das Fernziel – spätere Abschnitte warten (seit 07.11.)
+  ok(blocked.includes('q_mittel') && blocked.includes('q_jagd1'), 'Fernziel rückt nicht nach: ' + blocked.join());
   g.run(`state.quests = {};`);
+  // Aufträge späterer Zeitalter erscheinen nicht, auch wenn sie schon erfüllt wären
+  ok(g.run(`(() => { state.pop = 500; const ids = activeQuests().map(q => q.id); state.pop = 0; return ids.every(id => QUESTS.find(q => q.id === id).stage === 'alt'); })()`), 'Auftrag aus einem späteren Zeitalter sichtbar');
+  ok(g.run(`QUESTS.every(q => STAGES.some(s => s.id === q.stage))`), 'Auftrag ohne Zeitalter');
   const start = g.run(`activeQuests().map(q => q.id)`);
   ok(!start.includes('q_zelte3') && !start.includes('q_mittel'), 'Gesperrtes vorne: ' + start.join());
   ok(new Set(g.run(`QUESTS.map(q => q.id)`)).size === g.run(`QUESTS.length`), 'Auftrags-IDs doppelt');
@@ -2491,6 +2495,35 @@ test('Aufträge: Stufen-Aufträge zählen ausgebaute Gebäude und warten auf das
   })()`);
   ok(r[0] === true && r[1] === true && r[2] === false, 'Stufen-Auftrag falsch: ' + r);
   ok(r[3] === false && r[4] === true, 'Haus zeigt noch den Knopf zum Weiterentwickeln: ' + r);
+  noErrors(g);
+});
+
+test('Spiellogik-Prüfung 07.11.: Bau-Aufträge zählen Weiterentwicklungen, Stufe 3 wartet auf Werkzeug, Wahrzeichen einmal, nur fehlende Fundstücke', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const out = {};
+    const sp = findFreeSpot('kupferschmied', N / 2, N / 2), k = state.buildings.length;
+    state.buildings.push({ type: 'bronzeschmied', x: sp.x, y: sp.y, rot: 0, build: 0 }); setOccupied(state.buildings[k], k + 1);
+    out.kschmied = questProgress(QUESTS.find(q => q.id === 'q_b_kschmied2')).have;
+    out.stufe3 = questBlocked(QUESTS.find(q => q.id === 'q_s_stufe3'));   // Werkzeug kann noch niemand herstellen
+    state.techs.feine_klingen = true; state.stage = 'jung';
+    out.stufe3b = questBlocked(QUESTS.find(q => q.id === 'q_s_stufe3'));
+    out.reserve = CONFIG.metalReserve.eisen;
+    state.techs.sternenkunde = true;
+    const s2 = findFreeSpot('steinkreis', N / 2, N / 2), m = state.buildings.length;
+    state.buildings.push({ type: 'fuerstenhuegel', x: s2.x, y: s2.y, rot: 0, build: 0 }); setOccupied(state.buildings[m], m + 1);
+    state.techs.fuerstenhuegel = true;
+    out.zweiter = buildProblem('fuerstenhuegel', 1, 1);
+    out.leiste = barEntries().some(e => e.type === 'fuerstenhuegel');
+    for (const id of Object.keys(FINDS)) state.finds[id] = 99;
+    out.spot = spawnSpot();
+    return out;
+  })()`);
+  ok(r.kschmied === 1, 'Bronzeschmied zählt nicht als Kupferschmied: ' + r.kschmied);
+  ok(r.stufe3 === true && r.stufe3b === false, 'Stufe 3 erscheint vor dem Werkzeug: ' + r.stufe3 + '/' + r.stufe3b);
+  ok(r.reserve === 30, 'Keine Eisen-Reserve');
+  ok(r.zweiter === 'Davon gibt es nur eines' && !r.leiste, 'Wahrzeichen doppelt baubar: ' + r.zweiter);
+  ok(r.spot === null, 'Fundstelle für ein Stück, das niemand mehr braucht');
   noErrors(g);
 });
 

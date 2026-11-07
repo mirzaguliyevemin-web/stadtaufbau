@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 140;
+const APP_VERSION = 141;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -74,7 +74,7 @@ const CONFIG = {
     researchSeconds: 90,  // so viel kürzer wird die laufende Forschung
     wissen: 8,            // so viel Wissen gibt es dazu (je Zeitalter mehr, siehe stagePlus)
     stagePlus: 0.25,      // je Zeitalter wollen und geben Wünsche 25 % mehr
-    amount: { nahrung: 150, holz: 120, stein: 90, felle: 30, kleidung: 25, werkzeug: 15, ton: 45, toepferwaren: 15, kupfererz: 45, holzkohle: 30, kupfer: 15, zinn: 12, bronze: 8, wolle: 30, schmuck: 8, eisen: 25, salz: 30, glas: 8 },
+    amount: { nahrung: 150, holz: 120, stein: 90, felle: 30, kleidung: 25, werkzeug: 15, ton: 45, toepferwaren: 15, kupfererz: 45, holzkohle: 30, kupfer: 15, zinn: 12, bronze: 8, wolle: 30, schmuck: 8, eisen: 10, salz: 15, glas: 4 },
     text: {
       nahrung: 'Der Stamm möchte ein großes Festmahl feiern.',
       holz: 'Die Alten wünschen sich ein großes Feuer für die Ahnen.',
@@ -119,13 +119,13 @@ const CONFIG = {
       { id: 'kleid_wein',   give: { kleidung: 25 },   get: { wein: 20 }, requires: 'weinhandel' },
       { id: 'salz_bronze',  give: { salz: 20 },       get: { bronze: 15 }, requires: 'handelswege' },
       { id: 'salz_glas',    give: { salz: 25 },       get: { glas: 6 }, requires: 'weinhandel' },
-      { id: 'kleid_bernstein',  give: { kleidung: 15 }, get: { bernstein: 10 }, requires: 'bernsteinstrasse' },
-      { id: 'bronze_bernstein', give: { bronze: 10 },   get: { bernstein: 12 }, requires: 'bernsteinstrasse' },
+      { id: 'kleid_bernstein',  give: { kleidung: 15 }, get: { bernstein: 18 }, requires: 'bernsteinstrasse' },
+      { id: 'bronze_bernstein', give: { bronze: 10 },   get: { bernstein: 20 }, requires: 'bernsteinstrasse' },
     ],
   },
   // Werkstätten lassen so viel Metall liegen (mindestens; mehr, wenn eine startbare Forschung mehr kostet), sonst verbrauchen
   // Gießer und Schmiede alles und man kommt nie auf die Kosten für Bauen und Forschung (Analyse 02.11.: bis 12 Stunden Stillstand)
-  metalReserve: { kupfer: 30, bronze: 30 },
+  metalReserve: { kupfer: 30, bronze: 30, eisen: 30 },
   wine: { perPerson: 0.005, happy: 6 },   // Wein ist nur ein Bonus für die Laune (Emin, 03.11.), kein Bedürfnis
   thingplatz: { warmth: 1 },
   fest: { happy: 15, seconds: 300 },   // Sonnwendfest (nach der „Himmelsscheibe“): mitten im Sommer 5 Minuten Fest, Laune +15
@@ -466,8 +466,8 @@ const BUILDINGS = {
   },
   // ----- Eisenzeit (Entwurf: docs/epoche-3-eisenzeit.md). Weiterentwicklungen zeigen so lange das Bild der Vorstufe, neue Gebäude den Platzhalter.
   steinhaus: { name: 'Steinhaus', icon: '🏠', size: 2, line: 'wohnen', tier: 4, stage: 'eisen1', bild: '1-grubenhaus', views: ['r2'], color: '#9a8a70', cost: { stein: 70, holz: 40, werkzeug: 3 }, time: 120, housing: 10, requires: 'gehoefte', info: 'Steinsockel, Fachwerk und ein festes Dach – Platz für 10 Menschen.' },
-  gehoeft: { name: 'Gehöft', icon: '🏠', size: 3, line: 'grosswohnen', tier: 3, stage: 'eisen1', bild: '1-langhaus', views: ['r2'], color: '#9a6a3a', cost: { holz: 200, stein: 110, eisen: 5 }, time: 240, housing: 30, requires: 'gehoefte', info: 'Ein großer Hof mit Stall und Vorrat, Platz für 30 Menschen.' },
-  stadthaus: { name: 'Stadthaus', icon: '🏘️', size: 3, line: 'grosswohnen', tier: 4, stage: 'eisen3', bild: '1-langhaus', views: ['r2'], color: '#8a5f36', cost: { holz: 240, stein: 160, eisen: 15 }, time: 270, housing: 36, requires: 'stadthaeuser', info: 'Dicht gebaute Häuser einer kleinen Stadt, Platz für 36 Menschen.' },
+  gehoeft: { name: 'Gehöft', icon: '🏠', size: 3, line: 'grosswohnen', tier: 3, stage: 'eisen1', bild: '1-langhaus', views: ['r2'], color: '#9a6a3a', cost: { holz: 200, stein: 110, eisen: 5 }, time: 240, housing: 30, requires: 'gehoefte', manualUpgrade: true, info: 'Ein großer Hof mit Stall und Vorrat, Platz für 30 Menschen. Braucht Eisen: darum nur per Knopf umbauen.' },
+  stadthaus: { name: 'Stadthaus', icon: '🏘️', size: 3, line: 'grosswohnen', tier: 4, stage: 'eisen3', bild: '1-langhaus', views: ['r2'], color: '#8a5f36', cost: { holz: 240, stein: 160, eisen: 15 }, time: 270, housing: 36, requires: 'stadthaeuser', manualUpgrade: true, info: 'Dicht gebaute Häuser einer kleinen Stadt, Platz für 36 Menschen. Braucht Eisen: darum nur per Knopf umbauen.' },
   seehof: { name: 'Seehof', icon: '🛶', size: 3, line: 'wasserwohnen', tier: 2, stage: 'eisen2', bild: '1-pfahlbau', views: ['r1', 'r2'], color: '#7a6a4a', cost: { holz: 220, stein: 60, eisen: 10 }, time: 240, housing: 22, needsWater: true, requires: 'seehoefe', info: 'Große Häuser auf Pfählen, Platz für 22 Menschen.' },
   obstgarten: { name: 'Obstgarten', icon: '🍎', size: 2, line: 'sammeln', tier: 2, stage: 'eisen1', bild: '1-sammlerin', views: ['r2'], color: '#7a9a4a', cost: { holz: 60, stein: 20 }, time: 90, workers: 2, produces: { nahrung: 16 }, requires: 'obstbau', info: 'Äpfel und Birnen, viel Nahrung.' },
   jagdhof: { name: 'Jagdhof', icon: '🐕', size: 3, line: 'jagen', tier: 3, stage: 'eisen2', bild: '1-mammutjaegerlager', views: ['r2'], color: '#7a5a3a', cost: { holz: 130, stein: 50, eisen: 5 }, time: 150, workers: 4, produces: { nahrung: 30, felle: 4 }, requires: 'hunde', info: 'Jäger mit Hunden: Nahrung und Felle.' },
@@ -752,7 +752,7 @@ const TECHS = {
   // Das Ziel der Bronzezeit
   aufbruch_eisenzeit: {
     name: 'Aufbruch in die Eisenzeit', icon: '🔩', stage: 'spaet', col: 24, row: 2, transition: true, requires: ['eisenfund'],
-    population: 280, cost: { wissen: 280, holz: 400, stein: 300, nahrung: 400, bronze: 60, schmuck: 30, werkzeug: 50 }, time: 300, effect: { stage: 'eisen1', gift: { eisen: 20, eisenerz: 30 } },
+    population: 280, cost: { wissen: 280, holz: 400, stein: 300, nahrung: 400, bronze: 60, schmuck: 20, werkzeug: 50 }, time: 300, effect: { stage: 'eisen1', gift: { eisen: 20, eisenerz: 30 } },
   },
   // ----- Aufbruch und Frühe Eisenzeit (docs/epoche-3-eisenzeit.md)
   eisenbergbau:   { name: 'Eisenbergbau',   icon: '⛏️', stage: 'eisen1', col: 25, row: 3, requires: ['aufbruch_eisenzeit'], population: 285, cost: { wissen: 300, holz: 200 }, time: 960, effect: {} },
@@ -936,10 +936,10 @@ const QUESTS = [
   { id: 'q_land1',      text: 'Kaufe ein neues Landstück', goal: { plots: 1 }, reward: { stein: 40 } },
   { id: 'q_jaeger2',    text: 'Baue 2 Jägerlager',       goal: { build: 'jaegerlager', count: 2 }, reward: { nahrung: 40, felle: 5 } },
   { id: 'q_pop20',      text: 'Erreiche 20 Einwohner',   goal: { population: 20 }, reward: { holz: 40 } },
-  { id: 'q_wohnen8',    text: 'Habe 8 Wohnungen',        goal: { line: 'wohnen', type: 'wohnhoehle', count: 8 }, reward: { stein: 40 } },
+  { id: 'q_wohnen8',    text: 'Habe 8 Wohnungen',        goal: { line: 'wohnen', type: 'wohnhoehle', count: 8, mixed: true }, reward: { stein: 40 } },
   { id: 'q_maler3',     text: 'Baue 3 Höhlenmaler',      goal: { build: 'hoehlenmaler', count: 3 }, reward: { wissen: 15 } },
   { id: 'q_feuer3',     text: 'Baue 3 Feuerplätze',      goal: { build: 'feuerplatz', count: 3 }, reward: { nahrung: 40 } },
-  { id: 'q_zelte3',     text: 'Baue 3 Fellzelte',        goal: { build: 'fellzelt', count: 3 }, reward: { holz: 40, felle: 4 } },
+  { id: 'q_zelte3',     text: 'Habe 10 Fellzelte',        goal: { line: 'wohnen', type: 'fellzelt', count: 10 }, reward: { holz: 40, felle: 4 } },
   { id: 'q_pop25',      text: 'Erreiche 25 Einwohner',   goal: { population: 25 }, reward: { felle: 5, wissen: 10 } },
   { id: 'q_wunsch3',    text: 'Erfülle 3 Wünsche des Stammes', goal: { wishes: 3 }, reward: { wissen: 20 } },
   { id: 'q_jagd1',      text: 'Schicke die Jäger auf Mammutjagd', goal: { hunts: 1 }, requires: 'mammutjagd', reward: { holz: 40, stein: 30 } },
@@ -971,40 +971,40 @@ const QUESTS = [
   { id: 'q_s_stufe3',   text: 'Baue ein Gebäude auf Stufe 3 aus', goal: { level: 3, count: 1 }, reward: { werkzeug: 15 } },
   { id: 'q_steinkreis', text: 'Baue einen Steinkreis',   goal: { build: 'steinkreis', count: 1 }, reward: { holz: 100, nahrung: 100 } },
   { id: 'q_pop120',     text: 'Erreiche 120 Einwohner – bereit für den Aufbruch', goal: { population: 120 }, reward: { holz: 150, nahrung: 150 } },
-  // Kupferzeit
   { id: 'q_b_aufbruch', text: 'Brich in die Bronzezeit auf', goal: { tech: 'aufbruch_bronzezeit' }, reward: { holz: 100, stein: 100 } },
+  // Kupferzeit
   { id: 'q_b_mine',     text: 'Baue eine Kupfermine',    goal: { build: 'kupfermine', count: 1 }, reward: { holz: 60, stein: 40 } },
-  { id: 'q_b_kupfer20', text: 'Habe 20 Kupfer im Lager', goal: { resource: 'kupfer', count: 20 }, reward: { wissen: 40 } },
-  { id: 'q_b_garten3',  text: 'Baue 3 Gemüsegärten',     goal: { build: 'gemuesegarten', count: 3 }, reward: { nahrung: 80 } },
+  { id: 'q_b_kupfer20', text: 'Habe 60 Kupfer im Lager', goal: { resource: 'kupfer', count: 60 }, reward: { wissen: 40 } },
+  { id: 'q_b_garten3',  text: 'Habe 6 Gemüsegärten',     goal: { line: 'sammeln', type: 'gemuesegarten', count: 6 }, reward: { nahrung: 80 } },
   { id: 'q_b_pop140',   text: 'Erreiche 140 Einwohner',  goal: { population: 140 }, reward: { holzkohle: 20 } },
   { id: 'q_b_stufe4',   text: 'Baue ein Gebäude auf Stufe 4 aus', goal: { level: 4, count: 1 }, reward: { kupfer: 15 } },
-  { id: 'q_b_flecht5',  text: 'Habe 5 Flechtwerkhäuser', goal: { build: 'flechtwerkhaus', count: 5 }, reward: { ton: 30 } },
-  { id: 'q_b_brunnen',  text: 'Baue einen Dorfbrunnen', goal: { build: 'dorfbrunnen', count: 1 }, reward: { nahrung: 60 } },
+  { id: 'q_b_flecht5',  text: 'Habe 12 Flechtwerkhäuser', goal: { line: 'wohnen', type: 'flechtwerkhaus', count: 12 }, reward: { ton: 30 } },
+  { id: 'q_b_brunnen',  text: 'Habe 6 Dorfbrunnen', goal: { line: 'waerme', type: 'dorfbrunnen', count: 6 }, reward: { nahrung: 60 } },
   { id: 'q_b_kschmied2', text: 'Baue 2 Kupferschmiede', goal: { build: 'kupferschmied', count: 2 }, reward: { stein: 60 } },
-  { id: 'q_b_felsritzer', text: 'Baue einen Felsritzer', goal: { build: 'felsritzer', count: 1 }, reward: { wissen: 40 } },
-  { id: 'q_b_lehmhaus3', text: 'Baue 3 Lehmhäuser',     goal: { build: 'lehmhaus', count: 3 }, reward: { holz: 80 } },
+  { id: 'q_b_felsritzer', text: 'Habe 7 Felsritzer', goal: { line: 'wissen', type: 'felsritzer', count: 7 }, reward: { wissen: 40 } },
+  { id: 'q_b_lehmhaus3', text: 'Habe 6 Lehmhäuser',     goal: { line: 'grosswohnen', type: 'lehmhaus', count: 6 }, reward: { holz: 80 } },
   { id: 'q_b_wunsch15', text: 'Erfülle 15 Wünsche des Stammes', goal: { wishes: 15 }, reward: { wissen: 50 } },
   { id: 'q_b_frueh',    text: 'Erreiche die Frühe Bronzezeit', goal: { tech: 'fruehe_bronzezeit' }, reward: { holz: 100, kupfer: 20 } },
   // Frühe Bronzezeit
   { id: 'q_b_handel',   text: 'Baue einen Handelsplatz', goal: { build: 'handelsplatz', count: 1 }, reward: { toepferwaren: 15 } },
   { id: 'q_b_tausch3',  text: 'Tausche 3-mal mit dem Händler', goal: { trades: 3 }, requires: 'tauschhandel', reward: { zinn: 10 } },
   { id: 'q_b_bronze20', text: 'Habe 20 Bronze im Lager', goal: { resource: 'bronze', count: 20 }, reward: { wissen: 60 } },
-  { id: 'q_b_viehhof2', text: 'Baue 2 Viehhöfe',         goal: { build: 'viehhof', count: 2 }, reward: { nahrung: 100 } },
+  { id: 'q_b_viehhof2', text: 'Habe 4 Viehhöfe',         goal: { line: 'tiere', type: 'viehhof', count: 4 }, reward: { nahrung: 100 } },
   { id: 'q_b_pop180',   text: 'Erreiche 180 Einwohner',  goal: { population: 180 }, reward: { werkzeug: 20 } },
   { id: 'q_b_weberin2', text: 'Baue 2 Weberinnen',     goal: { build: 'weberin', count: 2 }, reward: { wolle: 15 } },
   { id: 'q_b_wolle30',  text: 'Habe 30 Wolle im Lager', goal: { resource: 'wolle', count: 30 }, reward: { kleidung: 20 } },
   { id: 'q_b_bschmied2', text: 'Baue 2 Bronzeschmiede', goal: { build: 'bronzeschmied', count: 2 }, reward: { zinn: 10 } },
-  { id: 'q_b_jagd2',    text: 'Baue 2 Jagdhütten',     goal: { build: 'jagdhuette', count: 2 }, reward: { felle: 20 } },
-  { id: 'q_b_werkzeug30', text: 'Habe 30 Werkzeug im Lager', goal: { resource: 'werkzeug', count: 30 }, reward: { wissen: 60 } },
+  { id: 'q_b_jagd2',    text: 'Habe 4 Jagdhütten',     goal: { line: 'jagen', type: 'jagdhuette', count: 4 }, reward: { felle: 20 } },
+  { id: 'q_b_werkzeug30', text: 'Habe 150 Werkzeug im Lager', goal: { resource: 'werkzeug', count: 150 }, reward: { wissen: 60 } },
   { id: 'q_b_spaet',    text: 'Erreiche die Späte Bronzezeit', goal: { tech: 'spaete_bronzezeit' }, reward: { bronze: 20 } },
   // Späte Bronzezeit
   { id: 'q_b_schmuck20', text: 'Habe 20 Schmuck im Lager', goal: { resource: 'schmuck', count: 20 }, reward: { wissen: 80 } },
   { id: 'q_b_pop230',   text: 'Erreiche 230 Einwohner',  goal: { population: 230 }, reward: { holz: 150, stein: 100 } },
   { id: 'q_b_stufe6',   text: 'Baue ein Gebäude auf Stufe 6 aus', goal: { level: 6, count: 1 }, reward: { bronze: 20 } },
-  { id: 'q_b_hallen3',  text: 'Baue 3 Hallenhäuser',   goal: { build: 'hallenhaus', count: 3 }, reward: { holz: 120 } },
-  { id: 'q_b_hain',     text: 'Baue einen Heiligen Hain', goal: { build: 'heiliger_hain', count: 1 }, reward: { nahrung: 120 } },
-  { id: 'q_b_stern2',   text: 'Baue 2 Sternkundige',   goal: { build: 'sternkundiger', count: 2 }, reward: { wissen: 60 } },
-  { id: 'q_b_korn',     text: 'Baue einen Kornspeicher', goal: { build: 'kornspeicher', count: 1 }, reward: { nahrung: 150 } },
+  { id: 'q_b_hallen3',  text: 'Habe 10 Hallenhäuser',   goal: { line: 'grosswohnen', type: 'hallenhaus', count: 10 }, reward: { holz: 120 } },
+  { id: 'q_b_hain',     text: 'Habe 4 Heilige Haine', goal: { line: 'glaube', type: 'heiliger_hain', count: 4 }, reward: { nahrung: 120 } },
+  { id: 'q_b_stern2',   text: 'Habe 9 Sternkundige',   goal: { line: 'wissen', type: 'sternkundiger', count: 9 }, reward: { wissen: 60 } },
+  { id: 'q_b_korn',     text: 'Habe 3 Kornspeicher', goal: { line: 'lager', type: 'kornspeicher', count: 3 }, reward: { nahrung: 150 } },
   { id: 'q_b_fischhaus2', text: 'Baue 2 Fischerhäuser', goal: { build: 'fischerhaus', count: 2 }, reward: { holz: 120 } },
   { id: 'q_b_wunsch20', text: 'Erfülle 20 Wünsche des Stammes', goal: { wishes: 20 }, reward: { wissen: 80 } },
   { id: 'q_b_fuerstenhuegel', text: 'Baue den Fürstenhügel', goal: { build: 'fuerstenhuegel', count: 1 }, reward: { bronze: 30, nahrung: 150 } },
@@ -1012,15 +1012,15 @@ const QUESTS = [
   // Eisenzeit
   { id: 'q_e_mine',     text: 'Baue eine Eisenmine',     goal: { build: 'eisenmine', count: 1 }, reward: { holz: 200, stein: 100 } },
   { id: 'q_e_ofen',     text: 'Baue einen Rennofen',     goal: { build: 'rennofen', count: 1 }, reward: { holzkohle: 40 } },
-  { id: 'q_e_eisen20',  text: 'Habe 20 Eisen im Lager',  goal: { resource: 'eisen', count: 20 }, reward: { wissen: 100 } },
+  { id: 'q_e_eisen20',  text: 'Habe 60 Eisen im Lager',  goal: { resource: 'eisen', count: 60 }, reward: { wissen: 100 } },
   { id: 'q_e_gehoeft5', text: 'Baue 5 Gehöfte',          goal: { build: 'gehoeft', count: 5 }, reward: { holz: 200 } },
   { id: 'q_e_pop320',   text: 'Erreiche 320 Einwohner',  goal: { population: 320 }, reward: { eisen: 20 } },
   { id: 'q_e_stufe7',   text: 'Baue ein Gebäude auf Stufe 7 aus', goal: { level: 7, count: 1 }, reward: { eisen: 15 } },
-  { id: 'q_e_stein6',   text: 'Habe 6 Steinhäuser',    goal: { build: 'steinhaus', count: 6 }, reward: { stein: 120 } },
+  { id: 'q_e_stein6',   text: 'Habe 15 Steinhäuser',    goal: { line: 'wohnen', type: 'steinhaus', count: 15 }, reward: { stein: 120 } },
   { id: 'q_e_mittel',   text: 'Erreiche die Mittlere Eisenzeit', goal: { tech: 'mittlere_eisenzeit' }, reward: { eisen: 20, nahrung: 200 } },
   { id: 'q_e_salz',     text: 'Baue eine Salzsiederei',  goal: { build: 'salzsiederei', count: 1 }, reward: { holz: 200 } },
-  { id: 'q_e_salz30',   text: 'Habe 30 Salz im Lager',   goal: { resource: 'salz', count: 30 }, reward: { wissen: 120 } },
-  { id: 'q_e_druide',   text: 'Baue 3 Druiden',          goal: { build: 'druide', count: 3 }, reward: { kleidung: 30 } },
+  { id: 'q_e_salz30',   text: 'Habe 80 Salz im Lager',   goal: { resource: 'salz', count: 80 }, reward: { wissen: 120 } },
+  { id: 'q_e_druide',   text: 'Habe 12 Druiden',          goal: { line: 'wissen', type: 'druide', count: 12 }, reward: { kleidung: 30 } },
   { id: 'q_e_pop380',   text: 'Erreiche 380 Einwohner',  goal: { population: 380 }, reward: { eisen: 30 } },
   { id: 'q_e_wunsch25', text: 'Erfülle 25 Wünsche des Stammes', goal: { wishes: 25 }, reward: { wissen: 120 } },
   { id: 'q_e_spaet',    text: 'Erreiche die Späte Eisenzeit', goal: { tech: 'spaete_eisenzeit' }, reward: { salz: 40 } },
@@ -1031,6 +1031,12 @@ const QUESTS = [
   { id: 'q_e_eschmied3', text: 'Baue 3 Eisenschmiede', goal: { build: 'eisenschmied', count: 3 }, reward: { eisen: 20 } },
   { id: 'q_e_pop480',   text: 'Erreiche 480 Einwohner – bereit für den Aufbruch', goal: { population: 480 }, reward: { holz: 300, nahrung: 300 } },
 ];
+// Zeitalter je Auftrag: Ein Auftrag erscheint erst in seinem Abschnitt (Prüfung 07.11.: Einwohner-Aufträge der Eisenzeit
+// waren schon in der Steinzeit erfüllt). Der Abschnitt beginnt beim genannten Auftrag und gilt bis zum nächsten.
+(function questStages(first) {
+  let stage = 'alt';
+  for (const q of QUESTS) { if (first[q.id]) stage = first[q.id]; if (!q.stage) q.stage = stage; }
+})({ q_pop30: 'mittel', q_acker2: 'jung', q_b_mine: 'kupfer', q_b_handel: 'frueh', q_b_schmuck20: 'spaet', q_e_mine: 'eisen1', q_e_salz: 'eisen2', q_e_glas: 'eisen3' });
 
 // Tägliche Belohnung: Tag 1–7 hintereinander (Tag 7 ist die große Truhe)
 const DAILY_REWARDS = [
@@ -1097,13 +1103,13 @@ const WONDERS = {
     ],
     steps: [
       { title: 'Den Kreis abstecken', story: 'Lies den Himmel! In klaren Nächten fällt eine Sternschnuppe. Tippe sie an, sie zeigt uns den Kreis. Dazu brauchen wir Holz für die Pfähle.',
-        finds: { sternkarte: 3 }, goods: { holz: 100 }, seconds: 300, done: 'Pfähle und Seile zeigen den Kreis!' },
+        finds: { sternkarte: 2 }, goods: { holz: 100 }, seconds: 300, done: 'Pfähle und Seile zeigen den Kreis!' },
       { title: 'Die großen Steine', story: 'Am Gebirge liegen riesige Findlinge. Tippe einen an, dann rollen ihn acht Leute auf Stämmen heran. Die Helfer haben Hunger.',
-        finds: { findling: 5 }, goods: { werkzeug: 20, nahrung: 100 }, seconds: 600, done: 'Fünf große Steine stehen aufrecht!' },
+        finds: { findling: 3 }, goods: { werkzeug: 20, nahrung: 100 }, seconds: 600, done: 'Drei große Steine stehen aufrecht!' },
       { title: 'Das Sonnentor', story: 'Für den Deckstein brauchen wir den Sonnenstein. Steinsammler finden ihn irgendwann.',
         finds: { sonnenstein: 1 }, goods: { stein: 100 }, seconds: 600, done: 'Das Steintor ist fertig!' },
       { title: 'Das erste Sonnwendfest', story: 'Schmücken wir den Kreis! Sammlerinnen bringen im Frühling und Sommer Blumenkränze, doppelte Stücke tauscht der Älteste.',
-        finds: { blumenkranz: 3 }, goods: { kleidung: 20, toepferwaren: 20 }, seconds: 300, done: 'Das Fest beginnt!' },
+        finds: { blumenkranz: 2 }, goods: { kleidung: 20, toepferwaren: 20 }, seconds: 300, done: 'Das Fest beginnt!' },
     ],
   },
   himmelshalle: {
@@ -1174,10 +1180,10 @@ const FINDS = {
   stosszahn:   { name: 'Mammut-Stoßzahn', icon: '🦣', bild: 'fund-stosszahn', page: 'steinzeit', spot: 'fels', spotExtinct: true, hint: 'Von der Mammutjagd, später alt im Fels' },
   feder:       { name: 'Adlerfeder', icon: '🪶', bild: 'fund-feder', page: 'steinzeit', spot: 'wald', hint: 'Glitzert im Wald, Jäger finden manchmal eine' },
   muschel:     { name: 'Flussmuschel', icon: '🐚', bild: 'fund-muschel', page: 'steinzeit', need: 2, spot: 'ufer', hint: 'Glitzert am Ufer, nach Hochwasser mehr' },
-  sternkarte:  { name: 'Sternkarte', icon: '🗺️', bild: 'fund-sternkarte', page: 'steinzeit', need: 3, tech: 'sternenkunde', hint: 'Sternschnuppe in der Nacht (Sternenkunde)' },
-  findling:    { name: 'Riesenfindling', icon: '🪨', bild: 'fund-findling', page: 'steinzeit', need: 5, tech: 'sternenkunde', hint: 'Liegt am Gebirge, wenn der Steinkreis gebaut wird' },
+  sternkarte:  { name: 'Sternkarte', icon: '🗺️', bild: 'fund-sternkarte', page: 'steinzeit', need: 2, tech: 'sternenkunde', hint: 'Sternschnuppe in der Nacht (Sternenkunde)' },
+  findling:    { name: 'Riesenfindling', icon: '🪨', bild: 'fund-findling', page: 'steinzeit', need: 3, tech: 'sternenkunde', hint: 'Liegt am Gebirge, wenn der Steinkreis gebaut wird' },
   sonnenstein: { name: 'Sonnenstein', icon: '☀️', bild: 'fund-sonnenstein', page: 'steinzeit', stage: 'jung', hint: 'Steinsammler finden ihn in der Jungsteinzeit' },
-  blumenkranz: { name: 'Blumenkranz', icon: '🌼', bild: 'fund-blumenkranz', page: 'steinzeit', need: 3, stage: 'jung', hint: 'Sammlerinnen, nur Frühling und Sommer' },
+  blumenkranz: { name: 'Blumenkranz', icon: '🌼', bild: 'fund-blumenkranz', page: 'steinzeit', need: 2, stage: 'jung', hint: 'Sammlerinnen, nur Frühling und Sommer' },
   goldblatt:   { name: 'Goldblättchen', icon: '🟡', page: 'bronze', need: 3, stage: 'kupfer', hint: 'Steckt manchmal in einer Erzader' },
   zinnperle:   { name: 'Zinn-Perle', icon: '⚪', page: 'bronze', need: 2, stage: 'frueh', spot: 'ufer', hint: 'Glitzert ab der Frühen Bronzezeit am Ufer' },
   bernsteinstueck: { name: 'Großer Bernstein', icon: '🟠', page: 'bronze', stage: 'spaet', hint: 'Gegen Bronze beim Händler, wenn die Himmelsscheibe erforscht ist' },

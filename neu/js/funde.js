@@ -85,7 +85,8 @@ function addSpot(kind, find, tiles = spotTiles(kind)) {
 
 // Eine gewöhnliche Fundstelle: das Stück, das am meisten fehlt und zu dem es auf dem eigenen Land Gelände gibt
 function spawnSpot() {
-  const list = Object.keys(FINDS).filter(id => findAvailable(id) && FINDS[id].spot && (!FINDS[id].spotExtinct || mammothsExtinct()));
+  // nur Stücke, die noch fehlen: fertig verbaute kamen sonst weiter als nutzlose Doppelte (Emin, 07.11.)
+  const list = Object.keys(FINDS).filter(id => findAvailable(id) && FINDS[id].spot && (!FINDS[id].spotExtinct || mammothsExtinct()) && findCount(id) < findNeed(id));
   while (list.length) {
     const id = leastFind(list), tiles = spotTiles(FINDS[id].spot);
     if (tiles.length) return addSpot(FINDS[id].spot, id, tiles);

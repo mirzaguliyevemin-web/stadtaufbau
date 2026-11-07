@@ -11,6 +11,11 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
+- Design der Fenster (Emin, 07.11., mit Bildern): 1. Der Info-Knopf „Mehr“ im kleinen Gebäudefenster ist zu groß und nicht schön.
+  2. Die Waren-Blasen über den Gebäuden blinken, das stört nach einer Weile und sieht nicht gut aus. 3. Fertige Wunderwerke zeigen
+  weiter alle Bauschritte mit Kosten – nach dem Bau sollen nur noch die Effekte zu sehen sein.
+  → Claude macht zuerst eine bebilderte Design-Bewertung aller Fenster mit Vorschlägen (Emin: „Ja, bitte“), danach umsetzen.
+
 - Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, noch ohne Bilder (ab 27.11.). Plan: `docs/epoche-2-bronzezeit.md`.
 
 - Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit und Bronzezeit gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis, Halle der Himmelsscheibe). Offen: Fundstück-Bilder ab der Bronzezeit (Steinzeit fertig seit Version 108); Rückseiten von Höhle und Halle fertig (Version 109/110); spätere Zeitalter mit deren Bau. Plan: `docs/konzept-wunderwerke.md`.
@@ -26,6 +31,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-07, Epochia Version 141 – Wunsch Emin („alles umsetzen“ nach der Prüfung der Spiellogik): Aufträge nur im eigenen Zeitalter, keine Aufträge mehr, die sich von selbst erfüllen, Eisen-Reserve, Wahrzeichen nur einmal, Gehöft/Stadthaus per Knopf, Steinkreis mit weniger Fundstücken, mehr Bernstein, kleinere Eisen-/Salz-/Glas-Wünsche, Fundstellen nur für fehlende Stücke (Einzelheiten in docs/auftraege.md).
 - 2026-11-07, Epochia Version 140 – Wunsch Emin: 27 neue Aufträge (Stufen, neue Häuser, Bronzezeit, Eisenzeit; Liste in docs/auftraege.md); Häuser, die sich von selbst weiterentwickeln, zeigen keinen Knopf mehr, sondern „Von selbst und kostenlos“.
 - 2026-11-07, Epochia Version 139 – Fehler Emin: runde Schatten wanderten beim Verschieben mit dem Bildschirm. Die Wolkenschatten (bewölktes Wetter) liegen jetzt auf der Karte und ziehen über das Land.
 - 2026-11-07, Epochia Version 138 – Fehler Emin: Gebäude verschwinden am Handy, beim Verschieben kurz sichtbar. Ursache wahrscheinlich ein Fehler beim Zeichnen eines einzelnen Objekts, der die ganze Zeichenschleife abbrach (am PC nicht nachstellbar). Jetzt wird jedes Objekt einzeln abgesichert; Fehler stehen im Menü unter „Letzte Fehler“ (für die genaue Ursache).

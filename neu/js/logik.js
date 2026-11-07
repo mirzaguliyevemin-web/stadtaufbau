@@ -111,10 +111,13 @@ function warmthRadius(def) {
 // Bauleiste: je Linie nur die neueste freigeschaltete Stufe
 // ---------------------------------------------------------------------
 
+// Wunderwerke und Wahrzeichen (Steinkreis, Fürstenhügel, Ringwall) gibt es nur einmal
+function onlyOne(def) { return !!(def.wonder || def.line === 'wahrzeichen'); }
+
 function barEntries() {
   const lines = new Map();
   for (const [type, def] of Object.entries(BUILDINGS)) {
-    if (def.buildable === false || def.upgradeOnly || (def.wonder && state.buildings.some(b => b.type === type))) continue;
+    if (def.buildable === false || def.upgradeOnly || (onlyOne(def) && state.buildings.some(b => b.type === type))) continue;
     const list = lines.get(def.line) || [];
     list.push(type);
     lines.set(def.line, list);
@@ -154,7 +157,7 @@ function buildProblem(type, x, y, ignore = -1, rot) {
   const def = BUILDINGS[type];
   if (!def || def.buildable === false) return 'Kann man nicht bauen';
   if (!isUnlocked(type)) return lockText(type);
-  if (def.wonder && state.buildings.some(b => b.type === type)) return 'Davon gibt es nur eines';
+  if (onlyOne(def) && state.buildings.some(b => b.type === type)) return 'Davon gibt es nur eines';
   const p = placeProblem(type, x, y, ignore, rot);
   if (p) return p;
   if (!canAfford(def.cost)) return missingText(def.cost);
@@ -1182,18 +1185,31 @@ function doTrade(id) {
 
 function questProgress(q) {
   const g = q.goal;
-  if (g.build) return { have: Math.min(state.built[g.build] || 0, g.count), need: g.count };
+  // Bau-Aufträge zählen auch, was daraus weiterentwickelt wurde (sonst blieb „Baue 2 Kupferschmiede“ nach dem Umbau zum Bronzeschmied für immer offen)
+  if (g.build) return { have: Math.min(Math.max(state.built[g.build] || 0, BUILDINGS[g.build].line ? questLineCount(g.build) : 0), g.count), need: g.count };
   if (g.population) return { have: Math.min(state.pop, g.population), need: g.population };
   if (g.techs) return { have: Math.min(Object.keys(state.techs).length, g.techs), need: g.techs };
   if (g.tech) return { have: state.techs[g.tech] ? 1 : 0, need: 1 };
   if (g.resource) return { have: Math.min(Math.floor(state.res[g.resource] || 0), g.count), need: g.count };
-  if (g.line) return { have: Math.min(lineCount(g.type), g.count), need: g.count };
+  if (g.line) return { have: Math.min(questLineCount(g.type, g.mixed), g.count), need: g.count };
   if (g.plots) return { have: Math.min(plotsBought(), g.plots), need: g.plots };
   if (g.wishes) return { have: Math.min(state.wishesDone, g.wishes), need: g.wishes };
   if (g.hunts) return { have: Math.min(state.huntsDone, g.hunts), need: g.hunts };
   if (g.trades) return { have: Math.min(state.tradesDone, g.trades), need: g.trades };
   if (g.level) return { have: Math.min(state.buildings.filter(b => !b.build && levelOf(b) >= g.level).length, g.count), need: g.count };   // Stufen (seit Version 140)
   return { have: 0, need: 1 };
+}
+
+// Gebäude dieser Art und ihre Weiterentwicklungen. mixed: große Wohnhäuser zählen bei den kleinen mit („Habe 8 Wohnungen“).
+function questLineCount(type, mixed) {
+  const def = BUILDINGS[type];
+  return state.buildings.filter(b => { const d = BUILDINGS[b.type]; return !b.build && ((d.line === def.line && d.tier >= def.tier) || (mixed && def.line === 'wohnen' && d.line === 'grosswohnen')); }).length;
+}
+
+// Waren, die die Stufe zusätzlich braucht (letzte Stufe eines Zeitalters: Werkzeug, Bronze, Eisen)
+function levelGoods(level) {
+  const L = CONFIG.levels;
+  return level % L.perEpoch === 0 ? L.epochGoods[level / L.perEpoch - 1] || {} : {};
 }
 
 // Kann man an diesem Auftrag gerade nichts tun, weil erst eine Forschung fehlt?
@@ -1208,21 +1224,27 @@ function questBlocked(q) {
   if (g.tech) return true;   // Fernziel: nimmt erst einen Platz ein, wenn sonst nichts zu tun ist
   if (g.build) return !isUnlocked(g.build);
   if (g.resource) return !hasMaker(g.resource);
-  if (g.level) return maxLevel() < g.level;   // die Stufe gibt es erst in einem späteren Zeitalter
+  if (g.line) return !isUnlocked(g.type);
+  // die Stufe gibt es erst in einem späteren Zeitalter, oder ihre Extra-Ware (Werkzeug, Bronze) kann noch niemand herstellen
+  if (g.level) return maxLevel() < g.level || Object.keys(levelGoods(g.level)).some(id => !hasMaker(id));
   return false;
 }
 
 // Höchstens 3 sichtbar: zuerst, was fertig ist oder was man jetzt angehen kann (Emin, 02.11.: gesperrte Aufträge
 // verstopften die Liste, und es gab nichts mehr zu tun), danach Fernziele.
+// Seit 07.11.: Aufträge erst ab ihrem Zeitalter, erfüllte ganz vorn, Stufen-Aufträge hinter den übrigen machbaren.
 function activeQuests() {
-  const open = QUESTS.filter(q => !state.quests[q.id] && !questImpossible(q));
-  const now = open.filter(q => questDone(q) || !questBlocked(q));
-  // höchstens ein Wunsch-Auftrag auf einmal (sonst belegten sie alle 3 Plätze, Analyse 02.11.)
-  let wish = false;
-  return [...now, ...open.filter(q => !now.includes(q))].filter(q => {
-    if (!q.goal.wishes) return true;
-    if (wish) return false;
-    wish = true;
+  const open = QUESTS.filter(q => !state.quests[q.id] && !questImpossible(q) && stageReached(q.stage));
+  const done = open.filter(questDone);
+  const now = open.filter(q => !done.includes(q) && !questBlocked(q));
+  const later = open.filter(q => !done.includes(q) && !now.includes(q));
+  // höchstens ein offener Wunsch- und ein offener Stufen-Auftrag auf einmal (sonst belegten sie alle 3 Plätze)
+  const seen = {};
+  return [...done, ...now.filter(q => !q.goal.level), ...now.filter(q => q.goal.level), ...later].filter(q => {
+    const kind = q.goal.wishes ? 'wish' : q.goal.level ? 'level' : null;
+    if (!kind || done.includes(q)) return true;
+    if (seen[kind]) return false;
+    seen[kind] = true;
     return true;
   }).slice(0, 3);
 }

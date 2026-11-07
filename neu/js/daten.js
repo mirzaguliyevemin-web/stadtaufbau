@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 124;
+const APP_VERSION = 125;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -614,7 +614,7 @@ const BUILDINGS = {
     info: 'Häuser am Wasser mit Plankenbooten – Platz für 16 Menschen und mehr Fisch.',
   },
   sternkundiger: {
-    name: 'Sternkundiger', icon: '🌙', size: 2, line: 'wissen', tier: 2, stage: 'spaet', bild: '1-hoehlenmaler', views: ['r2'],
+    name: 'Sternkundiger', icon: '🌙', size: 2, line: 'wissen', tier: 2, stage: 'spaet', bild: '2-sternkundiger',
     color: '#5a6aa0', cost: { holz: 25, stein: 25, bronze: 2 }, time: 60, workers: 1, produces: { wissen: 9 }, requires: 'himmelsscheibe',
     bonus: { terrain: 'fels', perTile: 0.05, max: 0.5 }, info: 'Liest mit der Himmelsscheibe Sonne, Mond und Sterne – noch mehr Wissen.',
   },

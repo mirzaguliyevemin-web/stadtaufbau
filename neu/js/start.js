@@ -335,7 +335,14 @@ function boot() {
   });
   // Android: Das installierte Spiel war im Manifest auf „quer“ festgelegt und merkt sich das, bis Chrome das Manifest neu liest.
   // Hochkant und quer frei geben (Emin, 07.11.); geht nur im installierten Spiel, sonst passiert nichts.
-  try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('any').catch(() => {}); } catch (e) { /* egal */ }
+  // Nach jedem Drehen und bei Berührungen erneut, sonst blieb Android nach dem ersten Quer-Drehen quer (Emin, 07.11.)
+  const freeTurn = () => { try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('any').catch(() => {}); } catch (e) { /* egal */ } };
+  freeTurn();
+  if (typeof window !== 'undefined') {
+    window.addEventListener('orientationchange', freeTurn);
+    window.addEventListener('pointerdown', freeTurn, { passive: true });
+    if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', freeTurn);
+  }
   if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
     navigator.serviceWorker.register('service-worker.js').catch(err => console.warn('Service Worker', err));
   }

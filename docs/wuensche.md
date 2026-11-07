@@ -32,6 +32,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-07, Epochia Version 149 – Fehler Emin: Nach einmal Quer ließ sich Android nicht zurück auf hochkant drehen – Drehung wird bei jedem Drehen und jeder Berührung neu freigegeben; Bauleiste hochkant ohne leeren Streifen links, Kategorien enden vor dem ▾-Knopf.
 - 2026-11-07, Epochia Version 148 – Wunsch Emin: Lager zeigt Einnahmen (▲ grün) und Ausgaben (▼ rot) je Minute getrennt; bei vollem Lager zählt, was die Gebäude herstellen könnten.
 - 2026-11-07, Epochia Version 147 – Fehler Emin: Android blieb quer (installiertes Spiel merkt sich das alte Manifest) – Drehung wird beim Start freigegeben; ⓘ in der Bauleiste verdeckte das Gebäudebild – sitzt jetzt außen auf der Kartenecke.
 - 2026-11-07, Epochia Version 146 – Wunsch Emin: Hochkant und quer frei wählbar, auch auf Android (manifest „any“), Hinweis „Dreh dein Handy quer“ entfällt; ⓘ in der Bauleiste links über dem Bild (verdeckte die Kosten). Design-Kontrolle auf iPhone, Android und Rechner (6 Größen, 17 Fenster): Hinweis über Seiten weg, Schatzkiste hochkant lesbar, Hinsetz-Leiste mit Platz für den Text, Shop gleich breit, „Zurück“ einzeilig, Abstand oben für Kerbe/Kamera-Insel.

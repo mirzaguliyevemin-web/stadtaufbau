@@ -344,7 +344,7 @@ Object.assign(WORK, {
   salzsiederei: { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#f4f4ee', swing: 'tend' },
   glasmacherin: { target: 'self', tool: null,    carry: null, img: 'mensch-frau', chips: '#7fe0b8', swing: 'tend' },
   wagner:       { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#a8743f', swing: 'knap' },
-  zinnwaescherin: { target: 'wasser', tool: null,    carry: null, img: 'mensch-frau', chips: '#cfe9f7', swing: 'pan' },    // schwenkt die Pfanne am Ufer
+  zinnwaescherin: { target: 'wasser', tool: null,    carry: null, img: 'mensch-frau', chips: '#cfe9f7', swing: 'pan', anim: 'waschen' },    // schwenkt die Pfanne am Ufer
 });
 
 // Arbeitsplatz IN der Werkstatt (auf der Platte, vordere Hälfte, passend zum Bild): [Standplatz u, v, Werkstück u, v]
@@ -945,6 +945,7 @@ const ANIM_POSES = {
   blasebalg: [['mensch-schmelzer-1', 37.9, 0.04], ['mensch-schmelzer-2', 39.2, 0.048], ['mensch-schmelzer-3', 37.5, 0.033]],   // Schmelzofen: tritt den Blasebalg
   giessen: [['mensch-giesser-1', 35.6, 0.197], ['mensch-giesser-2', 35.5, 0.198], ['mensch-giesser-3', 36.2, 0.232]],   // Bronzegießer: Tiegel kippen und gießen
   stochern: [['mensch-koehler-1', 38.2, 0.151], ['mensch-koehler-2', 35.5, 0.218], ['mensch-koehler-3', 32.6, 0.2]],   // Köhler stochert mit der Stange im Meiler
+  waschen: [['mensch-zinnwaescherin-1', 32.3, 0.091], ['mensch-zinnwaescherin-2', 32.7, 0.088], ['mensch-zinnwaescherin-3', 29.4, 0.151]],   // Zinnwäscherin im Bach
   toepfern: [['mensch-toepferin-1', 29.0, -0.007], ['mensch-toepferin-2', 29.4, -0.004], ['mensch-toepferin-3', 30.4, -0.004]],
   pfluecken: [['mensch-frau-pflueckt-greift', 30, 0.118], ['mensch-frau-pflueckt', 30, 0.1], ['mensch-frau-pflueckt-korb', 33.6, -0.164]],
   pflanzen: [['mensch-frau-pflanzt-graben', 30.5, 0.156], ['mensch-frau-pflanzt', 30, 0.1], ['mensch-frau-pflanzt-fertig', 30.7, 0.054]],
@@ -961,6 +962,7 @@ const ANIM_TIMING = {
   blasebalg: { speed: 0.6, keys: [[0, 0], [1, 0.4], [2, 0.55], [1, 0.85]] },   // Gewicht verlagern, Balg flach treten, Luft strömt, wieder hoch
   giessen: { speed: 0.3, keys: [[0, 0], [1, 0.4], [2, 0.75]] },   // Tiegel ruhig halten, langsam gießen, letzte Tropfen
   stochern: { speed: 0.45, keys: [[0, 0], [1, 0.45], [2, 0.6], [1, 0.85]] },   // Stange heben, nach vorn schieben, tief hineinstoßen
+  waschen: { speed: 0.35, keys: [[2, 0], [0, 0.25], [1, 0.5], [0, 0.75]] },   // Kies schöpfen, anheben, hin und her schwenken
   toepfern: { speed: 0.2, keys: [[0, 0], [1, 0.35], [2, 0.75]] },
   pflanzen: { speed: 0.22, keys: [[0, 0], [1, 0.4], [2, 0.75]] },   // Loch graben, Setzling hineindrücken, aufrichten und anschauen
   pfluecken: { speed: 0.35, keys: [[0, 0], [1, 0.3], [2, 0.65]] },   // nach der Beere greifen, pflücken, in den Korb legen   // Klumpen formen, Rand glätten, fertigen Topf betrachten, dann der nächste

@@ -324,8 +324,8 @@ Object.assign(WORK, {
   gemuesegarten:  { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: '#d8344a', swing: 'pick', anim: 'pfluecken' },   // bleibt auf dem Beet
   felsritzer:     { target: 'fels',   tool: null,    carry: 'ware-wissen', img: 'mensch-mann', chips: '#b9b4a8', swing: 'chisel' },
   sternkundiger:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: null, swing: 'gaze' },       // schaut zum Himmel
-  kupferschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug' },
-  bronzeschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug' },
+  kupferschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug', anim: 'schmieden' },
+  bronzeschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug', anim: 'schmieden' },
   weberin:        { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: null, swing: 'scrape', thing: 'ware-kleidung' },
   schmuckmacherin:{ target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: '#ffd166', swing: 'knap', anim: 'schmuck' },
   kupfermine:     { target: 'fels',   tool: 'hacke', carry: null, img: 'mensch-mann', chips: '#6fae8a', swing: 'hack', carryLook: 'mensch-bergmann-korb', anim: 'bergbau' },
@@ -947,6 +947,7 @@ const ANIM_POSES = {
   stochern: [['mensch-koehler-1', 38.2, 0.151], ['mensch-koehler-2', 35.5, 0.218], ['mensch-koehler-3', 32.6, 0.2]],   // Köhler stochert mit der Stange im Meiler
   waschen: [['mensch-zinnwaescherin-1', 32.3, 0.091], ['mensch-zinnwaescherin-2', 32.7, 0.088], ['mensch-zinnwaescherin-3', 29.4, 0.151]],   // Zinnwäscherin im Bach
   schmuck: [['mensch-schmuck-1', 32.1, 0.144], ['mensch-schmuck-2', 32.3, 0.144], ['mensch-schmuck-3', 32.5, 0.144]],   // Schmuckmacherin klopft den Armreif
+  schmieden: [['mensch-schmied-1', 39.5, 0.228], ['mensch-schmied-3', 35.1, 0.204]],   // Schmied am Amboss (Zwischenbild folgt)
   toepfern: [['mensch-toepferin-1', 29.0, -0.007], ['mensch-toepferin-2', 29.4, -0.004], ['mensch-toepferin-3', 30.4, -0.004]],
   pfluecken: [['mensch-frau-pflueckt-greift', 30, 0.118], ['mensch-frau-pflueckt', 30, 0.1], ['mensch-frau-pflueckt-korb', 33.6, -0.164]],
   pflanzen: [['mensch-frau-pflanzt-graben', 30.5, 0.156], ['mensch-frau-pflanzt', 30, 0.1], ['mensch-frau-pflanzt-fertig', 30.7, 0.054]],
@@ -965,6 +966,7 @@ const ANIM_TIMING = {
   stochern: { speed: 0.45, keys: [[0, 0], [1, 0.45], [2, 0.6], [1, 0.85]] },   // Stange heben, nach vorn schieben, tief hineinstoßen
   waschen: { speed: 0.35, keys: [[2, 0], [0, 0.25], [1, 0.5], [0, 0.75]] },   // Kies schöpfen, anheben, hin und her schwenken
   schmuck: { speed: 0.9, keys: [[0, 0], [1, 0.55], [2, 0.7], [1, 0.9]] },   // Hämmerchen heben, kurz aufklopfen
+  schmieden: { speed: 0.8, keys: [[0, 0], [1, 0.65]] },   // Hammer langsam heben, schnell auf die glühende Klinge
   toepfern: { speed: 0.2, keys: [[0, 0], [1, 0.35], [2, 0.75]] },
   pflanzen: { speed: 0.22, keys: [[0, 0], [1, 0.4], [2, 0.75]] },   // Loch graben, Setzling hineindrücken, aufrichten und anschauen
   pfluecken: { speed: 0.35, keys: [[0, 0], [1, 0.3], [2, 0.65]] },   // nach der Beere greifen, pflücken, in den Korb legen   // Klumpen formen, Rand glätten, fertigen Topf betrachten, dann der nächste

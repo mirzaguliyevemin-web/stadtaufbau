@@ -328,7 +328,7 @@ Object.assign(WORK, {
   bronzeschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug' },
   weberin:        { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: null, swing: 'scrape', thing: 'ware-kleidung' },
   schmuckmacherin:{ target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: '#ffd166', swing: 'knap' },
-  kupfermine:     { target: 'fels',   tool: 'hacke', carry: null, img: 'mensch-mann', chips: '#6fae8a', swing: 'hack', carryLook: 'mensch-mann-stein' },
+  kupfermine:     { target: 'fels',   tool: 'hacke', carry: null, img: 'mensch-mann', chips: '#6fae8a', swing: 'hack', carryLook: 'mensch-mann-stein', anim: 'bergbau' },
   koehler:        { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'tend' },   // am Meiler
   schmelzofen:    { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'tend' },
   bronzegiesser:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffd166', swing: 'tend' },
@@ -941,6 +941,7 @@ const ANIM_POSES = {
   schaben: [['mensch-fellmacherin-1', 29.4, 0.033], ['mensch-fellmacherin-2', 27.2, 0.033], ['mensch-fellmacherin-3', 22.6, -0.014]],
   steinschlag: [['mensch-steinschlaeger-1', 24.7, 0.006], ['mensch-steinschlaeger-2', 24.7, 0.006], ['mensch-steinschlaeger-3', 23.6, 0.006]],
   hirte: [['mensch-hirte-1', 32.6, 0.18], ['mensch-hirte-2', 34.2, 0.201], ['mensch-hirte-3', 44, 0.085]],
+  bergbau: [['mensch-bergmann-1', 37.8, 0], ['mensch-bergmann-2', 32.4, 0.181], ['mensch-bergmann-3', 28.6, 0.164]],   // Bronzezeit: Bergmann in Wolltunika
   toepfern: [['mensch-toepferin-1', 29.0, -0.007], ['mensch-toepferin-2', 29.4, -0.004], ['mensch-toepferin-3', 30.4, -0.004]],
   pfluecken: [['mensch-frau-pflueckt-greift', 30, 0.118], ['mensch-frau-pflueckt', 30, 0.1], ['mensch-frau-pflueckt-korb', 33.6, -0.164]],
   pflanzen: [['mensch-frau-pflanzt-graben', 30.5, 0.156], ['mensch-frau-pflanzt', 30, 0.1], ['mensch-frau-pflanzt-fertig', 30.7, 0.054]],
@@ -953,6 +954,7 @@ const ANIM_TIMING = {
   schaben: { speed: 0.5, keys: [[0, 0], [1, 0.25], [2, 0.5], [1, 0.75]] },   // Schaber gleichmäßig vor und zurück
   steinschlag: { speed: 0.8, keys: [[0, 0], [1, 0.6], [2, 0.7], [1, 0.9]] },   // langsam heben, schnell schlagen, Splitter fliegen
   hirte: { speed: 0.22, keys: [[0, 0], [1, 0.45], [2, 0.6], [1, 0.8]] },   // steht lange ruhig, hebt den Stab, ruft die Ziegen
+  bergbau: { speed: 0.9, keys: [[0, 0], [1, 0.6], [2, 0.7], [1, 0.9]] },   // Kupferhacke langsam heben, schnell zuschlagen
   toepfern: { speed: 0.2, keys: [[0, 0], [1, 0.35], [2, 0.75]] },
   pflanzen: { speed: 0.22, keys: [[0, 0], [1, 0.4], [2, 0.75]] },   // Loch graben, Setzling hineindrücken, aufrichten und anschauen
   pfluecken: { speed: 0.35, keys: [[0, 0], [1, 0.3], [2, 0.65]] },   // nach der Beere greifen, pflücken, in den Korb legen   // Klumpen formen, Rand glätten, fertigen Topf betrachten, dann der nächste

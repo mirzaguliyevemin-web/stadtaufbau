@@ -329,7 +329,7 @@ Object.assign(WORK, {
   weberin:        { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: null, swing: 'scrape', thing: 'ware-kleidung' },
   schmuckmacherin:{ target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: '#ffd166', swing: 'knap' },
   kupfermine:     { target: 'fels',   tool: 'hacke', carry: null, img: 'mensch-mann', chips: '#6fae8a', swing: 'hack', carryLook: 'mensch-bergmann-korb', anim: 'bergbau' },
-  koehler:        { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'tend' },   // am Meiler
+  koehler:        { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'tend', anim: 'stochern' },   // am Meiler
   schmelzofen:    { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'tend', anim: 'blasebalg' },
   bronzegiesser:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffd166', swing: 'tend', anim: 'giessen' },
   // Eisenzeit: vorläufig passende Bewegungen, eigene Bilder folgen
@@ -944,6 +944,7 @@ const ANIM_POSES = {
   bergbau: [['mensch-bergmann-1', 37.8, 0], ['mensch-bergmann-2', 32.4, 0.181], ['mensch-bergmann-3', 28.6, 0.164]],   // Bronzezeit: Bergmann in Wolltunika
   blasebalg: [['mensch-schmelzer-1', 37.9, 0.04], ['mensch-schmelzer-2', 39.2, 0.048], ['mensch-schmelzer-3', 37.5, 0.033]],   // Schmelzofen: tritt den Blasebalg
   giessen: [['mensch-giesser-1', 35.6, 0.197], ['mensch-giesser-2', 35.5, 0.198], ['mensch-giesser-3', 36.2, 0.232]],   // Bronzegießer: Tiegel kippen und gießen
+  stochern: [['mensch-koehler-1', 38.2, 0.151], ['mensch-koehler-2', 35.5, 0.218], ['mensch-koehler-3', 32.6, 0.2]],   // Köhler stochert mit der Stange im Meiler
   toepfern: [['mensch-toepferin-1', 29.0, -0.007], ['mensch-toepferin-2', 29.4, -0.004], ['mensch-toepferin-3', 30.4, -0.004]],
   pfluecken: [['mensch-frau-pflueckt-greift', 30, 0.118], ['mensch-frau-pflueckt', 30, 0.1], ['mensch-frau-pflueckt-korb', 33.6, -0.164]],
   pflanzen: [['mensch-frau-pflanzt-graben', 30.5, 0.156], ['mensch-frau-pflanzt', 30, 0.1], ['mensch-frau-pflanzt-fertig', 30.7, 0.054]],
@@ -959,6 +960,7 @@ const ANIM_TIMING = {
   bergbau: { speed: 0.9, keys: [[0, 0], [1, 0.6], [2, 0.7], [1, 0.9]] },   // Kupferhacke langsam heben, schnell zuschlagen
   blasebalg: { speed: 0.6, keys: [[0, 0], [1, 0.4], [2, 0.55], [1, 0.85]] },   // Gewicht verlagern, Balg flach treten, Luft strömt, wieder hoch
   giessen: { speed: 0.3, keys: [[0, 0], [1, 0.4], [2, 0.75]] },   // Tiegel ruhig halten, langsam gießen, letzte Tropfen
+  stochern: { speed: 0.45, keys: [[0, 0], [1, 0.45], [2, 0.6], [1, 0.85]] },   // Stange heben, nach vorn schieben, tief hineinstoßen
   toepfern: { speed: 0.2, keys: [[0, 0], [1, 0.35], [2, 0.75]] },
   pflanzen: { speed: 0.22, keys: [[0, 0], [1, 0.4], [2, 0.75]] },   // Loch graben, Setzling hineindrücken, aufrichten und anschauen
   pfluecken: { speed: 0.35, keys: [[0, 0], [1, 0.3], [2, 0.65]] },   // nach der Beere greifen, pflücken, in den Korb legen   // Klumpen formen, Rand glätten, fertigen Topf betrachten, dann der nächste

@@ -15,7 +15,6 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
   2. Die Waren-Blasen über den Gebäuden blinken, das stört nach einer Weile und sieht nicht gut aus. 3. Fertige Wunderwerke zeigen
   weiter alle Bauschritte mit Kosten – nach dem Bau sollen nur noch die Effekte zu sehen sein.
   → Claude macht zuerst eine bebilderte Design-Bewertung aller Fenster mit Vorschlägen (Emin: „Ja, bitte“), danach umsetzen. Bewertung fertig (07.11.): https://claude.ai/artifact/7D27xk8LvXA9Us368aRMTT – Reihenfolge dort am Ende.
-- Ladebildschirm (Emin, 07.11.): Ladebalken mit Prozent; solange es lädt, nacheinander Texte wie „Straßen geladen“, „Häuser geladen“ usw.
 
 - Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, noch ohne Bilder (ab 27.11.). Plan: `docs/epoche-2-bronzezeit.md`.
 
@@ -32,6 +31,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-08, Epochia Version 142 – Wunsch Emin: Ladebildschirm mit Ladebalken und Prozent; nacheinander „✔ … geladen“ (Wiesen, Häuser, Wunderwerke …). Beim Tageslauf geprüft, war schon gebaut.
 - 2026-11-07, Epochia Version 149 – Fehler Emin: Nach einmal Quer ließ sich Android nicht zurück auf hochkant drehen – Drehung wird bei jedem Drehen und jeder Berührung neu freigegeben; Bauleiste hochkant ohne leeren Streifen links, Kategorien enden vor dem ▾-Knopf.
 - 2026-11-07, Epochia Version 148 – Wunsch Emin: Lager zeigt Einnahmen (▲ grün) und Ausgaben (▼ rot) je Minute getrennt; bei vollem Lager zählt, was die Gebäude herstellen könnten.
 - 2026-11-07, Epochia Version 147 – Fehler Emin: Android blieb quer (installiertes Spiel merkt sich das alte Manifest) – Drehung wird beim Start freigegeben; ⓘ in der Bauleiste verdeckte das Gebäudebild – sitzt jetzt außen auf der Kartenecke.

@@ -3,6 +3,13 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-11-08 – Täglicher Lauf (Version 149)
+
+- Alle 126 Epochia-Tests bestanden. Bot (3 Läufe à 90 min): Mittelsteinzeit 52,9–53,2 min · Jungsteinzeit nicht erreicht (nur Bot-Lauf à 90 min; Test-Bot: 125 min) · Kupferfund nicht erreicht · 116–125 Einwohner · Hunger 0 min. Testziele erfüllt.
+- `wuensche.md`: keine Fehler eingetragen. Wunsch „Ladebildschirm“ war schon in Version 142 gebaut – nach „Erledigt“ verschoben. Übrige Wünsche brauchen Emin bzw. Canva-Bilder.
+- Codebereich gelesen: `neu/js/start.js` (Ladeschritte, Spielstart, Hauptschleife, Fehlerprotokoll, Update-Prüfung) – keine Fehler gefunden.
+- Keine Code-Änderung, keine Versionserhöhung.
+
 ## 2026-11-07 – Täglicher Lauf (Version 113)
 
 - Alle 118 Epochia-Tests bestanden. Bot (3 Läufe à 90 min): Mittelsteinzeit 61,8 min · Jungsteinzeit 146,2 min · Kupferfund null min · 278 Einwohner · Hunger 4 min. Bot-Testziele erfüllt.

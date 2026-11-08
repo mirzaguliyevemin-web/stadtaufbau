@@ -31,7 +31,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
-- 2026-11-08, Epochia Version 150 – Wunsch Emin (Canva weiter): Winterbild der Jagdhütte; neues Werkzeug platte-fuellen.py schließt Schnee-Lücken am Plattenrand.
+- 2026-11-08, Epochia Version 150–151 – Wunsch Emin (Canva weiter): Winterbilder von Jagdhütte und Feld; neues Werkzeug platte-fuellen.py schließt Schnee-Lücken am Plattenrand.
 - 2026-11-08, Epochia Version 142 – Wunsch Emin: Ladebildschirm mit Ladebalken und Prozent; nacheinander „✔ … geladen“ (Wiesen, Häuser, Wunderwerke …). Beim Tageslauf geprüft, war schon gebaut.
 - 2026-11-07, Epochia Version 149 – Fehler Emin: Nach einmal Quer ließ sich Android nicht zurück auf hochkant drehen – Drehung wird bei jedem Drehen und jeder Berührung neu freigegeben; Bauleiste hochkant ohne leeren Streifen links, Kategorien enden vor dem ▾-Knopf.
 - 2026-11-07, Epochia Version 148 – Wunsch Emin: Lager zeigt Einnahmen (▲ grün) und Ausgaben (▼ rot) je Minute getrennt; bei vollem Lager zählt, was die Gebäude herstellen könnten.

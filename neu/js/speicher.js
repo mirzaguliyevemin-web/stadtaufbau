@@ -120,7 +120,7 @@ function sanitizeState(data) {
   // Wunderwerke: nur der Fortschritt zählt. Unfertig bleibt b.build auf 1, fertig auf 0.
   for (const b of s.buildings) { const id = BUILDINGS[b.type].wonder; if (id) b.build = s.wonders[id] && s.wonders[id].step >= WONDERS[id].steps.length ? 0 : 1; }
   if (data.disasterNext && DISASTERS[data.disasterNext.id] && Number.isFinite(data.disasterNext.left)) s.disasterNext = { id: data.disasterNext.id, left: Math.max(0, data.disasterNext.left) };
-  if (data.shop && typeof data.shop === 'object') for (const key of ['gold', 'spent', 'slots']) if (Number.isFinite(data.shop[key]) && data.shop[key] >= 0) s.shop[key] = Math.floor(data.shop[key]);
+  if (data.shop && typeof data.shop === 'object') for (const key of ['gold', 'spent', 'slots', 'stones']) if (Number.isFinite(data.shop[key]) && data.shop[key] >= 0) s.shop[key] = Math.floor(data.shop[key]);
   if (data.finds && typeof data.finds === 'object')
     for (const [id, n] of Object.entries(data.finds)) if (FINDS[id] && Number.isFinite(n) && n > 0) s.finds[id] = Math.floor(n);
   const onMap = (x, y) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < N && y < N;

@@ -927,8 +927,12 @@ details.more[open] summary { margin-bottom: 4px; }
   .daily-head p { font-size: 13px; }
 }
 @media (max-width: 560px) {
-  .days { grid-template-columns: repeat(4, 1fr); }
-  .day.chest { grid-column: span 1; }
+  /* hochkant: Tag 1–6 in drei Spalten, die große Truhe (Tag 7) als breite Zeile darunter – nichts wird lang gezogen */
+  .days { grid-template-columns: repeat(3, 1fr); align-items: start; }
+  .day { padding: 5px 4px 7px; }
+  .day.chest { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 10px; padding: 6px 10px; }
+  .day.chest .ic.big { width: 44px; height: 44px; }
+  .day.chest .day-goods { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 2px 10px; }
 }
 
 /* Wunsch des Stammes (über den Aufträgen) */
@@ -1016,6 +1020,10 @@ details.history summary { cursor: pointer; font-weight: bold; color: var(--ink-s
 .rb.main { background: linear-gradient(#7ed957, #4caf50); border-color: #2e7d32; color: #fff; box-shadow: 0 2px 0 #2e7d32; font-family: Georgia, serif; font-style: italic; font-size: 20px; }
 .rb.up { background: linear-gradient(#ffe08a, #f2b632); border-color: #b07a10; color: #4a3200; box-shadow: 0 2px 0 #b07a10; }
 .rb:disabled { opacity: 0.45; }
+/* Beschleunigen mit Steinen: blauer Knopf, kleine Zahl = Steine übrig */
+.rb.fast { position: relative; background: linear-gradient(#8fd3ff, #3a8fd8); border-color: #1f5f9a; color: #fff; box-shadow: 0 2px 0 #1f5f9a; font-size: 20px; }
+.rb.fast i { position: absolute; right: -5px; bottom: -5px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #fff; color: #1f5f9a;
+  border: 2px solid #1f5f9a; font: 700 11px/14px system-ui, sans-serif; font-style: normal; box-sizing: border-box; }
 
 /* Ladefenster: Prozent und Ladeschritte (Emin, 07.11.) */
 .load-row { display: flex; align-items: center; gap: 10px; margin-top: 18px; }

@@ -169,6 +169,9 @@ const CONFIG = {
       gross: { name: 'Großes Warenpaket', price: 100, extra: 4, goods: { nahrung: 400, holz: 400, stein: 200 } },
     },
     slotPrice: 300,
+    // Beschleunigungssteine (Wunsch Emin, 08.11.2026): ⚡ am Gebäude, jeder Stein spart 5 Minuten Bau- oder Ausbauzeit.
+    // Zum Start gibt es ein paar zum Ausprobieren, weitere im Shop (später gegen echtes Geld)
+    stone: { seconds: 300, start: 3, packs: [{ n: 5, price: 20 }, { n: 15, price: 50 }] },
     earn: { quest: 5, wish: 2, chest: 20 },   // so viel Gold verdient man ohne Kauf
   },
   hunt: {                 // Mammutjagd (nach der Forschung „Mammutjagd“, bis zur Jungsteinzeit)

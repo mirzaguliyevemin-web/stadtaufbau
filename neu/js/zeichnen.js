@@ -1370,6 +1370,13 @@ const EFFECTS = {
   '1-steinkreis':        [{ u: 0.51, v: 0.38, feuer: 0.9, rauch: 0.7, rv: 0.34 }],
   '1-langhaus':          [{ u: 0.76, v: 0.25, feuer: 0, rauch: 1.0 }],
   '1-toepferei':         [{ u: 0.75, v: 0.45, feuer: 0.6, rauch: 0 }, { u: 0.78, v: 0.23, feuer: 0, rauch: 1.1 }],
+  // Bronzezeit: gemalter, starrer Rauch entfernt (neu/tools/rauch-weg.py, Wunsch Emin 08.11.2026), hier steigt er bewegt auf
+  '2-feld':             [{ u: 0.249, v: 0.30, feuer: 0, rauch: 0.9 }],
+  '2-felsritzer':       [{ u: 0.246, v: 0.37, feuer: 0, rauch: 0.9 }],
+  '2-hallenhaus':       [{ u: 0.182, v: 0.38, feuer: 0, rauch: 0.7 }],
+  '2-koehler':          [{ u: 0.259, v: 0.39, feuer: 0, rauch: 1.1 }],
+  '2-kupferschmied':    [{ u: 0.255, v: 0.33, feuer: 0, rauch: 0.9 }],
+  '2-toepferwerkstatt': [{ u: 0.218, v: 0.375, feuer: 0, rauch: 1.0 }],
   // Rückansichten (r2): Feuer und Rauch an den Stellen im jeweiligen Bild
   '1-lagerfeuer-r2':        [{ u: 0.49, v: 0.36, feuer: 1.5, rauch: 1.2, rv: 0.24 }],
   '1-feuerplatz-r2':        [{ u: 0.475, v: 0.63, feuer: 1.0, rauch: 0.9, rv: 0.5 }],

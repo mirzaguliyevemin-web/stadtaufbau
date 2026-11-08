@@ -31,6 +31,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-08, gesammelt für die nächste Version – Wünsche Emin: ⚡-Knopf am Gebäude zum Beschleunigen von Bau und Ausbau mit Beschleunigungssteinen (jeder spart 5 Minuten, 3 zum Ausprobieren, weitere im Shop); „Neu“ in der Bauleiste nur noch für wirklich neue Gebäude, nicht für Weiterentwicklungen (Pflanzerin → Baumgärtnerin); starrer gemalter Rauch aus 10 Bildern entfernt (Feld, Felsritzer, Hallenhaus, Köhler, Kupferschmied, Töpferwerkstatt, Töpferei-Rückseite im Winter), dort steigt jetzt bewegter Rauch auf (neu/tools/rauch-weg.py); Tägliche Belohnung hochkant kompakt: Tag 1–6 in drei Spalten, große Truhe als breite Zeile.
 - 2026-11-08, Epochia Version 150–151 – Wunsch Emin (Canva weiter): Winterbilder von Jagdhütte und Feld; neues Werkzeug platte-fuellen.py schließt Schnee-Lücken am Plattenrand.
 - 2026-11-08, Epochia Version 142 – Wunsch Emin: Ladebildschirm mit Ladebalken und Prozent; nacheinander „✔ … geladen“ (Wiesen, Häuser, Wunderwerke …). Beim Tageslauf geprüft, war schon gebaut.
 - 2026-11-07, Epochia Version 149 – Fehler Emin: Nach einmal Quer ließ sich Android nicht zurück auf hochkant drehen – Drehung wird bei jedem Drehen und jeder Berührung neu freigegeben; Bauleiste hochkant ohne leeren Streifen links, Kategorien enden vor dem ▾-Knopf.

@@ -321,19 +321,27 @@ function setBarCategory(id) {
   if (bar) bar.scrollLeft = 0;
 }
 
+// „Neu“ nur für wirklich neue Gebäude: löst ein Gebäude durch Forschung oder Zeitalter nur ein älteres derselben
+// Reihe ab (Pflanzerin → Baumgärtnerin), ist es nicht neu, nur anders (Wunsch Emin, 08.11.2026)
+function barIsNew(type, locked) {
+  const def = BUILDINGS[type];
+  if (locked || !def.requires || (state.seen || {})[type]) return false;
+  return !Object.entries(BUILDINGS).some(([t, d]) => t !== type && d.line === def.line && d.tier < def.tier && !d.upgradeOnly && d.buildable !== false);
+}
+
 function renderBuildBar() {
   if (barDrag) return;   // nicht neu aufbauen, solange ein Finger auf der Leiste liegt
   // Im Einstieg zeigt die Leiste die Kategorie, in der das gesuchte Gebäude steht
   const wanted = typeof tutorialBarType === 'function' ? tutorialBarType() : null;
   if (wanted && BUILDINGS[wanted]) barCategory = categoryOf(wanted);
   const entries = barEntries();
-  const fresh = new Set(entries.filter(({ type, locked }) => !locked && BUILDINGS[type].requires && !(state.seen || {})[type]).map(e => categoryOf(e.type)));
+  const fresh = new Set(entries.filter(({ type, locked }) => barIsNew(type, locked)).map(e => categoryOf(e.type)));
   const tabs = BAR_CATEGORIES.filter(c => entries.some(e => categoryOf(e.type) === c.id)).map(c =>
     `<button class="bar-tab${c.id === barCategory ? ' active' : ''}" onclick="setBarCategory('${c.id}')"><span class="emoji">${c.icon}</span><span class="tname">${esc(c.name)}</span>${fresh.has(c.id) && c.id !== barCategory ? '<i class="dot"></i>' : ''}</button>`).join('');
   if (tabs !== lastTabs) { $('bar-tabs').innerHTML = tabs; lastTabs = tabs; }
   const items = entries.filter(e => categoryOf(e.type) === barCategory).map(({ type, locked }) => {
     const def = BUILDINGS[type];
-    const isNew = !locked && def.requires && !(state.seen || {})[type];
+    const isNew = barIsNew(type, locked);
     const affordable = canAfford(def.cost);
     return `<div class="bar-item${locked ? ' locked' : ''}${affordable ? '' : ' poor'}" data-type="${type}"
         onpointerdown="onBarPointerDown(event,'${type}',${locked})" onpointermove="onBarPointerMove(event)"
@@ -508,6 +516,7 @@ function infoPopHtml(i) {
   }
   const btn = [];
   if (def.workers && !b.build) btn.push(`<button class="rb" aria-label="${b.paused ? 'Weiter' : 'Pause'}" onclick="${stop} togglePause(${i}); showInfo(${i})">${b.paused ? '▶' : '⏸'}</button>`);
+  if (typeof stoneKey === 'function' && stoneKey(i)) btn.push(`<button class="rb fast" aria-label="Beschleunigen (${state.shop.stones || 0} Steine)" onclick="${stop} doUseStone(${i})">⚡<i>${state.shop.stones || 0}</i></button>`);
   if (canLevelHere(i)) btn.push(`<button class="rb up" aria-label="Ausbauen" onclick="${stop} infoFor.level = true; clearTimeout(infoTimer); positionInfo()">⬆</button>`);
   if (def.storage && !b.build) btn.push(`<button class="rb" aria-label="Lager" onclick="${stop} closeInfo(); openLager()">📦</button>`);
   btn.push(`<button class="rb main" aria-label="Mehr über das Gebäude" onclick="${stop} closeInfo(); showBuildingWindow(${i})">i</button>`);

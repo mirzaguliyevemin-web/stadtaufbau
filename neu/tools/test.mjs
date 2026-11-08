@@ -2627,6 +2627,36 @@ test('Design: jede Stufe hat eine Farbwelt, Lager zeigt Füllstand und knappe Wa
   noErrors(g);
 });
 
+test('Beschleunigungssteine am Gebäude: ⚡ spart 5 Minuten, Kauf im Shop, alter Spielstand bekommt Startsteine', () => {
+  const g = fresh();
+  ok(g.run(`state.shop.stones`) === 3, 'Startsteine');
+  g.run(`state.buildings.push({ type: 'wohnhoehle', x: 200, y: 200, rot: 0, build: 500 }); rebuildOccupancy();`);
+  const i = g.run(`state.buildings.length - 1`);
+  ok(g.run(`stoneKey(${i})`) === 'b' + i, 'Baustelle erkennt den Stein nicht');
+  ok(g.run(`useStone(${i})`) === null && g.run(`state.buildings[${i}].build`) === 200 && g.run(`state.shop.stones`) === 2, '−5 min');
+  ok(g.run(`useStone(${i})`) === null && g.run(`state.buildings[${i}].build`) === 0.01, 'Rest sofort fertig');
+  g.run(`updateConstruction(1);`);
+  ok(g.run(`stoneKey(${i})`) === null && g.run(`useStone(${i})`) === 'Hier wird gerade nichts gebaut' && g.run(`state.shop.stones`) === 1, 'Fertiges Gebäude');
+  g.run(`state.buildings[${i}].up = 400; state.shop.stones = 0;`);
+  ok(g.run(`useStone(${i})`) === 'Keine Beschleunigungssteine' && g.run(`state.buildings[${i}].up`) === 400, 'Ohne Steine');
+  ok(g.run(`infoPopHtml(${i})`).includes('doUseStone'), 'Knopf fehlt beim Ausbau');
+  ok(g.run(`buyStones(0)`) === 'Nicht genug Gold', 'Kauf ohne Gold');
+  g.run(`addGold(100);`);
+  ok(g.run(`buyStones(0)`) === null && g.run(`state.shop.stones`) === 5 && g.run(`state.shop.gold`) === 80, 'Kauf');
+  // alter Spielstand ohne Steine
+  const alt = g.run(`(() => { const d = JSON.parse(JSON.stringify(state)); delete d.shop.stones; return JSON.stringify(sanitizeState(d).shop.stones); })()`);
+  ok(alt === '3', 'Alter Stand: ' + alt);
+});
+
+test('„Neu“ in der Bauleiste nur für wirklich neue Gebäude, nicht für Weiterentwicklungen', () => {
+  const g = fresh();
+  ok(g.run(`barIsNew('baumgaertnerin', false)`) === false, 'Baumgärtnerin löst die Pflanzerin ab');
+  ok(g.run(`barIsNew('steinbruch', false)`) === false, 'Steinbruch löst den Steinsammler ab');
+  const neu = g.run(`Object.keys(BUILDINGS).find(t => BUILDINGS[t].requires && !BUILDINGS[t].upgradeOnly && !Object.values(BUILDINGS).some(d => d !== BUILDINGS[t] && d.line === BUILDINGS[t].line && d.tier < BUILDINGS[t].tier))`);
+  ok(neu && g.run(`barIsNew('${neu}', false)`) === true, 'Wirklich neues Gebäude ' + neu);
+  ok(g.run(`barIsNew('${neu}', true)`) === false, 'Gesperrt ist nicht neu');
+});
+
 test('Shop: Gold, Beschleunigen, Fundstücke, Pakete, Baustelle; Testkauf kostenlos, Spielstand bleibt', () => {
   const g = fresh();
   ok(g.run(`state.shop.gold`) === 0, 'Gold am Start');

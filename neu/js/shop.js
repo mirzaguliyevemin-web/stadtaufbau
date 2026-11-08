@@ -34,12 +34,39 @@ function speedUp(key, seconds, price) {
   const t = speedTargets().find(x => x.key === key);
   if (!t) return 'Das läuft nicht mehr';
   if (!spendGold(price)) return 'Nicht genug Gold';
-  const left = Math.max(0.01, t.left - seconds);
+  applySpeed(key, t.left - seconds);
+  return null;
+}
+
+function applySpeed(key, rest) {
+  const left = Math.max(0.01, rest);
   if (key === 'r') state.research.left = left;
   else if (key[0] === 'b') state.buildings[Number(key.slice(1))].build = left;
   else if (key[0] === 'u') state.buildings[Number(key.slice(1))].up = left;
   else state.wonders[key.slice(1)].left = left;
   emit('speedUsed', key);
+}
+
+// Beschleunigungsstein: am Gebäude (Bau oder Ausbau) – ein Stein spart CONFIG.shop.stone.seconds
+function stoneKey(i) {
+  const b = state.buildings[i];
+  if (!b || BUILDINGS[b.type].wonder) return null;
+  return b.build > 0 ? 'b' + i : b.up > 0 ? 'u' + i : null;
+}
+function useStone(i) {
+  const key = stoneKey(i);
+  const t = key && speedTargets().find(x => x.key === key);
+  if (!t) return 'Hier wird gerade nichts gebaut';
+  if ((state.shop.stones || 0) < 1) return 'Keine Beschleunigungssteine';
+  state.shop.stones -= 1;
+  applySpeed(key, t.left - CONFIG.shop.stone.seconds);
+  return null;
+}
+function buyStones(k) {
+  const p = CONFIG.shop.stone.packs[k];
+  if (!spendGold(p.price)) return 'Nicht genug Gold';
+  state.shop.stones = (state.shop.stones || 0) + p.n;
+  emit('goldChanged');
   return null;
 }
 
@@ -97,6 +124,12 @@ function shopRow(icon, title, sub, price, onclick, enabled = true) {
     <button class="btn${can ? ' primary' : ''}" ${can ? '' : 'disabled'} onclick="${onclick}">${goldText(price)}<small class="shop-euro">≈ ${goldEuro(price)} €</small></button></div>`;
 }
 
+function stoneShopHtml() {
+  const c = CONFIG.shop.stone;
+  return `<p class="empty-note">Du hast <b>⚡ ${state.shop.stones || 0}</b>. Tippe beim Bauen oder Ausbauen auf ⚡ am Gebäude: Jeder Stein spart ${Math.round(c.seconds / 60)} Minuten.</p>`
+    + c.packs.map((p, k) => shopRow('<span class="ic emoji big">⚡</span>', `${p.n} Beschleunigungssteine`, `${p.n * Math.round(c.seconds / 60)} Minuten schneller bauen`, p.price, `doBuyStones(${k})`)).join('');
+}
+
 function shopSpeedHtml() {
   const list = speedTargets();
   if (!list.length) return '<p class="empty-note">Gerade läuft nichts, das man beschleunigen kann.</p>';
@@ -133,6 +166,7 @@ function shopInner() {
     : shopRow('<span class="ic emoji big">🏗️</span>', 'Eine Baustelle mehr', `Dauerhaft ${CONFIG.maxConstructions + 1} statt ${CONFIG.maxConstructions} gleichzeitig`, c.slotPrice, 'doBuySlot()');
   return `<div class="shop-head"><span class="shop-gold">${goldText(state.shop.gold)}</span><small>${c.testMode ? 'Testmodus: Es fließt kein echtes Geld.' : ''} Gold gibt es auch für Aufträge, Wünsche und die große Truhe.</small></div>
     <h3 class="find-page">Gold</h3><div class="shop-packs">${packs}</div>
+    <h3 class="find-page">Beschleunigungssteine</h3><div class="quests">${stoneShopHtml()}</div>
     <h3 class="find-page">Beschleunigen</h3><div class="quests">${shopSpeedHtml()}</div>
     ${finds ? `<h3 class="find-page">Fehlende Fundstücke</h3><div class="quests">${finds}</div>` : ''}
     <h3 class="find-page">Warenpakete</h3><div class="quests">${goods}</div>
@@ -157,6 +191,15 @@ function doSpeed(key, secs, price) { shopDone(speedUp(key, secs, price), '⚡ Be
 function doPack(i) { shopDone(buyPack(i), `🪙 +${CONFIG.shop.packs[i].gold} Gold (Test, kostenlos)`); }
 function doBuyFind(id) { shopDone(buyFind(id)); }
 function doBuyGoods(k) { shopDone(buyGoods(k), '📦 Waren geliefert'); }
+function doBuyStones(k) { shopDone(buyStones(k), `⚡ +${CONFIG.shop.stone.packs[k].n} Beschleunigungssteine`); }
+function doUseStone(i) {
+  const err = useStone(i);
+  if (err === 'Keine Beschleunigungssteine') { closeInfo(); toast('⚡ Keine Beschleunigungssteine mehr – im Shop gibt es neue'); openShop(); return; }
+  if (err) { toast(err); return; }
+  toast(`⚡ ${Math.round(CONFIG.shop.stone.seconds / 60)} Minuten schneller · noch ${state.shop.stones} Steine`);
+  playSound('muenze');
+  showInfo(i);
+}
 function doBuySlot() { shopDone(buySlot(), '🏗️ Eine Baustelle mehr'); }
 
 // Knopf für Fenster: zum Shop

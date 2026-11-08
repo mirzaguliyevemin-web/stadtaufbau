@@ -5,6 +5,7 @@
 #   python3 neu/tools/bild-einbauen.py quelle.png bilder/epochia/gebaeude/x/1-x-winter.webp 640 --schnee
 #     Winterbilder: nur genau die Hintergrundfarbe freistellen (sonst frisst das Freistellen den Schnee am Rand).
 #     Frisst es trotzdem Löcher in den Schnee: zusätzlich --toleranz=1 (Standard 5).
+#     Bleiben am Plattenrand Lücken: danach neu/tools/platte-fuellen.py auf die WebP-Datei.
 #     Dazu --loecher nur bei Bildern ohne Platte (Säulen): entfernt auch eingeschlossenen Hintergrund; auf Schnee würde das Löcher reißen.
 import sys
 from collections import deque

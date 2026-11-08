@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-hacke-mitte', 'mensch-axt-mitte', 'mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-frau-grabstock-tief', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-mitte', 'fischer-speer-unten'];
+const LIFE_NAMES = ['mensch-bergmann-korb', 'mensch-hacke-mitte', 'mensch-axt-mitte', 'mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-frau-grabstock-tief', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-mitte', 'fischer-speer-unten'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -328,7 +328,7 @@ Object.assign(WORK, {
   bronzeschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug' },
   weberin:        { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: null, swing: 'scrape', thing: 'ware-kleidung' },
   schmuckmacherin:{ target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: '#ffd166', swing: 'knap' },
-  kupfermine:     { target: 'fels',   tool: 'hacke', carry: null, img: 'mensch-mann', chips: '#6fae8a', swing: 'hack', carryLook: 'mensch-mann-stein', anim: 'bergbau' },
+  kupfermine:     { target: 'fels',   tool: 'hacke', carry: null, img: 'mensch-mann', chips: '#6fae8a', swing: 'hack', carryLook: 'mensch-bergmann-korb', anim: 'bergbau' },
   koehler:        { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'tend' },   // am Meiler
   schmelzofen:    { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'tend' },
   bronzegiesser:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffd166', swing: 'tend' },
@@ -974,7 +974,7 @@ function poseMix(n, cyc, own) {
 }
 
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
-const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, 'mensch-mann-leer': 0.62, 'mensch-frau-leer': 0.62, 'mensch-jaeger': 0.62, 'mensch-jaeger-bogen-1': 0.62, 'mensch-jaeger-beute': 0.66, 'mensch-tongrube-korb': 0.66, 'mensch-mann-stein': 0.62, 'mensch-hirte': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };
+const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, 'mensch-mann-leer': 0.62, 'mensch-frau-leer': 0.62, 'mensch-jaeger': 0.62, 'mensch-jaeger-bogen-1': 0.62, 'mensch-jaeger-beute': 0.66, 'mensch-tongrube-korb': 0.66, 'mensch-bergmann-korb': 0.64, 'mensch-mann-stein': 0.62, 'mensch-hirte': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };
 
 // Figur mit Schatten zeichnen. Bilder schauen nach links; face = -1 spiegelt nach rechts.
 // step = Laufphase (Bogenmaß) oder null im Stehen: Dann schwingen vordere und hintere Beine gegeneinander.

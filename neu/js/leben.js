@@ -948,7 +948,7 @@ const ANIM_POSES = {
   stochern: [['mensch-koehler-1', 38.2, 0.151], ['mensch-koehler-2', 35.5, 0.218], ['mensch-koehler-3', 32.6, 0.2]],   // Köhler stochert mit der Stange im Meiler
   waschen: [['mensch-zinnwaescherin-1', 32.3, 0.091], ['mensch-zinnwaescherin-2', 32.7, 0.088], ['mensch-zinnwaescherin-3', 29.4, 0.151]],   // Zinnwäscherin im Bach
   schmuck: [['mensch-schmuck-1', 32.1, 0.144], ['mensch-schmuck-2', 32.3, 0.144], ['mensch-schmuck-3', 32.5, 0.144]],   // Schmuckmacherin klopft den Armreif
-  netz: [['mensch-fischer-netz-1', 35, 0.144], ['mensch-fischer-netz-2', 35.5, 0.182]],   // Fischerhütte: Netz auswerfen
+  netz: [['mensch-fischer-netz-1', 35, 0.144], ['mensch-fischer-netz-2', 35.5, 0.182], ['mensch-fischer-netz-3', 35.5, 0.246]],   // Fischerhütte: Netz auswerfen
   schmieden: [['mensch-schmied-1', 39.5, 0.228], ['mensch-schmied-2', 34.5, 0.229], ['mensch-schmied-3', 35.1, 0.204]],   // Schmied am Amboss
   toepfern: [['mensch-toepferin-1', 29.0, -0.007], ['mensch-toepferin-2', 29.4, -0.004], ['mensch-toepferin-3', 30.4, -0.004]],
   pfluecken: [['mensch-frau-pflueckt-greift', 30, 0.118], ['mensch-frau-pflueckt', 30, 0.1], ['mensch-frau-pflueckt-korb', 33.6, -0.164]],
@@ -959,6 +959,7 @@ const ANIM_TIMING = {
   bogen: { speed: 0.45, keys: [[0, 0], [1, 0.25], [2, 0.75]] },   // Pfeil nehmen, lange zielen, Schuss, wieder von vorn
   speerwurf: { speed: 0.45, keys: [[0, 0], [1, 0.6], [2, 0.68]] },   // lange ausholen, schnell werfen, nachschauen
   malen: { speed: 0.3, keys: [[0, 0], [1, 0.2], [2, 0.5], [1, 0.8]] },   // Pinsel eintauchen, in Kopfhöhe malen, hoch oben malen, wieder herunter
+  netz: { speed: 0.35, keys: [[0, 0], [1, 0.45], [2, 0.58]] },   // Netz bereit halten, schwingen, schnell werfen, lange nachschauen
   schaben: { speed: 0.5, keys: [[0, 0], [1, 0.25], [2, 0.5], [1, 0.75]] },   // Schaber gleichmäßig vor und zurück
   steinschlag: { speed: 0.8, keys: [[0, 0], [1, 0.6], [2, 0.7], [1, 0.9]] },   // langsam heben, schnell schlagen, Splitter fliegen
   hirte: { speed: 0.22, keys: [[0, 0], [1, 0.45], [2, 0.6], [1, 0.8]] },   // steht lange ruhig, hebt den Stab, ruft die Ziegen

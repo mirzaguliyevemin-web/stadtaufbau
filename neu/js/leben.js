@@ -328,7 +328,7 @@ Object.assign(WORK, {
   feld: { ...WORK.acker, tool: null, chips: '#e8c060', anim: 'sichel' },   // schneidet Korn mit der Sichel
   gemuesegarten:  { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: '#d8344a', swing: 'pick', anim: 'pfluecken' },   // bleibt auf dem Beet
   felsritzer:     { target: 'fels',   tool: null,    carry: 'ware-wissen', img: 'mensch-mann', chips: '#b9b4a8', swing: 'chisel', anim: 'ritzen' },
-  sternkundiger:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: null, swing: 'gaze' },       // schaut zum Himmel
+  sternkundiger:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: null, swing: 'gaze', anim: 'sterne' },       // schaut zum Himmel
   kupferschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug', anim: 'schmieden' },
   bronzeschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug', anim: 'schmieden' },
   weberin:        { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: null, swing: 'scrape', thing: 'ware-kleidung', anim: 'weben' },   // am Webstuhl, der Stoff wächst
@@ -958,6 +958,7 @@ const ANIM_POSES = {
   sichel: [['mensch-sichel-1', 33, 0.088], ['mensch-sichel-2', 33, 0.08], ['mensch-sichel-3', 35, -0.01]],   // Feld: Korn schneiden
   scheren: [['mensch-scherer-1', 28, 0.267], ['mensch-scherer-2', 28, 0.267], ['mensch-scherer-3', 28.2, 0.265]],   // Viehhof: Schaf scheren (Schaf im Bild)
   weben: [['mensch-weberin-1', 34.5, 0.204], ['mensch-weberin-2', 34.5, 0.208], ['mensch-weberin-3', 34.5, 0.191]],   // Weberin am Gewichtswebstuhl
+  sterne: [['mensch-sternkundiger-1', 36.4, 0.006], ['mensch-sternkundiger-2', 43.4, 0.155], ['mensch-sternkundiger-3', 47, -0.089]],   // Sternkundiger: schaut und peilt mit dem Stab
   schmieden: [['mensch-schmied-1', 39.5, 0.228], ['mensch-schmied-2', 34.5, 0.229], ['mensch-schmied-3', 35.1, 0.204]],   // Schmied am Amboss
   toepfern: [['mensch-toepferin-1', 29.0, -0.007], ['mensch-toepferin-2', 29.4, -0.004], ['mensch-toepferin-3', 30.4, -0.004]],
   pfluecken: [['mensch-frau-pflueckt-greift', 30, 0.118], ['mensch-frau-pflueckt', 30, 0.1], ['mensch-frau-pflueckt-korb', 33.6, -0.164]],
@@ -974,6 +975,7 @@ const ANIM_TIMING = {
   sichel: { speed: 0.45, keys: [[0, 0], [1, 0.45], [2, 0.6]] },   // Halme greifen und ausholen, schneller Schnitt, Bündel anheben
   scheren: { speed: 0.35, keys: [[0, 0], [1, 0.3], [0, 0.45], [1, 0.6], [2, 0.75]] },   // zweimal schneiden, dann die Wolle hochheben
   weben: { speed: 0.25, keys: [[0, 0], [1, 0.3], [0, 0.5], [2, 0.75]] },   // Schiffchen hin und her, dann den Faden festschlagen
+  sterne: { speed: 0.1, keys: [[0, 0], [1, 0.35], [2, 0.65]] },   // ruhig: schauen, peilen, staunend zum Himmel zeigen
   schaben: { speed: 0.5, keys: [[0, 0], [1, 0.25], [2, 0.5], [1, 0.75]] },   // Schaber gleichmäßig vor und zurück
   steinschlag: { speed: 0.8, keys: [[0, 0], [1, 0.6], [2, 0.7], [1, 0.9]] },   // langsam heben, schnell schlagen, Splitter fliegen
   hirte: { speed: 0.22, keys: [[0, 0], [1, 0.45], [2, 0.6], [1, 0.8]] },   // steht lange ruhig, hebt den Stab, ruft die Ziegen

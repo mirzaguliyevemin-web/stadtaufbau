@@ -321,7 +321,9 @@ function targetGone(w) {
 Object.assign(WORK, {
   holzfaeller: WORK.holzsammler, steinbruch: WORK.steinsammler, lehmgrube: WORK.tongrube,
   fischerhuette:  { ...WORK.fischerplatz, tool: null, anim: 'netz' },   // wirft am Ufer das Netz aus, der zweite Fischer bleibt im Einbaum
-  jagdhuette: WORK.mammutjaegerlager, viehhof: WORK.ziegengehege, baumgaertnerin: WORK.pflanzerin,
+  jagdhuette: WORK.mammutjaegerlager,
+  viehhof: { ...WORK.ziegengehege, anim: 'scheren' },   // schert ein Schaf, Wolle fällt
+  baumgaertnerin: WORK.pflanzerin,
   toepferwerkstatt: { ...WORK.toepferei, anim: 'drehscheibe' },   // sitzt an der Drehscheibe, der Topf wächst
   feld: { ...WORK.acker, tool: null, chips: '#e8c060', anim: 'sichel' },   // schneidet Korn mit der Sichel
   gemuesegarten:  { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: '#d8344a', swing: 'pick', anim: 'pfluecken' },   // bleibt auf dem Beet
@@ -954,6 +956,7 @@ const ANIM_POSES = {
   ritzen: [['mensch-felsritzer-1', 39, 0.075], ['mensch-felsritzer-mitte', 34, 0.095], ['mensch-felsritzer-2', 34, 0.095]],   // Felsritzer: Hammer auf den Meißel
   drehscheibe: [['mensch-drehscheibe-1', 31, 0], ['mensch-drehscheibe-2', 31, 0], ['mensch-drehscheibe-3', 31, 0]],   // Töpferwerkstatt (Bronzezeit)
   sichel: [['mensch-sichel-1', 33, 0.088], ['mensch-sichel-2', 33, 0.08], ['mensch-sichel-3', 35, -0.01]],   // Feld: Korn schneiden
+  scheren: [['mensch-scherer-1', 28, 0.267], ['mensch-scherer-2', 28, 0.267], ['mensch-scherer-3', 28.2, 0.265]],   // Viehhof: Schaf scheren (Schaf im Bild)
   schmieden: [['mensch-schmied-1', 39.5, 0.228], ['mensch-schmied-2', 34.5, 0.229], ['mensch-schmied-3', 35.1, 0.204]],   // Schmied am Amboss
   toepfern: [['mensch-toepferin-1', 29.0, -0.007], ['mensch-toepferin-2', 29.4, -0.004], ['mensch-toepferin-3', 30.4, -0.004]],
   pfluecken: [['mensch-frau-pflueckt-greift', 30, 0.118], ['mensch-frau-pflueckt', 30, 0.1], ['mensch-frau-pflueckt-korb', 33.6, -0.164]],
@@ -968,6 +971,7 @@ const ANIM_TIMING = {
   ritzen: { speed: 0.9, keys: [[0, 0], [1, 0.55], [2, 0.7]] },   // ausholen, schnell auf den Meißel schlagen, kurz halten
   drehscheibe: { speed: 0.15, keys: [[0, 0], [1, 0.3], [2, 0.65]] },   // Ton aufsetzen, Topf langsam hochziehen, fertigen Topf glätten
   sichel: { speed: 0.45, keys: [[0, 0], [1, 0.45], [2, 0.6]] },   // Halme greifen und ausholen, schneller Schnitt, Bündel anheben
+  scheren: { speed: 0.35, keys: [[0, 0], [1, 0.3], [0, 0.45], [1, 0.6], [2, 0.75]] },   // zweimal schneiden, dann die Wolle hochheben
   schaben: { speed: 0.5, keys: [[0, 0], [1, 0.25], [2, 0.5], [1, 0.75]] },   // Schaber gleichmäßig vor und zurück
   steinschlag: { speed: 0.8, keys: [[0, 0], [1, 0.6], [2, 0.7], [1, 0.9]] },   // langsam heben, schnell schlagen, Splitter fliegen
   hirte: { speed: 0.22, keys: [[0, 0], [1, 0.45], [2, 0.6], [1, 0.8]] },   // steht lange ruhig, hebt den Stab, ruft die Ziegen

@@ -331,7 +331,7 @@ Object.assign(WORK, {
   sternkundiger:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: null, swing: 'gaze' },       // schaut zum Himmel
   kupferschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug', anim: 'schmieden' },
   bronzeschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug', anim: 'schmieden' },
-  weberin:        { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: null, swing: 'scrape', thing: 'ware-kleidung' },
+  weberin:        { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: null, swing: 'scrape', thing: 'ware-kleidung', anim: 'weben' },   // am Webstuhl, der Stoff wächst
   schmuckmacherin:{ target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: '#ffd166', swing: 'knap', anim: 'schmuck' },
   kupfermine:     { target: 'fels',   tool: 'hacke', carry: null, img: 'mensch-mann', chips: '#6fae8a', swing: 'hack', carryLook: 'mensch-bergmann-korb', anim: 'bergbau' },
   koehler:        { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'tend', anim: 'stochern' },   // am Meiler
@@ -343,7 +343,7 @@ Object.assign(WORK, {
   jagdhof: WORK.mammutjaegerlager, eisenfeld: { ...WORK.acker, tool: null, chips: '#e8c060', anim: 'sichel' }, rindergut: WORK.ziegengehege, forstmeisterin: WORK.pflanzerin, drehscheibe: { ...WORK.toepferei, anim: 'drehscheibe' },
   druide:       { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: null, swing: 'gaze' },
   eisenschmied: { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'knap', thing: 'ware-werkzeug' },
-  tuchmacherin: { target: 'self', tool: null,    carry: null, img: 'mensch-frau', chips: null, swing: 'scrape', thing: 'ware-kleidung' },
+  tuchmacherin: { target: 'self', tool: null,    carry: null, img: 'mensch-frau', chips: null, swing: 'scrape', thing: 'ware-kleidung', anim: 'weben' },
   eisenmine:    { target: 'fels', tool: 'hacke', carry: null, img: 'mensch-mann', chips: '#a0604a', swing: 'hack', carryLook: 'mensch-mann-stein' },
   rennofen:     { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'tend' },
   salzsiederei: { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#f4f4ee', swing: 'tend' },
@@ -957,6 +957,7 @@ const ANIM_POSES = {
   drehscheibe: [['mensch-drehscheibe-1', 31, 0], ['mensch-drehscheibe-2', 31, 0], ['mensch-drehscheibe-3', 31, 0]],   // Töpferwerkstatt (Bronzezeit)
   sichel: [['mensch-sichel-1', 33, 0.088], ['mensch-sichel-2', 33, 0.08], ['mensch-sichel-3', 35, -0.01]],   // Feld: Korn schneiden
   scheren: [['mensch-scherer-1', 28, 0.267], ['mensch-scherer-2', 28, 0.267], ['mensch-scherer-3', 28.2, 0.265]],   // Viehhof: Schaf scheren (Schaf im Bild)
+  weben: [['mensch-weberin-1', 34.5, 0.204], ['mensch-weberin-2', 34.5, 0.208], ['mensch-weberin-3', 34.5, 0.191]],   // Weberin am Gewichtswebstuhl
   schmieden: [['mensch-schmied-1', 39.5, 0.228], ['mensch-schmied-2', 34.5, 0.229], ['mensch-schmied-3', 35.1, 0.204]],   // Schmied am Amboss
   toepfern: [['mensch-toepferin-1', 29.0, -0.007], ['mensch-toepferin-2', 29.4, -0.004], ['mensch-toepferin-3', 30.4, -0.004]],
   pfluecken: [['mensch-frau-pflueckt-greift', 30, 0.118], ['mensch-frau-pflueckt', 30, 0.1], ['mensch-frau-pflueckt-korb', 33.6, -0.164]],
@@ -972,6 +973,7 @@ const ANIM_TIMING = {
   drehscheibe: { speed: 0.15, keys: [[0, 0], [1, 0.3], [2, 0.65]] },   // Ton aufsetzen, Topf langsam hochziehen, fertigen Topf glätten
   sichel: { speed: 0.45, keys: [[0, 0], [1, 0.45], [2, 0.6]] },   // Halme greifen und ausholen, schneller Schnitt, Bündel anheben
   scheren: { speed: 0.35, keys: [[0, 0], [1, 0.3], [0, 0.45], [1, 0.6], [2, 0.75]] },   // zweimal schneiden, dann die Wolle hochheben
+  weben: { speed: 0.25, keys: [[0, 0], [1, 0.3], [0, 0.5], [2, 0.75]] },   // Schiffchen hin und her, dann den Faden festschlagen
   schaben: { speed: 0.5, keys: [[0, 0], [1, 0.25], [2, 0.5], [1, 0.75]] },   // Schaber gleichmäßig vor und zurück
   steinschlag: { speed: 0.8, keys: [[0, 0], [1, 0.6], [2, 0.7], [1, 0.9]] },   // langsam heben, schnell schlagen, Splitter fliegen
   hirte: { speed: 0.22, keys: [[0, 0], [1, 0.45], [2, 0.6], [1, 0.8]] },   // steht lange ruhig, hebt den Stab, ruft die Ziegen

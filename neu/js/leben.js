@@ -323,7 +323,7 @@ Object.assign(WORK, {
   fischerhuette:  { ...WORK.fischerplatz, tool: null, anim: 'netz' },   // wirft am Ufer das Netz aus, der zweite Fischer bleibt im Einbaum
   jagdhuette: WORK.mammutjaegerlager, feld: WORK.acker, viehhof: WORK.ziegengehege, baumgaertnerin: WORK.pflanzerin, toepferwerkstatt: WORK.toepferei,
   gemuesegarten:  { target: 'self',   tool: null,    carry: null, img: 'mensch-frau', chips: '#d8344a', swing: 'pick', anim: 'pfluecken' },   // bleibt auf dem Beet
-  felsritzer:     { target: 'fels',   tool: null,    carry: 'ware-wissen', img: 'mensch-mann', chips: '#b9b4a8', swing: 'chisel' },
+  felsritzer:     { target: 'fels',   tool: null,    carry: 'ware-wissen', img: 'mensch-mann', chips: '#b9b4a8', swing: 'chisel', anim: 'ritzen' },
   sternkundiger:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: null, swing: 'gaze' },       // schaut zum Himmel
   kupferschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug', anim: 'schmieden' },
   bronzeschmied:  { target: 'self',   tool: null,    carry: null, img: 'mensch-mann', chips: '#ffb347', swing: 'knap', thing: 'ware-werkzeug', anim: 'schmieden' },
@@ -949,6 +949,7 @@ const ANIM_POSES = {
   waschen: [['mensch-zinnwaescherin-1', 32.3, 0.091], ['mensch-zinnwaescherin-2', 32.7, 0.088], ['mensch-zinnwaescherin-3', 29.4, 0.151]],   // Zinnwäscherin im Bach
   schmuck: [['mensch-schmuck-1', 32.1, 0.144], ['mensch-schmuck-2', 32.3, 0.144], ['mensch-schmuck-3', 32.5, 0.144]],   // Schmuckmacherin klopft den Armreif
   netz: [['mensch-fischer-netz-1', 35, 0.144], ['mensch-fischer-netz-2', 35.5, 0.182], ['mensch-fischer-netz-3', 35.5, 0.246]],   // Fischerhütte: Netz auswerfen
+  ritzen: [['mensch-felsritzer-1', 39, 0.075], ['mensch-felsritzer-mitte', 34, 0.095], ['mensch-felsritzer-2', 34, 0.095]],   // Felsritzer: Hammer auf den Meißel
   schmieden: [['mensch-schmied-1', 39.5, 0.228], ['mensch-schmied-2', 34.5, 0.229], ['mensch-schmied-3', 35.1, 0.204]],   // Schmied am Amboss
   toepfern: [['mensch-toepferin-1', 29.0, -0.007], ['mensch-toepferin-2', 29.4, -0.004], ['mensch-toepferin-3', 30.4, -0.004]],
   pfluecken: [['mensch-frau-pflueckt-greift', 30, 0.118], ['mensch-frau-pflueckt', 30, 0.1], ['mensch-frau-pflueckt-korb', 33.6, -0.164]],
@@ -960,6 +961,7 @@ const ANIM_TIMING = {
   speerwurf: { speed: 0.45, keys: [[0, 0], [1, 0.6], [2, 0.68]] },   // lange ausholen, schnell werfen, nachschauen
   malen: { speed: 0.3, keys: [[0, 0], [1, 0.2], [2, 0.5], [1, 0.8]] },   // Pinsel eintauchen, in Kopfhöhe malen, hoch oben malen, wieder herunter
   netz: { speed: 0.35, keys: [[0, 0], [1, 0.45], [2, 0.58]] },   // Netz bereit halten, schwingen, schnell werfen, lange nachschauen
+  ritzen: { speed: 0.9, keys: [[0, 0], [1, 0.55], [2, 0.7]] },   // ausholen, schnell auf den Meißel schlagen, kurz halten
   schaben: { speed: 0.5, keys: [[0, 0], [1, 0.25], [2, 0.5], [1, 0.75]] },   // Schaber gleichmäßig vor und zurück
   steinschlag: { speed: 0.8, keys: [[0, 0], [1, 0.6], [2, 0.7], [1, 0.9]] },   // langsam heben, schnell schlagen, Splitter fliegen
   hirte: { speed: 0.22, keys: [[0, 0], [1, 0.45], [2, 0.6], [1, 0.8]] },   // steht lange ruhig, hebt den Stab, ruft die Ziegen

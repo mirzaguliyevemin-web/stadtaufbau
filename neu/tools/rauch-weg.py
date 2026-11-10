@@ -1,6 +1,7 @@
 # Epochia: gemalten (starren) Rauch aus Gebäudebildern entfernen (Wunsch Emin, 08.11.2026: „Manche Gebäude haben immer
 # noch unbewegliche Rauchwolken“). Danach steigt dort der bewegte Rauch des Spiels auf (EFFECTS in neu/js/zeichnen.js).
 #   python3 neu/tools/rauch-weg.py            alle Bilder aus der Liste (immer auf die unveränderten Bilder anwenden)
+#   python3 neu/tools/rauch-weg.py 2-x-winter nur die genannten Bilder (für ein neu eingebautes Bild)
 # Je Bild: Kasten um die Rauchfahne als Anteil der Bildbreite/-höhe (u0, u1, v0, v1). v1 = Öffnung des Schornsteins,
 # darunter wird nichts angefasst. Entfernt wird nur die zusammenhängende Rauchfahne (hell, kaum farbig) ab ihrer Spitze,
 # Schnee auf Büschen daneben bleibt. Liegt die Fahne vor dem Boden (boden = ab hier), wird sie dort zu glattem Schnee.
@@ -17,6 +18,7 @@ KAESTEN = {   # name: (u0, u1, v0, v1, boden)
     '2-kupferschmied':        (0.15, 0.28, 0.05, 0.312, None),
     '2-kupferschmied-winter': (0.13, 0.29, 0.00, 0.330, None),
     '2-toepferwerkstatt':     (0.12, 0.25, 0.05, 0.370, None),
+    '2-toepferwerkstatt-winter': (0.11, 0.29, 0.05, 0.365, None),
     '1-toepferei-r2-winter':  (0.235, 0.315, 0.12, 0.415, 0.265),
 }
 
@@ -24,7 +26,9 @@ def rauchig(r, g, b, streng=True):
     h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
     return (s < 0.28 and v > 0.5) if streng else (s < 0.4 and v > 0.35)
 
+import sys
 for name, (u0, u1, v0, v1, boden) in KAESTEN.items():
+    if sys.argv[1:] and name not in sys.argv[1:]: continue
     datei = glob.glob(f'bilder/epochia/gebaeude/*/{name}.webp')[0]
     im = Image.open(datei).convert('RGBA'); w, h = im.size; px = im.load()
     x0, x1, y0, y1 = int(u0 * w), int(u1 * w), int(v0 * h), int(v1 * h)

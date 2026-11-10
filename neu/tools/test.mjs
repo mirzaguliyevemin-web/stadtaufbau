@@ -2540,13 +2540,15 @@ test('Wanderer: rastet einmal in der Steinzeit am Feuer, tauscht Wegzehrung gege
 
 test('Bauleiste: gesperrte Gebäude stehen am Ende, spätere Zeitalter fehlen', () => {
   const g = fresh();
-  const r = g.run(`(() => { const bad = [];
+  const r = g.run(`(() => { const bad = []; let mixed = 0;
     for (const c of BAR_CATEGORIES) { setBarCategory(c.id);
       const html = $('buildbar').innerHTML || '';
       const order = [...html.matchAll(/bar-item( locked)?/g)].map(m => !!m[1]);
+      if (order.includes(true) && order.includes(false)) mixed++;
       if (order.some((l, i) => !l && order.slice(0, i).some(x => x))) bad.push(c.id); }
     const later = barEntries().filter(e => BUILDINGS[e.type].requires && !stageReached(TECHS[BUILDINGS[e.type].requires].stage)).map(e => e.type);
-    return [bad.join(), later.join()]; })()`);
+    return [bad.join(), later.join(), mixed]; })()`);
+  ok(r[2] > 0, 'Keine Gruppe mit gesperrten und baubaren Gebäuden – der Test prüft nichts');
   ok(r[0] === '', 'Gesperrt vor baubar in: ' + r[0]);
   ok(r[1] === '', 'Gebäude späterer Zeitalter in der Leiste: ' + r[1]);
   noErrors(g);

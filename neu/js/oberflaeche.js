@@ -445,7 +445,7 @@ function infoText(i) {
   if (lacking) parts.push(`❗ Fehlt: ${RESOURCES[lacking].name}${sourceText(lacking)}`);
   if (def.warmth) parts.push(`🔥 Umkreis ${warmthRadius(def)}`);
   if (def.belief) parts.push(`🗿 Umkreis ${def.belief}`);
-  if (def.storage) parts.push(`📦 +${def.storage}`);
+  if (def.storage) parts.push(`📦 +${storageOf(b)}`);
   return parts.join(' · ');
 }
 
@@ -492,7 +492,7 @@ function infoLine(i) {
   if (def.produces) parts.push(Object.entries(outputPerMinute(i)).map(([id, n]) => `+${perMin(n)} ${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')}`).join(' ') + ' je Minute');
   if (def.housing) parts.push(`👥 ${housingOf(b.type)} Plätze`);
   if (def.workers) parts.push(`👤 ${stats.staff[i] || 0}/${workersOf(b)}`);
-  if (def.storage) parts.push(`📦 +${def.storage}`);
+  if (def.storage) parts.push(`📦 +${storageOf(b)}`);
   if (def.warmth && !def.produces) parts.push(`🔥 Umkreis ${warmthRadius(def)}`);
   if (def.belief) parts.push(`🗿 Umkreis ${def.belief}`);
   return parts.join(' · ');
@@ -797,7 +797,7 @@ function showBuildingWindow(i) {
   }
   if (def.warmth) tile(`🔥 ${warmthRadius(def)}`, 'Felder Wärme');
   if (def.belief) tile(`🗿 ${def.belief}`, 'Felder Glaube');
-  if (def.storage) tile(`📦 +${def.storage}`, 'je Ware');
+  if (def.storage) tile(`📦 +${storageOf(b)}`, 'je Ware');
 
   let upgrade = '';
   // Stufen 1–5: Ausbauen bringt einen Arbeiterplatz und +50 % Ertrag (docs/plan-stufen.md)
@@ -812,7 +812,7 @@ function showBuildingWindow(i) {
       upgrade += `<div class="upgrade level-card">
         <h3><span>Ausbauen auf Stufe ${next}</span><span class="stars" title="Stufe ${lv} von ${maxLevel()}">${row}</span></h3>
         ${maxLevel() < CONFIG.levels.max ? `<small>Stufe ${lv} von ${maxLevel()} – mehr Stufen in späteren Zeitaltern</small>` : ''}
-        <p>Ausbau auf Stufe ${next}: Ertrag ×${perMin(levelFactor(b))} → ×${perMin(levelFactor(b) + CONFIG.levels.outputPerLevel)} (+${more} % vom Grundwert)${workersOf({ type: b.type, level: next }) > workersOf(b) ? `, 👤 ${workersOf(b)} → ${workersOf({ type: b.type, level: next })} Arbeiter` : ', gleich viele Arbeiter'}</p>
+        <p>Ausbau auf Stufe ${next}: ${isStoreLevel(def) ? `Lagerplatz 📦 +${storageOf(b)} → +${storageOf({ type: b.type, level: next })} je Ware (+${Math.round(CONFIG.levels.storagePerLevel * 100)} % vom Grundwert)</p>` : `Ertrag ×${perMin(levelFactor(b))} → ×${perMin(levelFactor(b) + CONFIG.levels.outputPerLevel)} (+${more} % vom Grundwert)${workersOf({ type: b.type, level: next }) > workersOf(b) ? `, 👤 ${workersOf(b)} → ${workersOf({ type: b.type, level: next })} Arbeiter` : ', gleich viele Arbeiter'}</p>`}
         <p>${costHtml(levelCost(b.type, next))} · ⏱ ${formatTime(levelTime(b.type, next))}</p>
         <div class="why-row"><button class="btn primary" ${problem ? 'disabled' : ''} onclick="doLevelUp(${i})">⬆ Ausbauen auf Stufe ${next}</button>
         ${problem ? `<span class="why">⏳ ${esc(problem)}</span>` : ''}</div>

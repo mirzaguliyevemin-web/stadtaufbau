@@ -13,7 +13,7 @@ function emit(event, data) { (listeners[event] || []).forEach(fn => fn(data)); }
 
 function storageCap() {
   let cap = 0;
-  state.buildings.forEach((b, i) => { if (!b.build && BUILDINGS[b.type].storage && isConnected(i)) cap += BUILDINGS[b.type].storage; });
+  state.buildings.forEach((b, i) => { if (!b.build && BUILDINGS[b.type].storage && isConnected(i)) cap += storageOf(b); });
   if (stageReached('kupfer')) cap += CONFIG.dorfplatz.storage;   // das Lagerfeuer ist jetzt der Dorfplatz
   cap += CONFIG.stageStorage[state.stage] || 0;                  // jedes Zeitalter fasst mehr (die Forschungen kosten auch mehr)
   return Math.round(Math.max(cap, CONFIG.baseStorage) * (1 + techSum('storage')));
@@ -299,7 +299,10 @@ function updateConstruction(dt) {
 // weitergezählt. Je Stufe +50 % Ertrag, alle 2 Stufen ein Arbeiterplatz mehr. Die Stufe bleibt bei der Weiterentwicklung erhalten.
 // ---------------------------------------------------------------------
 const EPOCH_NAMES = ['Steinzeit', 'Bronzezeit', 'Eisenzeit', 'Antike', 'Mittelalter', 'Frühen Neuzeit', 'Jüngeren Neuzeit', 'Zeitgeschichte'];
-function hasLevels(def) { return !!(def && def.produces && def.workers && !def.wonder); }
+// Stufen haben Gebäude, die etwas herstellen, und seit 10.11. die Lager (mehr Platz statt mehr Ertrag)
+function isStoreLevel(def) { return !!(def && def.storage && def.line === 'lager'); }
+function hasLevels(def) { return !!(def && ((def.produces && def.workers && !def.wonder) || isStoreLevel(def))); }
+function storageOf(b) { const def = BUILDINGS[b.type]; return Math.round((def.storage || 0) * (isStoreLevel(def) ? 1 + (levelOf(b) - 1) * CONFIG.levels.storagePerLevel : 1)); }
 function levelOf(b) { return hasLevels(BUILDINGS[b.type]) ? Math.max(1, Math.min(CONFIG.levels.max, Math.floor(b.level) || 1)) : 1; }
 function workersOf(b) { const def = BUILDINGS[b.type]; return def.workers ? def.workers + Math.floor((levelOf(b) - 1) / CONFIG.levels.workersEvery) : 0; }
 function levelFactor(b) { return 1 + (levelOf(b) - 1) * CONFIG.levels.outputPerLevel; }

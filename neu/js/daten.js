@@ -18,6 +18,7 @@ const CONFIG = {
     workersEvery: 2,      // alle 2 Stufen ein Arbeiterplatz mehr (bei Stufe 3, 5, 7 …)
     costPerLevel: 0.5,    // Ausbau auf Stufe n kostet die Baukosten × (1 + 0,5 × (n − 1))
     epochGoods: [{ werkzeug: 3 }, { bronze: 4 }, { eisen: 5 }],   // die letzte Stufe eines Zeitalters braucht zusätzlich dessen Ware
+    storagePerLevel: 0.3, // Lager (Vorratsspeicher, Kornspeicher, Vorratshof): je Stufe +30 % Platz (Emin, 10.11.)
     // Bauzeit = Bauzeit des Gebäudes × neue Stufe
   },
   yearSeconds: 7200,      // ein Jahr = 4 Jahreszeiten à 30 Minuten (Emin, 31.10.; bis Version 22: 2 Minuten)

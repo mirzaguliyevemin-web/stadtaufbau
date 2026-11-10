@@ -2484,6 +2484,25 @@ test('Stufen: 3 je Zeitalter, Ausbauen kostet und dauert, bringt Ertrag und alle
   noErrors(g);
 });
 
+test('Lagerstufen: Speicher lassen sich ausbauen, je Stufe +30 % Platz; Wohnhäuser und Lagerfeuer ohne Stufen', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const sp = findFreeSpot('vorratsspeicher', N / 2, N / 2), k = state.buildings.length;
+    state.buildings.push({ type: 'vorratsspeicher', x: sp.x, y: sp.y, rot: 0, build: 0 }); setOccupied(state.buildings[k], k + 1);
+    isConnected = () => true; state.pop = 200; for (const id of Object.keys(RESOURCES)) state.res[id] = 500; recalcStats();
+    const b = state.buildings[k], cap1 = storageCap();
+    const out = [hasLevels(BUILDINGS.vorratsspeicher), hasLevels(BUILDINGS.lagerfeuer), hasLevels(BUILDINGS.langhaus), workersOf(b)];
+    out.push(levelUp(k)); updateConstruction(b.up + 0.1); recalcStats();
+    out.push(levelOf(b), storageOf(b), storageCap() > cap1, workersOf(b));
+    showBuildingWindow(k);
+    return out;
+  })()`);
+  ok(r[0] && !r[1] && !r[2], 'Falsche Gebäude mit Stufen: ' + r);
+  ok(r[3] === 0 && r[8] === 0, 'Lager braucht plötzlich Arbeiter: ' + r);
+  ok(r[4] === null && r[5] === 2 && r[6] === 195 && r[7], 'Stufe 2 bringt nicht +30 % Platz: ' + r);
+  noErrors(g);
+});
+
 test('Wassergebäude: Was aus einem Gebäude halb im Wasser entsteht, steht auch halb im Wasser (sonst passt der Platz nicht mehr)', () => {
   const g = fresh();
   const bad = g.run(`Object.entries(BUILDINGS).filter(([id, d]) => halfInWater(d) && d.upgradeTo && BUILDINGS[d.upgradeTo] && !halfInWater(BUILDINGS[d.upgradeTo]) && !BUILDINGS[d.upgradeTo].stilts).map(([id, d]) => id + ' → ' + d.upgradeTo).join(', ')`);

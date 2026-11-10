@@ -339,7 +339,8 @@ function renderBuildBar() {
   const tabs = BAR_CATEGORIES.filter(c => entries.some(e => categoryOf(e.type) === c.id)).map(c =>
     `<button class="bar-tab${c.id === barCategory ? ' active' : ''}" onclick="setBarCategory('${c.id}')"><span class="emoji">${c.icon}</span><span class="tname">${esc(c.name)}</span>${fresh.has(c.id) && c.id !== barCategory ? '<i class="dot"></i>' : ''}</button>`).join('');
   if (tabs !== lastTabs) { $('bar-tabs').innerHTML = tabs; lastTabs = tabs; }
-  const items = entries.filter(e => categoryOf(e.type) === barCategory).map(({ type, locked }) => {
+  // Baubares zuerst, gesperrte Gebäude (Forschung fehlt noch) ans Ende der Leiste (Emin, 10.11.)
+  const items = entries.filter(e => categoryOf(e.type) === barCategory).sort((a, b) => a.locked - b.locked).map(({ type, locked }) => {
     const def = BUILDINGS[type];
     const isNew = barIsNew(type, locked);
     const affordable = canAfford(def.cost);

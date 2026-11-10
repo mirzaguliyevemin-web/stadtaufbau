@@ -31,9 +31,6 @@ wenn Emin zugestimmt hat.** Neue Einträge oben, mit Datum und kurzer Begründun
   - Spätes Spiel: ab ~60 min Zufriedenheit 100 %, 20.000+ Geld, volle Lager – Großprojekte/Weltwunder je Zeitalter,
     Stadtfeste, höhere Ansprüche der Einwohner in späteren Zeitaltern.
   - Banditen: alle Überfälle werden abgewehrt – Lager mit dem Zeitalter stärker oder angekündigte Großangriffe.
-  - Baustellen: „2 Baustellen“ ist der mit Abstand häufigste Engpass – dritte Baustelle als Forschung im Mittelalter?
-  - Steinzeit: Minute 10–16 bei 27 Einwohnern nur Warten – Auftrag oder kleines Ereignis dazwischen.
-  - Bauleiste: in der Steinzeit gesperrte Gebäude späterer Zeitalter ans Ende stellen oder nur das nächste Zeitalter zeigen.
   - Technik: `game.js` (> 9.000 Zeilen) irgendwann in Daten / Logik / Zeichnen aufteilen.
 
 ## Zurückgestellt
@@ -42,6 +39,11 @@ wenn Emin zugestimmt hat.** Neue Einträge oben, mit Datum und kurzer Begründun
   Bis dahin: Export/Import in den Einstellungen.
 
 ## Erledigt
+
+- **Dritte und vierte Baustelle** – Forschungen „Bautrupps“ (Frühe Bronzezeit) und „Zimmerleute“ (Frühe Eisenzeit) (Emin, 10.11.2026).
+- **Wanderer in der Steinzeit** – rastet einmal nach 10 Minuten am Lagerfeuer, Wegzehrung gegen Wissen und Felle (Emin, 10.11.2026).
+- **Bauleiste** – Gebäude späterer Zeitalter waren schon ausgeblendet; gesperrte stehen jetzt am Ende (Emin, 10.11.2026).
+- **Lagerstufen** – Vorratsspeicher, Kornspeicher und Vorratshof lassen sich ausbauen, je Stufe +30 % Platz (Emin, 10.11.2026).
 
 - **Bot nutzt Geländeboni**, neue Handwerksketten, neue obere Leiste – Version 42 (2026-10-25).
 - **Brücken und Fischerhütte** – von Emin gewünscht, eingebaut in Version 40 (2026-10-25).

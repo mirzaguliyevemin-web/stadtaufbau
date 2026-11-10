@@ -2538,6 +2538,20 @@ test('Wanderer: rastet einmal in der Steinzeit am Feuer, tauscht Wegzehrung gege
   noErrors(g);
 });
 
+test('Bauleiste: gesperrte Gebäude stehen am Ende, spätere Zeitalter fehlen', () => {
+  const g = fresh();
+  const r = g.run(`(() => { const bad = [];
+    for (const c of BAR_CATEGORIES) { setBarCategory(c.id);
+      const html = $('buildbar').innerHTML || '';
+      const order = [...html.matchAll(/bar-item( locked)?/g)].map(m => !!m[1]);
+      if (order.some((l, i) => !l && order.slice(0, i).some(x => x))) bad.push(c.id); }
+    const later = barEntries().filter(e => BUILDINGS[e.type].requires && !stageReached(TECHS[BUILDINGS[e.type].requires].stage)).map(e => e.type);
+    return [bad.join(), later.join()]; })()`);
+  ok(r[0] === '', 'Gesperrt vor baubar in: ' + r[0]);
+  ok(r[1] === '', 'Gebäude späterer Zeitalter in der Leiste: ' + r[1]);
+  noErrors(g);
+});
+
 test('Wassergebäude: Was aus einem Gebäude halb im Wasser entsteht, steht auch halb im Wasser (sonst passt der Platz nicht mehr)', () => {
   const g = fresh();
   const bad = g.run(`Object.entries(BUILDINGS).filter(([id, d]) => halfInWater(d) && d.upgradeTo && BUILDINGS[d.upgradeTo] && !halfInWater(BUILDINGS[d.upgradeTo]) && !BUILDINGS[d.upgradeTo].stilts).map(([id, d]) => id + ' → ' + d.upgradeTo).join(', ')`);

@@ -14,6 +14,7 @@ KAESTEN = {   # name: (u0, u1, v0, v1, boden)
     '2-felsritzer':           (0.13, 0.28, 0.05, 0.365, None),
     '2-felsritzer-winter':    (0.13, 0.27, 0.05, 0.305, None),
     '2-hallenhaus':           (0.13, 0.20, 0.10, 0.375, None),
+    '2-hallenhaus-winter':    (0.10, 0.22, 0.12, 0.380, None),
     '2-koehler':              (0.14, 0.30, 0.05, 0.385, None),
     '2-kupferschmied':        (0.15, 0.28, 0.05, 0.312, None),
     '2-kupferschmied-winter': (0.13, 0.29, 0.00, 0.330, None),

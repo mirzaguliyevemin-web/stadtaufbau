@@ -98,6 +98,9 @@ const CONFIG = {
     },
   },
   dorfplatz: { storage: 100, warmth: 1 },   // beim Aufbruch in die Bronzezeit wird das Lagerfeuer zum Dorfplatz: mehr Lager, größerer Umkreis
+  // Wanderer (Emin, 10.11.): rastet einmal in der Steinzeit am Lagerfeuer, wenn man sonst nur wartet (Analyse 27.10.: Minute 10–16).
+  // Er bittet um Wegzehrung und erzählt dafür von fernen Tälern. Kommt nur beim Spielen, nicht offline.
+  wanderer: { after: 600, minPop: 15, stay: 600, stages: ['alt', 'mittel'], give: { nahrung: 25 }, get: { wissen: 20, felle: 5 } },
   // Händler (Emin, 02.11.): kommt nur, solange man spielt, kein Geld – Waren gegen Waren. Jedes Angebot geht einmal je Besuch.
   trader: {
     firstWait: 60,        // so bald nach dem ersten Handelsplatz kommt der erste Händler

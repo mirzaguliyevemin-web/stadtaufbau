@@ -2517,6 +2517,27 @@ test('Baustellen: Bautrupps (Bronzezeit) und Zimmerleute (Eisenzeit) bringen je 
   noErrors(g);
 });
 
+test('Wanderer: rastet einmal in der Steinzeit am Feuer, tauscht Wegzehrung gegen Wissen, bleibt im Spielstand', () => {
+  const g = fresh();
+  const r = g.run(`(() => { const out = [];
+    state.tutorial = -1; state.pop = 20; state.res.nahrung = 100; state.playTime = 100;
+    updateWanderer(1); out.push(wandererHere());                       // zu früh
+    state.playTime = CONFIG.wanderer.after + 1; updateWanderer(1); out.push(wandererHere());
+    drawScene(0.05); openWanderer(); out.push(!!wandererSpot());
+    saveGame(); loadSlot(currentSlot); out.push(wandererHere());
+    const w0 = state.res.wissen || 0; out.push(wandererDeal(true), state.res.nahrung, (state.res.wissen || 0) - w0, wandererHere());
+    updateWanderer(1e4); state.playTime += 1e4; updateWanderer(1); out.push(wandererHere(), state.wanderer.done);
+    return out; })()`);
+  ok(r[0] === false && r[1] === true && r[2], 'Wanderer kommt nicht oder zu früh: ' + r);
+  ok(r[3] === true, 'Wanderer nach dem Laden weg: ' + r);
+  ok(r[4] === null && r[5] === 75 && r[6] === 20 && r[7] === false, 'Tausch falsch: ' + r);
+  ok(r[8] === false && r[9] === true, 'Wanderer kommt ein zweites Mal: ' + r);
+  // Bronzezeit: kommt nie
+  const b = g.run(`(() => { state.wanderer = { left: 0, done: false }; state.stage = 'kupfer'; updateWanderer(1); return [wandererHere(), state.wanderer.done]; })()`);
+  ok(b[0] === false && b[1] === true, 'Wanderer in der Bronzezeit: ' + b);
+  noErrors(g);
+});
+
 test('Wassergebäude: Was aus einem Gebäude halb im Wasser entsteht, steht auch halb im Wasser (sonst passt der Platz nicht mehr)', () => {
   const g = fresh();
   const bad = g.run(`Object.entries(BUILDINGS).filter(([id, d]) => halfInWater(d) && d.upgradeTo && BUILDINGS[d.upgradeTo] && !halfInWater(BUILDINGS[d.upgradeTo]) && !BUILDINGS[d.upgradeTo].stilts).map(([id, d]) => id + ' → ' + d.upgradeTo).join(', ')`);

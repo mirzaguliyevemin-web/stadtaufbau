@@ -235,6 +235,40 @@ function traderObjects(inView, t) {
   return out;
 }
 
+// Wanderer (CONFIG.wanderer): steht mit Wanderstab vorn am Lagerfeuer, darüber eine Blase zum Antippen
+function wandererSpot() {
+  if (typeof wandererHere !== 'function' || !wandererHere()) return null;
+  const b = state.buildings.find(x => x.type === 'lagerfeuer');
+  const f = b && frontSpot(b, 1);
+  if (!f) return null;
+  const s = BUILDINGS[b.type].size;
+  return { x: f.x, y: f.y, bx: f.x - 0.4, by: f.y - 0.4, b, cx: b.x + s / 2, cy: b.y + s / 2 };
+}
+function wandererObjects(inView, t) {
+  const p = wandererSpot();
+  if (!p || !inView(p.x, p.y)) return [];
+  const face = (p.cx - p.x) - (p.cy - p.y) > 0 ? -1 : 1;   // zum Feuer schauen
+  return [{ d: p.x + p.y - 0.5, kind: 'leben', draw: () => drawCreature(images['mensch-hirte'] ? 'mensch-hirte' : personImg('mensch-mann', 'leer'), p.x, p.y, 32, face, 0, '🧍', null) },
+    { d: p.x + p.y + 100, kind: 'leben', draw: () => {
+      const q = wandererBubble(p), z = Math.max(cam.zoom, 1.4), r = (14 + Math.sin(t * 3) * 1.5) * z;
+      ctx.fillStyle = 'rgba(255,250,235,0.95)'; ctx.strokeStyle = '#6b4a2b'; ctx.lineWidth = 2 * z;
+      ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, 7); ctx.fill(); ctx.stroke();
+      const img = images['mensch-hirte'];
+      if (img) { const h = r * 1.5, w = h * img.width / img.height; ctx.drawImage(img, q.x - w / 2, q.y - h / 2, w, h); }
+      else { ctx.font = `${Math.round(16 * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#000'; ctx.fillText('🚶', q.x, q.y + z); ctx.textBaseline = 'alphabetic'; }
+    } }];
+}
+function wandererBubble(p) {
+  const q = tileToScreen(p.x, p.y), z = cam.zoom;
+  return { x: q.x, y: q.y - 52 * z };
+}
+function wandererAtScreen(sx, sy) {
+  const p = wandererSpot();
+  if (!p) return false;
+  const z = cam.zoom, q = wandererBubble(p), f = tileToScreen(p.x, p.y);
+  return Math.hypot(sx - q.x, sy - q.y) <= 24 * Math.max(z, 1.4) || (Math.abs(sx - f.x) <= 20 * z && sy <= f.y + 8 * z && sy >= f.y - 40 * z);
+}
+
 function traderBubble(p) {
   const q = tileToScreen(p.bx, p.by), z = cam.zoom;
   return { x: q.x, y: q.y - 70 * z };
@@ -1197,6 +1231,7 @@ function lifeObjects(range) {
   out.push(...tripObjects(inView, t));
   out.push(...spotObjects(inView, t));
   out.push(...traderObjects(inView, t));
+  out.push(...wandererObjects(inView, t));
   out.push(...workerObjects(inView, t));
   out.push(...carrierObjects(inView, t));
   out.push(...visitorObjects(inView, t));

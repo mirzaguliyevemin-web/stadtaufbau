@@ -105,6 +105,8 @@ function sanitizeState(data) {
     const t = data.trader, num = v => (Number.isFinite(v) && v >= 0 ? v : 0);
     s.trader = { wait: num(t.wait), left: num(t.left), visit: Math.floor(num(t.visit)), done: Array.isArray(t.done) ? t.done.filter(id => CONFIG.trader.offers.some(o => o.id === id)) : [] };
   }
+  if (data.wanderer && typeof data.wanderer === 'object')   // seit Version 157
+    s.wanderer = { left: Number.isFinite(data.wanderer.left) && data.wanderer.left > 0 ? data.wanderer.left : 0, done: !!data.wanderer.done };
   if (data.wonders && typeof data.wonders === 'object')
     for (const id of Object.keys(WONDERS)) {
       const w = data.wonders[id];

@@ -1309,6 +1309,27 @@ function tradeNow(id) {
   renderAll();
 }
 
+// Wanderer (CONFIG.wanderer): Fenster und Karte bei den Aufträgen
+function openWanderer() { openPage('🚶 Wanderer', wandererHtml(), 'wanderer'); }
+function wandererHtml() {
+  if (!wandererHere()) return '<p class="empty-note">Der Wanderer ist weitergezogen.</p>';
+  const c = CONFIG.wanderer, problem = canAfford(c.give) ? '' : missingText(c.give);
+  return `<div class="wish-card"><span class="q-medal">${iconHtml('mensch-hirte', '🚶', 'big')}</span><div class="q-main"><b>Ein Wanderer rastet am Feuer</b>
+    <span>Er kommt von weit her und ist hungrig. Gebt ihr ihm Wegzehrung, erzählt er von fernen Tälern, Tieren und Pflanzen.</span>
+    <span class="q-reward">Gib ${costHtml(c.give)} – dafür ${rewardChips(c.get)}</span><span>Er bleibt noch ${formatTime(state.wanderer.left)}.</span></div></div>
+    <div class="why-row"><button class="btn primary" ${problem ? 'disabled' : ''} onclick="wandererNow(true)">🍖 Wegzehrung geben</button>
+    <button class="btn" onclick="wandererNow(false)">Weiterziehen lassen</button>${problem ? `<span class="why">${esc(problem)}</span>` : ''}</div>`;
+}
+function wandererNow(take) {
+  const err = wandererDeal(take);
+  if (err) toast(err); else if (take) playSound('muenze');
+  renderAll();
+}
+function wandererCardHtml() {
+  if (!wandererHere()) return '';
+  return `<div class="wish-card"><span class="q-medal">${iconHtml('mensch-hirte', '🚶', 'big')}</span><div class="q-main"><b>Ein Wanderer rastet am Feuer</b><span>Noch ${formatTime(state.wanderer.left)}.</span></div><button class="btn primary" onclick="openWanderer()">Ansehen</button></div>`;
+}
+
 function traderCardHtml() {
   if (!traderHere()) return '';
   return `<div class="wish-card"><span class="q-medal"><span class="ic emoji big">🐂</span></span><div class="q-main"><b>Der Händler ist da</b><span>Noch ${formatTime(state.trader.left)}.</span></div><button class="btn primary" onclick="openTrader()">🤝 Tauschen</button></div>`;
@@ -1320,8 +1341,8 @@ function questsHtml() {
   const head = `<div class="quest-sum"><span>🏆 Erledigt <b>${doneCount}</b> von ${total}</span>
     <span class="q-bar thin"><i style="width:${Math.round(100 * doneCount / total)}%"></i></span></div>`;
   const list = activeQuests();
-  if (!list.length) return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${wishHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p></div>`;
-  return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${wishHtml()}` + list.map(q => {
+  if (!list.length) return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${wandererCardHtml()}${wishHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p></div>`;
+  return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${wandererCardHtml()}${wishHtml()}` + list.map(q => {
     const p = questProgress(q);
     const done = p.have >= p.need;
     const pct = Math.round(100 * p.have / p.need);

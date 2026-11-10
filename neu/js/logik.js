@@ -1132,6 +1132,36 @@ function tradePosts() {
   return state.buildings.map((b, i) => i).filter(i => { const b = state.buildings[i]; return BUILDINGS[b.type].line === 'handel' && !b.build && isConnected(i); });
 }
 
+// Wanderer: einmal je Spielstand in der Steinzeit (CONFIG.wanderer)
+function wandererHere() { return state.wanderer.left > 0 && !state.wanderer.done; }
+function updateWanderer(dt) {
+  const w = state.wanderer, c = CONFIG.wanderer;
+  if (w.done || offlineRunning) return;
+  if (w.left > 0) {
+    w.left = Math.max(0, w.left - dt);
+    if (w.left === 0) { w.done = true; emit('wandererLeft'); }
+    return;
+  }
+  if (!c.stages.includes(state.stage)) { if (stageIndex() > stageIndex(c.stages[c.stages.length - 1])) w.done = true; return; }   // Zeitalter vorbei: kommt nicht mehr
+  if (state.tutorial >= 0 || state.playTime < c.after || state.pop < c.minPop) return;
+  w.left = c.stay;
+  emit('wandererCame');
+}
+// Wegzehrung geben (take = true) oder ihn weiterziehen lassen. Gibt einen Fehlertext zurück oder null.
+function wandererDeal(take) {
+  if (!wandererHere()) return 'Der Wanderer ist schon weitergezogen';
+  const c = CONFIG.wanderer;
+  if (take) {
+    if (!canAfford(c.give)) return missingText(c.give);
+    payCost(c.give);
+    addReward(c.get);
+  }
+  state.wanderer.left = 0;
+  state.wanderer.done = true;
+  emit('wandererLeft', take);
+  return null;
+}
+
 function traderHere() { return state.trader.left > 0 && tradePosts().length > 0; }
 
 function updateTrader(dt) {
@@ -1368,6 +1398,7 @@ function update(dt) {
   updateFinds(dt);
   updateWonders(dt);
   updateTrader(dt);
+  updateWanderer(dt);
   updateFest();
   if ((state.res.wein || 0) > 0) state.res.wein = Math.max(0, state.res.wein - state.pop * CONFIG.wine.perPerson * dt / 60);   // Wein ist nur ein Bonus
   updateDisaster(dt);

@@ -5,7 +5,8 @@
 function goldEuro(n) { return (n * CONFIG.shop.euroPerGold).toFixed(2).replace('.', ','); }
 function goldText(n) { return `🪙 ${n}`; }
 
-function constructionLimit() { return CONFIG.maxConstructions + (state.shop.slots || 0); }
+// Baustellen: 2 zu Beginn, je eine mehr durch die Forschungen Bautrupps (Bronzezeit) und Zimmerleute (Eisenzeit), dazu der Shop
+function constructionLimit() { return CONFIG.maxConstructions + techSum('constructions') + (state.shop.slots || 0); }
 
 function addGold(n) { state.shop.gold = Math.max(0, state.shop.gold + n); emit('goldChanged'); }
 
@@ -151,7 +152,7 @@ function shopHtml() {
     return shopRow('<span class="ic emoji big">📦</span>', c.goods[k].name, formatAmounts(p.goods), p.price, `doBuyGoods('${k}')`);
   }).join('');
   const slot = state.shop.slots >= 1 ? '<p class="empty-note">✔ Du hast eine zusätzliche Baustelle.</p>'
-    : shopRow('<span class="ic emoji big">🏗️</span>', 'Eine Baustelle mehr', `Dauerhaft ${CONFIG.maxConstructions + 1} statt ${CONFIG.maxConstructions} gleichzeitig`, c.slotPrice, 'doBuySlot()');
+    : shopRow('<span class="ic emoji big">🏗️</span>', 'Eine Baustelle mehr', `Dauerhaft ${constructionLimit() + 1} statt ${constructionLimit()} gleichzeitig`, c.slotPrice, 'doBuySlot()');
   return `<div class="shop">${shopInner()}</div>`;
 }
 function shopInner() {
@@ -163,7 +164,7 @@ function shopInner() {
     return shopRow('<span class="ic emoji big">📦</span>', c.goods[k].name, formatAmounts(p.goods), p.price, `doBuyGoods('${k}')`);
   }).join('');
   const slot = state.shop.slots >= 1 ? '<p class="empty-note">✔ Du hast eine zusätzliche Baustelle.</p>'
-    : shopRow('<span class="ic emoji big">🏗️</span>', 'Eine Baustelle mehr', `Dauerhaft ${CONFIG.maxConstructions + 1} statt ${CONFIG.maxConstructions} gleichzeitig`, c.slotPrice, 'doBuySlot()');
+    : shopRow('<span class="ic emoji big">🏗️</span>', 'Eine Baustelle mehr', `Dauerhaft ${constructionLimit() + 1} statt ${constructionLimit()} gleichzeitig`, c.slotPrice, 'doBuySlot()');
   return `<div class="shop-head"><span class="shop-gold">${goldText(state.shop.gold)}</span><small>${c.testMode ? 'Testmodus: Es fließt kein echtes Geld.' : ''} Gold gibt es auch für Aufträge, Wünsche und die große Truhe.</small></div>
     <h3 class="find-page">Gold</h3><div class="shop-packs">${packs}</div>
     <h3 class="find-page">Beschleunigungssteine</h3><div class="quests">${stoneShopHtml()}</div>

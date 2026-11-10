@@ -983,6 +983,7 @@ function techEffectText(id) {
   if (id === 'eisenfund') out.push('Macht den Aufbruch in die Eisenzeit möglich');
   if (id === 'himmelsscheibe') out.push(`Sonnwendfest mitten im Sommer: Laune +${CONFIG.fest.happy}`);
   if (e.traderOffers) out.push('Der Händler bringt Bernstein und ein Angebot mehr');
+  if (e.constructions) out.push(`🏗️ ${e.constructions === 1 ? 'Eine Baustelle' : e.constructions + ' Baustellen'} mehr gleichzeitig`);
   if (e.buildFaster) out.push(`Bauzeiten −${Math.round(e.buildFaster * 100)} %`);
   if (e.traderFaster) out.push(`Händler kommt alle ${Math.round((CONFIG.trader.every - e.traderFaster) / 60)} statt ${Math.round(CONFIG.trader.every / 60)} Minuten`);
   if (id === 'tauschhandel') out.push('Der Händler kommt zum Handelsplatz');

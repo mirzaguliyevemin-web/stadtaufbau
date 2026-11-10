@@ -2503,6 +2503,20 @@ test('Lagerstufen: Speicher lassen sich ausbauen, je Stufe +30 % Platz; Wohnhäu
   noErrors(g);
 });
 
+test('Baustellen: Bautrupps (Bronzezeit) und Zimmerleute (Eisenzeit) bringen je eine Baustelle mehr', () => {
+  const g = fresh();
+  const r = g.run(`(() => { const out = [constructionLimit()];
+    state.techs.bautrupps = true; out.push(constructionLimit());
+    state.techs.zimmerleute = true; out.push(constructionLimit());
+    state.shop.slots = 1; out.push(constructionLimit());
+    out.push(String(techEffectText('bautrupps')));
+    return out; })()`);
+  ok(r[0] === 2 && r[1] === 3 && r[2] === 4 && r[3] === 5, 'Baustellen falsch: ' + r);
+  ok(/Baustelle mehr/.test(r[4]), 'Forschung nennt die Baustelle nicht: ' + r[4]);
+  ok(g.run(`TECHS.bautrupps.stage`) === 'frueh' && g.run(`TECHS.zimmerleute.stage`) === 'eisen1', 'Zeitalter der Baustellen-Forschungen');
+  noErrors(g);
+});
+
 test('Wassergebäude: Was aus einem Gebäude halb im Wasser entsteht, steht auch halb im Wasser (sonst passt der Platz nicht mehr)', () => {
   const g = fresh();
   const bad = g.run(`Object.entries(BUILDINGS).filter(([id, d]) => halfInWater(d) && d.upgradeTo && BUILDINGS[d.upgradeTo] && !halfInWater(BUILDINGS[d.upgradeTo]) && !BUILDINGS[d.upgradeTo].stilts).map(([id, d]) => id + ' → ' + d.upgradeTo).join(', ')`);

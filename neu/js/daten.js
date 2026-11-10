@@ -739,6 +739,7 @@ const TECHS = {
   bronzeguss:     { name: 'Bronzeguss',     icon: '🥉', stage: 'frueh', col: 16, row: 3, requires: ['zinnseifen'], population: 165, cost: { wissen: 190, kupfer: 30, zinn: 10 }, time: 900, effect: {} },
   bronzewerkzeug: { name: 'Bronzewerkzeug', icon: '⚒️', stage: 'frueh', col: 17, row: 3, requires: ['bronzeguss'], population: 180, cost: { wissen: 200, bronze: 15 }, time: 960, effect: {} },
   tauschhandel:   { name: 'Tauschhandel',   icon: '🤝', stage: 'frueh', col: 17, row: 4, requires: ['bronzeguss'], population: 155, cost: { wissen: 160, toepferwaren: 20 }, time: 780, effect: {} },
+  bautrupps:      { name: 'Bautrupps',      icon: '🏗️', stage: 'frueh', col: 18, row: 3, requires: ['bronzewerkzeug'], population: 180, cost: { wissen: 200, holz: 150, bronze: 10 }, time: 960, effect: { constructions: 1 } },   // dritte Baustelle (Emin, 10.11.)
   rad:            { name: 'Rad und Wagen',  icon: '🛞', stage: 'frueh', col: 18, row: 4, requires: ['tauschhandel'], population: 170, cost: { wissen: 190, holz: 150 }, time: 900, effect: { buildFaster: 0.15, traderFaster: 300 } },
   spaete_bronzezeit: {
     name: 'Späte Bronzezeit', icon: '🏅', stage: 'frueh', col: 19, row: 2, transition: true,
@@ -768,6 +769,7 @@ const TECHS = {
   obstbau:        { name: 'Obstbau',        icon: '🍎', stage: 'eisen1', col: 25, row: 0, requires: ['aufbruch_eisenzeit'], population: 285, cost: { wissen: 290, nahrung: 200 }, time: 900, effect: {} },
   eisenpflug:     { name: 'Eisenpflug',     icon: '🌾', stage: 'eisen1', col: 27, row: 0, requires: ['rennofen', 'obstbau'], population: 305, cost: { wissen: 330, eisen: 20 }, time: 1080, effect: {} },
   gehoefte:       { name: 'Gehöfte',        icon: '🏠', stage: 'eisen1', col: 25, row: 2, requires: ['aufbruch_eisenzeit'], population: 285, cost: { wissen: 300, holz: 200, stein: 100 }, time: 960, effect: {} },
+  zimmerleute:    { name: 'Zimmerleute',    icon: '🪚', stage: 'eisen1', col: 26, row: 2, requires: ['gehoefte'], population: 300, cost: { wissen: 320, holz: 250, eisen: 15 }, time: 1020, effect: { constructions: 1 } },   // vierte Baustelle (Emin, 10.11.)
   mittlere_eisenzeit: {
     name: 'Mittlere Eisenzeit', icon: '🧂', stage: 'eisen1', col: 28, row: 2, transition: true, requires: ['eisenaxt', 'eisenkeile', 'eisenschmiede', 'eisenpflug', 'gehoefte'],
     population: 320, cost: { wissen: 350, eisen: 30, kleidung: 40 }, time: 1800, effect: { stage: 'eisen2', gift: { eisen: 10, salz: 80 } },   // Salz reicht, bis die erste Salzsiederei steht

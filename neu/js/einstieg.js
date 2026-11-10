@@ -290,7 +290,7 @@ function buildSayFor(type, step) {
     if (missing === 'holz') return { ruf: 'Uns fehlt Holz.', text: 'Tipp einen Baum an und fäll ihn.' };
     return { ruf: 'Uns fehlt noch etwas.', text: 'Warte kurz, bis es reicht.' };
   }
-  if (constructionCount() >= constructionLimit()) return { ruf: 'Erst mal fertig bauen.', text: `Höchstens ${CONFIG.maxConstructions} Baustellen gleichzeitig.` };
+  if (constructionCount() >= constructionLimit()) return { ruf: 'Erst mal fertig bauen.', text: `Höchstens ${constructionLimit()} Baustellen gleichzeitig.` };
   return null;
 }
 

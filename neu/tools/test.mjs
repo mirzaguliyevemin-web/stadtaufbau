@@ -1237,6 +1237,31 @@ test('Arbeitende Menschen: gehen zum Baum, arbeiten und kommen zurück', () => {
   noErrors(g);
 });
 
+test('Träger: bringen Waren über die Pfade ins Lager und gehen leer zurück', () => {
+  const g = fresh();
+  const all = '{x0:0,y0:0,x1:N-1,y1:N-1}';
+  g.run(`state.res.holz = 999; state.res.stein = 999; state.pop = 12;
+    for (const t of ['holzsammler', 'steinsammler']) { const sp = findFreeSpot(t, 70 + O, 70 + O); placeBuilding(t, sp.x, sp.y); const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k); }
+    recalcStats();`);
+  const r = g.run(`(() => { const ph = {}, wares = {}; let most = 0, off = 0;
+    for (let i = 0; i < 2400; i++) { updateLife(0.05, ${all}); most = Math.max(most, life.carriers.length);
+      for (const c of life.carriers) { ph[c.phase] = true; wares[c.ware] = true;
+        const x = Math.floor(c.x), y = Math.floor(c.y), k = buildingAt(x, y);
+        if (k < 0 || (!isPathAt(x, y) && state.buildings[k] !== c.b && state.buildings[k] !== c.store)) off++; }
+      if (i % 60 === 0) drawScene(0.05); }
+    return [Object.keys(ph).join(), Object.keys(wares).join(), most, off, Object.keys(state.buildings[0]).includes('carry')]; })()`);
+  ok(r[0].includes('go') && r[0].includes('drop') && r[0].includes('back'), 'Träger laufen nicht hin und zurück: ' + r[0]);
+  ok(r[1].includes('holz') && r[1].includes('stein'), 'Waren der Träger: ' + r[1]);
+  ok(r[2] <= 12, 'zu viele Träger: ' + r[2]);
+  ok(r[3] === 0, r[3] + '-mal neben dem Pfad');
+  // pausiert: niemand trägt mehr los; Pfad weg: Träger verschwinden
+  g.run(`state.buildings.forEach((b, i) => { if (b.type === 'holzsammler' || b.type === 'steinsammler') togglePause(i); });
+    for (let i = 0; i < 2400; i++) updateLife(0.05, ${all});`);
+  ok(g.run(`life.carriers.length`) === 0, 'pausierte Gebäude schicken weiter Träger');
+  ok(g.run(`JSON.stringify(state).includes('carr')`) === false, 'Träger landen im Spielstand');
+  noErrors(g);
+});
+
 test('Arbeitende Menschen Teil 2: Fischer (auch im Einbaum), Höhlenmaler, Werkstätten vor dem Haus', () => {
   const g = fresh();
   g.run(`for (const k in state.res) state.res[k] = 999; state.pop = 30; state.stage = 'jung'; for (const id in TECHS) if (!['kupfer', 'frueh', 'spaet'].includes(TECHS[id].stage) && !TECHS[id].stage.startsWith('eisen')) state.techs[id] = true;

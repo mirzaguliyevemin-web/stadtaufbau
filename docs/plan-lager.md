@@ -1,6 +1,6 @@
 # Plan: Lagerfenster, kurze Leiste und Träger
 
-Stand 2026-11-04. **Schritt 1 gebaut in Version 88 (`neu/js/lager.js`), die Träger folgen.** Wunsch von Emin: Die Leiste oben wird immer voller (Jungsteinzeit 9 Waren, späte Eisenzeit 22, dazu Einwohner, Laune und Wetter). Oben bleiben nur zwei wichtige Waren, alles andere steht im Lager, und die Arbeiter bringen die Waren dorthin.
+Stand 2026-11-04. **Schritt 1 gebaut in Version 88 (`neu/js/lager.js`), die Träger am 10.11. (`updateCarriers` in `neu/js/leben.js`).** Wunsch von Emin: Die Leiste oben wird immer voller (Jungsteinzeit 9 Waren, späte Eisenzeit 22, dazu Einwohner, Laune und Wetter). Oben bleiben nur zwei wichtige Waren, alles andere steht im Lager, und die Arbeiter bringen die Waren dorthin.
 
 ## 1 · Entscheidungen von Emin (04.11.)
 
@@ -48,6 +48,9 @@ Kurze Meldung über das vorhandene `toast`, Beispiel: „📉 Holz −3 je Minut
 ❓ Beim Testen beobachten: Zwischenwaren wie Erz oder Holzkohle werden oft bis auf wenig verbraucht. Melden sie sich zu oft, bekommen sie eine höhere Schwelle oder werden nur noch als „bald leer“ gemeldet. Alle Zahlen sind Startwerte.
 
 ## 5 · Träger (Schritt 2)
+
+**Gebaut am 10.11.:** etwa alle 25–50 Sekunden je Gebäude ein Träger, nur über Pfade und Brücken, höchstens 12, nur im Bild. Holz, Nahrung, Stein und Ton mit eigenem Tragebild, sonst trägt die Figur das Warenbild. Kein Träger, wenn das Gebäude direkt am Lager steht.
+
 
 Nur Darstellung in `neu/js/leben.js`, nichts davon landet im Spielstand.
 

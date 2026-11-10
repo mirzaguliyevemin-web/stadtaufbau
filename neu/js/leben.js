@@ -783,6 +783,129 @@ function drawBoat(w, t) {
 }
 
 // ---------------------------------------------------------------------
+// Träger: Von Gebäuden, die etwas herstellen, bringt ab und zu jemand die Ware über die Pfade ins nächste Lager
+// (Lagerfeuer, Vorratsspeicher, Kornspeicher, Vorratshof) und geht mit leeren Händen zurück. Nur Darstellung:
+// Die Ware ist längst verbucht (docs/plan-lager.md, Abschnitt 5). Höchstens CARRY.max gleichzeitig, nur im Bild.
+// ---------------------------------------------------------------------
+
+const CARRY = { max: 12, every: [25, 50], walk: 0.8, drop: 1.2 };
+// Fertige Tragebilder: Holz auf der Schulter, Beerenkorb, Steine, Tonkorb – sonst trägt die Figur das Warenbild
+const CARRY_LOOK = { holz: 'mensch-mann', nahrung: 'mensch-frau', stein: 'mensch-mann-stein', ton: 'mensch-tongrube-korb' };
+life.carriers = [];
+life.carryTimer = 0;
+life.carryClock = 0;
+let carryDue = new WeakMap();   // je Gebäude: wann der nächste Träger losgeht (nicht im Spielstand)
+let carryPrev = null;
+
+// Was ein Gebäude gerade herstellt und weggetragen wird (kein Wissen – das hat seinen eigenen Speicher)
+function carryWare(i) {
+  const b = state.buildings[i], def = BUILDINGS[b.type];
+  if (!def.produces || def.storage || def.isPath || def.wonder || b.build || b.paused || !isConnected(i)) return null;
+  if (def.workers && !(stats.staff && stats.staff[i] > 0)) return null;
+  const out = outputPerMinute(i);
+  return Object.keys(out).find(id => out[id] > 0 && RESOURCES[id] && !RESOURCES[id].knowledge) || null;
+}
+
+// Kürzester Weg nur über Pfade und Brücken: vom Gebäude bis an ein Lager. Liegt das Gebäude direkt am Lager,
+// braucht es keinen Träger (null). Ergebnis: Wegpunkte vom Rand des Gebäudes bis an den Rand des Lagers.
+function carryRoute(i) {
+  const b = state.buildings[i], s = BUILDINGS[b.type].size;
+  const isStore = k => k >= 0 && k !== i && BUILDINGS[state.buildings[k].type].storage && !state.buildings[k].build;
+  const ring = perimeter(b.x, b.y, s);
+  if (ring.some(([x, y]) => isStore(buildingAt(x, y)))) return null;
+  carryPrev = carryPrev || new Int32Array(N * N);
+  carryPrev.fill(-2);
+  const queue = [];
+  for (const [x, y] of ring) if (isPathAt(x, y)) { carryPrev[y * N + x] = -1; queue.push(y * N + x); }
+  for (let q = 0; q < queue.length; q++) {
+    const k = queue[q], x = k % N, y = Math.floor(k / N);
+    const near = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]].filter(([nx, ny]) => inMap(nx, ny));
+    const store = near.find(([nx, ny]) => isStore(buildingAt(nx, ny)));
+    if (store) {
+      const tiles = [];
+      for (let c = k; c >= 0; c = carryPrev[c]) tiles.push([c % N, Math.floor(c / N)]);
+      tiles.reverse();
+      // Anfang und Ende: halb in das Gebäude bzw. Lager hinein, damit die Figur dort auftaucht und verschwindet
+      const [fx, fy] = tiles[0], home = [[fx + 1, fy], [fx - 1, fy], [fx, fy + 1], [fx, fy - 1]].find(([nx, ny]) => inMap(nx, ny) && buildingAt(nx, ny) === i) || [fx, fy];
+      const pts = [[(fx + home[0]) / 2 + 0.5, (fy + home[1]) / 2 + 0.5], ...tiles.map(([tx, ty]) => [tx + 0.5, ty + 0.5]), [(x + store[0]) / 2 + 0.5, (y + store[1]) / 2 + 0.5]];
+      return { pts, tiles, store: state.buildings[buildingAt(store[0], store[1])] };
+    }
+    for (const [nx, ny] of near) {
+      const nk = ny * N + nx;
+      if (carryPrev[nk] !== -2 || !isPathAt(nx, ny)) continue;
+      carryPrev[nk] = k;
+      queue.push(nk);
+    }
+  }
+  return null;
+}
+
+function updateCarriers(dt, range) {
+  life.carryClock += dt;
+  life.carryTimer -= dt;
+  if (life.carryTimer <= 0) {   // einmal pro Sekunde: Wege prüfen, neue Träger losschicken
+    life.carryTimer = 1;
+    // abgerissen, verschoben oder Pfad weg: Träger verschwindet
+    life.carriers = life.carriers.filter(c => state.buildings.includes(c.b) && state.buildings.includes(c.store) && c.b.x === c.bx && c.b.y === c.by && c.tiles.every(([x, y]) => isPathAt(x, y)));
+    const seen = (x, y) => !range || (x >= range.x0 - 1 && x <= range.x1 + 1 && y >= range.y0 - 1 && y <= range.y1 + 1);
+    const order = state.buildings.map((b, i) => i).sort(() => lifeRandom() - 0.5);
+    for (const i of order) {
+      if (life.carriers.length >= CARRY.max) break;
+      const b = state.buildings[i], s = BUILDINGS[b.type].size;
+      if (!seen(b.x + s / 2, b.y + s / 2)) continue;
+      const [lo, hi] = CARRY.every;
+      if (!carryDue.has(b)) { carryDue.set(b, life.carryClock + lifeRandom() * hi); continue; }
+      if (carryDue.get(b) > life.carryClock || life.carriers.some(c => c.b === b)) continue;
+      carryDue.set(b, life.carryClock + lo + lifeRandom() * (hi - lo));
+      const ware = carryWare(i);
+      if (!ware) continue;
+      const r = carryRoute(i);
+      if (!r) continue;
+      const img = CARRY_LOOK[ware] ? (CARRY_LOOK[ware] === 'mensch-frau' ? 'mensch-frau' : 'mensch-mann') : lifeRandom() < 0.5 ? 'mensch-mann' : 'mensch-frau';
+      life.carriers.push({ b, bx: b.x, by: b.y, store: r.store, ware, img, pts: r.pts, tiles: r.tiles, n: 0, x: r.pts[0][0], y: r.pts[0][1],
+        phase: 'go', t: 0, face: 1, ph: lifeRandom() * 9, alpha: 0 });
+      break;   // höchstens einer je Sekunde, damit sie nicht alle gleichzeitig loslaufen
+    }
+  }
+  for (const c of life.carriers) {
+    if (c.phase === 'drop') { c.t -= dt; if (c.t <= 0) { c.phase = 'back'; c.pts.reverse(); c.n = 0; } continue; }
+    let left = CARRY.walk * dt;
+    while (left > 0 && c.n < c.pts.length - 1) {
+      const [gx, gy] = c.pts[c.n + 1], dx = gx - c.x, dy = gy - c.y, d = Math.hypot(dx, dy);
+      if (Math.abs(dx - dy) > 0.01) c.face = dx - dy > 0 ? -1 : 1;
+      if (d <= left) { c.x = gx; c.y = gy; c.n++; left -= d; }
+      else { c.x += dx / d * left; c.y += dy / d * left; left = 0; }
+    }
+    if (c.n >= c.pts.length - 1) {
+      if (c.phase === 'go') { c.phase = 'drop'; c.t = CARRY.drop; }
+      else c.gone = true;
+    }
+    // am Haus und am Lager ein- und ausblenden (dort stehen sie halb im Gebäude)
+    const [ax, ay] = c.pts[0], [ex, ey] = c.pts[c.pts.length - 1];
+    c.alpha = Math.min(1, Math.hypot(c.x - ax, c.y - ay) / 0.5, Math.hypot(c.x - ex, c.y - ey) / 0.5);
+  }
+  life.carriers = life.carriers.filter(c => !c.gone);
+}
+
+function carrierObjects(inView, t) {
+  return life.carriers.filter(c => c.phase !== 'drop' && inView(c.x, c.y)).map(c => ({ d: c.x + c.y - 0.5, kind: 'leben', draw: () => drawCarrier(c, t) }));
+}
+
+function drawCarrier(c, t) {
+  const z = cam.zoom, step = t * 10 + c.ph, bob = Math.abs(Math.sin(step)) * 1.2 * z, loaded = c.phase === 'go';
+  ctx.globalAlpha = c.alpha;
+  const own = loaded && images[CARRY_LOOK[c.ware]] ? CARRY_LOOK[c.ware] : null;
+  drawCreature(own || personImg(c.img, 'leer'), c.x, c.y, 32, c.face, bob, '🧍', step);
+  const ware = RESOURCES[c.ware], img = ware && images[ware.bild];
+  if (loaded && !own) {   // sonst trägt die Figur das Warenbild vor sich her
+    const p = tileToScreen(c.x, c.y), sz = 14 * z;
+    if (img) ctx.drawImage(img, p.x - sz / 2 - 3 * z * c.face, p.y - 23 * z - bob - sz / 2, sz, sz);
+    else if (ware) { ctx.font = `${Math.round(12 * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ware.icon, p.x - 3 * z * c.face, p.y - 23 * z - bob); }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ---------------------------------------------------------------------
 // Treffpunkte: Am Feuer sitzen die Leute zusammen (abends tanzen sie), am Ahnenplatz und Steinkreis beten sie
 // ---------------------------------------------------------------------
 
@@ -1075,6 +1198,7 @@ function lifeObjects(range) {
   out.push(...spotObjects(inView, t));
   out.push(...traderObjects(inView, t));
   out.push(...workerObjects(inView, t));
+  out.push(...carrierObjects(inView, t));
   out.push(...visitorObjects(inView, t));
   for (const w of life.walkers) {
     if (!inView(w.x, w.y)) continue;
@@ -1195,6 +1319,7 @@ function updateLife(dt, range) {
   if (!state || !occ) return;
   updateWalkers(dt);
   updateWorkers(dt);
+  updateCarriers(dt, range);
   updateVisitors(dt);
   updateAnimals(dt);
   updateSky(dt, range);
@@ -1202,7 +1327,7 @@ function updateLife(dt, range) {
 
 // Neues Spiel oder anderer Spielstand: alles Lebendige neu verteilen
 function resetLife() {
-  life.walkers = []; life.workers = []; life.animals = []; life.birds = []; life.jumps = []; life.butterflies = []; life.felled = []; life.visitors = [];
+  life.walkers = []; life.workers = []; life.animals = []; life.birds = []; life.jumps = []; life.butterflies = []; life.felled = []; life.visitors = []; life.carriers = []; carryDue = new WeakMap();
 }
 
 // Holzsammler hat genug Holz für einen Baum beisammen: der Baum kippt sichtbar um

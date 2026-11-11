@@ -937,6 +937,14 @@ test('Land kaufen: nur neben eigenem Land, Preis steigt', () => {
   const price1 = g.run('JSON.stringify(plotPrice())');
   ok(g.run(`buyPlot(${p})`) && g.run('isOwned(42 + O, 52 + O)'), 'Kauf ging nicht');
   ok(g.run('JSON.stringify(plotPrice())') !== price1, 'Preis steigt nicht');
+  // Nachklick des Browsers nach dem Tipp auf die Wolken: wird verschluckt, damit das Kauf-Fenster offen bleibt
+  // und nicht ohne Nachfrage kauft (Emin, 11.11.). Echte Klicks danach gehen wieder.
+  ok(!g.run(`lateClickBlocked({})`), 'Klick ohne vorherigen Tipp verschluckt');
+  g.run(`tapGuardUntil = Date.now() + 450`);
+  ok(g.run(`lateClickBlocked({})`), 'Nachklick nach dem Tipp wird nicht verschluckt');
+  ok(!g.run(`lateClickBlocked(canvas)`), 'Klick auf die Karte selbst verschluckt');
+  g.run(`tapGuardUntil = Date.now() - 1`);
+  ok(!g.run(`lateClickBlocked({})`), 'Späterer Klick bleibt verschluckt');
 });
 
 // Einstieg durchspielen wie ein Spieler: Vorschlag des Ältesten annehmen, Weg bauen, antippen …

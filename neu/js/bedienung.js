@@ -335,12 +335,19 @@ function onPointerMove(e) {
   }
 }
 
+// Nach einem Tipp auf die Karte schickt der Browser noch einen „Klick“ an dieselbe Stelle hinterher.
+// Öffnet der Tipp ein Fenster (z. B. Land kaufen), traf dieser Klick sonst den Hintergrund (Fenster gleich
+// wieder zu) oder den Knopf „Kaufen“ (gekauft ohne Nachfrage). Emin, 11.11.: kurz danach Klicks verschlucken.
+let tapGuardUntil = 0;
+function lateClickBlocked(target) { return Date.now() < tapGuardUntil && target !== canvas; }
+document.addEventListener('click', e => { if (lateClickBlocked(e.target)) { e.preventDefault(); e.stopPropagation(); } }, true);
+
 function onPointerUp(e) {
   if (!pointers.has(e.pointerId)) return;
   pointers.delete(e.pointerId);
   clearTimeout(pressTimer);
   if (!gesture) return;
-  if (gesture.mode === 'press' && e.type === 'pointerup') handleTap(gesture.start.x, gesture.start.y);
+  if (gesture.mode === 'press' && e.type === 'pointerup') { tapGuardUntil = Date.now() + 450; handleTap(gesture.start.x, gesture.start.y); }
   if (gesture.mode === 'ghost') renderActionBar();
   if (gesture.mode === 'pathwait' && e.type === 'pointerup') {   // nur getippt: Weg löschen bzw. ein Feld Weg setzen
     const t = screenToTile(gesture.start.x, gesture.start.y);

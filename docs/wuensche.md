@@ -24,6 +24,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 - Zweite Karte und zweite Stadt (Emin, 03.11.): nur ein Plan, wichtigere Sachen gehen vor. Plan: `docs/plan-zweite-stadt.md`, → Frage: 6 Fragen an Emin, wenn es so weit ist.
 
 ## Erledigt
+- 2026-11-11, Epochia (gesammelt, kommt mit Version 161) – Fehler von Emin: Land kaufen – Fenster schloss sich manchmal sofort oder kaufte ohne Nachfrage. Der Browser schickte nach dem Tipp auf die Wolken noch einen Klick an dieselbe Stelle hinterher, der den Hintergrund bzw. „Kaufen“ traf; dieser Nachklick wird jetzt verschluckt (auch bei allen anderen Fenstern, die ein Tipp auf die Karte öffnet).
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
 - 2026-11-11, Epochia Version 160 – Shop: Reiter (Schneller, Waren, Deko, Gold), große Gold-Karten, Zeitalter-Paket je Zeitalter, Deko zum Kaufen und Aufstellen (14 Stücke, Bilder folgen), Fundstück-Bild Lederrucksack.

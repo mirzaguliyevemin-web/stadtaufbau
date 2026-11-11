@@ -23,6 +23,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 - Zweite Karte und zweite Stadt (Emin, 03.11.): nur ein Plan, wichtigere Sachen gehen vor. Plan: `docs/plan-zweite-stadt.md`, → Frage: 6 Fragen an Emin, wenn es so weit ist.
 
+- Brücken von Ufer zu Ufer (Emin, 11.11.): an beiden Ufern einen Punkt setzen, dazwischen entsteht die Brücke, mit Kosten und Bauzeit. Plan: `docs/plan-brueckenbau.md`, → Frage: 4 Fragen an Emin im Plan.
+
 ## Erledigt
 - 2026-11-11, Epochia (gesammelt) – Wunsch Emin: Wege und Brücken auch senkrecht und waagerecht auf dem Bildschirm statt Zickzack. Wegfelder, die sich nur an einer Ecke berühren, sind verbunden (Wegenetz, Figuren, Träger); schräg gezogen entsteht eine gerade schräge Reihe; schräge Brücken mit eigenem Bohlenbelag (selbst gezeichnet, ein Canva-Bild kann später folgen).
 - 2026-11-11, Epochia (gesammelt) – Fehler von Emin: Restzeit über Baustellen kaum lesbar (weiße Zahl auf Schnee, dazu von Schneefall und Nacht überdeckt). Zeit steht jetzt auf einem dunklen Schild, Balken und Zeit werden nach Wetter und Nacht gezeichnet.

@@ -302,3 +302,15 @@ An old bronze pickaxe head with a short worn wooden handle, greenish patina on t
 
 ⬜ OFFEN – 101. Fundstück Karierter Wollstoff  →  Datei: fund-wollstoff.png  (Vorlage Sonnenstein MAHamAmuh8Q, danach bild: in FINDS)
 A folded piece of old woven wool cloth with a checkered tartan pattern in brown, ochre and dark green, frayed edges. Style: bright cheerful cartoon mobile game icon, soft warm colors, clean dark brown outlines, gentle soft shading, centered, plain pure white background, no text, no letters, no border, square 1:1 format
+
+⬜ OFFEN – 102. Brücke schräg senkrecht  →  Datei: bruecke-senkrecht.png  (Ordner gelaende/, für Brücken, die auf dem Bildschirm von unten nach oben laufen)
+Isometric mobile game asset: one short section of a simple stone age log bridge, seen from the front so the bridge runs straight from the bottom of the image to the top (away from the viewer). Five round logs side by side lashed together with rope, two short wooden posts on each side with a sagging rope railing. Same style as the existing log bridge piece: bright cheerful cartoon, warm brown wood, clean dark outlines, soft shading. Plain white background, no water, no shadow, centered.
+
+⬜ OFFEN – 103. Brücke schräg waagerecht  →  Datei: bruecke-waagerecht.png  (Ordner gelaende/, für Brücken, die auf dem Bildschirm von links nach rechts laufen)
+Isometric mobile game asset: one short section of a simple stone age log bridge, seen from the side so the bridge runs straight from the left edge of the image to the right edge. Round logs lying across, lashed together with rope, wooden posts along the front and back edge with a sagging rope railing. Same style as the existing log bridge piece: bright cheerful cartoon, warm brown wood, clean dark outlines, soft shading. Plain white background, no water, no shadow, centered.
+
+⬜ OFFEN – 104. Brücke schräg senkrecht Winter  →  Datei: bruecke-senkrecht-winter.png  (Ordner gelaende/, aus Nr. 102: dasselbe Bild mit Schnee)
+Same bridge section as the reference image, unchanged in shape, size and position, but with a thin layer of fresh white snow on the logs, posts and rope. Plain white background.
+
+⬜ OFFEN – 105. Brücke schräg waagerecht Winter  →  Datei: bruecke-waagerecht-winter.png  (Ordner gelaende/, aus Nr. 103: dasselbe Bild mit Schnee)
+Same bridge section as the reference image, unchanged in shape, size and position, but with a thin layer of fresh white snow on the logs, posts and rope. Plain white background.

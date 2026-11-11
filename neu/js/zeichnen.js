@@ -236,7 +236,7 @@ function median(list) {
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
     'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'setzling', 'truhe', 'band', 'logo-rund', 'berg-gross', 'berg-klein',
-    'leiste-holz-steinzeit',   // Holzmuster der Brücken (drawBridge), seit dem hellen Design versehentlich nicht mehr geladen
+    'leiste-holz-steinzeit', 'bruecke-senkrecht', 'bruecke-senkrecht-winter', 'bruecke-waagerecht', 'bruecke-waagerecht-winter',   // schräge Brücken   // Holzmuster der Brücken (drawBridge), seit dem hellen Design versehentlich nicht mehr geladen
     'symbol-forschung', 'symbol-auftraege', 'symbol-haendler', 'symbol-schaetze', 'symbol-shop', 'symbol-grundriss', 'symbol-menue',
     ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, ...LIFE_NAMES]);
   for (const b of Object.values(BUILDINGS)) if (b.bild) {
@@ -1901,11 +1901,12 @@ function drawPaths(range) {
   if (snow > 0) { ctx.strokeStyle = `rgba(245,250,255,${0.35 * snow})`; ctx.stroke(); }
   const sprite = images.bruecke;
   const diag = new Map(bridges.map(b => [b, bridgeDiag(b)]));
-  for (const b of bridges) if (diag.get(b)) drawBridgeDiag(b, diag.get(b), snow);
+  const diagImg = d => images[d[0] === d[1] ? 'bruecke-senkrecht' : 'bruecke-waagerecht'];
+  for (const b of bridges) if (diag.get(b) && !diagImg(diag.get(b))) drawBridgeDiag(b, diag.get(b), snow);   // Ersatz, bis das Bild da ist
   if (!sprite) for (const b of bridges) if (!diag.get(b)) drawBridge(b, snow);
   ctx.restore();
   for (const b of bridges) {
-    if (diag.get(b)) continue;
+    if (diag.get(b)) { const img = diagImg(diag.get(b)); if (img) drawBridgeDiagSprite(img, b, diag.get(b), snow); continue; }
     if (sprite) drawBridgeSprite(sprite, b, snow);
     else drawBridgeRails(b);
   }
@@ -1996,6 +1997,32 @@ function bridgeDiag(b) {
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isPathAt(b.x + dx, b.y + dy)) return null;
   for (const [dx, dy] of PATH_DIAG) if (diagLink(b.x, b.y, dx, dy)) return dx === dy ? [1, 1] : [1, -1];
   return null;
+}
+
+// Schräge Brücke aus Canva (senkrecht bzw. waagerecht auf dem Bildschirm). Wie bei drawBridgeSprite zeigt
+// in einer Reihe jedes Feld nur seinen eigenen Abschnitt, die Enden am Ufer bleiben ganz.
+function drawBridgeDiagSprite(img, b, [dx, dy], snow) {
+  const z = cam.zoom, p = tileToScreen(b.x + 0.5, b.y + 0.5), q = tileToScreen(b.x + 0.5 + dx, b.y + 0.5 + dy);
+  const sx = q.x - p.x, sy = q.y - p.y, len = Math.hypot(sx, sy), ux = sx / len, uy = sy / len;   // Laufrichtung auf dem Bildschirm
+  const vertical = dx === dy;
+  const w = vertical ? TW * z * 0.62 : TW * z * 1.25, h = w * img.height / img.width;
+  const prev = isBridgeAt(b.x - dx, b.y - dy) && bridgeDiag(state.buildings[buildingAt(b.x - dx, b.y - dy)]);
+  const next = isBridgeAt(b.x + dx, b.y + dy) && bridgeDiag(state.buildings[buildingAt(b.x + dx, b.y + dy)]);
+  ctx.save();
+  if (prev || next) {
+    const a0 = prev ? -len / 2 : -len * 3, a1 = next ? len / 2 : len * 3, c = len * 3;   // entlang / quer
+    const pt = (a, k) => [p.x + ux * a - uy * k, p.y + uy * a + ux * k];
+    ctx.beginPath();
+    [pt(a0, -c), pt(a1, -c), pt(a1, c), pt(a0, c)].forEach(([x, y], k) => k ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+    ctx.closePath(); ctx.clip();
+  }
+  ctx.fillStyle = 'rgba(20, 40, 60, 0.25)';   // Schatten im Wasser
+  ctx.beginPath(); ctx.ellipse(p.x + 3 * z, p.y + 4 * z, w * 0.45, h * 0.3, 0, 0, 7); ctx.fill();
+  const y0 = p.y - h * (vertical ? 0.42 : 0.6);   // senkrecht: Mitte der Stämme im eigenen Abschnitt, Stammenden nur am Ufer
+  ctx.drawImage(img, p.x - w / 2, y0, w, h);
+  const winter = snow > 0 && images[(vertical ? 'bruecke-senkrecht' : 'bruecke-waagerecht') + '-winter'];
+  if (winter) { ctx.globalAlpha = snow; ctx.drawImage(winter, p.x - w / 2, y0, w, h); }
+  ctx.restore();
 }
 
 // Schräger Brückenbelag von Ecke zu Ecke (in Feld-Koordinaten, ctx ist schon transformiert)

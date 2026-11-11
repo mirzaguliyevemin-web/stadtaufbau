@@ -1206,7 +1206,7 @@ const FINDS = {
   sonnenstein: { name: 'Sonnenstein', icon: '☀️', bild: 'fund-sonnenstein', page: 'steinzeit', stage: 'jung', hint: 'Steinsammler finden ihn in der Jungsteinzeit' },
   blumenkranz: { name: 'Blumenkranz', icon: '🌼', bild: 'fund-blumenkranz', page: 'steinzeit', need: 2, stage: 'jung', hint: 'Sammlerinnen, nur Frühling und Sommer' },
   goldblatt:   { name: 'Goldblättchen', icon: '🟡', bild: 'fund-goldblatt', page: 'bronze', need: 3, stage: 'kupfer', hint: 'Steckt manchmal in einer Erzader' },
-  zinnperle:   { name: 'Zinn-Perle', icon: '⚪', page: 'bronze', need: 2, stage: 'frueh', spot: 'ufer', hint: 'Glitzert ab der Frühen Bronzezeit am Ufer' },
+  zinnperle:   { name: 'Zinn-Perle', icon: '⚪', bild: 'fund-zinnperle', page: 'bronze', need: 2, stage: 'frueh', spot: 'ufer', hint: 'Glitzert ab der Frühen Bronzezeit am Ufer' },
   bernsteinstueck: { name: 'Großer Bernstein', icon: '🟠', page: 'bronze', stage: 'spaet', hint: 'Gegen Bronze beim Händler, wenn die Himmelsscheibe erforscht ist' },
   scheibe:     { name: 'Teil der Himmelsscheibe', icon: '🌞', page: 'bronze', need: 5, soon: true, hint: 'Entsteht beim Bau der Halle der Himmelsscheibe' },
   salzkristall:{ name: 'Salzkristall', icon: '💎', page: 'eisen', need: 5, stage: 'eisen2', hint: 'Die Salzsiederei findet manchmal einen' },

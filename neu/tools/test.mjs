@@ -2538,6 +2538,17 @@ test('Wanderer: rastet einmal in der Steinzeit am Feuer, tauscht Wegzehrung gege
   noErrors(g);
 });
 
+test('Baustellen: im Winter das verschneite Baustellenbild (wird geladen und gewählt)', () => {
+  const g = fresh();
+  ok(g.run(`[2, 3, 4].every(s => imageNames().includes('1-baustelle-' + s + '-winter'))`), 'Winterbilder der Baustellen werden nicht geladen');
+  const r = g.run(`(() => { const sommer = { id: 's' }, winter = { id: 'w' };
+    images['1-baustelle-2'] = sommer; images['1-baustelle-2-winter'] = winter;
+    const alt = staggeredSeason; staggeredSeason = () => 3; const a = constructionImage(2, 5, 5).id;
+    staggeredSeason = () => 1; const b = constructionImage(2, 5, 5).id; staggeredSeason = alt; return a + b; })()`);
+  ok(r === 'ws', 'Baustelle wählt im Winter nicht das Winterbild: ' + r);
+  noErrors(g);
+});
+
 test('Bauleiste: gesperrte Gebäude stehen am Ende, spätere Zeitalter fehlen', () => {
   const g = fresh();
   const r = g.run(`(() => { const bad = []; let mixed = 0;

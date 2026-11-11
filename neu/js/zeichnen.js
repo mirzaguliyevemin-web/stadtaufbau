@@ -246,7 +246,7 @@ function imageNames() {
   for (const r of Object.values(RESOURCES)) if (r.bild) names.add(r.bild);
   for (const f of Object.values(FINDS)) if (f.bild) names.add(f.bild);
   for (const t of Object.values(TECHS)) if (t.bild) names.add(t.bild);
-  for (const s of [2, 3, 4]) names.add('1-baustelle-' + s);
+  for (const s of [2, 3, 4]) { names.add('1-baustelle-' + s); names.add('1-baustelle-' + s + '-winter'); }
   names.add('2-dorfplatz'); names.add('2-dorfplatz-winter');   // Lagerfeuer ab der Kupferzeit (applyEpochTheme)
   return [...names];
 }
@@ -1294,7 +1294,7 @@ function alphaAt(img, u, v) {   // u, v = Anteile 0–1; null = unbekannt
 function buildingImageHit(b, sx, sy) {
   const def = BUILDINGS[b.type];
   if (settings.footprint) return false;   // Grundriss: nur die Platte selbst zählt
-  const view = b.build > 0 && !(def.wonder && buildingView(def, b.rot, b.x, b.y).img) ? { img: images['1-baustelle-' + def.size] || images['1-baustelle-2'], mirror: (Number(b.rot) || 0) % 2 === 1 } : buildingView(def, b.rot, b.x, b.y);
+  const view = b.build > 0 && !(def.wonder && buildingView(def, b.rot, b.x, b.y).img) ? { img: constructionImage(def.size, b.x, b.y), mirror: (Number(b.rot) || 0) % 2 === 1 } : buildingView(def, b.rot, b.x, b.y);
   const img = view.img;
   if (!img || !img.sockel) return null;
   const pl = imagePlacement(img, b.x, b.y, def.size, view.mirror, 0, !!def.needsWater && !(b.build > 0));
@@ -1558,12 +1558,20 @@ function hexAlpha(hex, a) {
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }
 
+// Baustellen-Bild in passender Größe (fehlt es, das 2×2-Bild), im Winter das verschneite wie bei den Gebäuden
+function constructionImage(s, x, y) {
+  const name = images['1-baustelle-' + s] ? '1-baustelle-' + s : '1-baustelle-2';
+  const img = images[name];
+  if (!img || !state || staggeredSeason(hash(x, y)) !== 3) return img;
+  return images[name + '-winter'] || (missingImages.has(name + '-winter') ? buildingSnow(img) : img);
+}
+
 function drawConstruction(b) {
   const def = BUILDINGS[b.type];
   const s = def.size;
   if (settings.footprint) { drawFootprint(def, b.x, b.y, s, false); drawProgress(b, s, 10 * cam.zoom); return; }
   // Baustellen-Bild in passender Größe (fehlt es, das 2×2-Bild vergrößert, sonst ein gezeichnetes Gerüst)
-  const img = images['1-baustelle-' + s] || images['1-baustelle-2'];
+  const img = constructionImage(s, b.x, b.y);
   let height = (0.55 + s * 0.22) * TH * cam.zoom;
   if (img) {
     height = drawImageOnTiles(img, b.x, b.y, s, (Number(b.rot) || 0) % 2 === 1);

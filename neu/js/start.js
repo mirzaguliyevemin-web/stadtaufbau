@@ -253,6 +253,8 @@ on('fest', () => { if (gameRunning) { const w = wonderFest(); toast(w ? `🎉 ${
 on('wandererCame', () => { if (gameRunning) { toast('🚶 Ein Wanderer rastet am Lagerfeuer – tippe ihn an!'); renderAll(); } });
 on('wandererLeft', take => { if (gameRunning) { toast(take ? '🚶 Der Wanderer bedankt sich und erzählt von fernen Tälern.' : '🚶 Der Wanderer zieht weiter.'); if (pageOpen === 'wanderer') closePage(); renderAll(); } });
 on('traderCame', () => { if (gameRunning) { toast('🤝 Der Händler ist da! Tippe rechts auf „Händler“.'); playSound('muenze'); renderAll(); } });
+on('suedCame', () => { if (gameRunning) { toast('🫏 Ein Händler aus dem Süden ist da – er bringt Wein und Glas!'); playSound('muenze'); renderAll(); } });
+on('suedLeft', () => { if (gameRunning) { toast('🫏 Der Händler aus dem Süden zieht weiter.'); if (pageOpen === 'sued') closePage(); renderAll(); } });
 on('traderLeft', () => { if (gameRunning) { toast('🤝 Der Händler zieht weiter.'); if (pageOpen === 'trader') closePage(); renderAll(); } });
 on('placed', b => { (state.seen ||= {})[b.type] = true; });
 on('needStarted', id => {

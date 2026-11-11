@@ -235,6 +235,40 @@ function traderObjects(inView, t) {
   return out;
 }
 
+// Händler aus dem Süden: Mann mit Esel 🫏 und Amphore 🏺 auf der anderen Seite des Handelsplatzes, Blase 🍇 (Bilder folgen)
+function suedSpot() {
+  if (typeof suedHere !== 'function' || !suedHere()) return null;
+  const b = state.buildings[tradePosts()[0]], s = BUILDINGS[b.type].size;
+  return { b, x: b.x + s / 2, y: b.y + s + 0.5, bx: b.x + s / 2, by: b.y + s / 2 };
+}
+function suedObjects(inView, t) {
+  const p = suedSpot();
+  if (!p) return [];
+  const out = [];
+  if (inView(p.x, p.y)) out.push({ d: p.x + p.y - 0.5, kind: 'leben', draw: () => {
+    drawCreature(personImg('mensch-mann', 'leer'), p.x, p.y, 32, -1, 0, '🧍', null);
+    const q = tileToScreen(p.x - 0.7, p.y), z = cam.zoom;
+    ctx.font = `${Math.round(24 * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = '#000';
+    ctx.fillText('🫏', q.x, q.y);
+    ctx.font = `${Math.round(13 * z)}px sans-serif`; ctx.fillText('🏺', q.x, q.y - 20 * z);
+  } });
+  out.push({ d: p.bx + p.by + 100, kind: 'leben', draw: () => {
+    const q = traderBubble(p), z = Math.max(cam.zoom, 1.4), r = (15 + Math.sin(t * 3) * 1.5) * z;
+    ctx.fillStyle = 'rgba(255,250,235,0.95)'; ctx.strokeStyle = '#6b4a2b'; ctx.lineWidth = 2 * z;
+    ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.font = `${Math.round(17 * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#000';
+    ctx.fillText('🍇', q.x, q.y + z);
+    ctx.textBaseline = 'alphabetic';
+  } });
+  return out;
+}
+function suedAtScreen(sx, sy) {
+  const p = suedSpot();
+  if (!p) return false;
+  const z = cam.zoom, q = traderBubble(p), f = tileToScreen(p.x, p.y);
+  return Math.hypot(sx - q.x, sy - q.y) <= 26 * Math.max(z, 1.4) || (Math.abs(sx - f.x) <= 22 * z && sy <= f.y + 8 * z && sy >= f.y - 40 * z);
+}
+
 // Wanderer (CONFIG.wanderer): steht mit Wanderstab vorn am Lagerfeuer, darüber eine Blase zum Antippen
 function wandererSpot() {
   if (typeof wandererHere !== 'function' || !wandererHere()) return null;
@@ -1231,6 +1265,7 @@ function lifeObjects(range) {
   out.push(...tripObjects(inView, t));
   out.push(...spotObjects(inView, t));
   out.push(...traderObjects(inView, t));
+  out.push(...suedObjects(inView, t));
   out.push(...wandererObjects(inView, t));
   out.push(...workerObjects(inView, t));
   out.push(...carrierObjects(inView, t));

@@ -269,7 +269,7 @@ function renderSideButtons() {
   show($('quest-badge'), ready > 0);
   const canResearch = !r && Object.keys(TECHS).some(id => !researchProblem(id));
   show($('research-badge'), canResearch);
-  show($('btn-trader'), traderHere());
+  show($('btn-trader'), traderHere() || suedHere());
   show($('btn-daily'), !!state.daily.pending);
   show($('btn-shop'), state.tutorial < 0);
   show($('btn-chest'), state.tutorial < 0 || Object.keys(state.finds).length > 0);
@@ -476,6 +476,7 @@ function stallText(techId) {
 function sourceText(id) {
   const from = Object.keys(BUILDINGS).filter(t => BUILDINGS[t].produces && BUILDINGS[t].produces[id] && (isUnlocked(t) || stageReached(BUILDINGS[t].stage)));
   const trader = CONFIG.trader.offers.some(o => o.get[id] && (!o.requires || state.techs[o.requires])) && stageReached('frueh') ? ['Händler'] : [];
+  if (state.techs[CONFIG.suedhaendler.requires] && CONFIG.suedhaendler.offers.some(o => o.get[id])) trader.push('Händler aus dem Süden');
   const names = [...from.map(t => BUILDINGS[t].name), ...trader];
   return names.length ? ' – kommt von: ' + names.join(', ') + (id === 'felle' && !mammothsExtinct() && state.techs.mammutjagd ? ', Mammutjagd' : '') : '';
 }
@@ -988,6 +989,7 @@ function techEffectText(id) {
   if (e.buildFaster) out.push(`Bauzeiten −${Math.round(e.buildFaster * 100)} %`);
   if (e.traderFaster) out.push(`Händler kommt alle ${Math.round((CONFIG.trader.every - e.traderFaster) / 60)} statt ${Math.round(CONFIG.trader.every / 60)} Minuten`);
   if (id === 'tauschhandel') out.push('Der Händler kommt zum Handelsplatz');
+  if (id === CONFIG.suedhaendler.requires) out.push(`🫏 Alle ${Math.round(CONFIG.suedhaendler.every / 60)} Minuten kommt ein Händler aus dem Süden mit Wein und Glas`);
   return out.join(' · ') || '–';
 }
 
@@ -1307,7 +1309,27 @@ function tradeNow(id) {
   const err = doTrade(id);
   if (err) toast(err); else playSound('muenze');
   if (pageOpen === 'trader') $('page-body').innerHTML = traderHtml();
+  if (pageOpen === 'sued') $('page-body').innerHTML = suedHtml();
   renderAll();
+}
+
+// Händler aus dem Süden (CONFIG.suedhaendler): eigenes Fenster mit seinen festen Angeboten
+function suedHtml() {
+  if (!suedHere()) return '<div class="quests"><p class="empty-note">Der Händler aus dem Süden ist weitergezogen.</p></div>';
+  const rows = CONFIG.suedhaendler.offers.map(o => {
+    const taken = state.suedhaendler.done.includes(o.id);
+    const problem = taken ? null : tradeProblem(o.id);
+    return `<div class="quest-card${taken ? ' done' : ''}">
+      <div class="q-main"><b>Du gibst ${costHtml(o.give)}</b><span class="q-reward">Du bekommst ${rewardChips(o.get)}</span>${problem ? `<small class="bad">${esc(problem)}</small>` : ''}</div>
+      ${taken ? '<span class="q-pct">✔</span>' : `<button class="btn primary" ${problem ? 'disabled' : ''} onclick="tradeNow('${o.id}')">🍇 Tauschen</button>`}
+    </div>`;
+  }).join('');
+  return `<div class="quests"><div class="wish-card later"><span class="q-medal"><span class="ic emoji big">🫏</span></span><div class="q-main"><b>Ein Händler aus dem Süden ist da</b><span>Er kam mit seinem Esel über die Berge, bringt Wein und Glas und zieht in ${formatTime(state.suedhaendler.left)} weiter.</span></div></div>${rows}</div>`;
+}
+function openSued() { openPage('🍇 Händler aus dem Süden', suedHtml(), 'sued'); }
+function suedCardHtml() {
+  if (!suedHere()) return '';
+  return `<div class="wish-card"><span class="q-medal"><span class="ic emoji big">🫏</span></span><div class="q-main"><b>Ein Händler aus dem Süden ist da</b><span>Noch ${formatTime(state.suedhaendler.left)}.</span></div><button class="btn primary" onclick="openSued()">🍇 Tauschen</button></div>`;
 }
 
 // Wanderer (CONFIG.wanderer): Fenster und Karte bei den Aufträgen
@@ -1342,8 +1364,8 @@ function questsHtml() {
   const head = `<div class="quest-sum"><span>🏆 Erledigt <b>${doneCount}</b> von ${total}</span>
     <span class="q-bar thin"><i style="width:${Math.round(100 * doneCount / total)}%"></i></span></div>`;
   const list = activeQuests();
-  if (!list.length) return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${wandererCardHtml()}${wishHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p></div>`;
-  return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${wandererCardHtml()}${wishHtml()}` + list.map(q => {
+  if (!list.length) return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${suedCardHtml()}${wandererCardHtml()}${wishHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p></div>`;
+  return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${suedCardHtml()}${wandererCardHtml()}${wishHtml()}` + list.map(q => {
     const p = questProgress(q);
     const done = p.have >= p.need;
     const pct = Math.round(100 * p.have / p.need);
@@ -1438,10 +1460,10 @@ function doClaim(id) {
 
 // Zum Händler: Karte hinfahren und sein Fenster öffnen (Emin, 03.11.: der Handelsplatz lag oft außerhalb des Bildes)
 function goToTrader() {
-  const p = traderSpot();
+  const p = traderSpot() || suedSpot();
   if (!p) return;
   centerOnTile(p.bx, p.by);
-  openTrader();
+  if (traderHere()) openTrader(); else openSued();
 }
 
 function showDailyReward() {

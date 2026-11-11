@@ -1174,7 +1174,7 @@ function updateTrader(dt) {
   }
   if (!tradePosts().length) return;
   t.wait = Math.max(0, t.wait - dt);
-  if (t.wait > 0) return;
+  if (t.wait > 0 || state.suedhaendler.left > 0) return;   // nie zwei Händler zugleich am Platz
   t.visit++;
   t.left = CONFIG.trader.stay;
   t.done = [];
@@ -1191,10 +1191,39 @@ function traderOffers() {
   return [...fest, ...open.filter(o => !fest.includes(o))].slice(0, c.count + techSum('traderOffers') + (state.buildings.some(b => (b.type === 'wagner' || b.type === 'handelshof') && !b.build) ? 1 : 0));
 }
 
+// Händler aus dem Süden (CONFIG.suedhaendler): wie der normale Händler, aber seltener, länger und mit festen Angeboten
+function suedHere() { return state.suedhaendler.left > 0 && tradePosts().length > 0; }
+
+function updateSuedhaendler(dt) {
+  if (offlineRunning) return;   // wie beim normalen Händler: offline kommt er nicht
+  const c = CONFIG.suedhaendler, t = state.suedhaendler;
+  if (t.left > 0) {
+    t.left = Math.max(0, t.left - dt);
+    if (t.left === 0) { t.wait = c.every - c.stay; emit('suedLeft'); }
+    return;
+  }
+  if (!state.techs[c.requires] || !tradePosts().length) return;
+  t.wait = Math.max(0, t.wait - dt);
+  if (t.wait > 0 || state.trader.left > 0) return;   // ist der normale Händler da, wartet er, bis dieser weg ist
+  t.visit++;
+  t.left = c.stay;
+  t.done = [];
+  emit('suedCame');
+}
+
+// Zu welchem Händler gehört ein Angebot? { o, t: sein Stand, here, offers } oder null
+function tradeOffer(id) {
+  let o = CONFIG.trader.offers.find(x => x.id === id);
+  if (o) return { o, t: state.trader, here: traderHere(), offers: traderHere() ? traderOffers() : [] };
+  o = CONFIG.suedhaendler.offers.find(x => x.id === id);
+  return o ? { o, t: state.suedhaendler, here: suedHere(), offers: CONFIG.suedhaendler.offers } : null;
+}
+
 function tradeProblem(id) {
-  const o = CONFIG.trader.offers.find(x => x.id === id);
-  if (!o || !traderHere() || !traderOffers().includes(o)) return 'Gerade ist kein Händler da';
-  if (state.trader.done.includes(id)) return 'Das hat er schon getauscht';
+  const x = tradeOffer(id);
+  if (!x || !x.here || !x.offers.includes(x.o)) return 'Gerade ist kein Händler da';
+  const o = x.o;
+  if (x.t.done.includes(id)) return 'Das hat er schon getauscht';
   if (!canAfford(o.give)) return missingText(o.give);
   return null;
 }
@@ -1203,11 +1232,11 @@ function tradeProblem(id) {
 function doTrade(id) {
   const problem = tradeProblem(id);
   if (problem) return problem;
-  const o = CONFIG.trader.offers.find(x => x.id === id);
+  const { o, t } = tradeOffer(id);
   payCost(o.give);
   addReward(o.get);
   if (o.getFind) addFind(o.getFind);
-  state.trader.done.push(id);
+  t.done.push(id);
   state.tradesDone++;
   emit('traded', o);
   return null;
@@ -1398,6 +1427,7 @@ function update(dt) {
   updateFinds(dt);
   updateWonders(dt);
   updateTrader(dt);
+  updateSuedhaendler(dt);
   updateWanderer(dt);
   updateFest();
   if ((state.res.wein || 0) > 0) state.res.wein = Math.max(0, state.res.wein - state.pop * CONFIG.wine.perPerson * dt / 60);   // Wein ist nur ein Bonus

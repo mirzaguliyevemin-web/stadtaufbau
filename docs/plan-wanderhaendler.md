@@ -1,6 +1,6 @@
 # Plan: Der Händler aus dem Süden (Eisenzeit)
 
-Entwurf von Claude, 2026-11-11. **Noch nicht gebaut, Emin entscheidet.** Alle Zahlen sind Startwerte.
+Entwurf von Claude, 2026-11-11. **Gebaut am 11.11. (Version 158)** mit Emins Antworten: Wein nur noch im Süden, kommt immer wieder, kein Fundstück (vielleicht später zu besonderen Anlässen wie Weihnachten), Salzberg/Handelshof ändern nichts. Alle Zahlen sind Startwerte.
 
 Zeichen: 💡 Vorschlag · ❓ Frage an Emin
 

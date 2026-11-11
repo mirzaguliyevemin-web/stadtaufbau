@@ -222,6 +222,7 @@ function handleTap(sx, sy) {
   const mammoth = typeof mammothAtScreen === 'function' ? mammothAtScreen(sx, sy) : null;
   if (mammoth) { showHuntInfo(mammoth); return; }
   if (typeof traderAtScreen === 'function' && traderAtScreen(sx, sy)) { closeInfo(); openTrader(); return; }
+  if (typeof suedAtScreen === 'function' && suedAtScreen(sx, sy)) { closeInfo(); openSued(); return; }
   if (typeof wandererAtScreen === 'function' && wandererAtScreen(sx, sy)) { closeInfo(); openWanderer(); return; }
   const hit = objectAtScreen(sx, sy);
   if (hit && hit.i === undefined && isOwned(hit.x, hit.y)) { showTerrainInfo(hit.x, hit.y, sx, sy); return; }

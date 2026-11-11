@@ -37,6 +37,7 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     wishesDone: 0,           // so viele Wünsche wurden erfüllt
     huntsDone: 0,            // so oft waren die Jäger auf Mammutjagd
     trader: { wait: CONFIG.trader.firstWait, left: 0, visit: 0, done: [] },   // Händler: Sekunden bis er kommt, bis er geht, Besuch Nr., schon getauschte Angebote
+    suedhaendler: { wait: CONFIG.suedhaendler.firstWait, left: 0, visit: 0, done: [] },   // Händler aus dem Süden, wie trader
     wanderer: { left: 0, done: false },   // Wanderer in der Steinzeit: Sekunden, die er noch bleibt; done = war schon da
     tradesDone: 0,           // so oft wurde mit dem Händler getauscht
     shop: { gold: 0, spent: 0, slots: 0, stones: CONFIG.shop.stone.start },   // Shop: Gold, ausgegeben, zusätzliche Baustelle (später auf dem Server)

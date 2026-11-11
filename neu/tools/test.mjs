@@ -684,6 +684,50 @@ test('Händler: kommt nur mit Handelsplatz, bleibt, tauscht einmal je Angebot, k
   noErrors(g);
 });
 
+test('Händler aus dem Süden: erst ab Weinhandel, nie mit dem normalen Händler, feste Angebote, nicht offline, Wein nur bei ihm', () => {
+  const g = fresh();
+  ok(g.run(`!CONFIG.trader.offers.some(o => o.get.wein) && CONFIG.trader.offers.some(o => o.get.glas)`), 'Normaler Händler bringt noch Wein oder kein Glas');
+  const k = g.run(`(() => { for (const id in RESOURCES) state.res[id] = 500; state.pop = 20;
+    const sp = findFreeSpot('handelsplatz', Math.floor(N / 2), Math.floor(N / 2)); const k = state.buildings.length; state.buildings.push({ type: 'handelsplatz', x: sp.x, y: sp.y, rot: 0, build: 0 }); rebuildOccupancy(); buildRoute(k); recalcStats();
+    state.trader.wait = 99999; return k; })()`);
+  ok(g.run(`isConnected(${k})`), 'Handelsplatz ohne Weg');
+  g.run(`for (let i = 0; i < 400; i++) { update(1); state.res.nahrung = 500; }`);
+  ok(!g.run(`suedHere()`) && g.run(`state.suedhaendler.visit`) === 0, 'Kommt ohne Weinhandel');
+  // mit Weinhandel, aber der normale Händler ist da: er wartet
+  g.run(`state.techs.weinhandel = true; state.trader.left = 400; for (let i = 0; i < 301; i++) { update(1); state.res.nahrung = 500; }`);
+  ok(!g.run(`suedHere()`) && g.run(`state.trader.left`) > 0, 'Kommt zusammen mit dem normalen Händler');
+  g.run(`state.trader.left = 1; update(1);`);
+  ok(g.run(`suedHere()`) && g.run(`state.suedhaendler.visit`) === 1 && g.run(`state.suedhaendler.left`) === g.run(`CONFIG.suedhaendler.stay`), 'Kommt nicht nach dem normalen Händler');
+  // der normale Händler wartet nun auf ihn
+  g.run(`state.trader.wait = 0; update(1);`);
+  ok(!g.run(`traderHere()`), 'Normaler Händler kommt dazu');
+  // Tausch
+  const wein = g.run(`state.res.wein = 0, state.res.salz`);
+  ok(g.run(`doTrade('sued_salz_wein')`) === null && g.run(`state.res.wein`) === 60 && g.run(`state.res.salz`) === wein - 30, 'Tausch Salz gegen Wein falsch');
+  ok(g.run(`doTrade('sued_salz_wein')`) !== null, 'Gleiches Angebot zweimal');
+  ok(g.run(`state.res.felle = 10, tradeProblem('sued_felle_wein')`) !== null, 'Tausch ohne genug Felle');
+  g.run(`openSued(); tradeNow('sued_eisen_glas'); closePage(); openQuests(); closePage(); goToTrader(); closePage(); renderAll(); drawScene(0.05);`);
+  ok(g.run(`state.suedhaendler.done.length === 2 && state.tradesDone === 2`), 'Glas-Tausch über das Fenster ging nicht');
+  ok(g.run(`techEffectText('weinhandel')`).includes('Süden') && g.run(`sourceText('wein')`).includes('Süden'), 'Hinweistexte fehlen');
+  // Speichern und Laden
+  const text = g.run(`serialize()`);
+  ok(g.run(`loadFromText(${JSON.stringify(text)})`) && g.run(`suedHere() && state.suedhaendler.done.includes('sued_salz_wein')`), 'Nach dem Laden verloren');
+  // offline bleibt er stehen
+  const w = g.run(`state.suedhaendler.left`);
+  g.run(`applyOfflineProgress(Date.now() - 3600 * 1000);`);
+  ok(g.run(`state.suedhaendler.left`) === w, 'Läuft offline weiter');
+  // er geht und kommt 45 Minuten nach seiner Ankunft wieder
+  g.run(`for (let i = 0; i < CONFIG.suedhaendler.stay + 1; i++) { update(1); state.res.nahrung = 500; }`);
+  ok(!g.run(`suedHere()`) && Math.abs(g.run(`state.suedhaendler.wait`) - (g.run(`CONFIG.suedhaendler.every - CONFIG.suedhaendler.stay`) - 1)) <= 1, 'Wartezeit falsch: ' + g.run(`state.suedhaendler.wait`));
+  ok(g.run(`doTrade('sued_felle_wein')`) !== null, 'Tausch ohne Händler');
+  // alter Stand ohne Feld lädt mit Standardwert, kaputtes Feld wird bereinigt
+  const old = JSON.parse(text); delete old.suedhaendler;
+  ok(g.run(`loadFromText(${JSON.stringify(JSON.stringify(old))})`) && g.run(`state.suedhaendler.left === 0 && state.suedhaendler.wait === CONFIG.suedhaendler.firstWait`), 'Alter Stand ohne Südhändler');
+  old.suedhaendler = { wait: -5, left: 'x', visit: 2.7, done: ['gibtsnicht', 'sued_eisen_glas'] };
+  ok(g.run(`loadFromText(${JSON.stringify(JSON.stringify(old))})`) && g.run(`JSON.stringify(state.suedhaendler)`) === '{"wait":0,"left":0,"visit":2,"done":["sued_eisen_glas"]}', 'Kaputter Südhändler: ' + g.run(`JSON.stringify(state.suedhaendler)`));
+  noErrors(g);
+});
+
 test('Zurück nach der Pause: Hunger und Verluste werden genannt; Händler-Knopf führt hin', () => {
   const g = fresh();
   const r = g.run(`(() => { state.pop = 40; state.res.nahrung = 0; state.res.holz = 100; recalcStats();

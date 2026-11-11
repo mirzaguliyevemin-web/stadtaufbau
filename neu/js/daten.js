@@ -119,12 +119,23 @@ const CONFIG = {
       { id: 'felle_wolle',  give: { felle: 20 },        get: { wolle: 10 } },
       // Bernstein gibt es nur hier: Ab der „Bernsteinstraße“ zeigt er beide Angebote immer
       { id: 'bronze_grossbernstein', give: { bronze: 15 }, get: {}, getFind: 'bernsteinstueck', requires: 'himmelsscheibe' },   // Fundstück für die Halle, solange es fehlt
-      { id: 'salz_wein',    give: { salz: 20 },       get: { wein: 25 }, requires: 'weinhandel' },
-      { id: 'kleid_wein',   give: { kleidung: 25 },   get: { wein: 20 }, requires: 'weinhandel' },
       { id: 'salz_bronze',  give: { salz: 20 },       get: { bronze: 15 }, requires: 'handelswege' },
       { id: 'salz_glas',    give: { salz: 25 },       get: { glas: 6 }, requires: 'weinhandel' },
       { id: 'kleid_bernstein',  give: { kleidung: 15 }, get: { bernstein: 18 }, requires: 'bernsteinstrasse' },
       { id: 'bronze_bernstein', give: { bronze: 10 },   get: { bernstein: 20 }, requires: 'bernsteinstrasse' },
+    ],
+  },
+  // Händler aus dem Süden (Emin, 11.11., docs/plan-wanderhaendler.md): ab „Weinhandel“ immer wieder mit Esel und Amphoren.
+  // Wein gibt es nur bei ihm. Feste Angebote, jedes einmal je Besuch; kommt nur beim Spielen und nie zusammen mit dem normalen Händler.
+  suedhaendler: {
+    requires: 'weinhandel',
+    firstWait: 300,       // 5 Minuten nach „Weinhandel“
+    every: 2700,          // von Ankunft zu Ankunft 45 Minuten
+    stay: 600,            // er bleibt 10 Minuten
+    offers: [
+      { id: 'sued_salz_wein',  give: { salz: 30 },  get: { wein: 60 } },
+      { id: 'sued_felle_wein', give: { felle: 40 }, get: { wein: 30 } },
+      { id: 'sued_eisen_glas', give: { eisen: 20 }, get: { glas: 10 } },
     ],
   },
   // Werkstätten lassen so viel Metall liegen (mindestens; mehr, wenn eine startbare Forschung mehr kostet), sonst verbrauchen

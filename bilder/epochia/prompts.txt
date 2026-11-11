@@ -291,7 +291,7 @@ A brown leather pouch tied with a cord, overflowing with shiny golden coins, a f
 ⬜ OFFEN – 97. Shop Gold groß  →  Datei: gold-3.png  (Ordner oberflaeche/)
 A small open wooden treasure chest with bronze fittings, overflowing with a big heap of shiny golden coins and a few gems, sparkles. Style: bright cheerful cartoon mobile game icon, soft warm colors, clean dark brown outlines, gentle soft shading, centered, plain pure white background, no text, no letters, no border, square 1:1 format
 
-⬜ OFFEN – 98. Shop Baustelle mehr  →  Datei: shop-baustelle.png  (Ordner oberflaeche/)
+✅ ERLEDIGT – 98. Shop Baustelle mehr  →  Datei: shop-baustelle.png  (Ordner oberflaeche/)
 A small construction site: a wooden scaffold frame, a stack of planks, a pile of stones, a hammer and a rope, a little green plus sign badge in the top right corner. Style: bright cheerful cartoon mobile game icon, soft warm colors, clean dark brown outlines, gentle soft shading, centered, plain pure white background, no text, no letters, no border, square 1:1 format
 
 ⬜ OFFEN – 99. Fundstück Alter Lederrucksack  →  Datei: fund-rucksack.png  (Vorlage Sonnenstein MAHamAmuh8Q, danach bild: in FINDS)

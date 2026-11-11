@@ -37,7 +37,7 @@ function imageFolder(name) {
   if (name.startsWith('f-')) return 'forschung';
   if (name.startsWith('ware-')) return 'waren';
   if (name.startsWith('fund-')) return 'fundstuecke';
-  if (/^(mensch-|fischer-|einbaum|hirsch|mammut|ziege)/.test(name)) return 'figuren';
+  if (/^(mensch-|fischer-|einbaum|hirsch|mammut|ziege|esel)/.test(name)) return 'figuren';
   if (/^(baum-|berg-|fels-|blumen|busch|wiese|sand|wasser|pfad|bruecke|erdsockel|setzling)/.test(name)) return 'gelaende';
   return 'oberflaeche';
 }

@@ -31,6 +31,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Erledigt
 
 <!-- Claude verschiebt erledigte Punkte hierher, mit Datum und Version -->
+- 2026-11-11, Epochia Version 160 – Shop: Reiter (Schneller, Waren, Deko, Gold), große Gold-Karten, Zeitalter-Paket je Zeitalter, Deko zum Kaufen und Aufstellen (14 Stücke, Bilder folgen), Fundstück-Bild Lederrucksack.
 - 2026-11-11, Epochia Version 159 – Bilder: Händler aus dem Süden mit Esel, normaler Händler als Figur, Fundstücke Goldblättchen, Zinn-Perle, Großer Bernstein, Teil der Himmelsscheibe, Salzkristall.
 - 2026-11-11, Epochia Version 158 – Wunsch Emin: Händler aus dem Süden (ab „Weinhandel“ alle 45 Minuten, 10 Minuten lang, Wein und Glas gegen Salz, Felle, Eisen; Wein nur noch bei ihm), alle fehlenden Winterbilder (Handelsplatz, Fürstenhügel, Flechtwerkhaus, Halle, Höhle, Steinkreis, Steinhaus, Baustellen), Baustellen zeigen im Winter Schnee.
 - 2026-11-08, Epochia Version 153 – Wunsch Emin (Arbeitsbewegungen Bronzezeit aus Canva): Bergmann der Kupfermine schlägt mit der Hacke und trägt das Erz im Korb, Schmelzofen-Arbeiter tritt den Blasebalg, Bronzegießer kippt den Tiegel, Köhler stochert im Meiler, Zinnwäscherin schwenkt die Pfanne, Schmuckmacherin klopft den Armreif (je 3 Bilder); Kupfer- und Bronzeschmied hämmern am Amboss (2 Bilder, Zwischenbild folgt).

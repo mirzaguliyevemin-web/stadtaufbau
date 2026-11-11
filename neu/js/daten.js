@@ -1208,7 +1208,7 @@ const FINDS = {
   goldblatt:   { name: 'Goldblättchen', icon: '🟡', bild: 'fund-goldblatt', page: 'bronze', need: 3, stage: 'kupfer', hint: 'Steckt manchmal in einer Erzader' },
   zinnperle:   { name: 'Zinn-Perle', icon: '⚪', bild: 'fund-zinnperle', page: 'bronze', need: 2, stage: 'frueh', spot: 'ufer', hint: 'Glitzert ab der Frühen Bronzezeit am Ufer' },
   bernsteinstueck: { name: 'Großer Bernstein', icon: '🟠', bild: 'fund-bernsteinstueck', page: 'bronze', stage: 'spaet', hint: 'Gegen Bronze beim Händler, wenn die Himmelsscheibe erforscht ist' },
-  scheibe:     { name: 'Teil der Himmelsscheibe', icon: '🌞', page: 'bronze', need: 5, soon: true, hint: 'Entsteht beim Bau der Halle der Himmelsscheibe' },
+  scheibe:     { name: 'Teil der Himmelsscheibe', icon: '🌞', bild: 'fund-scheibe', page: 'bronze', need: 5, soon: true, hint: 'Entsteht beim Bau der Halle der Himmelsscheibe' },
   salzkristall:{ name: 'Salzkristall', icon: '💎', page: 'eisen', need: 5, stage: 'eisen2', hint: 'Die Salzsiederei findet manchmal einen' },
   rucksack:    { name: 'Alter Lederrucksack', icon: '🎒', page: 'eisen', need: 2, stage: 'eisen2', spot: 'fels', hint: 'Glitzert ab der Mittleren Eisenzeit an Felsen' },
   bronzepickel:{ name: 'Bronzepickel', icon: '⛏️', page: 'eisen', need: 3, stage: 'eisen2', hint: 'Steckt manchmal in einer Erzader' },

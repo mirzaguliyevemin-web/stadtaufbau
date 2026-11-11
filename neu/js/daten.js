@@ -1205,7 +1205,7 @@ const FINDS = {
   findling:    { name: 'Riesenfindling', icon: '🪨', bild: 'fund-findling', page: 'steinzeit', need: 3, tech: 'sternenkunde', hint: 'Liegt am Gebirge, wenn der Steinkreis gebaut wird' },
   sonnenstein: { name: 'Sonnenstein', icon: '☀️', bild: 'fund-sonnenstein', page: 'steinzeit', stage: 'jung', hint: 'Steinsammler finden ihn in der Jungsteinzeit' },
   blumenkranz: { name: 'Blumenkranz', icon: '🌼', bild: 'fund-blumenkranz', page: 'steinzeit', need: 2, stage: 'jung', hint: 'Sammlerinnen, nur Frühling und Sommer' },
-  goldblatt:   { name: 'Goldblättchen', icon: '🟡', page: 'bronze', need: 3, stage: 'kupfer', hint: 'Steckt manchmal in einer Erzader' },
+  goldblatt:   { name: 'Goldblättchen', icon: '🟡', bild: 'fund-goldblatt', page: 'bronze', need: 3, stage: 'kupfer', hint: 'Steckt manchmal in einer Erzader' },
   zinnperle:   { name: 'Zinn-Perle', icon: '⚪', page: 'bronze', need: 2, stage: 'frueh', spot: 'ufer', hint: 'Glitzert ab der Frühen Bronzezeit am Ufer' },
   bernsteinstueck: { name: 'Großer Bernstein', icon: '🟠', page: 'bronze', stage: 'spaet', hint: 'Gegen Bronze beim Händler, wenn die Himmelsscheibe erforscht ist' },
   scheibe:     { name: 'Teil der Himmelsscheibe', icon: '🌞', page: 'bronze', need: 5, soon: true, hint: 'Entsteht beim Bau der Halle der Himmelsscheibe' },

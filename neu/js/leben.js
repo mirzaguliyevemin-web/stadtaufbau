@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-bergmann-korb', 'mensch-hacke-mitte', 'mensch-axt-mitte', 'mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-frau-grabstock-tief', 'mensch-hirte', 'mensch-suedhaendler', 'esel-amphoren', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-mitte', 'fischer-speer-unten'];
+const LIFE_NAMES = ['mensch-bergmann-korb', 'mensch-hacke-mitte', 'mensch-axt-mitte', 'mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-frau-grabstock-tief', 'mensch-hirte', 'mensch-suedhaendler', 'esel-amphoren', 'mensch-haendler', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-mitte', 'fischer-speer-unten'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -219,7 +219,8 @@ function traderObjects(inView, t) {
   if (!p) return [];
   const out = [];
   if (inView(p.x, p.y)) out.push({ d: p.x + p.y - 0.5, kind: 'leben', draw: () => {
-    drawCreature(personImg('mensch-mann', 'leer'), p.x, p.y, 32, 1, 0, '🧍', null);
+    if (images['mensch-haendler']) { drawCreature('mensch-haendler', p.x, p.y, 34, 1, 0, '🧍', null); return; }
+    drawCreature(personImg('mensch-mann', 'leer'), p.x, p.y, 32, 1, 0, '🧍', null);   // bis das Bild geladen ist
     const q = tileToScreen(p.x, p.y + 1), z = cam.zoom;
     ctx.font = `${Math.round(24 * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = '#000';
     ctx.fillText('🐂', q.x, q.y);

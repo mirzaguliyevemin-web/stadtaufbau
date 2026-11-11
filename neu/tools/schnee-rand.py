@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Gegen weißen Saum bei Winterbildern: python3 neu/tools/schnee-rand.py quelle.png vor.png 0.52 0.68 10
+# Gegen weißen Saum bei Winterbildern: python3 neu/tools/schnee-rand.py quelle.png vor.png 0.52 0.68 3   (Toleranz 3–10 je nach Bild: zu hoch frisst Schnee an der Spitze)
 # danach bild-einbauen.py vor.png ziel.webp <breite> --schnee --toleranz=1
 # Setzt fast-weiße Punkte außerhalb eines waagrechten Bands (dort liegen die Plattenecken mit Schnee) exakt auf die
 # Hintergrundfarbe, damit das Freistellen dort gründlicher ist. oben-weiss.py quelle ziel von bis toleranz

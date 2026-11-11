@@ -104,3 +104,12 @@ Das Spiel läuft heute im Browser, der Spielstand liegt auf dem Handy und lässt
 4. Kostenlose Stufen-Geschenke bleiben **Schmuck**, nur der Shop verkauft Spielhilfen.
 5. Verkauft wird von **Emin mit Gewerbe**. Das Gewerbe gibt es noch nicht (Stand 03.11.2026), darum gibt es bis dahin weder Play Store noch echtes Geld. Der Shop bleibt im Testmodus.
 6. **Erst ohne Geld ausprobieren:** Schritt 1 ist gebaut (`neu/js/shop.js`). Im Testmodus ist Gold kostenlos, die Preise sind Startwerte. Schmuck und der Server kommen später.
+
+## 8 · Weiter am 11.11.2026 (Emin)
+
+- **Preise** bleiben, wie sie sind.
+- **Zeitalter-Paket:** In jedem Zeitalter gibt es ein Paket mit den Waren, die gerade wichtig sind (`CONFIG.shop.epochPacks`). Wein ist nie dabei, den bringt nur der Händler aus dem Süden.
+- **Reiter** oben im Shop: ⚡ Schneller · 📦 Waren · 🌷 Deko · 🪙 Gold.
+- **Gold-Pakete** als große Karten, das größte als „Bester Wert“.
+- **Deko** (`DEKO` in `daten.js`): 14 Stücke in vier Arten, nämlich Pflanzen, Figuren und Steine, Tiere sowie Wege und Plätze. Jedes Zeitalter bringt neue dazu. Gekauft wird im Shop, aufgestellt über die Bauleiste im Reiter „Deko“. Deko braucht keinen Weg und ändert nichts am Spiel. Beim Abreißen kommt das Stück zurück in die Bauleiste. Was gekauft, aber noch nicht aufgestellt ist, steht in `state.shop.deko`.
+- **Offen: Bilder aus Canva.** Gebraucht werden 14 Deko-Bilder (`deko-<name>` ohne `deko_`-Vorsilbe, Ordner `deko/`), drei Bilder für die Gold-Pakete (`gold-1`, `gold-2`, `gold-3`) und ein Bild für die zusätzliche Baustelle (`shop-baustelle`). Bis dahin zeigen sie Emojis.

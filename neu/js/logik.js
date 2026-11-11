@@ -118,6 +118,7 @@ function barEntries() {
   const lines = new Map();
   for (const [type, def] of Object.entries(BUILDINGS)) {
     if (def.buildable === false || def.upgradeOnly || (onlyOne(def) && state.buildings.some(b => b.type === type))) continue;
+    if (def.deko && dekoOwned(type) < 1) continue;   // Deko erst, wenn gekauft
     const list = lines.get(def.line) || [];
     list.push(type);
     lines.set(def.line, list);
@@ -158,6 +159,7 @@ function buildProblem(type, x, y, ignore = -1, rot) {
   if (!def || def.buildable === false) return 'Kann man nicht bauen';
   if (!isUnlocked(type)) return lockText(type);
   if (onlyOne(def) && state.buildings.some(b => b.type === type)) return 'Davon gibt es nur eines';
+  if (def.deko && dekoOwned(type) < 1) return 'Erst im Shop kaufen';
   const p = placeProblem(type, x, y, ignore, rot);
   if (p) return p;
   if (!canAfford(def.cost)) return missingText(def.cost);
@@ -174,6 +176,7 @@ function placeBuilding(type, x, y, rot = false) {
   if (problem) return problem;
   const def = BUILDINGS[type];
   payCost(def.cost);
+  if (def.deko) state.shop.deko[type] -= 1;
   const b = addBuilding(type, x, y, rot);
   setOccupied(b, state.buildings.length);
   giveTorch(b);   // jedes zweite Wegfeld bekommt eine Fackel
@@ -235,6 +238,7 @@ function demolish(i) {
   const b = state.buildings[i];
   if (!b || BUILDINGS[b.type].buildable === false || BUILDINGS[b.type].wonder) return false;
   addResources(refundOf(b));
+  if (BUILDINGS[b.type].deko) state.shop.deko[b.type] = dekoOwned(b.type) + 1;   // Deko kommt zurück in die Bauleiste
   state.buildings.splice(i, 1);
   rebuildOccupancy();
   state.pop = Math.min(state.pop, Math.max(housingTotal(), 1));

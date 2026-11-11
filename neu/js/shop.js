@@ -109,6 +109,18 @@ function buySlot() {
   return null;
 }
 
+// Deko: gekauft liegt sie bereit, aufgestellt wird sie über die Bauleiste (Reiter „Deko“)
+function dekoOwned(type) { return (state.shop.deko || {})[type] || 0; }
+function dekoList() { return Object.keys(DEKO).filter(id => stageReached(DEKO[id].stage)); }
+function dekoPlaced(type) { return state.buildings.filter(b => b.type === type).length; }
+
+function buyDeko(id) {
+  if (!dekoList().includes(id)) return 'Gibt es noch nicht';
+  if (!spendGold(DEKO[id].deko)) return 'Nicht genug Gold';
+  (state.shop.deko ||= {})[id] = dekoOwned(id) + 1;
+  return null;
+}
+
 // Testkauf: kein echtes Geld
 function buyPack(i) {
   if (!CONFIG.shop.testMode) return 'Kaufen geht noch nicht';
@@ -154,25 +166,66 @@ function amountsHtml(goods) {
   return Object.entries(goods).map(([id, n]) => `<span class="cost">${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')}${n}</span>`).join(' ');
 }
 
-function shopInner() {
+// Reiter oben statt einer langen Liste (Emin, 11.11.2026). Bleibt während des Spiels gemerkt, nicht im Spielstand.
+const SHOP_TABS = [
+  { id: 'tempo', name: 'Schneller', icon: '⚡' },
+  { id: 'waren', name: 'Waren', icon: '📦' },
+  { id: 'deko',  name: 'Deko', icon: '🌷' },
+  { id: 'gold',  name: 'Gold', icon: '🪙' },
+];
+let shopTab = 'tempo';
+function setShopTab(id) { shopTab = id; refreshShop(); const el = $('page-body'); if (el) el.scrollTop = 0; }
+
+function shopGoldHtml() {
+  const c = CONFIG.shop, best = c.packs.length - 1;
+  // je Euro am meisten Gold: das größte Paket
+  return `<div class="shop-packs">${c.packs.map((p, i) => `<button class="btn shop-pack${i === best ? ' best' : ''}" onclick="doPack(${i})">
+      ${i === best ? '<span class="shop-best">Bester Wert</span>' : ''}
+      ${iconHtml(['gold-1', 'gold-2', 'gold-3'][i], ['🪙', '💰', '👑'][i], 'huge')}
+      <b>${goldText(p.gold)}</b><span class="shop-price">${esc(p.euro)} €</span>${c.testMode ? '<small>Test: kostenlos</small>' : ''}</button>`).join('')}</div>
+    <p class="empty-note">Gold gibt es auch ohne Geld: ${goldText(c.earn.quest)} für jeden Auftrag, ${goldText(c.earn.wish)} für jeden Wunsch, ${goldText(c.earn.chest)} in der großen Truhe.</p>`;
+}
+
+function shopTempoHtml() {
   const c = CONFIG.shop;
-  const packs = c.packs.map((p, i) => `<button class="btn shop-pack" onclick="doPack(${i})"><b>${goldText(p.gold)}</b><span>${esc(p.euro)} €</span>${c.testMode ? '<small>Test: kostenlos</small>' : ''}</button>`).join('');
-  const finds = shopFinds().map(id => shopRow(iconHtml(FINDS[id].bild, FINDS[id].icon, 'big'), FINDS[id].name, `Hast du ${findCount(id)}, gebraucht werden ${findNeed(id)}`, findPrice(id), `doBuyFind('${id}')`)).join('');
+  const slot = state.shop.slots >= 1 ? '<p class="empty-note">✔ Du hast eine zusätzliche Baustelle.</p>'
+    : shopRow(iconHtml('shop-baustelle', '🏗️', 'big'), 'Eine Baustelle mehr', `Dauerhaft ${constructionLimit() + 1} statt ${constructionLimit()} gleichzeitig`, c.slotPrice, 'doBuySlot()');
+  return `<h3 class="find-page">Gerade im Bau</h3><div class="quests">${shopSpeedHtml()}</div>
+    <h3 class="find-page">Beschleunigungssteine</h3><div class="quests">${stoneShopHtml()}</div>
+    <h3 class="find-page">Dauerhaft</h3><div class="quests">${slot}</div>`;
+}
+
+function shopWarenHtml() {
+  const c = CONFIG.shop;
   const ep = epochPack(), stage = STAGES[stageIndex()];
   const goods = (ep ? shopRow(iconHtml(RESOURCES[Object.keys(ep.goods)[0]].bild, '🎁', 'big'), `Zeitalter-Paket: ${stage.name}`, amountsHtml(ep.goods), ep.price, "doBuyGoods('zeit')") : '')
     + Object.keys(c.goods).map(k => {
       const p = goodsPack(k);
       return shopRow(iconHtml(RESOURCES.holz.bild, '📦', 'big'), c.goods[k].name, amountsHtml(p.goods), p.price, `doBuyGoods('${k}')`);
     }).join('');
-  const slot = state.shop.slots >= 1 ? '<p class="empty-note">✔ Du hast eine zusätzliche Baustelle.</p>'
-    : shopRow('<span class="ic emoji big">🏗️</span>', 'Eine Baustelle mehr', `Dauerhaft ${constructionLimit() + 1} statt ${constructionLimit()} gleichzeitig`, c.slotPrice, 'doBuySlot()');
-  return `<div class="shop-head"><span class="shop-gold">${goldText(state.shop.gold)}</span><small>${c.testMode ? 'Testmodus: Es fließt kein echtes Geld.' : ''} Gold gibt es auch für Aufträge, Wünsche und die große Truhe.</small></div>
-    <h3 class="find-page">Gold</h3><div class="shop-packs">${packs}</div>
-    <h3 class="find-page">Beschleunigungssteine</h3><div class="quests">${stoneShopHtml()}</div>
-    <h3 class="find-page">Beschleunigen</h3><div class="quests">${shopSpeedHtml()}</div>
-    ${finds ? `<h3 class="find-page">Fehlende Fundstücke</h3><div class="quests">${finds}</div>` : ''}
-    <h3 class="find-page">Warenpakete</h3><div class="quests">${goods}</div>
-    <h3 class="find-page">Dauerhaft</h3><div class="quests">${slot}</div>`;
+  const finds = shopFinds().map(id => shopRow(iconHtml(FINDS[id].bild, FINDS[id].icon, 'big'), FINDS[id].name, `Hast du ${findCount(id)}, gebraucht werden ${findNeed(id)}`, findPrice(id), `doBuyFind('${id}')`)).join('');
+  return `<h3 class="find-page">Warenpakete</h3><div class="quests">${goods}</div>
+    ${finds ? `<h3 class="find-page">Fehlende Fundstücke</h3><div class="quests">${finds}</div>` : ''}`;
+}
+
+function shopDekoHtml() {
+  const rows = dekoList().map(id => {
+    const d = DEKO[id], have = dekoOwned(id), placed = dekoPlaced(id);
+    const sub = esc(d.info) + (have || placed ? `<br><b>${placed ? `${placed} aufgestellt` : ''}${have && placed ? ' · ' : ''}${have ? `${have} bereit` : ''}</b>` : '');
+    return shopRow(iconHtml(BUILDINGS[id].bild, d.icon, 'big'), d.name, sub, d.deko, `doBuyDeko('${id}')`);
+  }).join('');
+  const later = Object.keys(DEKO).length - dekoList().length;
+  return `<p class="empty-note">Deko sieht nur schön aus und ändert nichts am Spiel. Gekauftes stellst du unten in der Bauleiste unter „🌷 Deko“ auf. Abreißen legt es dorthin zurück.</p>
+    <div class="quests">${rows}</div>${later ? `<p class="empty-note">🔒 ${later} weitere Stücke kommen in späteren Zeitaltern.</p>` : ''}`;
+}
+
+function shopInner() {
+  const c = CONFIG.shop;
+  if (!SHOP_TABS.some(t => t.id === shopTab)) shopTab = 'tempo';
+  const tabs = SHOP_TABS.map(t => `<button class="${t.id === shopTab ? 'on' : ''}" onclick="setShopTab('${t.id}')">${t.icon} ${t.name}</button>`).join('');
+  const body = { tempo: shopTempoHtml, waren: shopWarenHtml, deko: shopDekoHtml, gold: shopGoldHtml }[shopTab]();
+  return `<div class="shop-head"><span class="shop-gold">${goldText(state.shop.gold)}</span><small>${c.testMode ? 'Testmodus: Es fließt kein echtes Geld.' : ''}</small></div>
+    <div class="seg shop-tabs">${tabs}</div>${body}`;
 }
 
 function openShop() {
@@ -201,6 +254,17 @@ function doUseStone(i) {
   toast(`⚡ ${Math.round(CONFIG.shop.stone.seconds / 60)} Minuten schneller · noch ${state.shop.stones} Steine`);
   playSound('muenze');
   showInfo(i);
+}
+function doBuyDeko(id) {
+  const err = buyDeko(id);
+  if (err) { toast(err); return; }
+  playSound('muenze');
+  // gleich aufstellen: Shop zu, Bauleiste auf Deko, das Stück hängt am Finger
+  closePage();
+  toggleBuildBar(false);
+  setBarCategory('deko');
+  beginBuild(id);
+  toast(`${DEKO[id].icon} ${DEKO[id].name} gekauft – wähle einen Platz`);
 }
 function doBuySlot() { shopDone(buySlot(), '🏗️ Eine Baustelle mehr'); }
 

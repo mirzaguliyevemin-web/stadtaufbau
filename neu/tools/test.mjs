@@ -8,6 +8,7 @@ function loadGame(opt) { const g = startGame(opt); g.run('var O = (N - 128) / 2;
 
 let passed = 0, failed = 0;
 function test(name, fn) {
+  if (process.env.NUR && !name.includes(process.env.NUR)) return;   // NUR=Deko node neu/tools/test.mjs --quick: nur passende Tests
   try {
     fn();
     passed++;
@@ -2844,7 +2845,7 @@ test('Shop: Gold, Beschleunigen, Fundstücke, Pakete, Baustelle; Testkauf kosten
   ok(g.run(`STAGES.every(s => CONFIG.shop.epochPacks[s.id] && Object.keys(CONFIG.shop.epochPacks[s.id].goods).every(id => RESOURCES[id]) && !CONFIG.shop.epochPacks[s.id].goods.wein)`), 'Zeitalter-Paket fehlt oder falsch');
   g.run(`state.shop.gold = 500; state.res.bronze = 0;`);
   ok(g.run(`buyGoods('zeit')`) === null && g.run(`state.res.bronze`) === 15 && g.run(`state.shop.gold`) === 430, 'Zeitalter-Paket kaufen');
-  ok(g.run(`shopHtml()`).includes('Zeitalter-Paket: Frühe Bronzezeit'), 'Zeitalter-Paket nicht im Fenster');
+  ok(g.run(`shopTab = 'waren'; shopHtml()`).includes('Zeitalter-Paket: Frühe Bronzezeit'), 'Zeitalter-Paket nicht im Fenster');
   // Eine Baustelle mehr, einmalig
   g.run(`state.shop.gold = 1000;`);
   ok(g.run(`constructionLimit()`) === 2 && g.run(`buySlot()`) === null && g.run(`constructionLimit()`) === 3 && g.run(`buySlot()`) === 'Hast du schon', 'Baustelle');
@@ -2856,6 +2857,8 @@ test('Shop: Gold, Beschleunigen, Fundstücke, Pakete, Baustelle; Testkauf kosten
   ok(g.run(`state.shop.gold`) === 20, 'Truhe ohne Gold');
   // Fenster
   ok(g.run(`shopHtml()`).includes('Testmodus') && g.run(`shopHtml()`).includes('Warenpaket') && g.run(`shopHtml()`).includes('€'), 'Fenster falsch');
+  for (const t of ['tempo', 'waren', 'deko', 'gold']) ok(g.run(`shopTab = '${t}'; shopHtml()`).includes('shop-tabs'), 'Reiter ' + t);
+  ok(g.run(`shopTab = 'gold'; shopHtml()`).includes('Bester Wert'), 'Gold-Pakete');
   // Speichern, alter und kaputter Stand
   g.run(`state.shop = { gold: 77, spent: 3, slots: 1 };`);
   ok(g.run(`loadFromText(serialize()) && state.shop.gold === 77 && state.shop.slots === 1 && constructionLimit() === 3`), 'Laden');
@@ -2863,6 +2866,41 @@ test('Shop: Gold, Beschleunigen, Fundstücke, Pakete, Baustelle; Testkauf kosten
   ok(g.run(`loadFromText(window.__t) && state.shop.gold === 0 && constructionLimit() === 2`), 'Alter Stand');
   g.run(`const b = JSON.parse(serialize()); b.shop = { gold: -5, slots: 'x' }; window.__t = JSON.stringify(b);`);
   ok(g.run(`loadFromText(window.__t) && state.shop.gold === 0 && state.shop.slots === 0`), 'Kaputter Stand');
+  noErrors(g);
+});
+
+test('Deko: im Shop kaufen, über die Bauleiste aufstellen, kein Weg nötig, Abreißen legt sie zurück, Spielstand', () => {
+  const g = fresh();
+  ok(g.run(`DEKO.deko_blumenbeet && BUILDINGS.deko_blumenbeet.size === 1 && categoryOf('deko_blumenbeet') === 'deko'`), 'Deko fehlt');
+  ok(!g.run(`barEntries().some(e => BUILDINGS[e.type].deko)`), 'Deko ohne Kauf in der Bauleiste');
+  ok(g.run(`dekoList().includes('deko_blumenbeet') && !dekoList().includes('deko_bronzestatue')`), 'Deko je Zeitalter');
+  ok(g.run(`buyDeko('deko_bronzestatue')`) === 'Gibt es noch nicht', 'Deko aus späterem Zeitalter');
+  g.run(`state.shop.gold = 0;`);
+  ok(g.run(`buyDeko('deko_blumenbeet')`) === 'Nicht genug Gold', 'Deko ohne Gold');
+  g.run(`state.shop.gold = 100;`);
+  ok(g.run(`buyDeko('deko_blumenbeet')`) === null && g.run(`state.shop.gold`) === 85 && g.run(`dekoOwned('deko_blumenbeet')`) === 1, 'Deko kaufen');
+  ok(g.run(`barEntries().some(e => e.type === 'deko_blumenbeet')`), 'Gekaufte Deko nicht in der Bauleiste');
+  // aufstellen, weit weg vom Weg: braucht keinen Weg, keine Baustelle, kostet keine Waren
+  const res = g.run(`JSON.stringify(state.res)`);
+  const spot = g.run(`(() => { const f = state.buildings[0]; return findFreeSpot('deko_blumenbeet', f.x + 9, f.y + 9); })()`);
+  ok(g.run(`placeBuilding('deko_blumenbeet', ${spot.x}, ${spot.y})`) === null, 'Aufstellen');
+  const i = g.run(`state.buildings.length - 1`);
+  ok(g.run(`state.buildings[${i}].type === 'deko_blumenbeet' && !state.buildings[${i}].build && isConnected(${i})`), 'Deko nicht fertig oder ohne Weg');
+  ok(g.run(`JSON.stringify(state.res)`) === res && g.run(`dekoOwned('deko_blumenbeet')`) === 0, 'Deko kostet Waren oder bleibt übrig');
+  ok(g.run(`placeBuilding('deko_blumenbeet', ${spot.x + 2}, ${spot.y + 2})`) === 'Erst im Shop kaufen', 'Mehr aufgestellt als gekauft');
+  ok(g.run(`bubbleProblem(${i})`) === null || g.run(`bubbleProblem(${i})`) === undefined, 'Deko zeigt ein Problem');
+  // Speichern und Laden
+  g.run(`buyDeko('deko_birke');`);
+  ok(g.run(`loadFromText(serialize()) && dekoOwned('deko_birke') === 1 && state.buildings.some(b => b.type === 'deko_blumenbeet')`), 'Laden');
+  g.run(`(() => { const d = JSON.parse(serialize()); delete d.shop.deko; window.__t = JSON.stringify(d); })()`);
+  ok(g.run(`loadFromText(window.__t) && dekoOwned('deko_birke') === 0`), 'Alter Stand ohne Deko');
+  g.run(`(() => { const d = JSON.parse(serialize()); d.shop.deko = { deko_birke: -2, gibtsnicht: 3, deko_menhir: 'x', deko_holzbank: 2 }; window.__t = JSON.stringify(d); })()`);
+  ok(g.run(`loadFromText(window.__t) && JSON.stringify(state.shop.deko) === '{"deko_holzbank":2}'`), 'Kaputte Deko im Stand');
+  // Abreißen: zurück in die Bauleiste, keine Waren
+  const k = g.run(`state.buildings.findIndex(b => b.type === 'deko_blumenbeet')`);
+  ok(g.run(`demolish(${k})`) && g.run(`dekoOwned('deko_blumenbeet')`) === 1, 'Abreißen legt Deko nicht zurück');
+  g.run(`shopTab = 'deko';`);
+  ok(g.run(`shopHtml()`).includes('Blumenbeet') && g.run(`shopHtml()`).includes('1 bereit'), 'Deko im Shop-Fenster');
   noErrors(g);
 });
 
@@ -2914,7 +2952,7 @@ test('Eisenzeit: Alle Forschungen führen bis zur Späten Eisenzeit, jedes Gebä
   const b = g.run(`(() => {
     const N = Math.floor(CONFIG.mapSize / 2), fehler = [];
     for (const [id, d] of Object.entries(BUILDINGS)) {
-      if (!d.stage || !d.stage.startsWith('eisen')) continue;
+      if (!d.stage || !d.stage.startsWith('eisen') || d.deko) continue;   // Deko kommt aus dem Shop
       if (!d.requires || !TECHS[d.requires]) fehler.push(id + ': keine Forschung');
       if (!d.wonder && !findFreeSpot(id, N, N)) fehler.push(id + ': kein Platz');
     }

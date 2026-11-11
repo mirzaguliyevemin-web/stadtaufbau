@@ -127,6 +127,10 @@ function sanitizeState(data) {
   for (const b of s.buildings) { const id = BUILDINGS[b.type].wonder; if (id) b.build = s.wonders[id] && s.wonders[id].step >= WONDERS[id].steps.length ? 0 : 1; }
   if (data.disasterNext && DISASTERS[data.disasterNext.id] && Number.isFinite(data.disasterNext.left)) s.disasterNext = { id: data.disasterNext.id, left: Math.max(0, data.disasterNext.left) };
   if (data.shop && typeof data.shop === 'object') for (const key of ['gold', 'spent', 'slots', 'stones']) if (Number.isFinite(data.shop[key]) && data.shop[key] >= 0) s.shop[key] = Math.floor(data.shop[key]);
+  // seit Version 160: gekaufte, noch nicht aufgestellte Deko
+  s.shop.deko = {};
+  if (data.shop && data.shop.deko && typeof data.shop.deko === 'object')
+    for (const [id, n] of Object.entries(data.shop.deko)) if (DEKO[id] && Number.isFinite(n) && n > 0) s.shop.deko[id] = Math.floor(n);
   if (data.finds && typeof data.finds === 'object')
     for (const [id, n] of Object.entries(data.finds)) if (FINDS[id] && Number.isFinite(n) && n > 0) s.finds[id] = Math.floor(n);
   const onMap = (x, y) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < N && y < N;

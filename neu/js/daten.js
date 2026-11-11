@@ -941,6 +941,31 @@ const NEXT_EPOCH = { name: 'Antike', icon: '🏛️', text: 'Schrift, Geld, Temp
 })();
 
 // Kategorien der Bauleiste (je Kategorie die Linien aus BUILDINGS)
+// Deko (Emin, 11.11.2026): kauft man im Shop mit Gold und stellt sie über die Bauleiste auf. Sie sehen nur schön aus
+// und ändern nichts am Spiel, brauchen keinen Weg. deko = Preis in Gold, stage = ab diesem Zeitalter im Shop.
+// IDs nie ändern: Sie stehen in Spielständen (state.shop.deko und state.buildings).
+const DEKO = {
+  // Pflanzen
+  deko_blumenbeet:   { name: 'Blumenbeet',       icon: '🌷', deko: 15, stage: 'alt',    color: '#e89ac0', info: 'Bunte Wildblumen, von Steinen eingefasst.' },
+  deko_beerenbusch:  { name: 'Beerenbusch',      icon: '🫐', deko: 15, stage: 'alt',    color: '#6a9a50', info: 'Ein Busch voller Beeren – die Kinder naschen gern davon.' },
+  deko_birke:        { name: 'Birke',            icon: '🌳', deko: 20, stage: 'alt',    color: '#8ac070', info: 'Eine junge Birke mit weißem Stamm.' },
+  // Figuren und Steine
+  deko_holzfigur:    { name: 'Holzfigur',        icon: '🪵', deko: 30, stage: 'alt',    color: '#a07850', info: 'Eine geschnitzte Figur aus Holz, sie wacht über das Dorf.' },
+  deko_menhir:       { name: 'Menhir',           icon: '🗿', deko: 40, stage: 'jung',   color: '#a0a0a0', info: 'Ein großer, aufrecht gestellter Stein.' },
+  deko_bronzestatue: { name: 'Bronzestatue',     icon: '🗽', deko: 60, stage: 'frueh',  color: '#c08a40', info: 'Eine glänzende kleine Statue aus Bronze auf einem Steinsockel.' },
+  deko_steinkrieger: { name: 'Steinkrieger',     icon: '🛡️', deko: 80, stage: 'eisen1', color: '#b0a890', info: 'Ein Krieger aus Sandstein, mit Hut und Gürtel – wie ein Fürst der Kelten.' },
+  // Tiere
+  deko_hundehuette:  { name: 'Hundehütte',       icon: '🐕', deko: 30, stage: 'mittel', color: '#a07850', info: 'Ein treuer Hund vor seiner kleinen Hütte.' },
+  deko_huehnerhof:   { name: 'Hühnerhof',        icon: '🐔', deko: 40, stage: 'jung',   color: '#d0b070', info: 'Ein paar Hühner hinter einem kleinen Zaun.' },
+  deko_storchennest: { name: 'Storchennest',     icon: '🪺', deko: 40, stage: 'kupfer', color: '#c0a070', info: 'Ein Storch brütet auf einem hohen Pfahl.' },
+  // Wege und Plätze
+  deko_flechtzaun:   { name: 'Flechtzaun',       icon: '🧺', deko: 10, stage: 'jung',   color: '#b08a50', info: 'Ein Stück Zaun aus geflochtenen Weidenruten.' },
+  deko_holzbank:     { name: 'Holzbank',         icon: '🪑', deko: 15, stage: 'mittel', color: '#a07850', info: 'Eine Bank aus einem halben Baumstamm.' },
+  deko_wegweiser:    { name: 'Wegweiser',        icon: '🪧', deko: 15, stage: 'kupfer', color: '#a07850', info: 'Ein Pfahl mit geschnitzten Zeichen, der den Weg zeigt.' },
+  deko_pflasterplatz:{ name: 'Gepflasterter Platz', icon: '🔲', deko: 10, stage: 'frueh', color: '#b8b0a0', info: 'Ein Feld aus flachen Steinen.' },
+};
+for (const [id, d] of Object.entries(DEKO)) BUILDINGS[id] = { size: 1, line: id, tier: 0, cost: {}, time: 0, ...d };
+
 const BAR_CATEGORIES = [
   { id: 'wohnen',    name: 'Wohnen',    icon: '🏠', lines: ['wohnen', 'grosswohnen', 'wasserwohnen'] },
   { id: 'nahrung',   name: 'Nahrung',   icon: '🍖', lines: ['sammeln', 'jagen', 'fischen', 'feld', 'tiere'] },
@@ -948,6 +973,7 @@ const BAR_CATEGORIES = [
   { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'bronze', 'eisen', 'kleidung', 'werkzeug', 'toepfern', 'schmuck', 'glas', 'salz', 'wagner', 'lager', 'handel'] },
   { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['wunder', 'wunder_bronze', 'wunder_eisen', 'waerme', 'glaube', 'wissen', 'wahrzeichen'] },
   { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg', 'bruecke'] },
+  { id: 'deko',      name: 'Deko',      icon: '🌷', lines: Object.keys(DEKO) },   // nur, was man gekauft und noch nicht aufgestellt hat
 ];
 
 // Aufträge. Sichtbar sind höchstens 3 – zuerst die, die man gerade erfüllen kann (activeQuests).

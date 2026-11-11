@@ -209,7 +209,13 @@ const BUILDING_SOUNDS = {
   holzsammler: 'hacken', pflanzerin: 'graben', steinsammler: 'klirren', hoehlenmaler: 'pinsel', fellmacherin: 'schaben', steinschlaeger: 'klopfen',
   ahnenplatz: 'trommel', tongrube: 'matsch', toepferei: 'toepfern', vorratsspeicher: 'knarzen', steinkreis: 'steinkreis',
   pfad: 'schritt', bruecke: 'schritt',
-};
+};// Deko: ein passendes kurzes Geräusch beim Antippen
+Object.assign(BUILDING_SOUNDS, {
+  deko_blumenbeet: 'rascheln', deko_beerenbusch: 'rascheln', deko_birke: 'rascheln', deko_holzfigur: 'klopfen', deko_menhir: 'klirren',
+  deko_bronzestatue: 'klopfen', deko_steinkrieger: 'klirren', deko_hundehuette: 'knarzen', deko_huehnerhof: 'ziege', deko_storchennest: 'rascheln',
+  deko_flechtzaun: 'knarzen', deko_holzbank: 'knarzen', deko_wegweiser: 'klopfen', deko_pflasterplatz: 'klirren',
+});
+
 
 let lastSoundAt = {};
 function playSound(name) {

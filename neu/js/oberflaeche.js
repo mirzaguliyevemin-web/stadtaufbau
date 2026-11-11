@@ -351,7 +351,7 @@ function renderBuildBar() {
       <button class="bar-info" aria-label="Was macht ${esc(def.name)}?" onpointerdown="event.stopPropagation()" onpointerup="event.stopPropagation()" onclick="event.stopPropagation(); showBarInfo('${type}')">i</button>
       ${iconHtml(def.bild, def.icon, 'big')}
       <span class="txt"><span class="name">${esc(def.name)}</span>
-      <span class="costs">${locked ? '🔒' : costHtml(def.cost)}</span></span>
+      <span class="costs">${locked ? '🔒' : def.deko ? `× ${dekoOwned(type)}` : costHtml(def.cost)}</span></span>
     </div>`;
   }).join('');
   applyBarHidden();
@@ -375,9 +375,10 @@ function renderActionBar() {
     const problem = ghostProblem();
     const s = def.size;
     const road = ghost.from >= 0 ? touchesNetwork(ghost.x, ghost.y, s) || state.buildings[ghost.from].type === 'lagerfeuer' : touchesNetwork(ghost.x, ghost.y, s);
-    const title = ghost.from < 0 ? `${def.icon} ${esc(def.name)} · ${costHtml(def.cost)} · ⏱ ${formatTime(buildTimeOf(ghost.type))}` : `${def.icon} ${esc(def.name)} verschieben`;
+    const title = ghost.from >= 0 ? `${def.icon} ${esc(def.name)} verschieben` : def.deko ? `${def.icon} ${esc(def.name)} · noch ${dekoOwned(ghost.type)} zum Aufstellen`
+      : `${def.icon} ${esc(def.name)} · ${costHtml(def.cost)} · ⏱ ${formatTime(buildTimeOf(ghost.type))}`;
     const what = ghost.from < 0 ? `<small class="ghost-info">${buildFactsHtml(ghost.type)}</small>` : '';
-    html = `<div class="action-text">${title}${what}<small class="${problem ? 'bad' : road ? 'good' : 'warn'}">${esc(problem || (road ? (ghost.from < 0 ? 'Passt! Mit ✔ bauen' : 'Passt! Mit ✔ abstellen') : 'Passt – danach einen Trampelpfad zum Lagerfeuer legen'))}</small></div>
+    html = `<div class="action-text">${title}${what}<small class="${problem ? 'bad' : road || def.deko ? 'good' : 'warn'}">${esc(problem || (def.deko ? 'Passt! Mit ✔ aufstellen' : road ? (ghost.from < 0 ? 'Passt! Mit ✔ bauen' : 'Passt! Mit ✔ abstellen') : 'Passt – danach einen Trampelpfad zum Lagerfeuer legen'))}</small></div>
       <button class="round no" onclick="cancelGhost()">✖</button>
       ${ghost.from < 0 ? `<button class="round info" aria-label="Was macht das Gebäude?" onclick="showBarInfo('${ghost.type}')">i</button>` : ''}
       <button class="round turn" onclick="rotateGhost()">↻</button>

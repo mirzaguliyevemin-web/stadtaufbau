@@ -37,6 +37,7 @@ function imageFolder(name) {
   if (name.startsWith('f-')) return 'forschung';
   if (name.startsWith('ware-')) return 'waren';
   if (name.startsWith('fund-')) return 'fundstuecke';
+  if (name.startsWith('deko-')) return 'deko';
   if (/^(mensch-|fischer-|einbaum|hirsch|mammut|ziege|esel)/.test(name)) return 'figuren';
   if (/^(baum-|berg-|fels-|blumen|busch|wiese|sand|wasser|pfad|bruecke|erdsockel|setzling)/.test(name)) return 'gelaende';
   return 'oberflaeche';
@@ -1200,7 +1201,14 @@ function drawPlaceholder(def, x, y, s, lift) {
   const height = (s === 1 ? 0 : (0.55 + s * 0.22) * TH) * cam.zoom;
   const pt = (tx, ty) => { const p = tileToScreen(tx, ty); return { x: p.x, y: p.y - lift }; };
   const a = pt(x + m, y + m), b = pt(x + s - m, y + m), c = pt(x + s - m, y + s - m), d = pt(x + m, y + s - m);
-  if (s === 1) return;
+  if (s === 1) {
+    if (def.deko) {   // Deko ohne Bild: nur das Zeichen
+      const top = pt(x + 0.5, y + 0.5);
+      ctx.font = `${Math.round(TW * 0.4 * cam.zoom)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(def.icon, top.x, top.y - 6 * cam.zoom);
+    }
+    return;
+  }
   const color = def.color || '#a08060';
   // linke Wand
   ctx.fillStyle = shade(color, -0.15);

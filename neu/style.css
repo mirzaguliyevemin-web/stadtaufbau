@@ -983,8 +983,13 @@ details.more[open] summary { margin-bottom: 4px; }
 /* Shop */
 .shop-head { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 4px 0 8px; text-align: center; }
 .shop-gold { font-size: 24px; font-weight: bold; }
-.shop-packs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.shop-pack { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; }
+.shop-packs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 4px; }
+.shop-pack { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 6px 12px; font-size: 18px; }
+.shop-pack .shop-price { font-size: 15px; }
+.shop-pack.best { box-shadow: 0 0 0 3px var(--gold), var(--shadow); }
+.shop-best { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: var(--gold); color: #fff; font-size: 12px; font-weight: bold; border-radius: 999px; padding: 1px 10px; }
+.shop-tabs { display: flex; width: 100%; margin: 0 0 6px; }
+.shop-tabs button { flex: 1; padding: 9px 4px; font-size: 14px; }
 .shop-pack small, .shop-euro { display: block; font-size: 11px; font-weight: normal; opacity: 0.8; }
 .shop-speed .q-main { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 .shop-speed-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }

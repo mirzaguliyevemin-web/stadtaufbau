@@ -183,6 +183,19 @@ const CONFIG = {
       klein: { name: 'Kleines Warenpaket', price: 30, extra: 1, goods: { nahrung: 100, holz: 100, stein: 50 } },
       gross: { name: 'Großes Warenpaket', price: 100, extra: 4, goods: { nahrung: 400, holz: 400, stein: 200 } },
     },
+    // Zeitalter-Paket (Emin, 11.11.2026): die Waren, die gerade wichtig sind, in spürbarer Menge.
+    // Wein gibt es bewusst nicht, den bringt nur der Händler aus dem Süden; Bernstein nur der normale Händler
+    epochPacks: {
+      alt:    { price: 30,  goods: { felle: 30, wissen: 20 } },
+      mittel: { price: 40,  goods: { felle: 50, kleidung: 20, wissen: 30 } },
+      jung:   { price: 50,  goods: { ton: 60, toepferwaren: 20, kleidung: 20 } },
+      kupfer: { price: 60,  goods: { kupfererz: 40, holzkohle: 40, kupfer: 20 } },
+      frueh:  { price: 70,  goods: { kupfer: 30, zinn: 20, bronze: 15, werkzeug: 10 } },
+      spaet:  { price: 80,  goods: { bronze: 30, wolle: 30, schmuck: 8, werkzeug: 15 } },
+      eisen1: { price: 90,  goods: { eisenerz: 40, holzkohle: 40, eisen: 20 } },
+      eisen2: { price: 100, goods: { eisen: 30, salz: 30, werkzeug: 20 } },
+      eisen3: { price: 110, goods: { eisen: 40, salz: 40, glas: 15 } },
+    },
     slotPrice: 300,
     // Beschleunigungssteine (Wunsch Emin, 08.11.2026): ⚡ am Gebäude, jeder Stein spart 5 Minuten Bau- oder Ausbauzeit.
     // Zum Start gibt es ein paar zum Ausprobieren, weitere im Shop (später gegen echtes Geld)

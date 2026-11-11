@@ -2840,6 +2840,11 @@ test('Shop: Gold, Beschleunigen, Fundstücke, Pakete, Baustelle; Testkauf kosten
   ok(g.run(`goodsPack('klein').goods.holz`) > k && g.run(`goodsPack('klein').goods.bronze`) > 0, 'Paket wächst nicht');
   g.run(`state.res.holz = 9999; buyGoods('klein');`);
   ok(g.run(`state.res.holz`) > 9999, 'Paket nicht übers Lager');
+  // Zeitalter-Paket: für jedes Zeitalter da, nur Waren, die es gibt, nie Wein
+  ok(g.run(`STAGES.every(s => CONFIG.shop.epochPacks[s.id] && Object.keys(CONFIG.shop.epochPacks[s.id].goods).every(id => RESOURCES[id]) && !CONFIG.shop.epochPacks[s.id].goods.wein)`), 'Zeitalter-Paket fehlt oder falsch');
+  g.run(`state.shop.gold = 500; state.res.bronze = 0;`);
+  ok(g.run(`buyGoods('zeit')`) === null && g.run(`state.res.bronze`) === 15 && g.run(`state.shop.gold`) === 430, 'Zeitalter-Paket kaufen');
+  ok(g.run(`shopHtml()`).includes('Zeitalter-Paket: Frühe Bronzezeit'), 'Zeitalter-Paket nicht im Fenster');
   // Eine Baustelle mehr, einmalig
   g.run(`state.shop.gold = 1000;`);
   ok(g.run(`constructionLimit()`) === 2 && g.run(`buySlot()`) === null && g.run(`constructionLimit()`) === 3 && g.run(`buySlot()`) === 'Hast du schon', 'Baustelle');

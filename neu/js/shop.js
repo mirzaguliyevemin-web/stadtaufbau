@@ -91,8 +91,12 @@ function goodsPack(k) {
   return { goods: out, price: Math.round(p.price * (1 + (f - 1) * 0.35) / 5) * 5 };
 }
 
+// Zeitalter-Paket: feste Waren je Zeitalter (CONFIG.shop.epochPacks)
+function epochPack() { return CONFIG.shop.epochPacks[state.stage] || null; }
+
 function buyGoods(k) {
-  const p = goodsPack(k);
+  const p = k === 'zeit' ? epochPack() : goodsPack(k);
+  if (!p) return 'Gibt es gerade nicht';
   if (!spendGold(p.price)) return 'Nicht genug Gold';
   addReward(p.goods);
   return null;
@@ -121,7 +125,7 @@ on('questClaimed', () => { if (state.shop) addGold(CONFIG.shop.earn.quest); });
 
 function shopRow(icon, title, sub, price, onclick, enabled = true) {
   const can = enabled && state.shop.gold >= price;
-  return `<div class="quest-card shop-row"><div class="q-medal">${icon}</div><div class="q-main"><b>${esc(title)}</b><small>${esc(sub)}</small></div>
+  return `<div class="quest-card shop-row"><div class="q-medal">${icon}</div><div class="q-main"><b>${esc(title)}</b><small>${sub}</small></div>
     <button class="btn${can ? ' primary' : ''}" ${can ? '' : 'disabled'} onclick="${onclick}">${goldText(price)}<small class="shop-euro">≈ ${goldEuro(price)} €</small></button></div>`;
 }
 
@@ -143,26 +147,23 @@ function shopSpeedHtml() {
   }).join('');
 }
 
-function shopHtml() {
-  const c = CONFIG.shop;
-  const packs = c.packs.map((p, i) => `<button class="btn shop-pack" onclick="doPack(${i})"><b>${goldText(p.gold)}</b><span>${esc(p.euro)} €</span>${c.testMode ? '<small>Test: kostenlos</small>' : ''}</button>`).join('');
-  const finds = shopFinds().map(id => shopRow(iconHtml(FINDS[id].bild, FINDS[id].icon, 'big'), FINDS[id].name, `Hast du ${findCount(id)}, gebraucht werden ${findNeed(id)}`, findPrice(id), `doBuyFind('${id}')`)).join('');
-  const goods = Object.keys(c.goods).map(k => {
-    const p = goodsPack(k);
-    return shopRow('<span class="ic emoji big">📦</span>', c.goods[k].name, formatAmounts(p.goods), p.price, `doBuyGoods('${k}')`);
-  }).join('');
-  const slot = state.shop.slots >= 1 ? '<p class="empty-note">✔ Du hast eine zusätzliche Baustelle.</p>'
-    : shopRow('<span class="ic emoji big">🏗️</span>', 'Eine Baustelle mehr', `Dauerhaft ${constructionLimit() + 1} statt ${constructionLimit()} gleichzeitig`, c.slotPrice, 'doBuySlot()');
-  return `<div class="shop">${shopInner()}</div>`;
+function shopHtml() { return `<div class="shop">${shopInner()}</div>`; }
+
+// Waren mit Bild, ohne Rot für Fehlendes
+function amountsHtml(goods) {
+  return Object.entries(goods).map(([id, n]) => `<span class="cost">${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')}${n}</span>`).join(' ');
 }
+
 function shopInner() {
   const c = CONFIG.shop;
   const packs = c.packs.map((p, i) => `<button class="btn shop-pack" onclick="doPack(${i})"><b>${goldText(p.gold)}</b><span>${esc(p.euro)} €</span>${c.testMode ? '<small>Test: kostenlos</small>' : ''}</button>`).join('');
   const finds = shopFinds().map(id => shopRow(iconHtml(FINDS[id].bild, FINDS[id].icon, 'big'), FINDS[id].name, `Hast du ${findCount(id)}, gebraucht werden ${findNeed(id)}`, findPrice(id), `doBuyFind('${id}')`)).join('');
-  const goods = Object.keys(c.goods).map(k => {
-    const p = goodsPack(k);
-    return shopRow('<span class="ic emoji big">📦</span>', c.goods[k].name, formatAmounts(p.goods), p.price, `doBuyGoods('${k}')`);
-  }).join('');
+  const ep = epochPack(), stage = STAGES[stageIndex()];
+  const goods = (ep ? shopRow(iconHtml(RESOURCES[Object.keys(ep.goods)[0]].bild, '🎁', 'big'), `Zeitalter-Paket: ${stage.name}`, amountsHtml(ep.goods), ep.price, "doBuyGoods('zeit')") : '')
+    + Object.keys(c.goods).map(k => {
+      const p = goodsPack(k);
+      return shopRow(iconHtml(RESOURCES.holz.bild, '📦', 'big'), c.goods[k].name, amountsHtml(p.goods), p.price, `doBuyGoods('${k}')`);
+    }).join('');
   const slot = state.shop.slots >= 1 ? '<p class="empty-note">✔ Du hast eine zusätzliche Baustelle.</p>'
     : shopRow('<span class="ic emoji big">🏗️</span>', 'Eine Baustelle mehr', `Dauerhaft ${constructionLimit() + 1} statt ${constructionLimit()} gleichzeitig`, c.slotPrice, 'doBuySlot()');
   return `<div class="shop-head"><span class="shop-gold">${goldText(state.shop.gold)}</span><small>${c.testMode ? 'Testmodus: Es fließt kein echtes Geld.' : ''} Gold gibt es auch für Aufträge, Wünsche und die große Truhe.</small></div>

@@ -947,6 +947,43 @@ test('Land kaufen: nur neben eigenem Land, Preis steigt', () => {
   ok(!g.run(`lateClickBlocked({})`), 'Späterer Klick bleibt verschluckt');
 });
 
+test('Wege schräg über Eck: verbunden, gemalt ohne Zickzack, Figuren laufen darüber', () => {
+  const g = fresh();
+  g.run('state.res.holz = 9999; state.res.stein = 999; for (let p = 0; p < state.plots.length; p++) state.plots[p] = 1; refreshLand();');
+  // Ein Wegfeld am Lagerfeuer, von dort schräg weiter
+  const r = g.run(`(() => {
+    const f = state.buildings.find(b => b.type === 'lagerfeuer'), s = BUILDINGS.lagerfeuer.size;
+    for (let k = 0; k < 8; k++) for (const [x0, y0, dx, dy] of [[f.x + s, f.y + s - 1, 1, 1], [f.x - 1, f.y, -1, -1], [f.x + s, f.y, 1, -1], [f.x - 1, f.y + s - 1, -1, 1]]) {
+      const all = [0, 1, 2, 3, 4, 5, 6].map(i => [x0 + dx * (i + k), y0 + dy * (i + k)]);
+      if (!all.every(([x, y]) => !placeProblem('pfad', x, y))) continue;
+      const pts = all.slice(0, 4);
+      for (let i = 1; i <= k; i++) placeBuilding('pfad', x0 + dx * (i - 1), y0 + dy * (i - 1));   // Anschluss ans Feuer
+      for (const [x, y] of pts) placeBuilding('pfad', x, y);
+      return { pts, dx, dy };
+    }
+    return null;
+  })()`);
+  ok(r, 'Kein Platz für einen schrägen Weg');
+  const [ex, ey] = r.pts[3];
+  ok(g.run(`(updateNetwork(), reached[${ey} * N + ${ex}] === 1)`), 'Schräger Weg nicht mit dem Lagerfeuer verbunden');
+  ok(g.run(`pathNeighbors(${r.pts[1][0]}, ${r.pts[1][1]}).length`) === 2, 'Schräges Wegfeld hat nicht zwei Nachbarn');
+  // Liegt ein Feld dazwischen schon Weg, gilt die Ecke nicht doppelt
+  ok(!g.run(`diagLink(0, 0, 1, 1)`), 'Über Eck ohne Weg verbunden');
+  // Malen: schräg gezogen gibt eine gerade schräge Reihe (kein Zickzack)
+  const painted = g.run(`(() => {
+    const n0 = state.buildings.length, t0 = { x: ${ex}, y: ${ey} };
+    gesture = { lastTile: t0 };
+    const realScreen = screenToTile;
+    screenToTile = () => ({ x: ${ex} + 3 * ${r.dx}, y: ${ey} + 3 * ${r.dy} });
+    paintPath(0, 0);
+    screenToTile = realScreen; gesture = null;
+    return state.buildings.slice(n0).map(b => [b.x, b.y]);
+  })()`);
+  ok(painted.length === 3 && painted.every(([x, y], i) => x === ex + (i + 1) * r.dx && y === ey + (i + 1) * r.dy), 'Schräg gemalt kein gerader schräger Weg: ' + JSON.stringify(painted));
+  g.run('for (let i = 0; i < 200; i++) updateLife(0.1, visibleRange());');
+  noErrors(g);
+});
+
 // Einstieg durchspielen wie ein Spieler: Vorschlag des Ältesten annehmen, Weg bauen, antippen …
 function einstiegBau(g, type) {
   const plan = g.run(`(() => { const p = tutorialPlan(); return p && p.kind === 'site' ? [p.x, p.y, p.type] : null; })()`);
@@ -1580,7 +1617,7 @@ test('Bauen: Baum unter dem geplanten Gebäude antippen fällt ihn; schräg gezo
     paintPath(a.x, a.y); paintPath(b.x, b.y);
     // zusammenhängend: vom Start aus über Pfade das Ziel erreichbar
     const seen = new Set([(52 + O) + ',' + (52 + O)]), q = [[52 + O, 52 + O]];
-    while (q.length) { const [x, y] = q.pop(); for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) { const k = (x+dx) + ',' + (y+dy); if (!seen.has(k) && isPathAt(x+dx, y+dy)) { seen.add(k); q.push([x+dx, y+dy]); } } }
+    while (q.length) { const [x, y] = q.pop(); for (const [nx, ny] of pathNeighbors(x, y)) { const k = nx + ',' + ny; if (!seen.has(k)) { seen.add(k); q.push([nx, ny]); } } }   // auch über Eck
     gesture = null;
     return [felled, seen.has((58 + O) + ',' + (57 + O))];
   })()`);

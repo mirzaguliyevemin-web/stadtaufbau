@@ -803,6 +803,18 @@ function isPathAt(x, y) {
   return i >= 0 && BUILDINGS[state.buildings[i].type].isPath;
 }
 
+// Nachbar-Wegfelder: die vier direkten und schräg über Eck (Emin, 11.11.: Wege auch senkrecht und waagerecht
+// auf dem Bildschirm). Über Eck zählt nur, wenn keins der beiden Felder dazwischen Weg ist – sonst führt der
+// Weg ohnehin um die Ecke.
+const PATH_DIAG = [[1, 1], [-1, -1], [1, -1], [-1, 1]];
+function diagLink(x, y, dx, dy) { return isPathAt(x + dx, y + dy) && !isPathAt(x + dx, y) && !isPathAt(x, y + dy); }
+function pathNeighbors(x, y) {
+  const out = [];
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (inMap(x + dx, y + dy) && isPathAt(x + dx, y + dy)) out.push([x + dx, y + dy]);
+  for (const [dx, dy] of PATH_DIAG) if (inMap(x + dx, y + dy) && diagLink(x, y, dx, dy)) out.push([x + dx, y + dy]);
+  return out;
+}
+
 function isFireAt(x, y) {
   const i = buildingAt(x, y);
   return i >= 0 && state.buildings[i].type === 'lagerfeuer';
@@ -831,8 +843,8 @@ function updateNetwork() {
     if (isPathAt(x, y) && !reached[y * N + x]) { reached[y * N + x] = 1; queue.push([x, y]); }
   while (queue.length) {
     const [x, y] = queue.pop();
-    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]])
-      if (inMap(nx, ny) && !reached[ny * N + nx] && isPathAt(nx, ny)) { reached[ny * N + nx] = 1; queue.push([nx, ny]); }
+    for (const [nx, ny] of pathNeighbors(x, y))
+      if (!reached[ny * N + nx]) { reached[ny * N + nx] = 1; queue.push([nx, ny]); }
   }
   connected = state.buildings.map(b => {
     const def = BUILDINGS[b.type];

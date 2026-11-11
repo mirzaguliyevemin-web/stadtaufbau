@@ -1869,6 +1869,10 @@ function drawPaths(range) {
         if (!isPathAt(b.x + dx, b.y + dy)) continue;
         ctx.moveTo(cx, cy); ctx.lineTo(cx + dx * 0.5, cy + dy * 0.5);
       }
+      for (const [dx, dy] of PATH_DIAG) {   // schräg über Eck: bis zur gemeinsamen Ecke
+        if (!diagLink(b.x, b.y, dx, dy)) continue;
+        ctx.moveTo(cx, cy); ctx.lineTo(cx + dx * 0.5, cy + dy * 0.5);
+      }
     }
     for (const d of Object.values(door)) {
       const cx = d.b.x + 0.5, cy = d.b.y + 0.5;
@@ -1896,9 +1900,12 @@ function drawPaths(range) {
   const snow = typeof snowCover === 'function' ? snowCover() : 0;
   if (snow > 0) { ctx.strokeStyle = `rgba(245,250,255,${0.35 * snow})`; ctx.stroke(); }
   const sprite = images.bruecke;
-  if (!sprite) for (const b of bridges) drawBridge(b, snow);
+  const diag = new Map(bridges.map(b => [b, bridgeDiag(b)]));
+  for (const b of bridges) if (diag.get(b)) drawBridgeDiag(b, diag.get(b), snow);
+  if (!sprite) for (const b of bridges) if (!diag.get(b)) drawBridge(b, snow);
   ctx.restore();
   for (const b of bridges) {
+    if (diag.get(b)) continue;
     if (sprite) drawBridgeSprite(sprite, b, snow);
     else drawBridgeRails(b);
   }
@@ -1982,6 +1989,36 @@ function bridgeAlongX(b) {
   if (way(b.x - 1, b.y) || way(b.x + 1, b.y)) return true;
   if (way(b.x, b.y - 1) || way(b.x, b.y + 1)) return false;
   return !isWaterAt(b.x - 1, b.y) || !isWaterAt(b.x + 1, b.y);
+}
+
+// Schräge Brücke (nur über Eck verbunden): Richtung [dx, dy], sonst null
+function bridgeDiag(b) {
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isPathAt(b.x + dx, b.y + dy)) return null;
+  for (const [dx, dy] of PATH_DIAG) if (diagLink(b.x, b.y, dx, dy)) return dx === dy ? [1, 1] : [1, -1];
+  return null;
+}
+
+// Schräger Brückenbelag von Ecke zu Ecke (in Feld-Koordinaten, ctx ist schon transformiert)
+function drawBridgeDiag(b, [dx, dy], snow) {
+  const len = 1.5, w = BRIDGE_W * 0.85;
+  ctx.save();
+  ctx.translate(b.x + 0.5, b.y + 0.5);
+  ctx.rotate(Math.atan2(dy, dx));
+  ctx.fillStyle = 'rgba(20, 40, 60, 0.28)';   // Schatten im Wasser
+  ctx.fillRect(-len / 2 + 0.1, -w / 2 + 0.12, len, w);
+  ctx.fillStyle = '#4a2c12';   // Rand und Geländerbalken
+  ctx.fillRect(-len / 2, -w / 2 - 0.06, len, w + 0.12);
+  const img = images['leiste-holz-steinzeit'];
+  let fill = '#9a6332';
+  if (img && ctx.createPattern && typeof DOMMatrix !== 'undefined') {
+    fill = ctx.createPattern(img, 'repeat');
+    const k = 0.16 / 36;
+    fill.setTransform(new DOMMatrix([0, k, -k, 0, 0, 0]));   // Stämme quer zur Laufrichtung
+  }
+  ctx.fillStyle = fill;
+  ctx.fillRect(-len / 2, -w / 2, len, w);
+  if (snow > 0) { ctx.fillStyle = `rgba(245,250,255,${0.45 * snow})`; ctx.fillRect(-len / 2, -w / 2, len, w); }
+  ctx.restore();
 }
 
 // Brückenbelag (in Feld-Koordinaten, ctx ist schon transformiert): Schatten, Rand, quer liegende Stämme

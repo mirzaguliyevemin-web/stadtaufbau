@@ -134,7 +134,7 @@ function cancelGhost() {
   renderActionBar();
 }
 
-// Pfad malen: auch schräg gezogen entsteht ein zusammenhängender Weg (Zickzack über die Nachbarfelder),
+// Pfad malen: auch schräg gezogen entsteht ein zusammenhängender Weg (schräg über Eck verbunden),
 // Felder unter Gebäuden werden übersprungen
 function paintPath(sx, sy) {
   const t = screenToTile(sx, sy);
@@ -143,7 +143,10 @@ function paintPath(sx, sy) {
   let x = from.x, y = from.y;
   const steps = [[x, y]];
   while (x !== t.x || y !== t.y) {
-    if (x !== t.x && (Math.abs(t.x - x) >= Math.abs(t.y - y) || y === t.y)) x += Math.sign(t.x - x); else y += Math.sign(t.y - y);
+    // Weg folgt dem Finger: gerade entlang einer Achse oder schräg über Eck (Emin, 11.11.: kein Zickzack mehr)
+    const ax = Math.abs(t.x - x), ay = Math.abs(t.y - y);
+    if (ax && ay) { x += Math.sign(t.x - x); y += Math.sign(t.y - y); }
+    else if (ax) x += Math.sign(t.x - x); else y += Math.sign(t.y - y);
     steps.push([x, y]);
   }
   gesture.lastTile = t;

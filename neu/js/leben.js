@@ -52,7 +52,7 @@ function updateWalkers(dt) {
       // am nächsten Feld angekommen: ein Nachbarfeld mit Pfad wählen (nicht gleich zurück, außer in der Sackgasse)
       const [cx, cy] = w.to;
       if (!isPathAt(cx, cy)) { w.k = 1; w.to = w.from = paths[0]; continue; }
-      const next = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [cx + dx, cy + dy]).filter(([x, y]) => isPathAt(x, y));
+      const next = pathNeighbors(cx, cy);
       const forward = next.filter(([x, y]) => x !== w.from[0] || y !== w.from[1]);
       const pick = forward.length ? forward : next;
       w.from = [cx, cy];
@@ -902,9 +902,9 @@ function carryRoute(i) {
       const pts = [[(fx + home[0]) / 2 + 0.5, (fy + home[1]) / 2 + 0.5], ...tiles.map(([tx, ty]) => [tx + 0.5, ty + 0.5]), [(x + store[0]) / 2 + 0.5, (y + store[1]) / 2 + 0.5]];
       return { pts, tiles, store: state.buildings[buildingAt(store[0], store[1])] };
     }
-    for (const [nx, ny] of near) {
+    for (const [nx, ny] of pathNeighbors(x, y)) {
       const nk = ny * N + nx;
-      if (carryPrev[nk] !== -2 || !isPathAt(nx, ny)) continue;
+      if (carryPrev[nk] !== -2) continue;
       carryPrev[nk] = k;
       queue.push(nk);
     }

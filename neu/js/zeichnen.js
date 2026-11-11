@@ -1609,7 +1609,14 @@ function drawWonderProgress(b) {
 }
 
 // leftIn/totalIn: für den Ausbau auf die nächste Stufe (sonst Baustelle bzw. Abschnitt des Wunderwerks)
-function drawProgress(b, s, height, leftIn, totalIn) {
+// Balken werden erst nach Wetter, Winter und Nacht gezeichnet (wie die Blasen), sonst sind sie blass
+let progressQueue = [];
+function drawProgress(...args) { progressQueue.push(args); }
+function flushProgress() {
+  const q = progressQueue; progressQueue = [];
+  for (const a of q) { try { drawProgressNow(...a); } catch (e) { resetDrawState(); noteError('Zeichnen Fortschritt', e); } }
+}
+function drawProgressNow(b, s, height, leftIn, totalIn) {
   const def = BUILDINGS[b.type];
   const w = def.wonder ? wonderState(def.wonder) : null, step = w ? WONDERS[def.wonder].steps[w.step] : null;
   if (w && !(w.left > 0)) return;   // Wunderwerk wartet auf den nächsten Abschnitt
@@ -1619,15 +1626,25 @@ function drawProgress(b, s, height, leftIn, totalIn) {
   const top = tileToScreen(b.x + s / 2, b.y + s / 2);
   const bw = Math.max(40, s * TW * 0.5 * cam.zoom), bh = Math.max(6, 8 * cam.zoom);
   const by = top.y - height - 18 * cam.zoom;
-  ctx.fillStyle = 'rgba(40,25,10,0.7)';
+  // Emin, 11.11.: weiße Zahl auf Schnee und hellem Boden war nicht zu lesen – Balken und Zeit jetzt
+  // immer voll deckend und die Zeit auf einem dunklen Schild
+  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = 'rgba(40,25,10,0.85)';
   roundRect(top.x - bw / 2 - 2, by - 2, bw + 4, bh + 4, 4); ctx.fill();
   ctx.fillStyle = '#8fd14f';
   roundRect(top.x - bw / 2, by, bw * Math.max(0, Math.min(1, done)), bh, 3); ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font = `600 ${Math.max(11, Math.round(12 * cam.zoom))}px ${FONT}`;
+  const fs = Math.max(12, Math.round(13 * cam.zoom));
+  ctx.font = `700 ${fs}px ${FONT}`;
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'bottom';
-  ctx.fillText('🔨 ' + formatTime(left), top.x, by - 3);
+  ctx.textBaseline = 'middle';
+  const text = '🔨 ' + formatTime(left), tw = ctx.measureText(text).width;
+  const ph = fs + 8, py = by - 4 - ph;
+  ctx.fillStyle = 'rgba(40,25,10,0.85)';
+  roundRect(top.x - tw / 2 - 7, py, tw + 14, ph, ph / 2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.fillText(text, top.x, py + ph / 2 + 1);
+  ctx.restore();
 }
 
 // Stufenschild an der vorderen Ecke des Gebäudes (ab Stufe 2): goldener Stern mit Zahl
@@ -2074,6 +2091,7 @@ function drawScene(dt) {
   }
   objects.push(...lifeObjects(range));
   objects.sort((a, b) => a.d - b.d || (a.x || 0) - (b.x || 0));
+  progressQueue = [];
   for (const o of objects) {
    // Jedes Objekt einzeln absichern: Ein Fehler (z. B. ein Bild, das das Handy verworfen hat) ließ sonst alle
    // folgenden Gebäude, Bäume und Figuren verschwinden (Emin, 07.11.2026)
@@ -2106,6 +2124,7 @@ function drawScene(dt) {
   drawDayNight();
   // Blasen und das geplante Gebäude bleiben auch nachts und im Regen gut zu sehen
   for (const o of objects) if (o.kind === 'b') drawBubble(o.i);
+  flushProgress();
   drawPlots(range);
   if (state.tutorial >= 0) drawGuide(dt);   // Einstieg: Stammesältester, Vorschau und Pfeile (nur solange er läuft)
   if (ghost) drawGhost(ghost);

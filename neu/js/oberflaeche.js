@@ -1324,12 +1324,12 @@ function suedHtml() {
       ${taken ? '<span class="q-pct">✔</span>' : `<button class="btn primary" ${problem ? 'disabled' : ''} onclick="tradeNow('${o.id}')">🍇 Tauschen</button>`}
     </div>`;
   }).join('');
-  return `<div class="quests"><div class="wish-card later"><span class="q-medal"><span class="ic emoji big">🫏</span></span><div class="q-main"><b>Ein Händler aus dem Süden ist da</b><span>Er kam mit seinem Esel über die Berge, bringt Wein und Glas und zieht in ${formatTime(state.suedhaendler.left)} weiter.</span></div></div>${rows}</div>`;
+  return `<div class="quests"><div class="wish-card later"><span class="q-medal">${iconHtml('mensch-suedhaendler', '🫏', 'big')}</span><div class="q-main"><b>Ein Händler aus dem Süden ist da</b><span>Er kam mit seinem Esel über die Berge, bringt Wein und Glas und zieht in ${formatTime(state.suedhaendler.left)} weiter.</span></div></div>${rows}</div>`;
 }
 function openSued() { openPage('🍇 Händler aus dem Süden', suedHtml(), 'sued'); }
 function suedCardHtml() {
   if (!suedHere()) return '';
-  return `<div class="wish-card"><span class="q-medal"><span class="ic emoji big">🫏</span></span><div class="q-main"><b>Ein Händler aus dem Süden ist da</b><span>Noch ${formatTime(state.suedhaendler.left)}.</span></div><button class="btn primary" onclick="openSued()">🍇 Tauschen</button></div>`;
+  return `<div class="wish-card"><span class="q-medal">${iconHtml('mensch-suedhaendler', '🫏', 'big')}</span><div class="q-main"><b>Ein Händler aus dem Süden ist da</b><span>Noch ${formatTime(state.suedhaendler.left)}.</span></div><button class="btn primary" onclick="openSued()">🍇 Tauschen</button></div>`;
 }
 
 // Wanderer (CONFIG.wanderer): Fenster und Karte bei den Aufträgen

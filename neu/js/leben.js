@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-bergmann-korb', 'mensch-hacke-mitte', 'mensch-axt-mitte', 'mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-frau-grabstock-tief', 'mensch-hirte', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-mitte', 'fischer-speer-unten'];
+const LIFE_NAMES = ['mensch-bergmann-korb', 'mensch-hacke-mitte', 'mensch-axt-mitte', 'mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-frau-grabstock-tief', 'mensch-hirte', 'mensch-suedhaendler', 'esel-amphoren', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-mitte', 'fischer-speer-unten'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -246,11 +246,14 @@ function suedObjects(inView, t) {
   if (!p) return [];
   const out = [];
   if (inView(p.x, p.y)) out.push({ d: p.x + p.y - 0.5, kind: 'leben', draw: () => {
-    drawCreature(personImg('mensch-mann', 'leer'), p.x, p.y, 32, -1, 0, '🧍', null);
-    const q = tileToScreen(p.x - 0.7, p.y), z = cam.zoom;
-    ctx.font = `${Math.round(24 * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = '#000';
-    ctx.fillText('🫏', q.x, q.y);
-    ctx.font = `${Math.round(13 * z)}px sans-serif`; ctx.fillText('🏺', q.x, q.y - 20 * z);
+    if (images['esel-amphoren']) drawCreature('esel-amphoren', p.x - 0.7, p.y, 30, 1, 0, '🫏', null);
+    drawCreature(images['mensch-suedhaendler'] ? 'mensch-suedhaendler' : personImg('mensch-mann', 'leer'), p.x, p.y, 34, 1, 0, '🧍', null);
+    if (!images['esel-amphoren']) {   // bis das Eselbild da ist: Zeichen
+      const q = tileToScreen(p.x - 0.7, p.y), z = cam.zoom;
+      ctx.font = `${Math.round(24 * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = '#000';
+      ctx.fillText('🫏', q.x, q.y);
+      ctx.font = `${Math.round(13 * z)}px sans-serif`; ctx.fillText('🏺', q.x, q.y - 20 * z);
+    }
   } });
   out.push({ d: p.bx + p.by + 100, kind: 'leben', draw: () => {
     const q = traderBubble(p), z = Math.max(cam.zoom, 1.4), r = (15 + Math.sin(t * 3) * 1.5) * z;

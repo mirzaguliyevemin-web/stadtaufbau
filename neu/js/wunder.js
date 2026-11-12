@@ -157,7 +157,7 @@ let wonderPageId = null;
 
 function refreshWonder() { if (pageOpen === 'wonder' && wonderPageId) $('page-body').innerHTML = wonderHtml(wonderPageId); }
 // Restzeit im offenen Fenster läuft mit
-function tickWonderPage() { if (pageOpen === 'wonder' && wonderPageId && wonderState(wonderPageId).left > 0) refreshWonder(); }
+function tickWonderPage() { if (pageOpen === 'wonder' && wonderPageId && wonderState(wonderPageId).left > 0) patchHtml($('page-body'), wonderHtml(wonderPageId)); }   // nur Geändertes, sonst flackern die Bilder auf dem iPhone
 
 function doWonderStep(id) {
   const err = startWonderStep(id);

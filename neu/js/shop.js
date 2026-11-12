@@ -238,7 +238,8 @@ function openShop() {
 }
 
 function refreshShop() { if (pageOpen === 'shop') { const el = $('page-body'), top = el.scrollTop; el.innerHTML = shopHtml(); el.scrollTop = top; } }
-function tickShopPage() { if (pageOpen === 'shop' && speedTargets().length) refreshShop(); }
+// Jede Sekunde nur Geändertes austauschen, nicht den ganzen Shop: Safari auf dem iPhone lädt sonst jedes Bild neu, es flackert
+function tickShopPage() { if (pageOpen === 'shop') patchHtml($('page-body'), shopHtml()); }
 
 function shopDone(err, ok) {
   if (err) toast(err); else { if (ok) toast(ok); playSound('muenze'); }

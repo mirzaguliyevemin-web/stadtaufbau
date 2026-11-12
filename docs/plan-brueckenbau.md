@@ -63,6 +63,13 @@ Pfade lassen sich dann nicht mehr übers Wasser malen. Der Weg hört am Ufer auf
 
 ## 7 · Reihenfolge
 
-1. Emin beantwortet die Fragen ❓ und sagt, ob die Zahlen in 3 passen.
+1. ✅ Fragen beantwortet (siehe 8). Die Zahlen in 3 werden im Spiel erprobt.
 2. Bauen mit der Steinzeit-Brücke. Die fehlenden Steinzeit-Bilder (waagerecht, Winter) gibt es dann schon aus Canva.
 3. Bronze- und Eisenzeit-Brücken, sobald die Bilder da sind.
+
+## 8 · Entscheidungen von Emin (2026-11-12)
+
+1. Eine Brücke **belegt einen Platz in der Bauschlange**.
+2. Der Bau lässt sich **mit Gold beschleunigen**.
+3. **Arbeiter beim Bau** sollen zu sehen sein, das hat aber keine Eile (kommt mit den Arbeitsbewegungen).
+4. Alte Brücken **wechseln beim neuen Zeitalter von selbst ihr Aussehen**. Emin hat dazu noch eine Idee, die besprechen wir später.

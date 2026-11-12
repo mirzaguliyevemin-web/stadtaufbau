@@ -309,8 +309,8 @@ Isometric mobile game asset: one short section of a simple stone age log bridge,
 ✅ ERLEDIGT – 103. Brücke schräg waagerecht  →  Datei: bruecke-waagerecht.png  (Ordner gelaende/, für Brücken, die auf dem Bildschirm von links nach rechts laufen)
 Isometric mobile game asset: one short section of a simple stone age log bridge, seen from the side so the bridge runs straight from the left edge of the image to the right edge. Round logs lying across, lashed together with rope, wooden posts along the front and back edge with a sagging rope railing. Same style as the existing log bridge piece: bright cheerful cartoon, warm brown wood, clean dark outlines, soft shading. Plain white background, no water, no shadow, centered.
 
-⬜ OFFEN – 104. Brücke schräg senkrecht Winter  →  Datei: bruecke-senkrecht-winter.png  (Ordner gelaende/, aus Nr. 102: dasselbe Bild mit Schnee)
+✅ ERLEDIGT – 104. Brücke schräg senkrecht Winter  →  Datei: bruecke-senkrecht-winter.png  (Ordner gelaende/, aus Nr. 102: dasselbe Bild mit Schnee)
 Same bridge section as the reference image, unchanged in shape, size and position, but with a thin layer of fresh white snow on the logs, posts and rope. Plain white background.
 
-⬜ OFFEN – 105. Brücke schräg waagerecht Winter  →  Datei: bruecke-waagerecht-winter.png  (Ordner gelaende/, aus Nr. 103: dasselbe Bild mit Schnee)
+⬜ OFFEN – 105. Brücke schräg waagerecht Winter  →  Datei: bruecke-waagerecht-winter.png  (Ordner gelaende/, aus Nr. 103 = MAHarYKGDYY: dasselbe Bild mit Schnee)
 Same bridge section as the reference image, unchanged in shape, size and position, but with a thin layer of fresh white snow on the logs, posts and rope. Plain white background.

@@ -112,4 +112,4 @@ Das Spiel läuft heute im Browser, der Spielstand liegt auf dem Handy und lässt
 - **Reiter** oben im Shop: ⚡ Schneller · 📦 Waren · 🌷 Deko · 🪙 Gold.
 - **Gold-Pakete** als große Karten, das größte als „Bester Wert“.
 - **Deko** (`DEKO` in `daten.js`): 14 Stücke in vier Arten, nämlich Pflanzen, Figuren und Steine, Tiere sowie Wege und Plätze. Jedes Zeitalter bringt neue dazu. Gekauft wird im Shop, aufgestellt über die Bauleiste im Reiter „Deko“. Deko braucht keinen Weg und ändert nichts am Spiel. Beim Abreißen kommt das Stück zurück in die Bauleiste. Was gekauft, aber noch nicht aufgestellt ist, steht in `state.shop.deko`.
-- **Offen: Bilder aus Canva.** Gebraucht werden 14 Deko-Bilder (`deko-<name>` ohne `deko_`-Vorsilbe, Ordner `deko/`), drei Bilder für die Gold-Pakete (`gold-1`, `gold-2`, `gold-3`) und ein Bild für die zusätzliche Baustelle (`shop-baustelle`). Bis dahin zeigen sie Emojis.
+- **Bilder aus Canva (12.11.2026, V171):** alle 14 Deko-Bilder, die drei Gold-Pakete und die zusätzliche Baustelle sind fertig.

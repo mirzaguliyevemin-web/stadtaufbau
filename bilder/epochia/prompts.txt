@@ -282,7 +282,7 @@ Bronze age: a wooden signpost pole with two pointing boards carved with simple s
 ✅ ERLEDIGT – 94. Deko Gepflasterter Platz (1×1)  →  Datei: deko-pflasterplatz.png  (Ordner deko/, danach bild: 'deko-pflasterplatz' in DEKO)
 A flat square of paving made of light grey and beige flat natural stones, fitted together, tiny grass in the joints, nothing standing on it. Style: bright cheerful cartoon mobile game asset, cozy and friendly, light fresh sunny colors (not too brown), clean dark brown outlines, gentle soft shading, isometric view from the front-right at a classic 2:1 isometric angle, sunlight from top left, standing on a small diamond-shaped plot of grass that fills the full width of the image (one single tile, 1x1), fully visible and centered, plain pure white background, no text, no letters, no border, no shadow outside the plot, consistent style across all assets, square 1:1 format
 
-⬜ OFFEN – 95. Shop Gold klein  →  Datei: gold-1.png  (Ordner oberflaeche/)
+✅ ERLEDIGT – 95. Shop Gold klein  →  Datei: gold-1.png  (Ordner oberflaeche/)
 A small neat stack of five shiny golden coins with a simple embossed sun symbol. Style: bright cheerful cartoon mobile game icon, soft warm colors, clean dark brown outlines, gentle soft shading, centered, plain pure white background, no text, no letters, no border, square 1:1 format
 
 ⬜ OFFEN – 96. Shop Gold mittel  →  Datei: gold-2.png  (Ordner oberflaeche/)

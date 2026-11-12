@@ -2005,7 +2005,7 @@ function drawBridgeDiagSprite(img, b, [dx, dy], snow) {
   const z = cam.zoom, p = tileToScreen(b.x + 0.5, b.y + 0.5), q = tileToScreen(b.x + 0.5 + dx, b.y + 0.5 + dy);
   const sx = q.x - p.x, sy = q.y - p.y, len = Math.hypot(sx, sy), ux = sx / len, uy = sy / len;   // Laufrichtung auf dem Bildschirm
   const vertical = dx === dy;
-  const w = vertical ? TW * z * 0.62 : TW * z * 1.25, h = w * img.height / img.width;
+  const w = vertical ? TW * z * 0.62 : TW * z * 1.6, h = w * img.height / img.width;
   const prev = isBridgeAt(b.x - dx, b.y - dy) && bridgeDiag(state.buildings[buildingAt(b.x - dx, b.y - dy)]);
   const next = isBridgeAt(b.x + dx, b.y + dy) && bridgeDiag(state.buildings[buildingAt(b.x + dx, b.y + dy)]);
   ctx.save();

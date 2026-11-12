@@ -300,7 +300,7 @@ Iron age salt miner's backpack from Hallstatt: a leather sack on a wooden frame 
 ✅ ERLEDIGT – 100. Fundstück Bronzepickel  →  Datei: fund-bronzepickel.png  (Vorlage Sonnenstein MAHamAmuh8Q, danach bild: in FINDS)
 An old bronze pickaxe head with a short worn wooden handle, greenish patina on the bronze. Style: bright cheerful cartoon mobile game icon, soft warm colors, clean dark brown outlines, gentle soft shading, centered, plain pure white background, no text, no letters, no border, square 1:1 format
 
-⬜ OFFEN – 101. Fundstück Karierter Wollstoff  →  Datei: fund-wollstoff.png  (Vorlage Sonnenstein MAHamAmuh8Q, danach bild: in FINDS)
+✅ ERLEDIGT – 101. Fundstück Karierter Wollstoff  →  Datei: fund-wollstoff.png  (Vorlage Sonnenstein MAHamAmuh8Q, danach bild: in FINDS)
 A folded piece of old woven wool cloth with a checkered tartan pattern in brown, ochre and dark green, frayed edges. Style: bright cheerful cartoon mobile game icon, soft warm colors, clean dark brown outlines, gentle soft shading, centered, plain pure white background, no text, no letters, no border, square 1:1 format
 
 ✅ ERLEDIGT – 102. Brücke schräg senkrecht  →  Datei: bruecke-senkrecht.png  (Ordner gelaende/, für Brücken, die auf dem Bildschirm von unten nach oben laufen)

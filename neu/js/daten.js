@@ -948,7 +948,7 @@ const DEKO = {
   // Pflanzen
   deko_blumenbeet:   { name: 'Blumenbeet',       icon: '🌷', bild: 'deko-blumenbeet', deko: 15, stage: 'alt',    color: '#e89ac0', info: 'Bunte Wildblumen, von Steinen eingefasst.' },
   deko_beerenbusch:  { name: 'Beerenbusch',      icon: '🫐', bild: 'deko-beerenbusch', deko: 15, stage: 'alt',    color: '#6a9a50', info: 'Ein Busch voller Beeren – die Kinder naschen gern davon.' },
-  deko_birke:        { name: 'Birke',            icon: '🌳', deko: 20, stage: 'alt',    color: '#8ac070', info: 'Eine junge Birke mit weißem Stamm.' },
+  deko_birke:        { name: 'Birke',            icon: '🌳', bild: 'deko-birke', deko: 20, stage: 'alt',    color: '#8ac070', info: 'Eine junge Birke mit weißem Stamm.' },
   // Figuren und Steine
   deko_holzfigur:    { name: 'Holzfigur',        icon: '🪵', deko: 30, stage: 'alt',    color: '#a07850', info: 'Eine geschnitzte Figur aus Holz, sie wacht über das Dorf.' },
   deko_menhir:       { name: 'Menhir',           icon: '🗿', deko: 40, stage: 'jung',   color: '#a0a0a0', info: 'Ein großer, aufrecht gestellter Stein.' },

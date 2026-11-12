@@ -961,7 +961,7 @@ const DEKO = {
   // Wege und Plätze
   deko_flechtzaun:   { name: 'Flechtzaun',       icon: '🧺', bild: 'deko-flechtzaun', deko: 10, stage: 'jung',   color: '#b08a50', info: 'Ein Stück Zaun aus geflochtenen Weidenruten.' },
   deko_holzbank:     { name: 'Holzbank',         icon: '🪑', bild: 'deko-holzbank', deko: 15, stage: 'mittel', color: '#a07850', info: 'Eine Bank aus einem halben Baumstamm.' },
-  deko_wegweiser:    { name: 'Wegweiser',        icon: '🪧', deko: 15, stage: 'kupfer', color: '#a07850', info: 'Ein Pfahl mit geschnitzten Zeichen, der den Weg zeigt.' },
+  deko_wegweiser:    { name: 'Wegweiser',        icon: '🪧', bild: 'deko-wegweiser', deko: 15, stage: 'kupfer', color: '#a07850', info: 'Ein Pfahl mit geschnitzten Zeichen, der den Weg zeigt.' },
   deko_pflasterplatz:{ name: 'Gepflasterter Platz', icon: '🔲', deko: 10, stage: 'frueh', color: '#b8b0a0', info: 'Ein Feld aus flachen Steinen.' },
 };
 for (const [id, d] of Object.entries(DEKO)) BUILDINGS[id] = { size: 1, line: id, tier: 0, cost: {}, time: 0, ...d };

@@ -957,7 +957,7 @@ const DEKO = {
   // Tiere
   deko_hundehuette:  { name: 'Hundehütte',       icon: '🐕', bild: 'deko-hundehuette', deko: 30, stage: 'mittel', color: '#a07850', info: 'Ein treuer Hund vor seiner kleinen Hütte.' },
   deko_huehnerhof:   { name: 'Hühnerhof',        icon: '🐔', bild: 'deko-huehnerhof', deko: 40, stage: 'jung',   color: '#d0b070', info: 'Ein paar Hühner hinter einem kleinen Zaun.' },
-  deko_storchennest: { name: 'Storchennest',     icon: '🪺', deko: 40, stage: 'kupfer', color: '#c0a070', info: 'Ein Storch brütet auf einem hohen Pfahl.' },
+  deko_storchennest: { name: 'Storchennest',     icon: '🪺', bild: 'deko-storchennest', deko: 40, stage: 'kupfer', color: '#c0a070', info: 'Ein Storch brütet auf einem hohen Pfahl.' },
   // Wege und Plätze
   deko_flechtzaun:   { name: 'Flechtzaun',       icon: '🧺', deko: 10, stage: 'jung',   color: '#b08a50', info: 'Ein Stück Zaun aus geflochtenen Weidenruten.' },
   deko_holzbank:     { name: 'Holzbank',         icon: '🪑', deko: 15, stage: 'mittel', color: '#a07850', info: 'Eine Bank aus einem halben Baumstamm.' },

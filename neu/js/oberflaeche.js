@@ -506,6 +506,14 @@ function infoLine(i) {
   if (!isConnected(i)) return '<span class="bad">🛤️ Kein Weg zum Lagerfeuer</span>';
   const lacking = def.consumes && Object.keys(def.consumes).find(id => (state.res[id] || 0) < 0.5);
   if (lacking) return `<span class="bad">❗ Es fehlt ${esc(RESOURCES[lacking].name)}</span>`;
+  // Niemand frei (Emin, 12.11.: „Warum ist Steinsammler nicht in Betrieb?“): sagen, warum und was hilft
+  if (def.workers && !b.paused && !(stats.staff[i] > 0)) {
+    const room = (stats.housing || 0) > Math.floor(state.pop);
+    const grows = room && state.res.nahrung > 1 && stats.happiness >= CONFIG.growthMinHappy && !effectGrowthStopped();
+    const stop = room && activeEffects().find(({ effect: e, k }) => e.grow === false && k > 0.5);
+    const tip = grows ? ' – bald ziehen neue zu' : stop ? ` – bei ${stop.icon} ${esc(stop.name)} zieht niemand zu` : room ? '' : ' – baue Wohnungen';
+    return `<span class="bad">👤 0/${workersOf(b)} · Alle Einwohner arbeiten schon${tip}</span>`;
+  }
   const parts = [];
   if (def.produces) parts.push(Object.entries(outputPerMinute(i)).map(([id, n]) => `+${perMin(n)} ${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')}`).join(' ') + ' je Minute');
   if (def.housing) parts.push(`👥 ${housingOf(b.type)} Plätze`);

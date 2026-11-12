@@ -317,3 +317,16 @@ Same bridge section as the reference image, unchanged in shape, size and positio
 
 ✅ ERLEDIGT – 106. Brücke Steg (senkrecht, nahtlos)  →  Datei: bruecke-steg.png  (Ordner gelaende/, ersetzt bei senkrechten Brücken Nr. 102; ein Ausschnitt von Fuge zu Fuge wiederholt sich lückenlos)
 Mobile game asset in the same style as the reference image: a long straight stone age log bridge deck seen from above at a steep angle, running straight from the very top edge of the image to the very bottom edge. Round logs lie across the bridge (horizontal in the image), all the same length, side by side, lashed together with rope along both sides, constant width from top to bottom (no perspective, no narrowing). No bridge ends visible, the deck is cut off by the top and bottom image edges. Bright cheerful cartoon, warm brown wood, clean dark outlines, soft shading. Plain white background left and right, no water, no shadow.
+
+OFFEN – 107. Brücke Bronzezeit gerade  →  Datei: bruecke-bronze.png  (Ordner gelaende/, Vorlage Nr. 1 bruecke.png = MAHaukctGd8, danach Winterbild)
+Same bridge piece as the reference image, unchanged in shape, angle, size and position, but now a bronze age plank bridge: flat sawn wooden planks lying across instead of round logs, resting on wooden piles, with a simple wooden handrail on square posts and small bronze-colored fittings on the posts. Bright cheerful cartoon mobile game asset, warm wood colors, clean dark outlines, soft shading. Plain white background, no water, no shadow.
+
+OFFEN – 108. Brücke Bronzezeit waagerecht  →  Datei: bruecke-waagerecht-bronze.png  (Vorlage Nr. 103 = MAHauheAsLw, danach Winterbild)
+Same bridge section as the reference image, unchanged in shape, angle, size and position, but now a bronze age plank bridge: flat sawn wooden planks lying across instead of round logs, wooden piles below, a simple wooden handrail on square posts along the front and back edge, small bronze-colored fittings on the posts. Bright cheerful cartoon mobile game asset, warm wood colors, clean dark outlines, soft shading. Plain white background, no water, no shadow.
+
+OFFEN – 109. Brücke Bronzezeit Steg  →  Datei: bruecke-steg-bronze.png  (Vorlage Nr. 106 = MAHauqUS6P8, Hochformat 1:2)
+Same long bridge deck as the reference image, unchanged in shape, width and position, running from the very top edge to the very bottom edge, but now a bronze age plank bridge: flat sawn wooden planks lying across instead of round logs, all the same length, fastened with small bronze nails, a thin wooden edge beam along both sides. Constant width, no ends visible. Bright cheerful cartoon mobile game asset, warm wood colors, clean dark outlines, soft shading. Plain white background left and right, no water, no shadow.
+
+OFFEN – 110.–112. Eisenzeit: wie 107–109, aber „a light grey stone bridge with a low stone parapet, fitted stone blocks, small iron clamps“ (Steg: Steinplatten quer, Brüstung aus Steinen an beiden Seiten).
+OFFEN – 113. Baustelle: halbfertiger Steg mit Gerüst aus Pfählen und Querbalken, Seilen und einem Stapel Bretter, gleicher Stil.
+OFFEN – 114. Uferpflock: ein kleiner angespitzter Holzpflock mit rotem Stofffähnchen, gleicher Stil.

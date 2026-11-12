@@ -75,7 +75,8 @@ Pfade lassen sich dann nicht mehr übers Wasser malen. Der Weg hört am Ufer auf
    - Kosten, Zeit und Länge je Zeitalter stehen in `BRIDGE_ERAS` (neu/js/daten.js).
    - Pflöcke und Gerüst sind vorerst gezeichnet. Bilder aus Canva können folgen.
    - Alte Brücken bleiben einzelne, fertige Brückenfelder.
-3. Bronze- und Eisenzeit-Brücken, sobald die Bilder da sind.
+3. ✅ Version 173: Schräge senkrechte Brücken haben keine Lücken mehr. Sie zeigen jetzt einen durchgehenden Steg aus quer liegenden Stämmen (neues Bild aus Canva, wiederholt sich nahtlos), an den Ufern stehen Pfosten.
+4. Bronze- und Eisenzeit-Brücken, sobald die Bilder da sind.
 
 ## 8 · Entscheidungen von Emin (2026-11-12)
 

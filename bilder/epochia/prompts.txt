@@ -314,3 +314,6 @@ Same bridge section as the reference image, unchanged in shape, size and positio
 
 ✅ ERLEDIGT – 105. Brücke schräg waagerecht Winter  →  Datei: bruecke-waagerecht-winter.png  (Ordner gelaende/, aus Nr. 103 = MAHarYKGDYY: dasselbe Bild mit Schnee)
 Same bridge section as the reference image, unchanged in shape, size and position, but with a thin layer of fresh white snow on the logs, posts and rope. Plain white background.
+
+✅ ERLEDIGT – 106. Brücke Steg (senkrecht, nahtlos)  →  Datei: bruecke-steg.png  (Ordner gelaende/, ersetzt bei senkrechten Brücken Nr. 102; ein Ausschnitt von Fuge zu Fuge wiederholt sich lückenlos)
+Mobile game asset in the same style as the reference image: a long straight stone age log bridge deck seen from above at a steep angle, running straight from the very top edge of the image to the very bottom edge. Round logs lie across the bridge (horizontal in the image), all the same length, side by side, lashed together with rope along both sides, constant width from top to bottom (no perspective, no narrowing). No bridge ends visible, the deck is cut off by the top and bottom image edges. Bright cheerful cartoon, warm brown wood, clean dark outlines, soft shading. Plain white background left and right, no water, no shadow.

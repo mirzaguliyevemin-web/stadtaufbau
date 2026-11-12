@@ -236,7 +236,7 @@ function median(list) {
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
     'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'setzling', 'truhe', 'band', 'logo-rund', 'berg-gross', 'berg-klein',
-    'leiste-holz-steinzeit', 'bruecke-senkrecht', 'bruecke-senkrecht-winter', 'bruecke-waagerecht', 'bruecke-waagerecht-winter',   // schräge Brücken   // Holzmuster der Brücken (drawBridge), seit dem hellen Design versehentlich nicht mehr geladen
+    'leiste-holz-steinzeit', 'bruecke-senkrecht', 'bruecke-senkrecht-winter', 'bruecke-steg', 'bruecke-waagerecht', 'bruecke-waagerecht-winter',   // schräge Brücken   // Holzmuster der Brücken (drawBridge), seit dem hellen Design versehentlich nicht mehr geladen
     'symbol-forschung', 'symbol-auftraege', 'symbol-haendler', 'symbol-schaetze', 'symbol-shop', 'symbol-grundriss', 'symbol-menue',
     'gold-1', 'gold-2', 'gold-3', 'shop-baustelle',   // Shop: Gold-Pakete und zusätzliche Baustelle
     ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, ...LIFE_NAMES]);
@@ -2104,6 +2104,7 @@ function bridgeDiag(b) {
 // Schräge Brücke aus Canva (senkrecht bzw. waagerecht auf dem Bildschirm). Wie bei drawBridgeSprite zeigt
 // in einer Reihe jedes Feld nur seinen eigenen Abschnitt, die Enden am Ufer bleiben ganz.
 function drawBridgeDiagSprite(img, b, [dx, dy], snow) {
+  if (dx === dy && images['bruecke-steg']) return drawBridgeSteg(images['bruecke-steg'], b, snow);
   const z = cam.zoom, p = tileToScreen(b.x + 0.5, b.y + 0.5), q = tileToScreen(b.x + 0.5 + dx, b.y + 0.5 + dy);
   const sx = q.x - p.x, sy = q.y - p.y, len = Math.hypot(sx, sy), ux = sx / len, uy = sy / len;   // Laufrichtung auf dem Bildschirm
   const vertical = dx === dy;
@@ -2125,6 +2126,43 @@ function drawBridgeDiagSprite(img, b, [dx, dy], snow) {
   const winter = snow > 0 && images[(vertical ? 'bruecke-senkrecht' : 'bruecke-waagerecht') + '-winter'];
   if (winter) { ctx.globalAlpha *= snow; ctx.drawImage(winter, p.x - w / 2, y0, w, h); }
   ctx.restore();
+}
+
+// Senkrechte Brücke als durchgehender Steg aus quer liegenden Stämmen (Bild aus Canva, wiederholt sich nahtlos).
+// Das Muster hängt an der Welt, nicht am Feld: so schließen die Abschnitte ohne Lücke aneinander an.
+function drawBridgeSteg(img, b, snow) {
+  const z = cam.zoom, p = tileToScreen(b.x + 0.5, b.y + 0.5), len = tileToScreen(b.x + 1.5, b.y + 1.5).y - p.y;
+  const dw = TW * z * 0.36, s = dw / img.width, x0 = p.x - dw / 2;
+  const prev = isBridgeAt(b.x - 1, b.y - 1), next = isBridgeAt(b.x + 1, b.y + 1);
+  const ext = len * 0.4;   // am Ufer reicht der Steg ein Stück aufs Land
+  const y0 = p.y - len / 2 - (prev ? 0.5 : ext), y1 = p.y + len / 2 + (next ? 0.5 : ext);
+  ctx.save();
+  ctx.fillStyle = 'rgba(20, 40, 60, 0.25)';   // Schatten im Wasser
+  const sy0 = prev ? p.y - len / 2 : y0 + 5 * z, sy1 = next ? p.y + len / 2 : y1;   // Abschnitte überlappen nicht, sonst dunkle Streifen
+  ctx.fillRect(x0 + 4 * z, sy0, dw, sy1 - sy0);
+  const pat = ctx.createPattern(img, 'repeat-y');
+  if (pat && pat.setTransform && typeof DOMMatrix !== 'undefined') {
+    pat.setTransform(new DOMMatrix([s, 0, 0, s, x0, p.y - b.x * len]));
+    ctx.fillStyle = pat;
+    ctx.fillRect(x0, y0, dw, y1 - y0);
+  } else {
+    ctx.fillStyle = '#b5743a'; ctx.fillRect(x0, y0, dw, y1 - y0);
+  }
+  if (snow > 0) { ctx.fillStyle = `rgba(245,250,255,${0.5 * snow})`; ctx.fillRect(x0 + dw * 0.1, y0, dw * 0.8, y1 - y0); }
+  for (const [end, y] of [[!prev, y0 + 3 * z], [!next, y1 - 3 * z]]) if (end) {   // Pfosten an beiden Ufern
+    for (const x of [x0 + 2 * z, x0 + dw - 2 * z]) drawStegPost(x, y, z);
+  }
+  ctx.restore();
+}
+
+function drawStegPost(x, y, z) {
+  const w = 6 * z, h = 15 * z;
+  ctx.fillStyle = '#7a4a22'; ctx.strokeStyle = '#3d2410'; ctx.lineWidth = Math.max(1, z);
+  ctx.beginPath(); ctx.rect(x - w / 2, y - h, w, h); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#c99a62';
+  ctx.beginPath(); ctx.ellipse(x, y - h, w / 2, w / 4, 0, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = '#d8b06a'; ctx.lineWidth = 1.5 * z;   // Seilwicklung
+  ctx.beginPath(); ctx.moveTo(x - w / 2, y - h * 0.45); ctx.lineTo(x + w / 2, y - h * 0.35); ctx.stroke();
 }
 
 // Schräger Brückenbelag von Ecke zu Ecke (in Feld-Koordinaten, ctx ist schon transformiert)

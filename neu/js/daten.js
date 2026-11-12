@@ -953,7 +953,7 @@ const DEKO = {
   deko_holzfigur:    { name: 'Holzfigur',        icon: '🪵', bild: 'deko-holzfigur', deko: 30, stage: 'alt',    color: '#a07850', info: 'Eine geschnitzte Figur aus Holz, sie wacht über das Dorf.' },
   deko_menhir:       { name: 'Menhir',           icon: '🗿', bild: 'deko-menhir', deko: 40, stage: 'jung',   color: '#a0a0a0', info: 'Ein großer, aufrecht gestellter Stein.' },
   deko_bronzestatue: { name: 'Bronzestatue',     icon: '🗽', bild: 'deko-bronzestatue', deko: 60, stage: 'frueh',  color: '#c08a40', info: 'Eine glänzende kleine Statue aus Bronze auf einem Steinsockel.' },
-  deko_steinkrieger: { name: 'Steinkrieger',     icon: '🛡️', deko: 80, stage: 'eisen1', color: '#b0a890', info: 'Ein Krieger aus Sandstein, mit Hut und Gürtel – wie ein Fürst der Kelten.' },
+  deko_steinkrieger: { name: 'Steinkrieger',     icon: '🛡️', bild: 'deko-steinkrieger', deko: 80, stage: 'eisen1', color: '#b0a890', info: 'Ein Krieger aus Sandstein, mit Hut und Gürtel – wie ein Fürst der Kelten.' },
   // Tiere
   deko_hundehuette:  { name: 'Hundehütte',       icon: '🐕', deko: 30, stage: 'mittel', color: '#a07850', info: 'Ein treuer Hund vor seiner kleinen Hütte.' },
   deko_huehnerhof:   { name: 'Hühnerhof',        icon: '🐔', deko: 40, stage: 'jung',   color: '#d0b070', info: 'Ein paar Hühner hinter einem kleinen Zaun.' },

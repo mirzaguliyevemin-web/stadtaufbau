@@ -959,7 +959,7 @@ const DEKO = {
   deko_huehnerhof:   { name: 'Hühnerhof',        icon: '🐔', bild: 'deko-huehnerhof', deko: 40, stage: 'jung',   color: '#d0b070', info: 'Ein paar Hühner hinter einem kleinen Zaun.' },
   deko_storchennest: { name: 'Storchennest',     icon: '🪺', bild: 'deko-storchennest', deko: 40, stage: 'kupfer', color: '#c0a070', info: 'Ein Storch brütet auf einem hohen Pfahl.' },
   // Wege und Plätze
-  deko_flechtzaun:   { name: 'Flechtzaun',       icon: '🧺', deko: 10, stage: 'jung',   color: '#b08a50', info: 'Ein Stück Zaun aus geflochtenen Weidenruten.' },
+  deko_flechtzaun:   { name: 'Flechtzaun',       icon: '🧺', bild: 'deko-flechtzaun', deko: 10, stage: 'jung',   color: '#b08a50', info: 'Ein Stück Zaun aus geflochtenen Weidenruten.' },
   deko_holzbank:     { name: 'Holzbank',         icon: '🪑', deko: 15, stage: 'mittel', color: '#a07850', info: 'Eine Bank aus einem halben Baumstamm.' },
   deko_wegweiser:    { name: 'Wegweiser',        icon: '🪧', deko: 15, stage: 'kupfer', color: '#a07850', info: 'Ein Pfahl mit geschnitzten Zeichen, der den Weg zeigt.' },
   deko_pflasterplatz:{ name: 'Gepflasterter Platz', icon: '🔲', deko: 10, stage: 'frueh', color: '#b8b0a0', info: 'Ein Feld aus flachen Steinen.' },

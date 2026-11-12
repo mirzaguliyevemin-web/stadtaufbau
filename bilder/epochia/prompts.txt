@@ -288,7 +288,7 @@ A small neat stack of five shiny golden coins with a simple embossed sun symbol.
 ✅ ERLEDIGT – 96. Shop Gold mittel  →  Datei: gold-2.png  (Ordner oberflaeche/)
 A brown leather pouch tied with a cord, overflowing with shiny golden coins, a few coins lying in front. Style: bright cheerful cartoon mobile game icon, soft warm colors, clean dark brown outlines, gentle soft shading, centered, plain pure white background, no text, no letters, no border, square 1:1 format
 
-⬜ OFFEN – 97. Shop Gold groß  →  Datei: gold-3.png  (Ordner oberflaeche/)
+✅ ERLEDIGT – 97. Shop Gold groß  →  Datei: gold-3.png  (Ordner oberflaeche/)
 A small open wooden treasure chest with bronze fittings, overflowing with a big heap of shiny golden coins and a few gems, sparkles. Style: bright cheerful cartoon mobile game icon, soft warm colors, clean dark brown outlines, gentle soft shading, centered, plain pure white background, no text, no letters, no border, square 1:1 format
 
 ⬜ OFFEN – 98. Shop Baustelle mehr  →  Datei: shop-baustelle.png  (Ordner oberflaeche/)

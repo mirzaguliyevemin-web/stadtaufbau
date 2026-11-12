@@ -956,7 +956,7 @@ const DEKO = {
   deko_steinkrieger: { name: 'Steinkrieger',     icon: '🛡️', bild: 'deko-steinkrieger', deko: 80, stage: 'eisen1', color: '#b0a890', info: 'Ein Krieger aus Sandstein, mit Hut und Gürtel – wie ein Fürst der Kelten.' },
   // Tiere
   deko_hundehuette:  { name: 'Hundehütte',       icon: '🐕', bild: 'deko-hundehuette', deko: 30, stage: 'mittel', color: '#a07850', info: 'Ein treuer Hund vor seiner kleinen Hütte.' },
-  deko_huehnerhof:   { name: 'Hühnerhof',        icon: '🐔', deko: 40, stage: 'jung',   color: '#d0b070', info: 'Ein paar Hühner hinter einem kleinen Zaun.' },
+  deko_huehnerhof:   { name: 'Hühnerhof',        icon: '🐔', bild: 'deko-huehnerhof', deko: 40, stage: 'jung',   color: '#d0b070', info: 'Ein paar Hühner hinter einem kleinen Zaun.' },
   deko_storchennest: { name: 'Storchennest',     icon: '🪺', deko: 40, stage: 'kupfer', color: '#c0a070', info: 'Ein Storch brütet auf einem hohen Pfahl.' },
   // Wege und Plätze
   deko_flechtzaun:   { name: 'Flechtzaun',       icon: '🧺', deko: 10, stage: 'jung',   color: '#b08a50', info: 'Ein Stück Zaun aus geflochtenen Weidenruten.' },

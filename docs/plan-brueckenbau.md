@@ -64,7 +64,17 @@ Pfade lassen sich dann nicht mehr übers Wasser malen. Der Weg hört am Ufer auf
 ## 7 · Reihenfolge
 
 1. ✅ Fragen beantwortet (siehe 8). Die Zahlen in 3 werden im Spiel erprobt.
-2. Bauen mit der Steinzeit-Brücke. Die fehlenden Steinzeit-Bilder (waagerecht, Winter) gibt es dann schon aus Canva.
+2. ✅ Gebaut in Version 172 (12.11.2026):
+   - In der Bauleiste unter „Wege“ auf 🌉 tippen. Die möglichen Ufer leuchten gelb. Nach dem ersten Ufer steht dort ein Pflock mit Fähnchen, und die erreichbaren Ufer gegenüber leuchten grün.
+   - Sind beide Ufer gewählt, erscheint die Vorschau mit Länge, Kosten und Bauzeit. Mit ✔ wird gebaut.
+   - Die Ufer bekommen dabei ein Stück Pfad (1 Holz je Feld).
+   - Die Brücke belegt **einen** Platz in der Bauschlange. Sie lässt sich mit Gold oder ⚡ beschleunigen und erscheint dafür in der Liste nur einmal.
+   - Auf der Baustelle stehen Pfähle mit Querbalken. Die Brücke wird nach und nach sichtbar, darüber laufen Balken und Restzeit. Erst die fertige Brücke trägt Wege. Dann kommt die Meldung „Die Brücke steht!“.
+   - Abreißen nimmt die ganze Brücke weg und gibt einen Teil zurück.
+   - Pfade malen geht nicht mehr übers Wasser. Stattdessen kommt der Hinweis auf die Brücke. „Weg bauen“ führt nicht mehr durchs Wasser.
+   - Kosten, Zeit und Länge je Zeitalter stehen in `BRIDGE_ERAS` (neu/js/daten.js).
+   - Pflöcke und Gerüst sind vorerst gezeichnet. Bilder aus Canva können folgen.
+   - Alte Brücken bleiben einzelne, fertige Brückenfelder.
 3. Bronze- und Eisenzeit-Brücken, sobald die Bilder da sind.
 
 ## 8 · Entscheidungen von Emin (2026-11-12)

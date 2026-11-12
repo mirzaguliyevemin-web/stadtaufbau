@@ -1313,6 +1313,46 @@ test('Brücke: Pfad nie aufs Wasser, Brücke nur aufs Wasser, über Brücken ist
   noErrors(g);
 });
 
+test('Brückenbau: zwei Ufer antippen, Baustelle in der Bauschlange, erst fertig verbunden, Abriss als Ganzes', () => {
+  const g = fresh();
+  g.run(`for (const p of state.plots.keys()) state.plots[p] = 1; rebuildOccupancy();`);   // alles Land, damit es sicher Ufer gibt
+  const pair = g.run(`(() => { for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const t = bridgeTargets({ x, y }); if (t.length) return [x, y, t[0].x, t[0].y]; } return null; })()`);
+  ok(pair, 'kein Ufer für eine Brücke gefunden');
+  const [ax, ay, bx, by] = pair;
+  g.run(`state.res.holz = 0; state.res.stein = 0;`);
+  ok(/Fehlt|fehlt|Holz/.test(g.run(`bridgeProblem({ x: ${ax}, y: ${ay} }, { x: ${bx}, y: ${by} })`) || ''), 'Brücke ohne Waren möglich');
+  g.run(`state.res.holz = 500; state.res.stein = 500;`);
+  const before = g.run('constructionCount()');
+  ok(g.run(`buildBridge({ x: ${ax}, y: ${ay} }, { x: ${bx}, y: ${by} })`) === null, 'Brücke lässt sich nicht bauen');
+  const tiles = g.run(`state.buildings.filter(b => b.bg).length`);
+  ok(tiles >= 1 && g.run('constructionCount()') === before + 1, 'Brücke belegt nicht genau einen Platz in der Bauschlange');
+  ok(g.run(`isPathAt(${ax}, ${ay}) && isPathAt(${bx}, ${by})`), 'Ufer bekommen keinen Pfad');
+  const mid = g.run(`(() => { const b = state.buildings.find(k => k.bg); return [b.x, b.y]; })()`);
+  ok(g.run(`isPathAt(${mid[0]}, ${mid[1]}) && !isWayOpen(${mid[0]}, ${mid[1]})`), 'Brücke im Bau ist schon begehbar');
+  ok(g.run(`speedTargets().filter(t => t.name.includes('Brücke')).length`) === 1, 'Brücke steht mehrfach im Shop');
+  // gespeichert und geladen bleibt sie eine Brücke im Bau
+  ok(g.run(`(() => { const s = sanitizeState(JSON.parse(JSON.stringify(state))); return s.buildings.filter(b => b.bg && b.bt > 0 && b.build > 0 && b.paid && b.paid.holz).length; })()`) === tiles, 'Brücke geht beim Speichern verloren');
+  g.run(`window.__done = 0; on('bridgeDone', () => window.__done++); updateConstruction(10000);`);
+  ok(g.run('window.__done') === 1, 'Meldung „Die Brücke steht“ fehlt oder kommt mehrfach');
+  ok(g.run(`isWayOpen(${mid[0]}, ${mid[1]})`), 'fertige Brücke ist nicht begehbar');
+  ok(g.run(`pathNeighbors(${mid[0]}, ${mid[1]}).length`) >= 1, 'Brücke hängt nicht am Ufer');
+  g.run('drawScene(0.1)');
+  // Pfad malen übers Wasser baut keine Brücke mehr
+  const w = g.run(`(() => { for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (isWaterTile(x, y) && buildingAt(x, y) < 0 && isOwned(x, y)) return [x, y]; })()`);
+  ok(g.run(`placeProblem('pfad', ${w[0]}, ${w[1]})`), 'Pfad im Wasser möglich');
+  g.run('state.res.holz = 10');   // Lager nicht voll, sonst sieht man die Rückgabe nicht
+  const holz = g.run('state.res.holz');
+  ok(g.run(`demolish(buildingAt(${mid[0]}, ${mid[1]}))`) && g.run(`state.buildings.filter(b => b.bg).length`) === 0, 'Brücke geht nicht als Ganzes weg');
+  ok(g.run('state.res.holz') > holz, 'Abriss gibt nichts zurück');
+  // Planung im Spiel: Bauleiste → Ufer → Ufer → ✔
+  g.run(`state.res.holz = 500; state.res.stein = 500; beginBuild('bruecke');`);
+  ok(g.run('!!bridgeMode && bridgeMode.starts.size > 0'), 'Brückenmodus zeigt keine Ufer');
+  g.run(`bridgeMode.a = { x: ${ax}, y: ${ay} }; bridgeMode.targets = bridgeTargets(bridgeMode.a); bridgeMode.b = { x: ${bx}, y: ${by} }; renderActionBar(); drawScene(0.1); confirmBridge();`);
+  ok(g.run('bridgeMode === null && state.buildings.some(b => b.bg && b.build > 0)'), 'Bestätigen baut keine Brücke');
+  g.run('drawScene(0.1)');
+  noErrors(g);
+});
+
 test('Arbeitende Menschen: gehen zum Baum, arbeiten und kommen zurück', () => {
   const g = fresh();
   g.run(`state.res.holz = 999; state.res.stein = 999; state.pop = 12;

@@ -1907,10 +1907,99 @@ function drawPaths(range) {
   if (!sprite) for (const b of bridges) if (!diag.get(b)) drawBridge(b, snow);
   ctx.restore();
   for (const b of bridges) {
-    if (diag.get(b)) { const img = diagImg(diag.get(b)); if (img) drawBridgeDiagSprite(img, b, diag.get(b), snow); continue; }
-    if (sprite) drawBridgeSprite(sprite, b, snow);
+    ctx.save();
+    if (b.build > 0) ctx.globalAlpha = 0.25 + 0.5 * bridgeProgress(b);   // Baustelle: die Brücke wird nach und nach sichtbar
+    if (diag.get(b)) { const img = diagImg(diag.get(b)); if (img) drawBridgeDiagSprite(img, b, diag.get(b), snow); }
+    else if (sprite) drawBridgeSprite(sprite, b, snow);
     else drawBridgeRails(b);
+    ctx.restore();
   }
+  for (const b of bridges) if (b.build > 0) drawBridgeScaffold(b);   // Baustelle: Pfähle mit Querbalken auf jedem Feld
+}
+
+// Balken und Restzeit über der Mitte jeder Brücke im Bau (in die Warteschlange der Fortschrittsbalken)
+function queueBridgeProgress(range) {
+  const seen = new Set();
+  for (const b of state.buildings) {
+    if (!b.bg || !(b.build > 0) || seen.has(b.bg)) continue;
+    seen.add(b.bg);
+    const all = bridgeTiles(b), mid = all[Math.floor(all.length / 2)];
+    if (mid.x < range.x0 - 2 || mid.x > range.x1 + 2 || mid.y < range.y0 - 2 || mid.y > range.y1 + 2) continue;
+    drawProgress(mid, 1, 26 * cam.zoom, b.build, b.bt || b.build);
+  }
+}
+
+function bridgeProgress(b) { return b.bt > 0 ? Math.max(0, Math.min(1, 1 - b.build / b.bt)) : 0; }
+
+// Gerüst einer Brücke im Bau: zwei Pfähle im Wasser mit Querbalken
+function drawBridgeScaffold(b) {
+  const z = cam.zoom, p = tileToScreen(b.x + 0.5, b.y + 0.5), h = 22 * z, d = 9 * z;
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(20,40,60,0.3)';   // Spiegelung im Wasser
+  ctx.lineWidth = Math.max(1.5, 3 * z);
+  ctx.beginPath(); ctx.moveTo(p.x - d, p.y + 2 * z); ctx.lineTo(p.x - d, p.y + 8 * z); ctx.moveTo(p.x + d, p.y + 2 * z); ctx.lineTo(p.x + d, p.y + 8 * z); ctx.stroke();
+  ctx.strokeStyle = '#6b4424';
+  ctx.lineWidth = Math.max(1.5, 3.2 * z);
+  ctx.beginPath();
+  ctx.moveTo(p.x - d, p.y + 2 * z); ctx.lineTo(p.x - d, p.y - h);
+  ctx.moveTo(p.x + d, p.y + 2 * z); ctx.lineTo(p.x + d, p.y - h * 0.85);
+  ctx.stroke();
+  ctx.strokeStyle = '#8a5a2b';
+  ctx.lineWidth = Math.max(1.2, 2.4 * z);
+  ctx.beginPath();
+  ctx.moveTo(p.x - d - 3 * z, p.y - h * 0.7); ctx.lineTo(p.x + d + 3 * z, p.y - h * 0.62);
+  ctx.moveTo(p.x - d, p.y - h * 0.15); ctx.lineTo(p.x + d, p.y - h * 0.7);   // Strebe
+  ctx.stroke();
+  ctx.fillStyle = '#c9a36a';   // Seilbund oben
+  ctx.beginPath(); ctx.arc(p.x - d, p.y - h * 0.7, 1.8 * z, 0, 7); ctx.fill();
+  ctx.restore();
+}
+
+// Brücke planen: leuchtende Ufer, Pflöcke mit Fähnchen und die geplante Brücke (halb durchsichtig)
+function drawBridgePlan(m) {
+  const z = cam.zoom, pulse = 0.55 + 0.25 * Math.sin(frameTime * 4);
+  const glow = (x, y, color) => { diamondPath(ctx, x, y, 1, 1, tileToScreen); ctx.fillStyle = color; ctx.fill(); };
+  ctx.save();
+  const ring = (x, y, color) => { diamondPath(ctx, x, y, 1, 1, tileToScreen); ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.5, 2.5 * z); ctx.stroke(); };
+  if (!m.a) for (const k of m.starts) { glow(k % N, Math.floor(k / N), `rgba(255,200,40,${0.25 + 0.35 * pulse})`); ring(k % N, Math.floor(k / N), 'rgba(255,250,215,0.9)'); }
+  else if (!m.b) for (const e of m.targets) { glow(e.x, e.y, `rgba(90,220,80,${0.3 + 0.4 * pulse})`); ring(e.x, e.y, 'rgba(235,255,225,0.95)'); }
+  const plan = m.a && m.b ? bridgePlan(m.a, m.b) : null;
+  if (plan && typeof plan === 'object') {
+    const ok = !bridgeProblem(m.a, m.b);
+    for (const [x, y] of plan.tiles) {
+      diamondPath(ctx, x, y, 1, 1, tileToScreen);
+      ctx.fillStyle = ok ? 'rgba(196,138,70,0.7)' : 'rgba(215,70,60,0.55)';
+      ctx.fill();
+      ctx.strokeStyle = ok ? 'rgba(255,240,200,0.8)' : 'rgba(255,200,190,0.8)';
+      ctx.lineWidth = Math.max(1, 1.5 * z);
+      ctx.stroke();
+    }
+    // Planken quer über die geplante Brücke
+    const a = tileToScreen(m.a.x + 0.5, m.a.y + 0.5), b = tileToScreen(m.b.x + 0.5, m.b.y + 0.5);
+    ctx.setLineDash([6 * z, 4 * z]);
+    ctx.strokeStyle = ok ? 'rgba(255,248,220,0.9)' : 'rgba(255,210,200,0.9)';
+    ctx.lineWidth = Math.max(2, 3 * z);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  for (const e of [m.a, m.b]) if (e) drawStake(e.x, e.y);
+  ctx.restore();
+}
+
+// Pflock mit Fähnchen am Ufer
+function drawStake(x, y) {
+  const z = cam.zoom, p = tileToScreen(x + 0.5, y + 0.5), h = 30 * z;
+  diamondPath(ctx, x, y, 1, 1, tileToScreen);
+  ctx.strokeStyle = '#fff3c4'; ctx.lineWidth = Math.max(2, 3 * z); ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath(); ctx.ellipse(p.x, p.y, 5 * z, 2 * z, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#6b4424'; ctx.lineWidth = Math.max(2, 3 * z); ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y - h); ctx.stroke();
+  const wave = Math.sin(frameTime * 5 + x) * 2 * z;
+  ctx.fillStyle = '#d9472b';
+  ctx.beginPath(); ctx.moveTo(p.x + 1 * z, p.y - h); ctx.quadraticCurveTo(p.x + 9 * z, p.y - h + 2 * z + wave, p.x + 16 * z, p.y - h + 4 * z + wave);
+  ctx.lineTo(p.x + 1 * z, p.y - h + 11 * z); ctx.closePath(); ctx.fill();
 }
 
 // Fackel bzw. Laterne am Wegrand (selbst gezeichnet, kein Bild nötig). Nachts leuchtet sie (Loch in der Dunkelheit).
@@ -1975,10 +2064,10 @@ function drawBridgeSprite(img, b, snow) {
   ctx.drawImage(img, -w / 2, -h * 0.58, w, h);
   const winter = snow > 0 && images['bruecke-winter'];
   if (winter) {   // Schneebild blendet über, solange die Schneedecke wächst oder schmilzt
-    ctx.globalAlpha = snow;
+    ctx.globalAlpha *= snow;
     ctx.drawImage(winter, -w / 2, -h * 0.58, w, h);
   } else if (snow > 0.3) {   // ein Hauch Schnee auf den Stämmen, solange das Bild nicht geladen ist
-    ctx.globalAlpha = 0.3 * snow;
+    ctx.globalAlpha *= 0.3 * snow;
     ctx.globalCompositeOperation = 'lighter';
     ctx.drawImage(img, -w / 2, -h * 0.58, w, h);
   }
@@ -1987,14 +2076,26 @@ function drawBridgeSprite(img, b, snow) {
 
 // Laufrichtung einer Brücke: entlang x, wenn links oder rechts Weg/Brücke/Ufer anschließt, sonst entlang y
 function bridgeAlongX(b) {
+  const g = bridgeGroupDir(b);
+  if (g && !(g[0] && g[1])) return g[0] !== 0;
   const way = (x, y) => isPathAt(x, y);
   if (way(b.x - 1, b.y) || way(b.x + 1, b.y)) return true;
   if (way(b.x, b.y - 1) || way(b.x, b.y + 1)) return false;
   return !isWaterAt(b.x - 1, b.y) || !isWaterAt(b.x + 1, b.y);
 }
 
+// Richtung einer Brücke aus mehreren Feldern [dx, dy] (aus zwei Feldern derselben Brücke), sonst null
+function bridgeGroupDir(b) {
+  if (!b.bg) return null;
+  const other = state.buildings.find(k => k.bg === b.bg && k !== b);
+  if (!other) return null;
+  return [Math.sign(other.x - b.x), Math.sign(other.y - b.y)];
+}
+
 // Schräge Brücke (nur über Eck verbunden): Richtung [dx, dy], sonst null
 function bridgeDiag(b) {
+  const g = bridgeGroupDir(b);   // Brücke von Ufer zu Ufer: Richtung steht fest, auch wenn daneben ein Pfad liegt
+  if (g) return g[0] && g[1] ? (g[0] === g[1] ? [1, 1] : [1, -1]) : null;
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isPathAt(b.x + dx, b.y + dy)) return null;
   for (const [dx, dy] of PATH_DIAG) if (diagLink(b.x, b.y, dx, dy)) return dx === dy ? [1, 1] : [1, -1];
   return null;
@@ -2022,7 +2123,7 @@ function drawBridgeDiagSprite(img, b, [dx, dy], snow) {
   const y0 = p.y - h * (vertical ? 0.42 : 0.6);   // senkrecht: Mitte der Stämme im eigenen Abschnitt, Stammenden nur am Ufer
   ctx.drawImage(img, p.x - w / 2, y0, w, h);
   const winter = snow > 0 && images[(vertical ? 'bruecke-senkrecht' : 'bruecke-waagerecht') + '-winter'];
-  if (winter) { ctx.globalAlpha = snow; ctx.drawImage(winter, p.x - w / 2, y0, w, h); }
+  if (winter) { ctx.globalAlpha *= snow; ctx.drawImage(winter, p.x - w / 2, y0, w, h); }
   ctx.restore();
 }
 
@@ -2105,7 +2206,7 @@ function drawScene(dt) {
   drawClouds(dt);
   drawDecorSnow(range);
   drawPaths(range);
-  if (ghost || pathMode) drawGrid(range);
+  if (ghost || pathMode || bridgeMode) drawGrid(range);
   if (selected >= 0 && state.buildings[selected]) {
     const b = state.buildings[selected];
     diamondPath(ctx, b.x, b.y, BUILDINGS[b.type].size, BUILDINGS[b.type].size, tileToScreen);
@@ -2157,6 +2258,7 @@ function drawScene(dt) {
   objects.push(...lifeObjects(range));
   objects.sort((a, b) => a.d - b.d || (a.x || 0) - (b.x || 0));
   progressQueue = [];
+  queueBridgeProgress(range);
   for (const o of objects) {
    // Jedes Objekt einzeln absichern: Ein Fehler (z. B. ein Bild, das das Handy verworfen hat) ließ sonst alle
    // folgenden Gebäude, Bäume und Figuren verschwinden (Emin, 07.11.2026)
@@ -2192,6 +2294,7 @@ function drawScene(dt) {
   flushProgress();
   drawPlots(range);
   if (state.tutorial >= 0) drawGuide(dt);   // Einstieg: Stammesältester, Vorschau und Pfeile (nur solange er läuft)
+  if (bridgeMode) drawBridgePlan(bridgeMode);
   if (ghost) drawGhost(ghost);
 }
 

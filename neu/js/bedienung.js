@@ -3,6 +3,7 @@
 
 let ghost = null;       // geplantes oder hochgehobenes Gebäude: { type, x, y, rot, from } (from = -1: neu)
 let pathMode = false;   // Trampelpfade malen
+let bridgeMode = null;  // Brücke planen: { a: erstes Ufer, b: zweites Ufer, starts: mögliche Ufer, targets: Ufer gegenüber von a }
 let selected = -1;      // angetipptes Gebäude
 
 const LONG_PRESS_MS = 450;
@@ -81,6 +82,8 @@ function findFreeSpot(type, cx, cy) {
 function beginBuild(type, sx, sy) {
   closeInfo();
   (state.seen ||= {})[type] = true;
+  if (BUILDINGS[type].onWater) { beginBridge(); return; }
+  bridgeMode = null;
   if (BUILDINGS[type].isPath) {
     ghost = null;
     pathMode = true;
@@ -131,7 +134,59 @@ function rotateGhost() {
 function cancelGhost() {
   ghost = null;
   pathMode = false;
+  bridgeMode = null;
   renderActionBar();
+}
+
+// ---------------------------------------------------------------------
+// Brücke von Ufer zu Ufer: erst ein Ufer antippen, dann das gegenüber (docs/plan-brueckenbau.md)
+// ---------------------------------------------------------------------
+
+function beginBridge() {
+  ghost = null;
+  pathMode = false;
+  bridgeMode = { a: null, b: null, starts: bridgeStarts(), targets: [] };
+  if (!bridgeMode.starts.size) toast('Kein Ufer, von dem eine Brücke übers Wasser geht – erst Land am Fluss kaufen oder Bäume räumen');
+  renderActionBar();
+}
+
+// Ufer im eigenen Land, von denen eine Brücke möglich ist (Feld-Nummern)
+function bridgeStarts() {
+  const out = new Set();
+  for (let y = 0; y < N; y++)
+    for (let x = 0; x < N; x++) {
+      if (isWaterTile(x, y) || !isOwned(x, y)) continue;
+      if (!BRIDGE_DIRS.some(([dx, dy]) => isWaterTile(x + dx, y + dy))) continue;
+      if (bridgeTargets({ x, y }).length) out.add(y * N + x);
+    }
+  return out;
+}
+
+function bridgeTap(sx, sy) {
+  const m = bridgeMode, t = screenToTile(sx, sy);
+  if (!inMap(t.x, t.y)) return;
+  if (m.a && t.x === m.a.x && t.y === m.a.y) { m.a = m.b = null; m.targets = []; renderActionBar(); return; }   // nochmal: Pflock wieder weg
+  if (m.a && m.targets.some(e => e.x === t.x && e.y === t.y)) { m.b = { x: t.x, y: t.y }; playSound('klopfen'); renderActionBar(); return; }
+  if (m.starts.has(t.y * N + t.x)) {
+    m.a = { x: t.x, y: t.y }; m.b = null; m.targets = bridgeTargets(m.a);
+    playSound('klopfen');
+    renderActionBar();
+    return;
+  }
+  const plan = m.a ? bridgePlan(m.a, t) : null;
+  toast(typeof plan === 'string' && !isWaterTile(t.x, t.y) ? plan : shoreProblem(t.x, t.y) || 'Von hier geht keine Brücke übers Wasser – tipp auf ein leuchtendes Ufer');
+}
+
+function confirmBridge() {
+  const m = bridgeMode;
+  if (!m || !m.a || !m.b) return;
+  const problem = buildBridge(m.a, m.b);
+  if (problem) { toast(problem); renderActionBar(); return; }
+  bridgeMode = null;
+  playSound('bauen');
+  toast('🌉 Die Brücke wird gebaut');
+  renderActionBar();
+  renderAll();
 }
 
 // Pfad malen: auch schräg gezogen entsteht ein zusammenhängender Weg (schräg über Eck verbunden),
@@ -152,7 +207,12 @@ function paintPath(sx, sy) {
   gesture.lastTile = t;
   for (const [px, py] of steps) {
     if (buildingAt(px, py) >= 0) continue;
-    const problem = placeBuilding(wayTypeAt(px, py), px, py);   // über Wasser entsteht eine Brücke
+    if (isWaterTile(px, py)) {   // übers Wasser nur mit einer richtigen Brücke (Emin, 12.11.)
+      const hint = 'Für den Fluss: 🌉 Brücke in der Bauleiste unter „Wege“';
+      if (hint !== gesture.lastProblem) { toast(hint); gesture.lastProblem = hint; }
+      continue;
+    }
+    const problem = placeBuilding('pfad', px, py);
     if (problem && problem !== gesture.lastProblem) { toast(problem); gesture.lastProblem = problem; }
     if (!problem) gesture.painted = (gesture.painted || 0) + 1;
   }
@@ -172,6 +232,7 @@ function objectAtScreen(sx, sy) {
   const consider = (d, hit) => { if (!best || d > best.d) best = { d, ...hit }; };
   const direct = inMap(t.x, t.y) ? buildingAt(t.x, t.y) : -1;
   if (direct >= 0 && !BUILDINGS[state.buildings[direct].type].isPath) { const b = state.buildings[direct]; consider(b.x + b.y + BUILDINGS[b.type].size, { i: direct }); }
+  else if (direct >= 0 && state.buildings[direct].build > 0) consider(t.x + t.y + 1, { i: bridgeLead(direct) });   // Brücke im Bau: Restzeit, ⚡
   state.buildings.forEach((b, i) => {
     const def = BUILDINGS[b.type], s = def.size;
     if (def.isPath || i === direct) return;
@@ -218,6 +279,7 @@ function handleTap(sx, sy) {
     return;
   }
   if (pathMode) return;
+  if (bridgeMode) { bridgeTap(sx, sy); return; }
   const tag = plotTagAtScreen(sx, sy);   // Preisschild auf den Wolken: Land kaufen
   if (tag >= 0) { closeInfo(); showPlotDialog(tag); return; }
   const spot = typeof spotAtScreen === 'function' ? spotAtScreen(sx, sy) : -1;
@@ -277,6 +339,7 @@ function onPointerDown(e) {
     }
     return;
   }
+  if (bridgeMode) return;   // nur tippen (Ufer wählen) oder die Karte schieben
   if (pathMode) {   // erst abwarten: Ziehen = Wege malen (auch vom Wegende aus), kurzes Tippen auf einen Weg = löschen.
     gesture.mode = 'pathwait';   // so setzt auch der erste Finger beim Zoomen mit zwei Fingern keinen Weg
     return;
@@ -414,6 +477,7 @@ function setupInput() {
   canvas.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { cancelGhost(); closeInfo(); }
+    if (e.key === 'Enter' && bridgeMode) confirmBridge();
     if (e.key === 'r' || e.key === 'R') rotateGhost();
   });
 }

@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 171;
+const APP_VERSION = 172;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -694,10 +694,18 @@ const BUILDINGS = {
   },
   bruecke: {
     name: 'Brücke', icon: '🌉', size: 1, line: 'bruecke', tier: 0, stage: 'alt', bild: 'bruecke',
-    color: '#8a5a2b', cost: { holz: 8 }, time: 0, isPath: true, onWater: true,
-    info: 'Holzbrücke über den Fluss. Nur so kommt ein Weg ans andere Ufer. Einfach den Pfad übers Wasser malen.',
+    color: '#8a5a2b', cost: { holz: 8, stein: 2 }, time: 0, isPath: true, onWater: true,
+    info: 'Brücke über den Fluss – nur so kommt ein Weg ans andere Ufer. Erst ein Ufer antippen, dann das gegenüber. Kosten und Bauzeit je Feld Wasser.',
   },
 };
+
+// Brücken von Ufer zu Ufer (docs/plan-brueckenbau.md, Emin 12.11.2026): je Zeitalter Kosten und Bauzeit je Feld Wasser
+// und die größte Länge. Werte zum Erproben im Spiel.
+const BRIDGE_ERAS = [
+  { name: 'Stammbrücke', cost: { holz: 8, stein: 2 }, time: 30, max: 4 },
+  { name: 'Bohlenbrücke', cost: { holz: 10, stein: 4, bronze: 1 }, time: 25, max: 6 },
+  { name: 'Steinbogenbrücke', cost: { holz: 6, stein: 12, eisen: 1 }, time: 20, max: 8 },
+];
 
 // Eisenzeit: Weiterentwicklungen der Bronzezeit-Gebäude
 for (const [from, to] of [['hallenhaus', 'gehoeft'], ['gehoeft', 'stadthaus'], ['fischerhaus', 'seehof'], ['gemuesegarten', 'obstgarten'], ['jagdhuette', 'jagdhof'], ['fischerhuette', 'fischerei'], ['feld', 'eisenfeld'], ['viehhof', 'rindergut'], ['holzfaeller', 'holzhof'], ['baumgaertnerin', 'forstmeisterin'], ['steinbruch', 'grosser_steinbruch'], ['sternkundiger', 'druide'], ['dorfbrunnen', 'badehaus'], ['weberin', 'tuchmacherin'], ['bronzeschmied', 'eisenschmied'], ['heiliger_hain', 'druidenhain'], ['lehmgrube', 'grosse_lehmgrube'], ['toepferwerkstatt', 'drehscheibe'], ['kornspeicher', 'vorratshof'], ['handelsplatz', 'handelshof']]) BUILDINGS[from].upgradeTo = to;

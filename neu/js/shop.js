@@ -22,7 +22,11 @@ function spendGold(n) {
 function speedTargets() {
   const out = [];
   if (state.research) out.push({ key: 'r', name: `${TECHS[state.research.id].icon} ${TECHS[state.research.id].name}`, left: state.research.left });
-  state.buildings.forEach((b, i) => { if (b.build > 0 && !BUILDINGS[b.type].wonder) out.push({ key: 'b' + i, name: `${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name}`, left: b.build }); });
+  state.buildings.forEach((b, i) => {
+    if (!(b.build > 0) || BUILDINGS[b.type].wonder || bridgeLead(i) !== i) return;   // eine Brücke steht nur einmal in der Liste
+    const n = b.bg ? bridgeTiles(b).length : 0;
+    out.push({ key: 'b' + i, name: `${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name}${n > 1 ? ` (${n} Felder)` : ''}`, left: b.build });
+  });
   state.buildings.forEach((b, i) => { if (b.up > 0) out.push({ key: 'u' + i, name: `${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name} → Stufe ${levelOf(b) + 1}`, left: b.up }); });
   for (const id of Object.keys(WONDERS)) if (state.wonders[id] && state.wonders[id].left > 0) out.push({ key: 'w' + id, name: `${WONDERS[id].icon} ${WONDERS[id].name}`, left: state.wonders[id].left });
   return out;
@@ -42,7 +46,7 @@ function speedUp(key, seconds, price) {
 function applySpeed(key, rest) {
   const left = Math.max(0.01, rest);
   if (key === 'r') state.research.left = left;
-  else if (key[0] === 'b') state.buildings[Number(key.slice(1))].build = left;
+  else if (key[0] === 'b') for (const b of bridgeTiles(state.buildings[Number(key.slice(1))])) b.build = left;   // Brücke: alle Felder
   else if (key[0] === 'u') state.buildings[Number(key.slice(1))].up = left;
   else state.wonders[key.slice(1)].left = left;
   emit('speedUsed', key);
@@ -52,7 +56,7 @@ function applySpeed(key, rest) {
 function stoneKey(i) {
   const b = state.buildings[i];
   if (!b || BUILDINGS[b.type].wonder) return null;
-  return b.build > 0 ? 'b' + i : b.up > 0 ? 'u' + i : null;
+  return b.build > 0 ? 'b' + bridgeLead(i) : b.up > 0 ? 'u' + i : null;
 }
 function useStone(i) {
   const key = stoneKey(i);

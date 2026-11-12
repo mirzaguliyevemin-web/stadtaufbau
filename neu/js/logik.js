@@ -151,7 +151,14 @@ function lockText(type) {
 // ---------------------------------------------------------------------
 
 function constructionCount() {
-  return state.buildings.filter(b => (b.build > 0 && !BUILDINGS[b.type].wonder) || b.up > 0).length;
+  const bridges = new Set();   // eine Brücke aus mehreren Feldern ist eine Baustelle
+  let n = 0;
+  for (const b of state.buildings) {
+    if (!((b.build > 0 && !BUILDINGS[b.type].wonder) || b.up > 0)) continue;
+    if (b.bg && b.build > 0) { if (bridges.has(b.bg)) continue; bridges.add(b.bg); }
+    n++;
+  }
+  return n;
 }
 
 function buildProblem(type, x, y, ignore = -1, rot) {
@@ -219,7 +226,7 @@ function buildRoute(i) {
 function refundOf(b) {
   const def = BUILDINGS[b.from && BUILDINGS[b.from] ? b.from : b.type];   // von selbst weiterentwickelt: zählt das Bezahlte
   const out = {};
-  const paid = { ...(def.cost || {}) };
+  const paid = { ...(b.paid || def.cost || {}) };   // Brückenfeld: was im Zeitalter des Baus bezahlt wurde
   for (let n = 2; n <= levelOf(b); n++) for (const [id, k] of Object.entries(levelCost(b.type, n))) paid[id] = (paid[id] || 0) + k;   // bezahlte Ausbauten
   for (const [id, n] of Object.entries(paid)) out[id] = Math.floor(n * CONFIG.refundShare);
   return out;
@@ -237,6 +244,14 @@ function togglePause(i) {
 function demolish(i) {
   const b = state.buildings[i];
   if (!b || BUILDINGS[b.type].buildable === false || BUILDINGS[b.type].wonder) return false;
+  if (b.bg) {   // Brücke von Ufer zu Ufer: geht nur ganz weg
+    const group = bridgeTiles(b);
+    for (const k of group) addResources(refundOf(k));
+    for (let j = state.buildings.length - 1; j >= 0; j--) if (group.includes(state.buildings[j])) state.buildings.splice(j, 1);
+    rebuildOccupancy();
+    emit('demolished', b);
+    return true;
+  }
   addResources(refundOf(b));
   if (BUILDINGS[b.type].deko) state.shop.deko[b.type] = dekoOwned(b.type) + 1;   // Deko kommt zurück in die Bauleiste
   state.buildings.splice(i, 1);
@@ -286,16 +301,113 @@ function upgradeBuilding(i) {
 }
 
 function updateConstruction(dt) {
+  const bridgesDone = [];
   for (const b of state.buildings) {
     if (b.build > 0 && !BUILDINGS[b.type].wonder) {
       b.build -= dt;
-      if (b.build <= 0) finishBuilding(b);
+      if (b.build <= 0) { finishBuilding(b); if (b.bg) { networkDirty = true; if (!bridgesDone.some(k => k.bg === b.bg)) bridgesDone.push(b); } }
     }
     if (b.up > 0) {   // Ausbau auf die nächste Stufe: das Gebäude arbeitet währenddessen weiter
       b.up -= dt;
       if (b.up <= 0) { delete b.up; b.level = levelOf(b) + 1; recalcStats(); emit('levelDone', b); }
     }
   }
+  for (const b of bridgesDone) if (bridgeTiles(b).every(k => !(k.build > 0))) { recalcStats(); emit('bridgeDone', b); }
+}
+
+// ---------------------------------------------------------------------
+// Brücken von Ufer zu Ufer (docs/plan-brueckenbau.md, Emin 12.11.2026): Man tippt ein Ufer und das gegenüber an,
+// dazwischen nur Wasser – gerade entlang der Felder oder schräg über Eck. Die Brücke ist eine Baustelle (ein Platz
+// in der Bauschlange) und gehört erst fertig zum Wegenetz. Alle Felder einer Brücke tragen dieselbe Nummer bg.
+// ---------------------------------------------------------------------
+
+function bridgeEra() { return BRIDGE_ERAS[Math.max(1, Math.min(BRIDGE_ERAS.length, epochNumber())) - 1]; }
+function isWaterTile(x, y) { return inMap(x, y) && terrain[y * N + x] === TERRAIN.wasser.id; }
+function bridgeTiles(b) { return b && b.bg ? state.buildings.filter(k => k.bg === b.bg) : b ? [b] : []; }
+function bridgeLead(i) {   // erstes Feld einer Brücke: dort hängen Restzeit und Beschleunigen
+  const b = state.buildings[i];
+  return b && b.bg ? state.buildings.findIndex(k => k.bg === b.bg) : i;
+}
+
+// Kann hier eine Brücke anlegen? null = ja. Ufer = Land, auf dem ein Weg liegt oder liegen kann.
+function shoreProblem(x, y) {
+  if (!inMap(x, y)) return 'Außerhalb der Karte';
+  if (isWaterTile(x, y)) return 'Tipp auf ein Ufer, nicht ins Wasser';
+  if (!isOwned(x, y)) return 'Dieses Land gehört dir noch nicht';
+  if (isPathAt(x, y)) return null;
+  return placeProblem('pfad', x, y);
+}
+
+// Brücke zwischen zwei Ufern: { tiles, ends } oder ein Fehlertext
+function bridgePlan(a, b) {
+  const ax = Math.abs(b.x - a.x), ay = Math.abs(b.y - a.y);
+  if (!ax && !ay) return 'Zweimal dasselbe Ufer';
+  if (ax && ay && ax !== ay) return 'Nur gerade entlang der Felder oder schräg über Eck';
+  const dx = Math.sign(b.x - a.x), dy = Math.sign(b.y - a.y), tiles = [];
+  for (let x = a.x + dx, y = a.y + dy; x !== b.x || y !== b.y; x += dx, y += dy) tiles.push([x, y]);
+  if (!tiles.length) return 'Dazwischen ist kein Wasser';
+  for (const [x, y] of tiles) {
+    if (!isWaterTile(x, y)) return 'Dazwischen darf nur Wasser sein';
+    const p = placeProblem('bruecke', x, y);
+    if (p) return p;
+  }
+  const era = bridgeEra();
+  if (tiles.length > era.max) return `Zu lang – höchstens ${era.max} Felder Wasser`;
+  for (const e of [a, b]) { const p = shoreProblem(e.x, e.y); if (p) return p; }
+  return { tiles, ends: [a, b] };
+}
+
+// Alle Ufer gegenüber, die von a aus erreichbar sind
+const BRIDGE_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+function bridgeTargets(a) {
+  const out = [], max = bridgeEra().max;
+  if (shoreProblem(a.x, a.y)) return out;
+  for (const [dx, dy] of BRIDGE_DIRS) {
+    let x = a.x + dx, y = a.y + dy, n = 0;
+    while (isWaterTile(x, y) && n <= max) { x += dx; y += dy; n++; }
+    if (n && n <= max && typeof bridgePlan(a, { x, y }) === 'object') out.push({ x, y });
+  }
+  return out;
+}
+
+function bridgeCost(plan) {
+  const cost = {};
+  for (const [id, n] of Object.entries(bridgeEra().cost)) cost[id] = n * plan.tiles.length;
+  const ends = plan.ends.filter(e => !isPathAt(e.x, e.y)).length;   // die Ufer bekommen ein Stück Pfad
+  if (ends) cost.holz = (cost.holz || 0) + ends * BUILDINGS.pfad.cost.holz;
+  return cost;
+}
+function bridgeTime(plan) { return Math.max(1, Math.round(bridgeEra().time * plan.tiles.length * (1 - techSum('buildFaster')))); }
+
+function bridgeProblem(a, b) {
+  const plan = bridgePlan(a, b);
+  if (typeof plan === 'string') return plan;
+  const cost = bridgeCost(plan);
+  if (!canAfford(cost)) return missingText(cost);
+  if (constructionCount() >= constructionLimit()) return `Schon ${constructionLimit()} Baustellen – warte, bis eine fertig ist`;
+  return null;
+}
+
+// Baut die Brücke (Baustelle). Gibt einen Fehlertext zurück oder null.
+function buildBridge(a, b) {
+  const problem = bridgeProblem(a, b);
+  if (problem) return problem;
+  const plan = bridgePlan(a, b), era = bridgeEra(), time = bridgeTime(plan);
+  for (const e of plan.ends) if (!isPathAt(e.x, e.y)) placeBuilding('pfad', e.x, e.y);
+  const tileCost = {};
+  for (const [id, n] of Object.entries(era.cost)) tileCost[id] = n * plan.tiles.length;
+  payCost(tileCost);
+  const bg = 1 + state.buildings.reduce((m, k) => Math.max(m, k.bg || 0), 0);
+  let first = null;
+  for (const [x, y] of plan.tiles) {
+    const k = addBuilding('bruecke', x, y, false, true);
+    Object.assign(k, { build: time, bt: time, bg, paid: { ...era.cost } });
+    setOccupied(k, state.buildings.length);
+    giveTorch(k);
+    first ||= k;
+  }
+  emit('bridgePlaced', first);
+  return null;
 }
 
 // ---------------------------------------------------------------------

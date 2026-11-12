@@ -807,11 +807,16 @@ function isPathAt(x, y) {
 // auf dem Bildschirm). Über Eck zählt nur, wenn keins der beiden Felder dazwischen Weg ist – sonst führt der
 // Weg ohnehin um die Ecke.
 const PATH_DIAG = [[1, 1], [-1, -1], [1, -1], [-1, 1]];
+// Begehbar: Weg, der nicht mehr Baustelle ist (eine Brücke trägt erst, wenn sie fertig ist)
+function isWayOpen(x, y) {
+  const i = buildingAt(x, y);
+  return i >= 0 && BUILDINGS[state.buildings[i].type].isPath && !(state.buildings[i].build > 0);
+}
 function diagLink(x, y, dx, dy) { return isPathAt(x + dx, y + dy) && !isPathAt(x + dx, y) && !isPathAt(x, y + dy); }
 function pathNeighbors(x, y) {
   const out = [];
-  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (inMap(x + dx, y + dy) && isPathAt(x + dx, y + dy)) out.push([x + dx, y + dy]);
-  for (const [dx, dy] of PATH_DIAG) if (inMap(x + dx, y + dy) && diagLink(x, y, dx, dy)) out.push([x + dx, y + dy]);
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (inMap(x + dx, y + dy) && isWayOpen(x + dx, y + dy)) out.push([x + dx, y + dy]);
+  for (const [dx, dy] of PATH_DIAG) if (inMap(x + dx, y + dy) && diagLink(x, y, dx, dy) && isWayOpen(x + dx, y + dy)) out.push([x + dx, y + dy]);
   return out;
 }
 
@@ -840,7 +845,7 @@ function updateNetwork() {
   const queue = [];
   const fire = state.buildings.find(b => b.type === 'lagerfeuer');
   if (fire) for (const [x, y] of perimeter(fire.x, fire.y, BUILDINGS.lagerfeuer.size))
-    if (isPathAt(x, y) && !reached[y * N + x]) { reached[y * N + x] = 1; queue.push([x, y]); }
+    if (isWayOpen(x, y) && !reached[y * N + x]) { reached[y * N + x] = 1; queue.push([x, y]); }
   while (queue.length) {
     const [x, y] = queue.pop();
     for (const [nx, ny] of pathNeighbors(x, y))
@@ -871,7 +876,7 @@ function pathRoute(i) {
   const s = BUILDINGS[b.type].size;
   const prev = new Int32Array(N * N).fill(-2);
   const queue = [];
-  const passable = (x, y) => isPathAt(x, y) || !placeProblem(wayTypeAt(x, y), x, y);
+  const passable = (x, y) => isWayOpen(x, y) || (!isWaterTile(x, y) && !placeProblem('pfad', x, y));   // über den Fluss nur auf fertigen Brücken
   for (const [x, y] of perimeter(b.x, b.y, s))
     if (passable(x, y)) { prev[y * N + x] = -1; queue.push(y * N + x); }
   for (let q = 0; q < queue.length; q++) {

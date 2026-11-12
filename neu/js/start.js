@@ -114,7 +114,7 @@ function enterGame() {
   checkDailyReward();
   saveGame();
   saveSettings();
-  ghost = null; pathMode = false; selected = -1;
+  ghost = null; pathMode = false; bridgeMode = null; selected = -1;
   if (typeof elderHint !== 'undefined') { elderHint = null; lastHintAt = -1e9; }   // Hinweise des alten Spielstands vergessen
   centerOnCamp();
   recalcStats();
@@ -229,6 +229,7 @@ if (typeof window !== 'undefined' && window.addEventListener) {
   window.addEventListener('unhandledrejection', ev => noteError('Versprechen', ev.reason));
 }
 
+on('bridgeDone', () => { if (gameRunning && !offlineRunning) { toast('🌉 Die Brücke steht!'); playSound('fertig'); } });
 on('levelDone', b => { if (gameRunning && !offlineRunning) toast(`⭐ ${BUILDINGS[b.type].name} ist jetzt Stufe ${levelOf(b)}!`); });
 on('finished', b => { if (gameRunning && !offlineRunning && BUILDINGS[b.type].time > 0 && !BUILDINGS[b.type].wonder) toast(`${BUILDINGS[b.type].icon} ${BUILDINGS[b.type].name} ist fertig!`); });
 on('evolved', list => {

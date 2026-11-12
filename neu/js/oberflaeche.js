@@ -386,6 +386,21 @@ function renderActionBar() {
   } else if (pathMode) {
     html = `<div class="action-text">🟫 Trampelpfad · 1 🪵 je Feld<small>Über die Felder ziehen · auf einen Weg tippen löscht ihn</small></div>
       <button class="round yes" onclick="cancelGhost()">✔</button>`;
+  } else if (bridgeMode) {
+    const m = bridgeMode, era = bridgeEra();
+    const plan = m.a && m.b ? bridgePlan(m.a, m.b) : null;
+    if (plan && typeof plan === 'object') {
+      const problem = bridgeProblem(m.a, m.b);
+      html = `<div class="action-text">🌉 ${plan.tiles.length} ${plan.tiles.length === 1 ? 'Feld' : 'Felder'} · ${costHtml(bridgeCost(plan))} · ⏱&nbsp;${formatTime(bridgeTime(plan)).replace(' ', '&nbsp;')}
+        <small class="${problem ? 'bad' : 'good'}">${esc(era.name)} · ${esc(problem || 'Passt! Mit ✔ bauen')}</small></div>
+        <button class="round no" onclick="cancelGhost()">✖</button>
+        <button class="round yes" ${problem ? 'disabled' : ''} onclick="confirmBridge()">✔</button>`;
+    } else {
+      const cost = Object.entries(era.cost).map(([id, n]) => `${n} ${RESOURCES[id].icon}`).join(' ');
+      html = `<div class="action-text">🌉 ${esc(era.name)} · ${cost} je Feld Wasser · bis ${era.max} Felder
+        <small>${m.a ? 'Jetzt das Ufer gegenüber antippen (leuchtet)' : 'Tipp auf ein leuchtendes Ufer'}</small></div>
+        <button class="round no" onclick="cancelGhost()">✖</button>`;
+    }
   }
   show(el, !!html);
   if (html !== lastAction) { el.innerHTML = html; lastAction = html; }
@@ -682,7 +697,7 @@ function onHistoryBack() {
 // Bauen, Verschieben und Wege malen bekommen einen Eintrag im Verlauf – so bricht die Zurück-Taste sie ab
 let toolEntry = false;
 function syncToolEntry() {
-  const active = !!(typeof ghost !== 'undefined' && (ghost || pathMode));
+  const active = !!(typeof ghost !== 'undefined' && (ghost || pathMode || bridgeMode));
   if (active && !toolEntry) { toolEntry = true; pushEntry('tool'); }
   else if (!active && toolEntry) { toolEntry = false; popEntries(1); }
 }

@@ -1250,7 +1250,7 @@ const FINDS = {
   scheibe:     { name: 'Teil der Himmelsscheibe', icon: '🌞', bild: 'fund-scheibe', page: 'bronze', need: 5, soon: true, hint: 'Entsteht beim Bau der Halle der Himmelsscheibe' },
   salzkristall:{ name: 'Salzkristall', icon: '💎', bild: 'fund-salzkristall', page: 'eisen', need: 5, stage: 'eisen2', hint: 'Die Salzsiederei findet manchmal einen' },
   rucksack:    { name: 'Alter Lederrucksack', icon: '🎒', bild: 'fund-rucksack', page: 'eisen', need: 2, stage: 'eisen2', spot: 'fels', hint: 'Glitzert ab der Mittleren Eisenzeit an Felsen' },
-  bronzepickel:{ name: 'Bronzepickel', icon: '⛏️', page: 'eisen', need: 3, stage: 'eisen2', hint: 'Steckt manchmal in einer Erzader' },
+  bronzepickel:{ name: 'Bronzepickel', icon: '⛏️', bild: 'fund-bronzepickel', page: 'eisen', need: 3, stage: 'eisen2', hint: 'Steckt manchmal in einer Erzader' },
   wollstoff:   { name: 'Karierter Wollstoff', icon: '🧵', page: 'eisen', need: 3, stage: 'eisen2', hint: 'Die Tuchmacherin webt manchmal einen' },
   schriftrolle:{ name: 'Schriftrolle', icon: '📜', page: 'antike', soon: true, hint: FIND_LATER },
   spiegel:     { name: 'Bronzespiegel', icon: '🪞', page: 'antike', soon: true, hint: FIND_LATER },

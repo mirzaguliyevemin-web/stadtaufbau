@@ -297,7 +297,7 @@ A small construction site: a wooden scaffold frame, a stack of planks, a pile of
 ✅ ERLEDIGT – 99. Fundstück Alter Lederrucksack  →  Datei: fund-rucksack.png  (Vorlage Sonnenstein MAHamAmuh8Q, danach bild: in FINDS)
 Iron age salt miner's backpack from Hallstatt: a leather sack on a wooden frame with a carrying stick, worn and old. Style: bright cheerful cartoon mobile game icon, soft warm colors, clean dark brown outlines, gentle soft shading, centered, plain pure white background, no text, no letters, no border, square 1:1 format
 
-⬜ OFFEN – 100. Fundstück Bronzepickel  →  Datei: fund-bronzepickel.png  (Vorlage Sonnenstein MAHamAmuh8Q, danach bild: in FINDS)
+✅ ERLEDIGT – 100. Fundstück Bronzepickel  →  Datei: fund-bronzepickel.png  (Vorlage Sonnenstein MAHamAmuh8Q, danach bild: in FINDS)
 An old bronze pickaxe head with a short worn wooden handle, greenish patina on the bronze. Style: bright cheerful cartoon mobile game icon, soft warm colors, clean dark brown outlines, gentle soft shading, centered, plain pure white background, no text, no letters, no border, square 1:1 format
 
 ⬜ OFFEN – 101. Fundstück Karierter Wollstoff  →  Datei: fund-wollstoff.png  (Vorlage Sonnenstein MAHamAmuh8Q, danach bild: in FINDS)

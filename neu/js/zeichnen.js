@@ -236,7 +236,8 @@ function median(list) {
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
     'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'setzling', 'truhe', 'band', 'logo-rund', 'berg-gross', 'berg-klein',
-    'leiste-holz-steinzeit', 'bruecke-senkrecht', 'bruecke-senkrecht-winter', 'bruecke-steg', 'bruecke-waagerecht', 'bruecke-waagerecht-winter',   // schräge Brücken   // Holzmuster der Brücken (drawBridge), seit dem hellen Design versehentlich nicht mehr geladen
+    'leiste-holz-steinzeit', 'bruecke-senkrecht', 'bruecke-senkrecht-winter', 'bruecke-steg', 'bruecke-waagerecht', 'bruecke-waagerecht-winter',   // schräge Brücken
+    ...BRIDGE_IMAGE_ERAS.flatMap(e => ['bruecke', 'bruecke-waagerecht', 'bruecke-steg'].flatMap(n => [n + e, n + e + '-winter'])),   // Brücken der späteren Zeitalter   // Holzmuster der Brücken (drawBridge), seit dem hellen Design versehentlich nicht mehr geladen
     'symbol-forschung', 'symbol-auftraege', 'symbol-haendler', 'symbol-schaetze', 'symbol-shop', 'symbol-grundriss', 'symbol-menue',
     'gold-1', 'gold-2', 'gold-3', 'shop-baustelle',   // Shop: Gold-Pakete und zusätzliche Baustelle
     ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, ...LIFE_NAMES]);
@@ -1900,9 +1901,9 @@ function drawPaths(range) {
   // im Winter liegt etwas Schnee auf dem Weg
   const snow = typeof snowCover === 'function' ? snowCover() : 0;
   if (snow > 0) { ctx.strokeStyle = `rgba(245,250,255,${0.35 * snow})`; ctx.stroke(); }
-  const sprite = images.bruecke;
+  const sprite = bridgeImage('bruecke');
   const diag = new Map(bridges.map(b => [b, bridgeDiag(b)]));
-  const diagImg = d => images[d[0] === d[1] ? 'bruecke-senkrecht' : 'bruecke-waagerecht'];
+  const diagImg = d => d[0] === d[1] ? images['bruecke-senkrecht'] : bridgeImage('bruecke-waagerecht');
   for (const b of bridges) if (diag.get(b) && !diagImg(diag.get(b))) drawBridgeDiag(b, diag.get(b), snow);   // Ersatz, bis das Bild da ist
   if (!sprite) for (const b of bridges) if (!diag.get(b)) drawBridge(b, snow);
   ctx.restore();
@@ -2038,6 +2039,18 @@ function isBridgeAt(x, y) {
   return i >= 0 && !!BUILDINGS[state.buildings[i].type].onWater;
 }
 
+// Brücken wechseln mit dem Zeitalter von selbst ihr Aussehen (Emin 12.11.2026): Bilder mit Endung je Zeitalter,
+// fehlt eines, bleibt das des vorigen Zeitalters. Das Winterbild gehört immer zum gezeigten Sommerbild.
+const BRIDGE_IMAGE_ERAS = ['-bronze', '-eisen'];
+function bridgeImageName(base) {
+  for (let e = Math.min(epochNumber(), BRIDGE_IMAGE_ERAS.length + 1) - 1; e > 0; e--) {
+    if (images[base + BRIDGE_IMAGE_ERAS[e - 1]]) return base + BRIDGE_IMAGE_ERAS[e - 1];
+  }
+  return base;
+}
+function bridgeImage(base) { return images[bridgeImageName(base)]; }
+function bridgeWinter(base) { return images[bridgeImageName(base) + '-winter']; }
+
 const BRIDGE_SHEAR = 0.87 - TH / TW;
 function drawBridgeSprite(img, b, snow) {
   const p = tileToScreen(b.x + 0.5, b.y + 0.5), z = cam.zoom;
@@ -2062,7 +2075,7 @@ function drawBridgeSprite(img, b, snow) {
   ctx.fillStyle = 'rgba(20, 40, 60, 0.25)';   // Schatten im Wasser
   ctx.beginPath(); ctx.ellipse(3 * z, 5 * z, w * 0.42, h * 0.2, 0, 0, 7); ctx.fill();
   ctx.drawImage(img, -w / 2, -h * 0.58, w, h);
-  const winter = snow > 0 && images['bruecke-winter'];
+  const winter = snow > 0 && bridgeWinter('bruecke');
   if (winter) {   // Schneebild blendet über, solange die Schneedecke wächst oder schmilzt
     ctx.globalAlpha *= snow;
     ctx.drawImage(winter, -w / 2, -h * 0.58, w, h);
@@ -2104,7 +2117,7 @@ function bridgeDiag(b) {
 // Schräge Brücke aus Canva (senkrecht bzw. waagerecht auf dem Bildschirm). Wie bei drawBridgeSprite zeigt
 // in einer Reihe jedes Feld nur seinen eigenen Abschnitt, die Enden am Ufer bleiben ganz.
 function drawBridgeDiagSprite(img, b, [dx, dy], snow) {
-  if (dx === dy && images['bruecke-steg']) return drawBridgeSteg(images['bruecke-steg'], b, snow);
+  if (dx === dy && bridgeImage('bruecke-steg')) return drawBridgeSteg(bridgeImage('bruecke-steg'), b, snow);
   const z = cam.zoom, p = tileToScreen(b.x + 0.5, b.y + 0.5), q = tileToScreen(b.x + 0.5 + dx, b.y + 0.5 + dy);
   const sx = q.x - p.x, sy = q.y - p.y, len = Math.hypot(sx, sy), ux = sx / len, uy = sy / len;   // Laufrichtung auf dem Bildschirm
   const vertical = dx === dy;
@@ -2123,7 +2136,7 @@ function drawBridgeDiagSprite(img, b, [dx, dy], snow) {
   ctx.beginPath(); ctx.ellipse(p.x + 3 * z, p.y + 4 * z, w * 0.45, h * 0.3, 0, 0, 7); ctx.fill();
   const y0 = p.y - h * (vertical ? 0.42 : 0.6);   // senkrecht: Mitte der Stämme im eigenen Abschnitt, Stammenden nur am Ufer
   ctx.drawImage(img, p.x - w / 2, y0, w, h);
-  const winter = snow > 0 && images[(vertical ? 'bruecke-senkrecht' : 'bruecke-waagerecht') + '-winter'];
+  const winter = snow > 0 && (vertical ? images['bruecke-senkrecht-winter'] : bridgeWinter('bruecke-waagerecht'));
   if (winter) { ctx.globalAlpha *= snow; ctx.drawImage(winter, p.x - w / 2, y0, w, h); }
   ctx.restore();
 }

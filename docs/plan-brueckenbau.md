@@ -76,7 +76,8 @@ Pfade lassen sich dann nicht mehr übers Wasser malen. Der Weg hört am Ufer auf
    - Pflöcke und Gerüst sind vorerst gezeichnet. Bilder aus Canva können folgen.
    - Alte Brücken bleiben einzelne, fertige Brückenfelder.
 3. ✅ Version 173: Schräge senkrechte Brücken haben keine Lücken mehr. Sie zeigen jetzt einen durchgehenden Steg aus quer liegenden Stämmen (neues Bild aus Canva, wiederholt sich nahtlos), an den Ufern stehen Pfosten.
-4. Bronze- und Eisenzeit-Brücken, sobald die Bilder da sind.
+4. ✅ Version 176: In der Bronzezeit zeigen alle Brücken die Bohlenbrücke mit Geländer (gerade, waagerecht und als Steg, Bilder aus Canva). Fehlt ein Bild eines Zeitalters, bleibt das des vorigen. Winterbilder der Bronzezeit fehlen noch.
+5. Eisenzeit-Brücken, Baustelle und Pflock, sobald die Bilder da sind.
 
 ## 8 · Entscheidungen von Emin (2026-11-12)
 

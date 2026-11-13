@@ -79,6 +79,72 @@ function bridgeFields(b) {
   return out;
 }
 
+// Mehrere Städte (seit Version 185, Plan docs/plan-zweite-stadt.md): Die Stadt, die man spielt, liegt wie bisher direkt
+// im Stand, so bleibt das ganze Spiel unverändert. Die übrigen Städte ruhen in state.cities[i].data mit den Feldern aus
+// CITY_KEYS. Alles andere (Forschung, Zeitalter, Wissen, Gold, Fundstücke, Aufträge …) gilt für alle Städte gemeinsam.
+// Alte Stände ohne cities werden zur ersten Stadt.
+const CITY_FIRST_NAME = 'Erste Stadt';
+const CITY_LANDS = ['fluss', 'kueste'];
+const CITY_KEYS = ['seed', 'res', 'buildings', 'plots', 'cleared', 'planted', 'saplings', 'hunt', 'disaster', 'disasterCalm', 'disasterNext',
+  'herdWait', 'needSince', 'hunger', 'wishWait', 'trader', 'suedhaendler', 'wanderer', 'wonders', 'spots', 'trips', 'pop',
+  'mapSize', 'mapCore', 'torches', 'mapGen'];
+const CITY_SHARED_RES = ['wissen'];   // Waren, die allen Städten gemeinsam gehören
+
+// Die Daten einer Stadt aus einem Stand herauslösen (als Kopie)
+function cityPart(s) {
+  const c = {};
+  for (const k of CITY_KEYS) if (s[k] !== undefined) c[k] = s[k];
+  c.res = { ...(s.res || {}) };
+  for (const id of CITY_SHARED_RES) delete c.res[id];
+  return JSON.parse(JSON.stringify(c));
+}
+
+// Liste der Städte prüfen: Namen, Landschaft, und die ruhenden Städte wie einen eigenen Stand säubern
+function sanitizeCities(data, s) {
+  if (!Array.isArray(data.cities) || !data.cities.length) return;   // alter Stand: bleibt die erste Stadt
+  const active = Number.isInteger(data.city) && data.city >= 0 && data.city < data.cities.length ? data.city : 0;
+  const list = [];
+  data.cities.forEach((c, i) => {
+    if (!c || typeof c !== 'object') return;
+    const meta = { name: typeof c.name === 'string' && c.name.trim() ? c.name.trim().slice(0, 30) : CITY_FIRST_NAME, land: CITY_LANDS.includes(c.land) ? c.land : 'fluss' };
+    if (i === active) { s.city = list.length; list.push(meta); return; }
+    if (!c.data || typeof c.data !== 'object') return;   // ruhende Stadt ohne Daten: unbrauchbar
+    const res = { ...(c.data.res || {}) };
+    for (const id of CITY_SHARED_RES) res[id] = data.res && data.res[id];
+    const part = sanitizeState({ ...data, ...c.data, res, cities: null, city: 0 });
+    if (part) list.push({ ...meta, data: cityPart(part) });
+  });
+  if (list.some(c => !c.data)) s.cities = list;
+}
+
+// Zu einer anderen Stadt wechseln: Die jetzige ruht, die andere wird geladen. Danach saveGame() und enterGame().
+function switchCity(i) {
+  if (!state || i === state.city || !state.cities[i] || !state.cities[i].data) return false;
+  const d = JSON.parse(serialize());
+  const cur = d.city;
+  const park = cityPart(d);
+  const next = JSON.parse(JSON.stringify(d.cities[i].data));
+  const shared = {};
+  for (const id of CITY_SHARED_RES) shared[id] = d.res[id] || 0;
+  Object.assign(d, next);
+  d.res = { ...next.res, ...shared };
+  d.cities[cur].data = park;
+  delete d.cities[i].data;
+  d.city = i;
+  return loadFromText(JSON.stringify(d));
+}
+
+// Neue Stadt anlegen (ruhend, noch nicht gewechselt). Gibt ihre Nummer zurück.
+function addCity(name, land = 'fluss', seed = Math.floor(Math.random() * 1e9)) {
+  if (!state) return -1;
+  const keep = serialize();
+  startNewGame(seed);
+  const part = cityPart(state);
+  if (!loadFromText(keep)) return -1;
+  state.cities.push({ name: String(name || 'Neue Stadt').slice(0, 30), land: CITY_LANDS.includes(land) ? land : 'fluss', data: part });
+  return state.cities.length - 1;
+}
+
 function sanitizeState(data) {
   if (!data || typeof data !== 'object' || !Array.isArray(data.buildings)) return null;
   data = migrateMapSize(data);
@@ -171,6 +237,7 @@ function sanitizeState(data) {
     TUTORIAL.forEach((step, i) => { if (s.tutorial < 0 || i < s.tutorial) s.tutorialRewards[step.id] = true; });
     if (s.tutorial < 0 || s.buildings.some(b => b.type === 'hoehlenmaler')) s.tutorialRewards.forschung_bau = true;
   }
+  sanitizeCities(data, s);
   return s;
 }
 

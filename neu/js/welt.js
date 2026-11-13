@@ -62,6 +62,8 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     mapCore: 0,              // 0 = ganze Karte aus einem Guss; 128 = alte 128er-Karte liegt als Kern in der Mitte (Außenland neu)
     torches: true,           // Wege haben schon Fackeln bekommen (alte Stände: einmal beim Laden nachholen)
     mapGen: 3,               // Art der Kartenerzeugung: 3 = wie 2, See doppelt so breit (Emin); 2 = breiter, kurviger Fluss; 1 = alter Fluss. Alte Stände behalten ihre Art.
+    city: 0,                 // Nummer der Stadt, die man gerade spielt (ihre Daten liegen direkt im Stand)
+    cities: [{ name: CITY_FIRST_NAME, land: 'fluss' }],   // alle Städte; die übrigen tragen ihre Daten in data (siehe CITY_KEYS)
     savedAt: Date.now(),
   };
 }

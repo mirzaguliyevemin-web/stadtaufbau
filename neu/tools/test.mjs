@@ -564,6 +564,35 @@ test('Kupferzeit: Spielstand speichern und laden, Oberfläche ohne Bilder', () =
   noErrors(g);
 });
 
+test('Mehrere Städte: alter Stand wird erste Stadt, Wechseln und zurück verliert nichts, Gemeinsames bleibt gemeinsam', () => {
+  const g = fresh();
+  // alter Stand ohne Städte-Liste
+  const r0 = g.run(`(() => { const d = JSON.parse(serialize()); delete d.cities; delete d.city; return JSON.stringify(sanitizeState(d).cities); })()`);
+  ok(r0 === JSON.stringify([{ name: 'Erste Stadt', land: 'fluss' }]), 'alter Stand: ' + r0);
+  g.run(`state.res.holz = 777; state.res.wissen = 50; state.techs.speerspitzen = true; state.shop.gold = 12;`);
+  const before = g.run(`JSON.stringify(cityPart(state))`);
+  const k = g.run(`addCity('Hafenstadt', 'kueste', 99)`);
+  ok(k === 1 && g.run('state.cities.length') === 2 && g.run('state.city') === 0, 'Stadt nicht angelegt');
+  ok(g.run(`JSON.stringify(cityPart(state))`) === before, 'Anlegen verändert die erste Stadt');
+  // speichern und laden behält die ruhende Stadt
+  ok(g.run(`loadFromText(serialize())`) && g.run(`state.cities[1].data.buildings.length`) > 0, 'ruhende Stadt geht beim Laden verloren');
+  ok(g.run(`switchCity(1)`), 'Wechseln geht nicht');
+  ok(g.run('state.city') === 1 && g.run('state.seed') === 99 && g.run('state.res.holz') !== 777, 'falsche Stadt geladen');
+  ok(g.run('state.res.wissen') === 50 && g.run('state.techs.speerspitzen') === true && g.run('state.shop.gold') === 12, 'Gemeinsames nicht gemeinsam');
+  g.run(`state.res.wissen = 80; state.res.holz = 5;`);
+  ok(g.run(`switchCity(0)`), 'Zurückwechseln geht nicht');
+  const after = JSON.parse(g.run(`JSON.stringify(cityPart(state))`)), b = JSON.parse(before);
+  ok(JSON.stringify(after.buildings) === JSON.stringify(b.buildings) && after.res.holz === 777 && after.seed === b.seed, 'erste Stadt verändert');
+  ok(g.run('state.res.wissen') === 80 && g.run('state.cities[1].data.res.holz') === 5, 'Waren falsch verteilt');
+  // kaputte ruhende Stadt fällt weg, die gespielte bleibt
+  const r1 = g.run(`(() => { const d = JSON.parse(serialize()); d.cities[1].data = 5; d.cities.push({ name: 'x' }); const s = sanitizeState(d); return s.cities.length + ',' + s.city; })()`);
+  ok(r1 === '1,0', 'kaputte Stadt: ' + r1);
+  // gespielte Stadt an zweiter Stelle bleibt gewählt
+  g.run(`switchCity(1)`);
+  ok(g.run(`(() => { const s = sanitizeState(JSON.parse(serialize())); return s.city === 1 && !s.cities[1].data && !!s.cities[0].data; })()`), 'gewählte Stadt geht verloren');
+  noErrors(g);
+});
+
 test('Frühe Bronzezeit: Übergang, Werkzeug-Bedürfnis, Weiterentwicklung, Ziel noch gesperrt', () => {
   const g = fresh();
   g.run(`for (const id of Object.keys(TECH_NEEDS)) delete TECH_NEEDS[id];

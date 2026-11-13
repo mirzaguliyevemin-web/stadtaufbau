@@ -52,7 +52,7 @@ Das ist ein großer Umbau, der in mehreren Sitzungen mit Emin entsteht.
 | Schritt | Inhalt |
 |---|---|
 | 1 | Erst fertig: Bilder Steinzeit und Bronzezeit, Eisenzeit, Arbeitsbewegungen, Antike |
-| 2 | Spielstand auf mehrere Städte umstellen, ohne dass man im Spiel etwas merkt |
+| 2 | ✅ Version 185 (13.11.): Spielstand auf mehrere Städte umgestellt, ohne dass man im Spiel etwas merkt (siehe unten) |
 | 3 | Kleine zweite Karte, Wechseln zwischen den Städten |
 | 4 | Vereinfachtes Weiterlaufen, Handelsrouten |
 | 5 | Besonderheiten der Karte, Aufträge, Wunderwerk, Bilder |
@@ -65,3 +65,15 @@ Das ist ein großer Umbau, der in mehreren Sitzungen mit Emin entsteht.
 4. **Weiterlaufen:** Ja. Die Stadt, die man gerade nicht ansieht, rechnet vereinfacht weiter: Waren und Einwohner, ohne Figuren.
 5. **Forschung:** Ein gemeinsamer Forschungsbaum für alle Städte.
 6. **Anzahl:** Erst zwei Städte. Die Technik wird aber so gebaut, dass später mehr möglich sind.
+
+## Gebaut: Spielstand für mehrere Städte (Version 185)
+
+- Die Stadt, die man gerade spielt, liegt wie bisher direkt im Spielstand. Dadurch bleibt das ganze Spiel unverändert.
+- Neu sind `city` (die Nummer der gespielten Stadt) und `cities` (Name und Landschaft jeder Stadt). Die übrigen Städte ruhen dort mit ihren Daten in `data`.
+- **Je Stadt:** Karte, Gebäude, Land, Bäume, Waren außer Wissen, Einwohner, Händler, Wunderwerke, Fundstellen, Katastrophen. Die Liste steht in `CITY_KEYS` (`neu/js/speicher.js`).
+- **Gemeinsam:** Forschung, Zeitalter, Wissen, Gold und Shop, Fundstücke und Album, Aufträge, tägliche Belohnung, Einstieg, Spielzeit und Jahreszeit.
+- **Alte Spielstände** werden beim Laden zur „Ersten Stadt“.
+- **Ruhende Städte** werden beim Laden wie ein eigener Spielstand geprüft. Eine kaputte ruhende Stadt fällt weg, die gespielte bleibt immer erhalten.
+- **Funktionen:** `addCity(name, land, seed)` legt eine ruhende Stadt an. `switchCity(i)` wechselt; danach kommen `saveGame()` und `enterGame()`.
+- Im Spiel gibt es noch keinen Knopf dafür. Das kommt mit Schritt 3, zusammen mit der Antike.
+- Ruhende Städte laufen noch nicht weiter, das ist Schritt 4.

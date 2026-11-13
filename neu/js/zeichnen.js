@@ -236,7 +236,7 @@ function median(list) {
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
     'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'setzling', 'truhe', 'band', 'logo-rund', 'berg-gross', 'berg-klein',
-    'leiste-holz-steinzeit', 'bruecke-senkrecht', 'bruecke-senkrecht-winter', 'bruecke-steg', 'bruecke-waagerecht', 'bruecke-waagerecht-winter',   // schräge Brücken
+    'leiste-holz-steinzeit', 'bruecke-senkrecht', 'bruecke-senkrecht-winter', 'bruecke-steg', 'bruecke-waagerecht', 'bruecke-waagerecht-winter', 'bruecke-pflock',   // schräge Brücken
     ...BRIDGE_IMAGE_ERAS.flatMap(e => ['bruecke', 'bruecke-waagerecht', 'bruecke-steg'].flatMap(n => [n + e, n + e + '-winter'])),   // Brücken der späteren Zeitalter   // Holzmuster der Brücken (drawBridge), seit dem hellen Design versehentlich nicht mehr geladen
     'symbol-forschung', 'symbol-auftraege', 'symbol-haendler', 'symbol-schaetze', 'symbol-shop', 'symbol-grundriss', 'symbol-menue',
     'gold-1', 'gold-2', 'gold-3', 'shop-baustelle',   // Shop: Gold-Pakete und zusätzliche Baustelle
@@ -1993,6 +1993,12 @@ function drawStake(x, y) {
   const z = cam.zoom, p = tileToScreen(x + 0.5, y + 0.5), h = 30 * z;
   diamondPath(ctx, x, y, 1, 1, tileToScreen);
   ctx.strokeStyle = '#fff3c4'; ctx.lineWidth = Math.max(2, 3 * z); ctx.stroke();
+  const img = images['bruecke-pflock'];
+  if (img) {   // Bild aus Canva: Mitte des Erdflecks liegt auf der Mitte des Felds
+    const dh = 46 * z, dw = dh * img.width / img.height;
+    ctx.drawImage(img, p.x - dw * 0.47, p.y - dh * 0.875, dw, dh);
+    return;
+  }
   ctx.fillStyle = 'rgba(0,0,0,0.22)';
   ctx.beginPath(); ctx.ellipse(p.x, p.y, 5 * z, 2 * z, 0, 0, 7); ctx.fill();
   ctx.strokeStyle = '#6b4424'; ctx.lineWidth = Math.max(2, 3 * z); ctx.lineCap = 'round';

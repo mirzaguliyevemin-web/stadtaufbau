@@ -80,7 +80,7 @@ Pfade lassen sich dann nicht mehr übers Wasser malen. Der Weg hört am Ufer auf
 5. ✅ Version 177: In der Eisenzeit zeigen gerade und waagerechte Brücken die Steinbrücke mit Brüstung. Seit Version 178 auch der senkrechte Steg aus Steinplatten.
 6. ✅ Version 179: Der Uferpflock mit rotem Fähnchen ist ein Bild aus Canva.
 7. ✅ Version 180: Das Baugerüst auf jedem Feld der Baustelle ist ein Bild aus Canva.
-8. Winterbilder der Bronze- und Eisenzeit, sobald die Bilder da sind.
+8. ✅ Versionen 181–184: Winterbilder der geraden und waagerechten Brücken der Bronze- und Eisenzeit. Die Stege bekommen im Winter wie bisher eine weiße Schneeschicht darüber gelegt.
 
 ## 8 · Entscheidungen von Emin (2026-11-12)
 

@@ -57,11 +57,11 @@ Das ist ein großer Umbau, der in mehreren Sitzungen mit Emin entsteht.
 | 4 | Vereinfachtes Weiterlaufen, Handelsrouten |
 | 5 | Besonderheiten der Karte, Aufträge, Wunderwerk, Bilder |
 
-## Fragen an Emin (später)
+## Entscheidungen von Emin (2026-11-13)
 
-1. **Wann?** 💡 In der Antike.
-2. **Welche Karte zuerst?** 💡 Küste und Inseln.
-3. **Selbst wählen?** Darf man die Landschaft der zweiten Stadt aussuchen, oder steht sie fest? 💡 Selbst wählen, später kann man die anderen auch gründen.
-4. **Läuft die andere Stadt weiter?** 💡 Ja, vereinfacht.
-5. **Gemeinsame Forschung?** 💡 Ja, ein Forschungsbaum für alle Städte.
-6. **Wie viele Städte?** 💡 Erst zwei, die Technik aber so bauen, dass mehr möglich ist.
+1. **Wann:** In der **Antike**. Die Forschung „Kolonien“ und ein Siedlerschiff schalten die zweite Stadt frei. Dafür muss erst die Antike gebaut werden.
+2. **Erste Landschaft:** **Küste und Inseln**.
+3. **Selbst wählen:** Ja, man sucht die Landschaft aus. Später lassen sich auch die anderen gründen.
+4. **Weiterlaufen:** Ja. Die Stadt, die man gerade nicht ansieht, rechnet vereinfacht weiter: Waren und Einwohner, ohne Figuren.
+5. **Forschung:** Ein gemeinsamer Forschungsbaum für alle Städte.
+6. **Anzahl:** Erst zwei Städte. Die Technik wird aber so gebaut, dass später mehr möglich sind.

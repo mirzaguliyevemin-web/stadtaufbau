@@ -236,7 +236,7 @@ function median(list) {
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
     'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'setzling', 'truhe', 'band', 'logo-rund', 'berg-gross', 'berg-klein',
-    'leiste-holz-steinzeit', 'bruecke-senkrecht', 'bruecke-senkrecht-winter', 'bruecke-steg', 'bruecke-waagerecht', 'bruecke-waagerecht-winter', 'bruecke-pflock',   // schräge Brücken
+    'leiste-holz-steinzeit', 'bruecke-senkrecht', 'bruecke-senkrecht-winter', 'bruecke-steg', 'bruecke-waagerecht', 'bruecke-waagerecht-winter', 'bruecke-pflock', 'bruecke-geruest',   // schräge Brücken
     ...BRIDGE_IMAGE_ERAS.flatMap(e => ['bruecke', 'bruecke-waagerecht', 'bruecke-steg'].flatMap(n => [n + e, n + e + '-winter'])),   // Brücken der späteren Zeitalter   // Holzmuster der Brücken (drawBridge), seit dem hellen Design versehentlich nicht mehr geladen
     'symbol-forschung', 'symbol-auftraege', 'symbol-haendler', 'symbol-schaetze', 'symbol-shop', 'symbol-grundriss', 'symbol-menue',
     'gold-1', 'gold-2', 'gold-3', 'shop-baustelle',   // Shop: Gold-Pakete und zusätzliche Baustelle
@@ -1936,6 +1936,15 @@ function bridgeProgress(b) { return b.bt > 0 ? Math.max(0, Math.min(1, 1 - b.bui
 function drawBridgeScaffold(b) {
   const z = cam.zoom, p = tileToScreen(b.x + 0.5, b.y + 0.5), h = 22 * z, d = 9 * z;
   ctx.save();
+  const img = images['bruecke-geruest'];
+  if (img) {   // Gerüst aus Canva: Pfahlspitzen stecken knapp unter der Feldmitte im Wasser
+    const dh = 30 * z, dw = dh * img.width / img.height;
+    ctx.fillStyle = 'rgba(20,40,60,0.25)';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y + 4 * z, dw * 0.45, 3 * z, 0, 0, 7); ctx.fill();
+    ctx.drawImage(img, p.x - dw / 2, p.y + 5 * z - dh, dw, dh);
+    ctx.restore();
+    return;
+  }
   ctx.lineCap = 'round';
   ctx.strokeStyle = 'rgba(20,40,60,0.3)';   // Spiegelung im Wasser
   ctx.lineWidth = Math.max(1.5, 3 * z);

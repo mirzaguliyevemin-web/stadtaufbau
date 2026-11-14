@@ -3,6 +3,14 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-11-14 – Täglicher Lauf (Version 185)
+
+- **1 von 139 Epochia-Tests fehlgeschlagen** (wie am 13.11.): „Bot: Altsteinzeit dauert über 45 Minuten …“ – Hunger 21 min (Grenze 20; Testlauf 240 min: Mittelsteinzeit 52,9 min · Jungsteinzeit 119,6 min · Kupferfund nicht erreicht · 198 Einwohner). Ursache weiter ungeklärt, vermutlich Folge der Änderungen seit Version 161. Kein sicherer Fix ohne Balancing – bitte in einer Sitzung mit Emin ansehen.
+- Bot (90 min, 3 Läufe): Mittelsteinzeit 52,9 / 53,2 / 53,1 min · Jungsteinzeit und Kupferfund nicht erreicht · 116 / 125 / 113 Einwohner · Hunger 0 min.
+- `wuensche.md`: keine Fehler eingetragen; offene Wünsche brauchen Emin bzw. Canva-Bilder – nicht angefasst.
+- Codebereich gelesen: `neu/js/shop.js` (Beschleunigen, Steine, Pakete, Deko, Reiter) – keine Fehler gefunden.
+- Keine Code-Änderung, keine Versionserhöhung.
+
 ## 2026-11-13 – Täglicher Lauf (Version 175)
 
 - **1 von 138 Epochia-Tests fehlgeschlagen:** „Bot: Altsteinzeit dauert über 45 Minuten …“ – Hunger 21 min (Grenze 20; Testlauf 240 min, Seed 1: Mittelsteinzeit 52,9 min · Jungsteinzeit 119,6 min · Kupferfund nicht erreicht · 198 Einwohner). Beim Lauf vom 12.11. (Version 161) waren es noch 10 min Hunger. Vermutlich Folge der Änderungen seit Version 161 (Brücken, Shop, Arbeiter-Hinweis). Das ist Balancing – nicht angefasst, Emin bitte ansehen (Grenze oder Nahrungswerte).

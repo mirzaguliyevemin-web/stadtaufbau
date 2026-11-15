@@ -27,10 +27,16 @@ function fresh(seed = 4242, storage) {
   ok(!g.errors.length, 'Fehler beim Start: ' + g.errors.join('\n'));
   return g;
 }
+// Der abgeschaltete Landkauf (seit 15.11. gehört die ganze Karte dazu) – bleibt geprüft, falls er zurückkommt
+function freshPlots(seed = 4242) {
+  const g = loadGame({ seed: 1 });
+  g.run(`CONFIG.allLand = false; startNewGame(${seed}); state.tutorial = -1; recalcStats();`);
+  return g;
+}
 function noErrors(g) { ok(!g.errors.length, g.errors.join('\n')); }
 
 test('Start: Lagerfeuer, zwei Wohnhöhlen, 6 Einwohner, Land in der Mitte', () => {
-  const g = fresh();
+  const g = freshPlots();
   ok(g.run(`state.buildings.map(b => b.type).join()`) === 'lagerfeuer,wohnhoehle,wohnhoehle,pfad,pfad', 'Startgebäude falsch');
   ok(g.run('state.buildings.every((b, i) => isConnected(i))'), 'Start-Wohnhöhlen ohne Weg');
   ok(g.run('state.pop') === 6, 'Einwohner');
@@ -165,7 +171,7 @@ test('Bauen: Baustelle, höchstens 2 gleichzeitig, wird fertig und produziert', 
 });
 
 test('Bauplatz: nicht im Wasser, nicht auf fremdem Land, nicht übereinander; Fischer nur am Wasser', () => {
-  const g = fresh();
+  const g = freshPlots();
   ok(g.run(`placeProblem('sammlerin', 63 + O, 63 + O)`) === 'Hier steht schon etwas', 'Überlappung erlaubt');
   ok(g.run(`placeProblem('sammlerin', 2, 2)`).includes('gehört dir'), 'fremdes Land erlaubt');
   const water = g.run(`(() => { for (let y = 48 + O; y < 80 + O; y++) for (let x = 48 + O; x < 80 + O; x++) if (terrain[y * N + x] === TERRAIN.wasser.id) return [x, y]; })()`);
@@ -314,7 +320,7 @@ test('Wärme: Wohnung fern vom Feuer senkt die Zufriedenheit', () => {
 
 test('Speichern und Laden ergibt denselben Stand', () => {
   const g = fresh();
-  g.run(`state.res.holz = 77.5; state.techs.faustkeil = true; state.research = { id: 'feuer_hueten', left: 12 }; placeBuilding('sammlerin', findFreeSpot('sammlerin', 62 + O, 56 + O).x, findFreeSpot('sammlerin', 62 + O, 56 + O).y); state.plots[0] = 0; saveGame();`);
+  g.run(`state.res.holz = 77.5; state.techs.faustkeil = true; state.research = { id: 'feuer_hueten', left: 12 }; placeBuilding('sammlerin', findFreeSpot('sammlerin', 62 + O, 56 + O).x, findFreeSpot('sammlerin', 62 + O, 56 + O).y); saveGame();`);
   const before = g.run('JSON.stringify({ ...state, savedAt: 0 })');
   g.run('state = null; loadSlot(currentSlot)');
   const after = g.run('JSON.stringify({ ...state, savedAt: 0 })');
@@ -531,10 +537,14 @@ test('Kupferzeit: Aufbruch, Geschenk, Dorfplatz, Weiterentwicklung und Metall-Ke
   const r = g.run(`(() => {
     state.techs.bergbau = true;
     let good = null, bad = null;
-    for (let y = landBox.y0; y <= landBox.y1 && !(good && bad); y++) for (let x = landBox.x0; x <= landBox.x1; x++) {
+    // seit 15.11. nur am Gebirge: ein Stück Gebirge neben das Dorf legen
+    const c = Math.floor(N / 2);
+    for (let y = c - 14; y <= c - 10; y++) for (let x = c - 2; x <= c + 2; x++) if (!occ[y * N + x]) terrain[y * N + x] = TERRAIN.berg.id;
+    mountainDepthTerrain = null;
+    for (let y = c - 24; y <= c + 24 && !(good && bad); y++) for (let x = c - 24; x <= c + 24; x++) {
       const p = placeProblem('kupfermine', x, y);
       if (!p && !good) good = [x, y];
-      if (p && p.includes('Felsen oder am Gebirge') && !bad) bad = [x, y];
+      if (p && p.includes('am Gebirge') && !bad) bad = [x, y];
     }
     return { good, bad };
   })()`);
@@ -649,6 +659,9 @@ test('Metall-Kette läuft wirklich: Erz + Kohle → Kupfer, Kupfer + Zinn → Br
     const built = {};
     // Gebäude regelkonform: dort, wo der Platz nach den Spielregeln passt, jeweils mit Weg
     const near = Math.floor(N / 2);
+    // Minen nur am Gebirge (Emin, 15.11.): ein Stück Gebirge neben das Dorf legen
+    for (let y = near - 14; y <= near - 10; y++) for (let x = near - 2; x <= near + 2; x++) if (!occ[y * N + x]) terrain[y * N + x] = TERRAIN.berg.id;
+    mountainDepthTerrain = null;
     for (const t of ['langhaus', 'langhaus', 'langhaus', 'kupfermine', 'koehler', 'schmelzofen', 'schmelzofen', 'zinnwaescherin', 'bronzegiesser', 'bronzeschmied']) {
       const sp = findFreeSpot(t, near, near);
       if (!sp) { built[t] = 'kein Platz'; continue; }
@@ -958,7 +971,7 @@ test('Werkstätten lassen Metall für Bauen und Forschung liegen', () => {
 });
 
 test('Land kaufen: nur neben eigenem Land, Preis steigt', () => {
-  const g = fresh();
+  const g = freshPlots();
   ok(!g.run('canBuyPlot(0)'), 'Ecke kaufbar');
   const p = g.run('plotOf(42 + O, 52 + O)');
   ok(g.run(`canBuyPlot(${p})`), 'Nachbarland nicht kaufbar');
@@ -1863,7 +1876,7 @@ test('Karte groß: mindestens 256 Felder je Seite, Land bis zum Rand kaufbar, Ka
 });
 
 test('Wolken: fremdes Land bedeckt, Preisschild antippbar, Kauf löst die Wolke auf, nichts unter den Wolken wird gezeichnet', () => {
-  const g = fresh();
+  const g = freshPlots();
   g.run('state.res.holz = 500; state.res.stein = 500; cam.zoom = 0.6; centerOnTile(N / 2, N / 2); viewW = 1600; viewH = 1000;');
   const p = g.run('plotOf(42 + O, 52 + O)');
   ok(g.run(`cloudCovers(${p})`), 'fremdes Land nicht bedeckt');
@@ -1953,7 +1966,7 @@ test('Arbeiter laufen nie übers Wasser (Wegsuche über Land und Brücken)', () 
 test('Alte Spielstände (kleine Karte bis Version 21) landen in der Mitte der großen Karte', () => {
   const fixture = JSON.parse(fs.readFileSync(new URL('./alter-stand-v21.json', import.meta.url), 'utf8'));
   const old = fixture.save, oldN = 64;
-  const g = fresh();
+  const g = freshPlots();
   const off = g.run('(N - 64) / 2'), O = g.run('O');
   ok(g.run(`loadFromText(${JSON.stringify(JSON.stringify(old))})`), 'alter Stand lädt nicht');
   ok(g.run('state.mapSize') === g.run('N'), 'Kartengröße nicht übernommen');
@@ -1976,7 +1989,7 @@ test('Alte Spielstände (kleine Karte bis Version 21) landen in der Mitte der gr
 
 test('Alte Spielstände (128er-Karte bis Version 54): Kern Feld für Feld gleich, alles an Ort und Stelle, doppeltes Laden verschiebt nicht', () => {
   const fx = JSON.parse(fs.readFileSync(new URL('./alter-stand-v54.json', import.meta.url), 'utf8'));
-  const g = fresh();
+  const g = freshPlots();
   const crc = '(a=>{let h=0x811c9dc5;for(let i=0;i<a.length;i++){h^=a[i];h=Math.imul(h,16777619)>>>0}return h})';
   // Die alte Erzeugung liefert noch genau dieselben Karten (Prüfsummen mit Epochia 54 errechnet)
   for (const [s, e] of Object.entries(fx.gelaende)) {
@@ -3200,6 +3213,42 @@ test('Hügel: nur zum Ansehen, auf Wiese 2 bis 6 Felder vom Gebirge, mit Abstand
   if (r.mountains) ok(r.n > 0, 'Keine Hügel am Gebirge');
   ok(r.bad === 0, r.bad + ' Hügel an falscher Stelle');
   ok(r.same && !r.close, 'Hügel nicht fest oder doppelt: ' + JSON.stringify(r));
+  noErrors(g);
+});
+
+test('Gebirge: Minen und Steinbruch dürfen bis 2 Felder hinein, andere Gebäude nicht; Gipfel nach Tiefe (Emin, 15.11.)', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    state.plots = state.plots.map(() => 1); refreshLand();
+    for (let y = 30; y <= 60; y++) for (let x = 20; x <= 60; x++) terrain[y * N + x] = x >= 40 ? TERRAIN.berg.id : TERRAIN.gras.id;
+    mountainDepthTerrain = null; rebuildOccupancy();
+    return {
+      depth: [mountainDepth(39, 45), mountainDepth(40, 45), mountainDepth(41, 45), mountainDepth(44, 45)],
+      rand: placeProblem('steinsammler', 39, 45),
+      ganzImBerg: placeProblem('steinsammler', 40, 45),
+      zuTief: placeProblem('steinsammler', 41, 45),
+      andere: placeProblem('sammlerin', 39, 45),
+      gipfel: mountainAt(50, 45) === null || /gipfel/.test(mountainAt(50, 45).name),
+      vorberg: [0, 1, 2, 3].map(dy => mountainAt(40, 44 + dy)).filter(Boolean).every(m => /vor/.test(m.name)),
+    };
+  })()`);
+  ok(JSON.stringify(r.depth) === '[0,1,2,5]', 'Tiefe falsch: ' + JSON.stringify(r.depth));
+  ok(r.rand === null, 'Steinsammler am Gebirgsrand geht nicht: ' + r.rand);
+  ok(r.ganzImBerg && /festen Boden/.test(r.ganzImBerg), 'Ganz im Gebirge erlaubt: ' + r.ganzImBerg);
+  ok(r.zuTief && /Zu tief/.test(r.zuTief), 'Zu tief im Gebirge erlaubt: ' + r.zuTief);
+  ok(r.andere && /Gebirge im Weg/.test(r.andere), 'Andere Gebäude dürfen ins Gebirge: ' + r.andere);
+  ok(r.gipfel && r.vorberg, 'Falsche Bergbilder nach Tiefe');
+  noErrors(g);
+});
+
+test('Ganze Karte gehört dazu: keine Wolken, kein Landkauf, alte Stände bekommen alles, Land-Aufträge fallen weg (Emin, 15.11.)', () => {
+  const g = fresh();
+  ok(g.run('state.plots.every(p => p === 1) && isOwned(2, 2) && isOwned(N - 3, N - 3)'), 'Nicht alles Land gehört dazu');
+  ok(!g.run(`QUESTS.filter(q => q.goal.plots).some(q => activeQuests().includes(q))`), 'Land-Auftrag ist noch da');
+  g.run(`state.plots = state.plots.map((p, i) => i % 7 ? 0 : 1); saveGame(); state = null; loadSlot(currentSlot);`);
+  ok(g.run('state.plots.every(p => p === 1)'), 'Alter Spielstand mit wenig Land bekommt nicht alles');
+  const box = g.run('JSON.stringify(homeBox())');
+  ok(JSON.parse(box).x1 - JSON.parse(box).x0 < 120, 'Bewohntes Gebiet umfasst die ganze Karte: ' + box);
   noErrors(g);
 });
 

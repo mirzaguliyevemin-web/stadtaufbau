@@ -679,6 +679,37 @@ function touchesWater(ax, ay, size) {
   return false;
 }
 
+// Wie tief liegt ein Gebirgsfeld im Gebirge? 1 = am Rand (neben Wiese, Wald …), bis 7 = tief drinnen; 0 = kein Gebirge.
+// Für die Bergbilder (Vorberge am Rand, hohe Gipfel innen) und fürs Bauen von Minen am Gebirgsrand. Wird je Karte gemerkt.
+let mountainDepthMap = null, mountainDepthTerrain = null;
+function mountainDepth(x, y) {
+  if (!inMap(x, y) || terrain[y * N + x] !== TERRAIN.berg.id) return 0;
+  if (mountainDepthTerrain !== terrain) { mountainDepthMap = new Uint8Array(N * N); mountainDepthTerrain = terrain; }
+  const i = y * N + x;
+  if (!mountainDepthMap[i]) {
+    let d = 7;
+    for (let r = 1; r <= 6 && d === 7; r++)
+      for (let dy = -r; dy <= r && d === 7; dy++)
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !inMap(x + dx, y + dy)) continue;
+          if (terrain[(y + dy) * N + x + dx] !== TERRAIN.berg.id) { d = r; break; }
+        }
+    mountainDepthMap[i] = d;
+  }
+  return mountainDepthMap[i];
+}
+
+// Bergbau (Emin, 15.11.): Gebäude mit Gebirgs-Bonus dürfen bis 2 Felder ins Gebirge hinein
+function minesMountain(def) { return !def.wonder && !!(def.needsMountain || (def.bonus && [].concat(def.bonus.terrain).includes('berg'))); }
+// Minen und Steinbrüche nur am Berg (Emin, 15.11.): ein Feld des Gebäudes liegt am oder im Gebirge
+function touchesMountain(ax, ay, size) {
+  for (let y = ay - 1; y <= ay + size; y++)
+    for (let x = ax - 1; x <= ax + size; x++)
+      if (inMap(x, y) && terrain[y * N + x] === TERRAIN.berg.id) return true;
+  return false;
+}
+const MOUNTAIN_BUILD_DEPTH = 2;
+
 function touchesRock(ax, ay, size) {
   for (let y = ay - 1; y <= ay + size; y++)
     for (let x = ax - 1; x <= ax + size; x++)
@@ -722,6 +753,7 @@ let landBox = { x0: 0, y0: 0, x1: -1, y1: -1 };
 let landVersion = 0;   // zählt Änderungen am Land (Wolkendecke neu malen)
 function refreshLand() {
   if (!state) return;
+  if (CONFIG.allLand && state.plots.some(p => p !== 1)) state.plots.fill(1);   // alles gehört dazu: keine Wolken, kein Landkauf
   landVersion++;
   landMask = landMask || new Uint8Array(N * N);
   landMask.fill(0);
@@ -743,6 +775,19 @@ function refreshLand() {
 // Sichtbereich aufs eigene Land begrenzen (leer, wenn man gerade nur Wolken sieht)
 function clipToLand(r) {
   return { x0: Math.max(r.x0, landBox.x0), y0: Math.max(r.y0, landBox.y0), x1: Math.min(r.x1, landBox.x1), y1: Math.min(r.y1, landBox.y1) };
+}
+
+// Das bewohnte Gebiet: alle Gebäude mit 12 Feldern Rand, mindestens 40 × 40 Felder ums Lagerfeuer. Seit die ganze
+// Karte dazugehört, suchen Fundstellen und Bot nur hier (sonst lägen Fundstücke weit draußen in der Wildnis).
+function homeBox(margin = 12) {
+  const fire = state.buildings.find(b => b.type === 'lagerfeuer');
+  const c = fire ? { x: fire.x + 1, y: fire.y + 1 } : { x: N / 2, y: N / 2 };
+  let x0 = c.x - 20, y0 = c.y - 20, x1 = c.x + 20, y1 = c.y + 20;
+  for (const b of state.buildings) {
+    const s = BUILDINGS[b.type].size;
+    x0 = Math.min(x0, b.x - margin); y0 = Math.min(y0, b.y - margin); x1 = Math.max(x1, b.x + s + margin); y1 = Math.max(y1, b.y + s + margin);
+  }
+  return { x0: Math.max(landBox.x0, x0), y0: Math.max(landBox.y0, y0), x1: Math.min(landBox.x1, x1), y1: Math.min(landBox.y1, y1) };
 }
 
 function plotOf(x, y) { return Math.floor(y / CONFIG.plotSize) * PLOTS + Math.floor(x / CONFIG.plotSize); }
@@ -939,7 +984,8 @@ function placeProblem(type, x, y, ignore = -1, rot) {
     }
     rot = (Number(rot) || 0) & 3;
   }
-  let wet = 0, cornerWet = false;
+  let wet = 0, cornerWet = false, onMountain = 0;
+  const miner = minesMountain(def);
   for (let yy = y; yy < y + s; yy++)
     for (let xx = x; xx < x + s; xx++) {
       if (!inMap(xx, yy)) return 'Außerhalb der Karte';
@@ -956,8 +1002,11 @@ function placeProblem(type, x, y, ignore = -1, rot) {
         wet++; if (d === 0) cornerWet = true;
         continue;
       }
-      if (t.blocks) return t === TERRAIN.wasser ? 'Nicht im Wasser – über den Fluss braucht es eine Brücke' : `${t.name} im Weg – antippen zum Räumen`;
+      if (t === TERRAIN.berg && miner && mountainDepth(xx, yy) <= MOUNTAIN_BUILD_DEPTH) { onMountain++; continue; }
+      if (t.blocks) return t === TERRAIN.wasser ? 'Nicht im Wasser – über den Fluss braucht es eine Brücke'
+        : t === TERRAIN.berg ? (miner ? 'Zu tief im Gebirge – höchstens 2 Felder hinein' : 'Gebirge im Weg – hier dürfen nur Minen und Steinbrüche an den Rand') : `${t.name} im Weg – antippen zum Räumen`;
     }
+  if (onMountain && onMountain === s * s) return 'Braucht am Gebirgsrand auch etwas festen Boden für den Weg';
   if (halfInWater(def)) {
     // Ältere Spielstände: Wassergebäude am Ufer bleiben an ihrem Platz gültig
     const old = ignore >= 0 && state.buildings[ignore];
@@ -976,6 +1025,11 @@ function placeProblem(type, x, y, ignore = -1, rot) {
   }
   if (def.needsWater && !touchesWater(x, y, s)) return 'Muss am Wasser stehen';
   if (def.needsRock && !touchesRock(x, y, s)) return 'Muss an Felsen oder am Gebirge stehen';
+  if (def.needsMountain && !touchesMountain(x, y, s)) {
+    // Ältere Spielstände: Minen an Felsen auf der Wiese bleiben an ihrem Platz gültig
+    const old = ignore >= 0 && state.buildings[ignore];
+    if (!(old && old.x === x && old.y === y)) return 'Muss am Gebirge stehen – Minen und Steinbrüche nur am Berg';
+  }
   return null;
 }
 

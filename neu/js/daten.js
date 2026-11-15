@@ -2,12 +2,13 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 188;
+const APP_VERSION = 189;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
   plotSize: 8,            // Landstück = 8 × 8 Felder
   startPlots: 4,          // in der Mitte gehören 4 × 4 Landstücke (32 × 32 Felder) von Anfang an dazu
+  allLand: true,          // Emin, 15.11.: keine Wolken und kein Landkauf mehr – die ganze Karte gehört von Anfang an dazu (auch in alten Spielständen)
   tileW: 64,              // Breite einer Raute in Bildpunkten (Zoom 1)
   tileH: 44,              // Höhe einer Raute – so flach wie die Grasplatten auf Emins Bildern (≈ 0,69 × Breite)
   maxConstructions: 2,    // höchstens so viele Baustellen gleichzeitig
@@ -508,7 +509,7 @@ const BUILDINGS = {
   rindergut: { name: 'Rindergut', icon: '🐄', size: 3, line: 'tiere', tier: 2, stage: 'eisen2', bild: '1-ziegengehege', views: ['r2'], color: '#9a7a4a', cost: { holz: 170, stein: 60, eisen: 5 }, time: 160, workers: 3, produces: { nahrung: 20, wolle: 6, felle: 2 }, requires: 'rinderzucht', info: 'Große Herden: Nahrung, Wolle und Felle.' },
   holzhof: { name: 'Holzhof', icon: '🪵', size: 2, line: 'holz', tier: 2, stage: 'eisen1', bild: '1-holzsammler', views: ['r2'], color: '#8a6a3a', cost: { holz: 40, stein: 30, eisen: 3 }, time: 80, workers: 2, produces: { holz: 16 }, requires: 'eisenaxt', info: 'Die Eisenaxt fällt Bäume schneller.' },
   forstmeisterin: { name: 'Forstmeisterin', icon: '🌲', size: 2, line: 'pflanzen', tier: 2, stage: 'eisen2', bild: '1-pflanzerin', views: ['r2'], color: '#5a8a4a', cost: { holz: 50, stein: 30 }, time: 70, workers: 1, requires: 'forstwirtschaft', info: 'Pflanzt noch schneller neue Bäume.' },
-  grosser_steinbruch: { name: 'Großer Steinbruch', icon: '⛏️', size: 2, line: 'stein', tier: 2, stage: 'eisen1', bild: '1-steinsammler', views: ['r2'], color: '#8a8a80', cost: { holz: 60, eisen: 3 }, time: 80, workers: 2, produces: { stein: 13 }, requires: 'eisenkeile', info: 'Eisenkeile spalten große Blöcke.' },
+  grosser_steinbruch: { name: 'Großer Steinbruch', icon: '⛏️', size: 2, line: 'stein', tier: 2, stage: 'eisen1', bild: '1-steinsammler', views: ['r2'], color: '#8a8a80', cost: { holz: 60, eisen: 3 }, time: 80, workers: 2, produces: { stein: 13 }, requires: 'eisenkeile', needsMountain: true, bonus: { terrain: ['fels', 'berg'], perTile: 0.06, max: 0.6 }, info: 'Eisenkeile spalten große Blöcke. Muss am Gebirge stehen.' },
   druide: { name: 'Druide', icon: '🧙', size: 2, line: 'wissen', tier: 3, stage: 'eisen2', bild: '1-hoehlenmaler', views: ['r2'], color: '#4a6a5a', cost: { holz: 40, stein: 40, eisen: 3 }, time: 90, workers: 1, produces: { wissen: 13 }, requires: 'druiden', info: 'Druiden bewahren das Wissen des Stammes.' },
   badehaus: { name: 'Badehaus', icon: '♨️', size: 2, line: 'waerme', tier: 2, stage: 'eisen2', bild: '1-feuerplatz', views: ['r2'], color: '#a06a4a', cost: { holz: 80, stein: 80, eisen: 3 }, time: 100, warmth: 7, happy: 6, requires: 'badehaus', info: 'Warmes Wasser und Geselligkeit: Wärme und bessere Laune im Umkreis.' },
   tuchmacherin: { name: 'Tuchmacherin', icon: '🧵', size: 2, line: 'kleidung', tier: 2, stage: 'eisen2', bild: '1-fellmacherin', views: ['r2'], color: '#b0604a', cost: { holz: 70, stein: 30, eisen: 3 }, time: 100, workers: 2, consumes: { wolle: 6 }, produces: { kleidung: 6 }, requires: 'kariert', info: 'Webt karierte Stoffe aus Wolle.' },
@@ -518,7 +519,7 @@ const BUILDINGS = {
   drehscheibe: { name: 'Drehscheiben-Töpferei', icon: '🏺', size: 2, line: 'toepfern', tier: 2, stage: 'eisen2', bild: '1-toepferei', views: ['r2'], color: '#b0704a', cost: { holz: 60, stein: 50, eisen: 3 }, time: 100, workers: 3, consumes: { ton: 3, holzkohle: 1 }, produces: { toepferwaren: 3 }, requires: 'drehscheibe', info: 'Die Drehscheibe macht schnell feine Gefäße.' },
   vorratshof: { name: 'Vorratshof', icon: '🛖', size: 3, line: 'lager', tier: 2, stage: 'eisen2', bild: '1-vorratsspeicher', views: ['r2'], color: '#9a7a4a', cost: { holz: 220, stein: 140, eisen: 8 }, time: 180, storage: 400, requires: 'vorratshof', info: 'Große Scheunen: viel mehr Lagerplatz.' },
   handelshof: { name: 'Handelshof', icon: '🤝', size: 3, line: 'handel', tier: 1, stage: 'eisen2', bild: '2-handelsplatz', color: '#a07a3a', cost: { holz: 180, stein: 100, eisen: 10 }, time: 200, requires: 'handelswege', info: 'Händler kommen von weit her, jedes Mal mit einem Angebot mehr.' },
-  eisenmine: { name: 'Eisenmine', icon: '⛏️', size: 3, line: 'eisenerz', tier: 0, stage: 'eisen1', color: '#7a4a3a', cost: { holz: 120, stein: 80, werkzeug: 20 }, time: 150, workers: 3, produces: { eisenerz: 4 }, needsRock: true, requires: 'eisenbergbau', bonus: { terrain: 'berg', perTile: 0.05, max: 0.5 }, info: 'Holt Eisenerz aus dem Berg. Muss an Felsen oder am Gebirge stehen, am Gebirge bis +50 %.' },
+  eisenmine: { name: 'Eisenmine', icon: '⛏️', size: 3, line: 'eisenerz', tier: 0, stage: 'eisen1', color: '#7a4a3a', cost: { holz: 120, stein: 80, werkzeug: 20 }, time: 150, workers: 3, produces: { eisenerz: 4 }, needsMountain: true, requires: 'eisenbergbau', bonus: { terrain: 'berg', perTile: 0.05, max: 0.5 }, info: 'Holt Eisenerz aus dem Berg. Muss am Gebirge stehen (darf bis 2 Felder hinein), bis +50 %.' },
   rennofen: { name: 'Rennofen', icon: '🔥', size: 2, line: 'eisen', tier: 0, stage: 'eisen1', color: '#8a4a2a', cost: { stein: 80, ton: 30 }, time: 130, workers: 2, consumes: { eisenerz: 2, holzkohle: 2 }, produces: { eisen: 1 }, requires: 'rennofen', info: 'Macht aus 2 Eisenerz und 2 Holzkohle 1 Eisen. Lässt etwas Eisen für Bauen und Forschung liegen.' },
   salzsiederei: { name: 'Salzsiederei', icon: '🧂', size: 3, line: 'salz', tier: 0, stage: 'eisen2', color: '#c0c0b0', cost: { holz: 150, stein: 80, eisen: 15 }, time: 170, workers: 3, consumes: { holz: 2 }, produces: { salz: 3 }, needsWater: true, requires: 'salzbergbau', info: 'Kocht Salz aus Sole: 2 Holz werden zu 3 Salz. Muss am Wasser stehen.' },
   wagner: { name: 'Wagner', icon: '🛞', size: 2, line: 'wagner', tier: 0, stage: 'eisen2', color: '#8a6a4a', cost: { holz: 100, eisen: 10 }, time: 110, workers: 1, requires: 'wagenbau', info: 'Baut Wagen: Der Händler bringt ein Angebot mehr.' },
@@ -559,8 +560,8 @@ const BUILDINGS = {
   steinbruch: {
     name: 'Steinbruch', icon: '⛏️', size: 2, line: 'stein', tier: 1, stage: 'kupfer', bild: '2-steinbruch',
     color: '#8a8a8a', cost: { holz: 20 }, time: 30, workers: 2, produces: { stein: 9 }, requires: 'kupferbeil',
-    bonus: { terrain: ['fels', 'berg'], perTile: 0.06, max: 0.6 }, minesRocks: true,
-    info: 'Bricht Steine mit Kupferwerkzeug. An Felsen und am Gebirge viel mehr.',
+    bonus: { terrain: ['fels', 'berg'], perTile: 0.06, max: 0.6 }, minesRocks: true, needsMountain: true,
+    info: 'Bricht Steine mit Kupferwerkzeug. Muss am Gebirge stehen (darf bis 2 Felder hinein) – dort gibt es Stein ohne Ende.',
   },
   felsritzer: {
     name: 'Felsritzer', icon: '🪨', size: 2, line: 'wissen', tier: 1, stage: 'kupfer', bild: '2-felsritzer',
@@ -585,9 +586,9 @@ const BUILDINGS = {
   },
   kupfermine: {
     name: 'Kupfermine', icon: '⛏️', size: 3, line: 'erz', tier: 0, stage: 'kupfer', bild: '2-kupfermine',
-    color: '#9a6a3a', cost: { holz: 80, stein: 40, werkzeug: 10 }, time: 120, workers: 3, produces: { kupfererz: 4 }, needsRock: true, requires: 'bergbau',
+    color: '#9a6a3a', cost: { holz: 80, stein: 40, werkzeug: 10 }, time: 120, workers: 3, produces: { kupfererz: 4 }, needsMountain: true, requires: 'bergbau',
     bonus: { terrain: 'berg', perTile: 0.05, max: 0.5 },
-    info: 'Gräbt Kupfererz. Muss an Felsen oder am Gebirge stehen – am Gebirge bis zu 50 % mehr.',
+    info: 'Gräbt Kupfererz. Muss am Gebirge stehen (darf bis 2 Felder hinein) – je mehr Berg ringsum, desto mehr, bis +50 %.',
   },
   koehler: {
     name: 'Köhler', icon: '⚫', size: 2, line: 'kohle', tier: 0, stage: 'kupfer', bild: '2-koehler',

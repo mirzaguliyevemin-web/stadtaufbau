@@ -235,7 +235,7 @@ function median(list) {
 
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
-    'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'setzling', 'truhe', 'band', 'logo-rund', 'berg-gross', 'berg-klein',
+    'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'setzling', 'truhe', 'band', 'logo-rund', ...Object.values(MOUNTAIN_IMAGES).flat(),
     'leiste-holz-steinzeit', 'bruecke-senkrecht', 'bruecke-senkrecht-winter', 'bruecke-steg', 'bruecke-waagerecht', 'bruecke-waagerecht-winter', 'bruecke-pflock', 'bruecke-geruest',   // schräge Brücken
     ...BRIDGE_IMAGE_ERAS.flatMap(e => ['bruecke', 'bruecke-waagerecht', 'bruecke-steg'].flatMap(n => [n + e, n + e + '-winter'])),   // Brücken der späteren Zeitalter   // Holzmuster der Brücken (drawBridge), seit dem hellen Design versehentlich nicht mehr geladen
     'symbol-forschung', 'symbol-auftraege', 'symbol-haendler', 'symbol-schaetze', 'symbol-shop', 'symbol-grundriss', 'symbol-menue',
@@ -479,14 +479,17 @@ function hillRect(img, name, px, py, z = 1) {   // wo das Hügelbild liegt (Mitt
   return { x: px - w / 2, y: py - h * 0.6, w, h };
 }
 
-function renderChunk(cx, cy) {
+// scale < 1: weit herausgezoomt in geringerer Auflösung vormalen (seit die ganze Karte dazugehört, sieht man dann sehr viele
+// Stücke – in voller Auflösung wären das Hunderte MB und ständiges Neumalen)
+function renderChunk(cx, cy, scale = 1) {
   const c = typeof document !== 'undefined' ? newCanvas() : null;
   if (!c || !c.getContext) return null;
   const x0 = cx * CHUNK, y0 = cy * CHUNK;
   const left = (x0 - (y0 + CHUNK)) * TW / 2, top = (x0 + y0) * TH / 2;
-  c.width = CHUNK * TW;
-  c.height = CHUNK * TH + 2;
+  c.width = Math.ceil(CHUNK * TW * scale);
+  c.height = Math.ceil((CHUNK * TH + 2) * scale);
   const g = c.getContext('2d');
+  if (scale !== 1 && g.scale) g.scale(scale, scale);
   const toPoint = (x, y) => ({ x: (x - y) * TW / 2 - left, y: (x + y) * TH / 2 - top });
   const patterns = {};
   for (const name of ['wiese', 'wasser', 'sand']) patterns[name] = groundPattern(g, name, -left, -top);
@@ -553,7 +556,7 @@ function renderChunk(cx, cy) {
     const ox = (hash(y, x + 5) - 0.5) * TW * 0.25;
     g.drawImage(img, p.x - w / 2 + ox, p.y - h * 0.8, w, h);
   }
-  return { canvas: c, left, top, decor, hills: hills.filter(h => h.x >= x0 && h.x < x0 + CHUNK && h.y >= y0 && h.y < y0 + CHUNK), depth: renderDepthLayer(x0, y0, left, top) };
+  return { canvas: c, scale, left, top, decor, hills: hills.filter(h => h.x >= x0 && h.x < x0 + CHUNK && h.y >= y0 && h.y < y0 + CHUNK), depth: renderDepthLayer(x0, y0, left, top) };
 }
 
 // Schilfbüschel (fest im Boden-Bild, selbst gezeichnet): dünne Halme, oben dunkle Kolben
@@ -722,6 +725,9 @@ const MAX_CHUNKS = 48, MAX_CHUNKS_HARD = 72;   // hart: auch sichtbare Stücke w
 let chunksAlive = 0, chunkTick = 0;
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
+// Auflösung der Bodenstücke je Zoom: nah voll, weiter weg halb bzw. ein Viertel (spart Speicher und Zeichenzeit)
+function chunkScale() { return cam.zoom >= 0.7 ? 1 : cam.zoom >= 0.35 ? 0.5 : 0.25; }
+
 function chunkHasLand(cx, cy) {
   const k = CHUNK / CONFIG.plotSize;
   for (let py = cy * k; py < (cy + 1) * k; py++)
@@ -737,6 +743,7 @@ function drawGround(range) {
   let made = 0;
   const t0 = nowMs(), first = chunksAlive === 0;
   range = clipToLand(range);
+  const lod = chunkScale();
   for (let cy = Math.floor(range.y0 / CHUNK); cy <= Math.floor(range.y1 / CHUNK); cy++)
     for (let cx = Math.floor(range.x0 / CHUNK); cx <= Math.floor(range.x1 / CHUNK); cx++) {
       if (cx < 0 || cy < 0 || cx >= per || cy >= per || !chunkHasLand(cx, cy)) continue;
@@ -744,14 +751,17 @@ function drawGround(range) {
       if (!chunks[k]) {
         // (ganz am Anfang, wenn noch nichts da ist: alles Sichtbare auf einmal, sonst beginnt das Spiel mit Löchern)
         if ((made && first === false && nowMs() - t0 > 10) || chunksAlive >= MAX_CHUNKS_HARD) continue;
-        chunks[k] = renderChunk(cx, cy);
+        chunks[k] = renderChunk(cx, cy, lod);
         if (chunks[k]) { chunksAlive++; made++; }
-      } else if (chunks[k].stale && redraw > 0) { redraw--; chunks[k] = renderChunk(cx, cy) || chunks[k]; }
+      } else if ((chunks[k].stale && redraw > 0) || (chunks[k].scale !== lod && !(made && nowMs() - t0 > 10))) {
+        if (chunks[k].stale) redraw--; else made++;   // andere Zoomstufe: nach und nach in passender Auflösung neu malen
+        chunks[k] = renderChunk(cx, cy, lod) || chunks[k];
+      }
       const ch = chunks[k];
       if (!ch) continue;
       ch.used = chunkTick;
       const p = worldToScreen(ch.left, ch.top);
-      ctx.drawImage(ch.canvas, p.x, p.y, ch.canvas.width * cam.zoom, ch.canvas.height * cam.zoom);
+      ctx.drawImage(ch.canvas, p.x, p.y, CHUNK * TW * cam.zoom, (CHUNK * TH + 2) * cam.zoom);
     }
   if (chunksAlive > MAX_CHUNKS) {
     const old = [];
@@ -856,7 +866,7 @@ function resetCanvasCaches() {
   cloudPuffSprite = null;
   cloudLayer.canvas = null; cloudLayer.g = null; cloudLayer.z = 0;
   for (const k of Object.keys(sprites)) delete sprites[k];
-  snowSprites.clear();   // selbst verschneite Gebäude im Winter (Emin, 07.11.: Häuser ohne eigenes Winterbild fehlten)
+  snowSprites.clear(); lodImages.clear();   // auch die verkleinerten Bilder für weiten Zoom   // selbst verschneite Gebäude im Winter (Emin, 07.11.: Häuser ohne eigenes Winterbild fehlten)
   alphaCache.clear();    // Durchsichtigkeit zum Antippen – aus einer geleerten Leinwand gelesen wäre alles durchsichtig
   if (typeof guideSprite !== 'undefined') guideSprite = null;
   chunks = []; chunksAlive = 0;
@@ -1030,15 +1040,25 @@ function treeSeasonName(name, v) {
 }
 
 // Gebirge: im Inneren große Gipfel (mit Schnee), zum Rand hin kleinere Felsberge, dazwischen nur Felsboden
+// Gebirge (Emin, 15.11.: „Ein Baum neben dem Berg ist genauso groß wie der Berg“): am Rand flache Vorberge, zwei Felder
+// tief mittlere Berge, ab drei Feldern hohe Schneegipfel – drei- bis viermal so hoch wie ein Baum. Nicht auf jedem Feld,
+// sondern je Zelle einer an zufälliger Stelle (sonst wirkt es gestempelt). Breite in Feldern.
+const MOUNTAIN_IMAGES = { gipfel: ['berg-gipfel-1', 'berg-gipfel-2'], mittel: ['berg-mittel-1', 'berg-mittel-2'], vor: ['berg-vor-1', 'berg-vor-2'] };
+function cellPick(x, y, c, salt) {
+  const cx = Math.floor(x / c), cy = Math.floor(y / c);
+  return cx * c + Math.floor(hash(cx + salt, cy * 3 + salt) * c) === x && cy * c + Math.floor(hash(cx * 5 + salt, cy + salt * 2) * c) === y;
+}
 function mountainAt(x, y) {
-  const v = hash(x * 3 + 1, y * 7 + 2);
-  let inner = 0;
-  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]])
-    if (inMap(x + dx, y + dy) && isMountainAt(x + dx, y + dy)) inner++;
-  // große Gipfel nur alle paar Felder (sonst stehen sie ineinander)
-  if (inner === 8 && v > 0.62 && (x + 2 * y) % 3 === 0) return { name: 'berg-gross', size: 2.6 + v * 0.6 };
-  if (v > 0.45) return { name: 'berg-klein', size: 1.25 + v * 0.45 };
+  const d = mountainDepth(x, y), v = hash(x * 3 + 1, y * 7 + 2), pick = list => list[v > 0.5 ? 1 : 0];
+  if (d >= 3) return cellPick(x, y, 4, 11) ? { name: pick(MOUNTAIN_IMAGES.gipfel), size: 4.8 + v * 1.8 } : null;
+  if (d === 2) return cellPick(x, y, 3, 23) ? { name: pick(MOUNTAIN_IMAGES.mittel), size: 2.4 + v * 0.7 } : null;
+  if (d === 1) return cellPick(x, y, 2, 37) ? { name: pick(MOUNTAIN_IMAGES.vor), size: 1.7 + v * 0.5 } : null;
   return null;
+}
+// Neben Minen und Steinbrüchen am Gebirgsrand keine Bergbilder: dort sieht man den felsigen Boden wie bei einem Bergwerk
+function nearBuilding(x, y) {
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (inMap(x + dx, y + dy) && occ[(y + dy) * N + x + dx] > 0) return true;
+  return false;
 }
 
 // Verschneite Fassung eines Bildes (Felsen, Berge, Büsche – ohne eigenes Winterbild): Schnee liegt auf allem, was nach
@@ -1149,8 +1169,8 @@ function drawMountain(x, y, m) {
   ctx.save();
   ctx.translate(p.x, p.y);
   if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(img, -w / 2, -h * 0.8, w, h);
-  if (m.name === 'berg-klein') drawSnowOver(img, -w / 2, -h * 0.8, w, h);   // der große Gipfel hat im Bild schon Schnee
+  ctx.drawImage(lodImage(img), -w / 2, -h * 0.84, w, h);
+  if (!m.name.startsWith('berg-gipfel')) drawSnowOver(img, -w / 2, -h * 0.84, w, h);   // die Gipfel haben im Bild schon Schnee
   ctx.restore();
 }
 
@@ -1179,6 +1199,22 @@ function drawSapling(x, y, k) {
   ctx.restore();
 }
 
+// Weit herausgezoomt: Bäume, Felsen und Berge aus einer verkleinerten Fassung zeichnen (je Bild einmal angelegt). Das
+// Verkleinern großer Bilder in jedem Bild kostet sonst viel, seit die ganze Karte sichtbar ist.
+const lodImages = new Map();
+function lodImage(img) {
+  if (!img || cam.zoom >= 0.5 || !img.width || typeof document === 'undefined') return img;
+  let c = lodImages.get(img);
+  if (!c) {
+    try {
+      c = newCanvas(); c.width = Math.max(1, Math.round(img.width / 4)); c.height = Math.max(1, Math.round(img.height / 4));
+      const g = c.getContext('2d'); g.drawImage(img, 0, 0, c.width, c.height);
+    } catch (e) { c = img; }
+    lodImages.set(img, c);
+  }
+  return c;
+}
+
 function drawTerrainObject(x, y, kind, anim = null) {
   const p = tileToScreen(x + 0.5, y + 0.5);
   const v = hash(x, y);
@@ -1205,12 +1241,12 @@ function drawTerrainObject(x, y, kind, anim = null) {
       ctx.save();
       ctx.translate(p.x + ox, p.y + foot);
       ctx.scale(1 + anim.k * 0.2, 1 - anim.k * 0.7);
-      ctx.drawImage(img, -w / 2, -h, w, h);
+      ctx.drawImage(lodImage(img), -w / 2, -h, w, h);
       ctx.restore();
       ctx.globalAlpha = 1;
       return;
     }
-    ctx.drawImage(img, p.x - w / 2 + ox, p.y - h + foot, w, h);
+    ctx.drawImage(lodImage(img), p.x - w / 2 + ox, p.y - h + foot, w, h);
     if (photo) drawSnowOver(img, p.x - w / 2 + ox, p.y - h + foot, w, h);
     return;
   }
@@ -1221,7 +1257,7 @@ function drawTerrainObject(x, y, kind, anim = null) {
   ctx.save();
   ctx.translate(p.x + ox, p.y + foot);
   if (anim) ctx.rotate(anim.rot); else ctx.transform(1, 0, -sway, 1, 0, 0);
-  ctx.drawImage(img, -w / 2, -h, w, h);
+  ctx.drawImage(lodImage(img), -w / 2, -h, w, h);
   ctx.restore();
   ctx.globalAlpha = 1;
 }
@@ -2328,7 +2364,7 @@ function drawScene(dt) {
   // (Bäume und Berge ragen nach oben – unten darum mehr Rand)
   const objects = [];
   // Nur eigenes Land: Was unter den Wolken liegt, wird gar nicht erst angefasst
-  const mx = 2 * TW * cam.zoom, top = -20 * cam.zoom, bottom = viewH + 160 * cam.zoom, land = clipToLand(range), thin = cam.zoom < 0.18 ? 0.3 : cam.zoom < 0.25 ? 0.55 : 1;
+  const mx = 2 * TW * cam.zoom, top = -20 * cam.zoom, bottom = viewH + 160 * cam.zoom, land = clipToLand(range), thin = cam.zoom < 0.2 ? 0.25 : cam.zoom < 0.3 ? 0.4 : cam.zoom < 0.45 ? 0.65 : 1;   // seit die ganze Karte sichtbar ist: weit weg deutlich lichter
   for (let y = land.y0; y <= land.y1; y++)
     for (let x = land.x0; x <= land.x1; x++) {
       const t = terrain[y * N + x];
@@ -2339,7 +2375,7 @@ function drawScene(dt) {
       if (p.x < -mx || p.x > viewW + mx || p.y < top || p.y > bottom) continue;
       if (t === TERRAIN.wald.id) objects.push({ d: x + y + 1, kind: 'wald', x, y });
       else if (t === TERRAIN.fels.id) objects.push({ d: x + y + 1, kind: 'fels', x, y });
-      else if (t === TERRAIN.berg.id) { const m = mountainAt(x, y); if (m) objects.push({ d: x + y + 1, kind: 'berg', x, y, m }); }
+      else if (t === TERRAIN.berg.id) { const m = mountainAt(x, y); if (m && !nearBuilding(x, y)) objects.push({ d: x + y + 1, kind: 'berg', x, y, m }); }
     }
   state.buildings.forEach((b, i) => {
     const s = BUILDINGS[b.type].size;

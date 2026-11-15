@@ -423,6 +423,7 @@ function buildFactsHtml(type) {
   if (def.storage) parts.push(`📦 +${def.storage} Lager`);
   if (def.needsWater) parts.push('🌊 am Wasser');
   if (def.needsRock) parts.push('🪨 an Felsen');
+  if (def.needsMountain) parts.push('⛰️ am Gebirge');
   return parts.join(' · ');
 }
 

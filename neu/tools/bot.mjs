@@ -45,13 +45,14 @@ function botOnRoadGrid(x, y, s) {
 // der Bot nur dort – jenseits des Flusses erst, wenn eine Brücke hinüberführt. Gemerkt, bis sich Gebäude oder Land ändern.
 var botReachKey = '', botReach = null;
 function botReachable() {
-  const key = state.buildings.length + ':' + plotsBought() + ':' + state.cleared.length + ':' + state.buildings.filter(b => b.bg && !(b.build > 0)).length;
+  const key = state.buildings.length + ':' + state.cleared.length + ':' + state.buildings.filter(b => b.bg && !(b.build > 0)).length;
   if (key === botReachKey) return botReach;
   botReachKey = key;
   updateNetwork();
   const seen = new Uint8Array(N * N), queue = [];
-  const land = (x, y) => inMap(x, y) && isOwned(x, y) && (isWayOpen(x, y) || (!isWaterTile(x, y) && (!occ[y * N + x] || isPathAt(x, y))));
-  for (let y = landBox.y0; y <= landBox.y1; y++) for (let x = landBox.x0; x <= landBox.x1; x++)
+  const B = homeBox(8);   // seit die ganze Karte dazugehört: nur ums Dorf suchen
+  const land = (x, y) => x >= B.x0 && y >= B.y0 && x <= B.x1 && y <= B.y1 && isOwned(x, y) && (isWayOpen(x, y) || (!isWaterTile(x, y) && (!occ[y * N + x] || isPathAt(x, y))));
+  for (let y = B.y0; y <= B.y1; y++) for (let x = B.x0; x <= B.x1; x++)
     if (reached[y * N + x] || isFireAt(x, y)) { seen[y * N + x] = 1; queue.push(y * N + x); }
   for (let q = 0; q < queue.length; q++) {
     const k = queue[q], x = k % N, y = (k - x) / N;
@@ -76,8 +77,9 @@ function botSpot(type, near, anyGrid) {
   const def = BUILDINGS[type], s = def.size, half = s / 2;
   // nah an einem Ziel (Wärme/Glaube für eine Wohnung): nur Plätze, von denen aus das Ziel im Umkreis liegt
   const reach = near ? (def.belief || warmthRadius(def)) : Infinity;
-  const y0 = near ? Math.max(landBox.y0, Math.floor(ty - reach - s)) : landBox.y0, y1 = near ? Math.min(landBox.y1, Math.ceil(ty + reach)) : landBox.y1;
-  const x0 = near ? Math.max(landBox.x0, Math.floor(tx - reach - s)) : landBox.x0, x1 = near ? Math.min(landBox.x1, Math.ceil(tx + reach)) : landBox.x1;
+  const B = homeBox(8);   // seit die ganze Karte dazugehört: nur ums Dorf suchen (wächst mit den Gebäuden)
+  const y0 = near ? Math.max(B.y0, Math.floor(ty - reach - s)) : B.y0, y1 = near ? Math.min(B.y1, Math.ceil(ty + reach)) : B.y1;
+  const x0 = near ? Math.max(B.x0, Math.floor(tx - reach - s)) : B.x0, x1 = near ? Math.min(B.x1, Math.ceil(tx + reach)) : B.x1;
   let best = null, bestD = Infinity;
   for (let y = y0; y <= y1; y++)
     for (let x = x0; x <= x1; x++) {
@@ -407,7 +409,8 @@ function botExpandBridge() {
   botExpandTry = state.playTime;
   const r = botReachable(), fire = state.buildings.find(k => k.type === 'lagerfeuer');
   let best = null, bestD = Infinity;
-  for (let y = landBox.y0; y <= landBox.y1; y++) for (let x = landBox.x0; x <= landBox.x1; x++) {
+  const B = homeBox(8);
+  for (let y = B.y0; y <= B.y1; y++) for (let x = B.x0; x <= B.x1; x++) {
     if (!r[y * N + x] || isWaterTile(x, y) || !perimeter(x, y, 1).some(([px, py]) => isWaterTile(px, py))) continue;
     const d0 = Math.abs(x - fire.x) + Math.abs(y - fire.y);
     if (d0 >= bestD) continue;
@@ -468,8 +471,14 @@ function botClearLanes(b) {
 }
 
 // Fundstellen antippen und Abschnitte der Wunderwerke bauen, sobald es geht
+var botSpotTried = {};   // Fundstellen ohne Weg (anderes Ufer): nur alle 2 Minuten neu versuchen – die Wegsuche ist teuer
 function botWonders() {
-  for (let i = state.spots.length - 1; i >= 0; i--) collectSpot(i);
+  for (let i = state.spots.length - 1; i >= 0; i--) {
+    const s = state.spots[i], key = s.x + ',' + s.y;
+    if (botSpotTried[key] !== undefined && state.playTime - botSpotTried[key] < 120) continue;
+    const r = collectSpot(i);
+    if (r && r.noWay) botSpotTried[key] = state.playTime;
+  }
   for (const id of Object.keys(WONDERS)) if (wonderOpen(id) && wonderBuilt(id) && !wonderStepProblem(id)) startWonderStep(id);
 }
 

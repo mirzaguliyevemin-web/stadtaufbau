@@ -1393,6 +1393,7 @@ function levelGoods(level) {
 
 // Kann man an diesem Auftrag gerade nichts tun, weil erst eine Forschung fehlt?
 function questImpossible(q) {
+  if (q.goal.plots && CONFIG.allLand) return true;   // kein Landkauf mehr: Land-Aufträge fallen weg
   return !!q.goal.hunts && mammothsExtinct() && !questDone(q);   // die Mammuts sind ausgestorben, bevor man auf die Jagd ging
 }
 

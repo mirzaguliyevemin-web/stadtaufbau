@@ -67,9 +67,9 @@ function spotTileFits(kind, x, y) {
 }
 
 function spotTiles(kind) {
-  const out = [], taken = new Set(state.spots.map(s => s.y * N + s.x));
-  for (let y = landBox.y0; y <= landBox.y1; y++)
-    for (let x = landBox.x0; x <= landBox.x1; x++)
+  const out = [], taken = new Set(state.spots.map(s => s.y * N + s.x)), box = homeBox();
+  for (let y = box.y0; y <= box.y1; y++)
+    for (let x = box.x0; x <= box.x1; x++)
       if (!taken.has(y * N + x) && spotTileFits(kind, x, y)) out.push([x, y]);
   return out;
 }
@@ -358,6 +358,9 @@ function spotObjects(inView, t) {
 // Fußweg zu einer Fundstelle, notfalls bis an ihren Rand (am Gebirge kann man nicht aufs Feld selbst); null = kein Weg
 function spotWay(cx, cy, x, y) {
   let way = walkRouteWide(cx, cy, x, y);
+  // Nur wenn die Stelle selbst nicht begehbar ist (Gebirge, Felsen), bis an ihren Rand gehen – sonst gibt es wirklich keinen
+  // Weg (anderes Ufer), und weitere Suchen kosten nur Zeit
+  if (!way && walkable(Math.floor(x), Math.floor(y))) return null;
   for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
     if (way) break;
     if (walkable(Math.floor(x) + a, Math.floor(y) + b)) way = walkRouteWide(cx, cy, x + a, y + b);

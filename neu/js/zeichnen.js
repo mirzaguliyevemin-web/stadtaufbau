@@ -722,6 +722,8 @@ function drawWaterfall(range) {
 // (jedes kostet etwa 3 MB): Sind es mehr, fliegen die am längsten nicht gezeigten raus. Neue Stücke kosten höchstens etwa 10 ms je Bild,
 // der Rest folgt in den nächsten Bildern (bis dahin liegt dort die Wolkenfarbe) – so ruckelt schnelles Verschieben nicht.
 const MAX_CHUNKS = 48, MAX_CHUNKS_HARD = 72;   // hart: auch sichtbare Stücke werden dann nicht mehr angelegt (nur bei sehr viel eigenem Land ganz weit weg)
+// Kleinere Stücke (weit herausgezoomt) brauchen weniger Speicher – dann dürfen es entsprechend mehr sein (sonst blieben Lücken)
+function chunkLimit(hard) { const k = chunkScale(); return Math.min(hard ? 900 : 600, Math.round((hard ? MAX_CHUNKS_HARD : MAX_CHUNKS) / (k * k))); }
 let chunksAlive = 0, chunkTick = 0;
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
@@ -750,7 +752,7 @@ function drawGround(range) {
       const k = cy * per + cx;
       if (!chunks[k]) {
         // (ganz am Anfang, wenn noch nichts da ist: alles Sichtbare auf einmal, sonst beginnt das Spiel mit Löchern)
-        if ((made && first === false && nowMs() - t0 > 10) || chunksAlive >= MAX_CHUNKS_HARD) continue;
+        if ((made && first === false && nowMs() - t0 > 10) || chunksAlive >= chunkLimit(true)) continue;
         chunks[k] = renderChunk(cx, cy, lod);
         if (chunks[k]) { chunksAlive++; made++; }
       } else if ((chunks[k].stale && redraw > 0) || (chunks[k].scale !== lod && !(made && nowMs() - t0 > 10))) {
@@ -763,12 +765,40 @@ function drawGround(range) {
       const p = worldToScreen(ch.left, ch.top);
       ctx.drawImage(ch.canvas, p.x, p.y, CHUNK * TW * cam.zoom, (CHUNK * TH + 2) * cam.zoom);
     }
-  if (chunksAlive > MAX_CHUNKS) {
+  const limit = chunkLimit(false);
+  if (chunksAlive > limit) {
     const old = [];
     chunks.forEach((c, k) => { if (c && c.used !== chunkTick) old.push(k); });
     old.sort((a, b) => (chunks[a].used || 0) - (chunks[b].used || 0));
-    for (const k of old.slice(0, chunksAlive - MAX_CHUNKS)) { chunks[k] = null; chunksAlive--; }
+    for (const k of old.slice(0, chunksAlive - limit)) { chunks[k] = null; chunksAlive--; }
   }
+}
+
+// Beim Betreten des Spiels (Emin, 15.11.: „viele ungeladene Kartenbereiche“): den Boden rund ums Bild schon vormalen, während
+// das Ladefenster zu sehen ist – ein Ring von einem Stück um den sichtbaren Bereich, nahe Stücke zuerst.
+function prerenderGround(onProgress, onDone) {
+  if (typeof document === 'undefined' || !state) { onDone(); return; }
+  const per = N / CHUNK, lod = chunkScale();
+  if (!chunks.length) { chunks = new Array(per * per).fill(null); chunksAlive = 0; }
+  const r = clipToLand(visibleRange()), m = CHUNK, list = [];
+  const cx0 = (r.x0 + r.x1) / 2 / CHUNK, cy0 = (r.y0 + r.y1) / 2 / CHUNK;
+  for (let cy = Math.max(0, Math.floor((r.y0 - m) / CHUNK)); cy <= Math.min(per - 1, Math.floor((r.y1 + m) / CHUNK)); cy++)
+    for (let cx = Math.max(0, Math.floor((r.x0 - m) / CHUNK)); cx <= Math.min(per - 1, Math.floor((r.x1 + m) / CHUNK)); cx++)
+      if (chunkHasLand(cx, cy) && (!chunks[cy * per + cx] || chunks[cy * per + cx].scale !== lod)) list.push([cx, cy]);
+  list.sort((a, b) => Math.hypot(a[0] - cx0, a[1] - cy0) - Math.hypot(b[0] - cx0, b[1] - cy0));
+  list.length = Math.min(list.length, chunkLimit(false));
+  let i = 0;
+  const step = () => {
+    const t0 = nowMs();
+    while (i < list.length && nowMs() - t0 < 40) {
+      const [cx, cy] = list[i++], k = cy * per + cx, had = !!chunks[k];
+      const ch = renderChunk(cx, cy, lod);
+      if (ch) { ch.used = chunkTick; chunks[k] = ch; if (!had) chunksAlive++; }
+    }
+    onProgress(list.length ? i / list.length : 1);
+    if (i < list.length) setTimeout(step, 0); else onDone();
+  };
+  step();
 }
 
 // ---------------------------------------------------------------------
@@ -779,6 +809,7 @@ function drawGround(range) {
 // ---------------------------------------------------------------------
 
 const CLOUD_BASE = '#f4f7fb';
+const GROUND_BASE = '#7ba324';   // mittlere Farbe der Wiese
 const CLOUD_VARIANTS = 8, CLOUD_SCALE = 0.42, CLOUD_PAD = 2;   // Überstand in Feldern
 const CLOUD_LIFT_SECONDS = 1.9;
 const cloudSprites = [];
@@ -2345,7 +2376,7 @@ function drawScene(dt) {
   if (!ctx || !state) return;
   frameTime += dt;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = CLOUD_BASE;   // jenseits des gemalten Bodens: Wolkenfarbe
+  ctx.fillStyle = CONFIG.allLand ? GROUND_BASE : CLOUD_BASE;   // wo der Boden noch nicht gemalt ist: Wiesengrün statt Weiß (Emin, 15.11.)
   ctx.fillRect(0, 0, viewW, viewH);
   const range = visibleRange();
   updateLife(dt, range);

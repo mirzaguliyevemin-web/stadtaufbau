@@ -127,6 +127,12 @@ function enterGame() {
   if (offline) showOfflineSummary(offline);
   else afterWelcome();
   checkTurnHint();
+  // Karte rund ums Dorf schon vormalen, solange das Ladefenster steht (sonst weiße bzw. leere Stellen beim ersten Umsehen)
+  const step = $('loading-step');
+  show($('loading'), true);
+  setLoading(0);
+  if (step) step.textContent = 'Die Landschaft wird gemalt …';
+  prerenderGround(p => setLoading(p), () => { setLoading(1); show($('loading'), false); });
 }
 
 // Hochkant auf dem Handy: einmal je Start darauf hinweisen, dass quer schöner ist (verschwindet beim Drehen)

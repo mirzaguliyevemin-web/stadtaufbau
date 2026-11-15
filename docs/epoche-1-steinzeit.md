@@ -160,14 +160,14 @@ Wissen:   Feuer hüten ─┘         Höhlenmalerei ─ Ahnenkult ─┴► [Ju
 | # | Forschung | Stufe | Braucht | Kosten | Dauer | Bringt |
 |---|---|---|---|---|---|---|
 | 1 | 🔥 Feuer hüten | Alt | – | 5 Wissen | 45 s | Lagerfeuer wärmt größeren Umkreis |
-| 2 | 🪨 Faustkeil | Alt | – | 8 Wissen | 60 s | Holz- und Steinsammler +30 % |
-| 3 | 🧺 Flechtkörbe | Alt | – | 8 Wissen | 60 s | Sammlerin +40 % |
-| 4 | 🗡️ Speerspitzen | Alt | Faustkeil | 12 Wissen | 75 s | Jägerlager +40 % |
+| 2 | 🪨 Faustkeil | Alt | – | 8 Wissen | 60 s | Holz- und Steinsammler +15 % (seit 15.11., vorher +30 %) |
+| 3 | 🧺 Flechtkörbe | Alt | – | 8 Wissen | 60 s | Sammlerin +15 % (seit 15.11., vorher +40 %) |
+| 4 | 🗡️ Speerspitzen | Alt | Faustkeil | 12 Wissen | 75 s | Jägerlager +15 % (seit 15.11., vorher +40 %) |
 | 5 | ⛺ Fellzelte | Alt | Faustkeil | 12 Wissen | 75 s | Zelte +1 Wohnplatz |
-| 6 | 🎨 Höhlenmalerei | Alt | Feuer hüten | 15 Wissen | 90 s | Höhlenmaler +30 % Wissen |
+| 6 | 🎨 Höhlenmalerei | Alt | Feuer hüten | 15 Wissen | 90 s | Höhlenmaler +15 % Wissen (seit 15.11., vorher +30 %) |
 | 6b | 🦣 Mammutjagd | Alt | Speerspitzen | 20 Wissen | 2 min | Mammutherden, Mammutjägerlager |
 | 7 | ➡️ **Mittelsteinzeit** | Übergang | 1–6, 15 Einwohner | 25 Wissen, 50 Nahrung | 2 min | öffnet Stufe 2 |
-| 8 | 🏹 Pfeil und Bogen | Mittel | 7 | 20 Wissen | 90 s | Jägerlager +50 %, liefert Felle |
+| 8 | 🏹 Pfeil und Bogen | Mittel | 7 | 20 Wissen | 90 s | Jägerlager +15 % (seit 15.11., vorher +50 %), liefert Felle |
 | 9 | 🛶 Einbaum | Mittel | 8 | 25 Wissen, 30 Holz | 2 min | Fischerplatz |
 | 10 | 🔪 Feine Klingen | Mittel | 7 | 20 Wissen, 20 Stein | 90 s | Steinschläger (Werkzeug) |
 | 11 | 🧥 Fellbearbeitung | Mittel | 8, 10 | 25 Wissen | 2 min | Fellmacherin (Kleidung) |

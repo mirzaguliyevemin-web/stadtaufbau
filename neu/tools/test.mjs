@@ -3162,6 +3162,27 @@ test('Aufträge mit weiterentwickelten Gebäuden nennen die neue Stufe; Bernstei
   noErrors(g);
 });
 
+test('Fundstellen: Der Abholer findet auch eine weit entfernte Brücke und läuft nie übers Wasser (Emin, 15.11.)', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    for (let y = 30; y <= 110; y++) for (let x = 30; x <= 100; x++) terrain[y * N + x] = TERRAIN.gras.id;
+    for (let y = 30; y <= 110; y++) terrain[y * N + 60] = TERRAIN.wasser.id;   // Fluss mit einer Lücke weit im Süden
+    terrain[100 * N + 60] = TERRAIN.gras.id;
+    const narrow = walkRoute(50.5, 50.5, 70.5, 50.5);
+    const wide = walkRouteWide(50.5, 50.5, 70.5, 50.5);
+    const wet = wide && wide.some(([x, y]) => terrain[Math.floor(y) * N + Math.floor(x)] === TERRAIN.wasser.id);
+    terrain[100 * N + 60] = TERRAIN.wasser.id;   // Lücke zu: kein Weg mehr
+    const none = walkRouteWide(50.5, 50.5, 70.5, 50.5);
+    return { narrow: narrow === null, wide: !!wide, wet, none: none === null };
+  })()`);
+  ok(r.narrow && r.wide, 'Umweg über die entfernte Brücke wird nicht gefunden: ' + JSON.stringify(r));
+  ok(!r.wet, 'Weg führt übers Wasser');
+  ok(r.none, 'Ohne Brücke gibt es trotzdem einen Weg');
+  // Brücke im Bau trägt noch nicht
+  ok(g.run(`(() => { const b = state.buildings.find(b => BUILDINGS[b.type].isPath) || addBuilding('pfad', 20, 20, false, true); const old = b.build; b.build = 10; const w = walkable(b.x, b.y); b.build = old; return w; })()`) === false, 'Baustelle einer Brücke ist begehbar');
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

@@ -39,7 +39,7 @@ function imageFolder(name) {
   if (name.startsWith('fund-')) return 'fundstuecke';
   if (name.startsWith('deko-')) return 'deko';
   if (/^(mensch-|fischer-|einbaum|hirsch|mammut|ziege|esel)/.test(name)) return 'figuren';
-  if (/^(baum-|berg-|fels-|blumen|busch|wiese|sand|wasser|pfad|bruecke|erdsockel|setzling)/.test(name)) return 'gelaende';
+  if (/^(baum-|berg-|fels-|blumen|busch|wiese|schneewiese|sand|wasser|pfad|bruecke|erdsockel|setzling)/.test(name)) return 'gelaende';
   return 'oberflaeche';
 }
 function imagePath(name) { return `${IMAGE_DIR}${imageFolder(name)}/${name}.webp`; }
@@ -240,7 +240,7 @@ function imageNames() {
     ...BRIDGE_IMAGE_ERAS.flatMap(e => ['bruecke', 'bruecke-waagerecht', 'bruecke-steg'].flatMap(n => [n + e, n + e + '-winter'])),   // Brücken der späteren Zeitalter   // Holzmuster der Brücken (drawBridge), seit dem hellen Design versehentlich nicht mehr geladen
     'symbol-forschung', 'symbol-auftraege', 'symbol-haendler', 'symbol-schaetze', 'symbol-shop', 'symbol-grundriss', 'symbol-menue',
     'gold-1', 'gold-2', 'gold-3', 'shop-baustelle',   // Shop: Gold-Pakete und zusätzliche Baustelle
-    ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, ...LIFE_NAMES]);
+    ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, 'schneewiese', ...LIFE_NAMES]);
   for (const b of Object.values(BUILDINGS)) if (b.bild) {
     names.add(b.bild); names.add(b.bild + '-winter');
     if (b.wonder) for (const n of WONDERS[b.wonder].images) { names.add(n); names.add(n + '-winter'); }

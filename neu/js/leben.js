@@ -495,15 +495,16 @@ function workSpot(b, kind, far, k = 0) {
 function walkable(x, y) {
   if (!inMap(x, y)) return false;
   const i = buildingAt(x, y);
-  if (i >= 0) return !!BUILDINGS[state.buildings[i].type].isPath;   // Pfade und Brücken ja, Gebäude nein
+  if (i >= 0) return !!BUILDINGS[state.buildings[i].type].isPath && !(state.buildings[i].build > 0);   // Pfade und fertige Brücken ja, Gebäude nein
   const t = terrain[y * N + x];
   return t !== TERRAIN.wasser.id && t !== TERRAIN.berg.id;
 }
 
 // own = Index eines Gebäudes, über dessen Fläche man gehen darf (Platz am Feuer); sonst nur das, in dem man startet
-function walkRoute(fx, fy, tx, ty, own = -1) {
+// pad = wie weit der Weg neben der geraden Strecke suchen darf (Umweg über eine Brücke)
+function walkRoute(fx, fy, tx, ty, own = -1, pad = 8) {
   const ax = Math.floor(fx), ay = Math.floor(fy), bx = Math.floor(tx), by = Math.floor(ty);
-  const x0 = Math.min(ax, bx) - 8, y0 = Math.min(ay, by) - 8, W = Math.max(ax, bx) + 9 - x0, H = Math.max(ay, by) + 9 - y0;
+  const x0 = Math.min(ax, bx) - pad, y0 = Math.min(ay, by) - pad, W = Math.max(ax, bx) + pad + 1 - x0, H = Math.max(ay, by) + pad + 1 - y0;
   const prev = new Int32Array(W * H).fill(-1), key = (x, y) => (y - y0) * W + (x - x0);
   const start = key(ax, ay), goal = key(bx, by);
   const home = inMap(ax, ay) ? buildingAt(ax, ay) : -1;   // aus dem eigenen Gebäude darf man hinausgehen
@@ -531,6 +532,13 @@ function walkRoute(fx, fy, tx, ty, own = -1) {
   if (pts.length) pts.pop();
   pts.push([tx, ty]);   // letzter Punkt: genau der Standplatz
   return pts;
+}
+
+// Weiter Weg (Fundstellen): erst nah suchen, dann mit immer größerem Umweg – so wird auch eine entfernte Brücke gefunden
+// (Emin, 15.11.: der Abholer lief trotz Brücke übers Wasser, weil die Brücke außerhalb des Suchbereichs lag)
+function walkRouteWide(fx, fy, tx, ty) {
+  for (const pad of [8, 32, 96]) { const way = walkRoute(fx, fy, tx, ty, -1, pad); if (way) return way; }
+  return null;
 }
 
 function updateWorkers(dt) {

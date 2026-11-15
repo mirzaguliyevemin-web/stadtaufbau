@@ -201,6 +201,8 @@ function collectSpot(i) {
   }
   const mine = spot.kind === 'erz' ? oreMines()[0] : null;
   const home = mine ? { x: mine.x + BUILDINGS[mine.type].size / 2, y: mine.y + BUILDINGS[mine.type].size / 2 } : fireSpot() || { x: spot.x, y: spot.y };
+  // Kein Fußweg dorthin (anderes Ufer ohne fertige Brücke): niemand läuft übers Wasser, die Stelle bleibt liegen
+  if (!spotWay(home.x, home.y, spot.x + 0.5, spot.y + 0.5)) { state.spots.splice(i, 0, spot); return { noWay: true }; }
   const dist = Math.hypot(spot.x - home.x, spot.y - home.y), c = CONFIG.finds;
   const seconds = spot.kind === 'erz' ? c.oreSeconds : Math.max(c.tripMin, Math.min(c.tripMax, dist * 2 * 0.8));
   const trip = { id: ++state.fund.tripId, left: seconds, total: seconds, cx: home.x, cy: home.y, x: spot.x + 0.5, y: spot.y + 0.5, kind: spot.kind, find: spot.find };
@@ -353,16 +355,21 @@ function spotObjects(inView, t) {
   return out;
 }
 
+// Fußweg zu einer Fundstelle, notfalls bis an ihren Rand (am Gebirge kann man nicht aufs Feld selbst); null = kein Weg
+function spotWay(cx, cy, x, y) {
+  let way = walkRouteWide(cx, cy, x, y);
+  for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+    if (way) break;
+    if (walkable(Math.floor(x) + a, Math.floor(y) + b)) way = walkRouteWide(cx, cy, x + a, y + b);
+  }
+  return way;
+}
+
 const tripRoutes = new Map();
 function tripRoute(trip) {
   let r = tripRoutes.get(trip.id);
   if (r) return r;
-  let way = walkRoute(trip.cx, trip.cy, trip.x, trip.y);
-  // Am Gebirge kann man nicht aufs Feld selbst: bis an den Fuß gehen
-  for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
-    if (way) break;
-    if (walkable(Math.floor(trip.x) + a, Math.floor(trip.y) + b)) way = walkRoute(trip.cx, trip.cy, trip.x + a, trip.y + b);
-  }
+  const way = spotWay(trip.cx, trip.cy, trip.x, trip.y);
   const pts = [[trip.cx, trip.cy], ...(way || [[trip.x, trip.y]])], len = [0];
   for (let i = 1; i < pts.length; i++) len.push(len[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
   r = { pts, len };
@@ -414,6 +421,7 @@ function tapSpot(i) {
   const s = state.spots[i], r = collectSpot(i);
   if (!r) return;
   closeInfo();
+  if (r.noWay) { toast('🌊 Dorthin führt kein Weg – baue eine Brücke über den Fluss'); return; }
   if (r.trip && s.kind === 'findling') toast(`🪨 Acht Leute rollen den Findling los – in ${formatTime(r.trip.total)} ist er da`);
   else if (r.trip) { toast(s.kind === 'erz' ? `⛏️ Ein Bergmann geht zur Erzader – in ${formatTime(r.trip.total)} ist er zurück` : `🚶 Jemand holt es – in ${formatTime(r.trip.total)} ist er zurück`); }
   renderAll();

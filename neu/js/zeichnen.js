@@ -39,7 +39,7 @@ function imageFolder(name) {
   if (name.startsWith('fund-')) return 'fundstuecke';
   if (name.startsWith('deko-')) return 'deko';
   if (/^(mensch-|fischer-|einbaum|hirsch|mammut|ziege|esel)/.test(name)) return 'figuren';
-  if (/^(baum-|berg-|fels-|blumen|busch|wiese|schneewiese|sand|wasser|pfad|bruecke|erdsockel|setzling)/.test(name)) return 'gelaende';
+  if (/^(baum-|berg-|fels-|huegel-|blumen|busch|wiese|schneewiese|sand|wasser|pfad|bruecke|erdsockel|setzling)/.test(name)) return 'gelaende';
   return 'oberflaeche';
 }
 function imagePath(name) { return `${IMAGE_DIR}${imageFolder(name)}/${name}.webp`; }
@@ -240,7 +240,7 @@ function imageNames() {
     ...BRIDGE_IMAGE_ERAS.flatMap(e => ['bruecke', 'bruecke-waagerecht', 'bruecke-steg'].flatMap(n => [n + e, n + e + '-winter'])),   // Brücken der späteren Zeitalter   // Holzmuster der Brücken (drawBridge), seit dem hellen Design versehentlich nicht mehr geladen
     'symbol-forschung', 'symbol-auftraege', 'symbol-haendler', 'symbol-schaetze', 'symbol-shop', 'symbol-grundriss', 'symbol-menue',
     'gold-1', 'gold-2', 'gold-3', 'shop-baustelle',   // Shop: Gold-Pakete und zusätzliche Baustelle
-    ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, 'schneewiese', ...LIFE_NAMES]);
+    ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, 'schneewiese', 'huegel-gross', 'huegel-klein', ...LIFE_NAMES]);
   for (const b of Object.values(BUILDINGS)) if (b.bild) {
     names.add(b.bild); names.add(b.bild + '-winter');
     if (b.wonder) for (const n of WONDERS[b.wonder].images) { names.add(n); names.add(n + '-winter'); }
@@ -449,6 +449,36 @@ const isWaterAt = (x, y) => terrain[y * N + x] === TERRAIN.wasser.id;
 const isMountainAt = (x, y) => terrain[y * N + x] === TERRAIN.berg.id;
 const isShoreAt = (x, y) => terrain[y * N + x] === TERRAIN.wasser.id || terrain[y * N + x] === TERRAIN.sand.id;
 
+// Hügel (Emin, 15.11.): nur zum Ansehen, sanfte Grashügel am Gebirgsrand, 2 bis 6 Felder vom Gebirge entfernt.
+// Kein eigenes Gelände (bebaubar, keine Spielwirkung) – aus der Karte berechnet, daher auch in alten Spielständen.
+// Je 4×4-Feld-Zelle höchstens ein Hügel, damit sie Abstand halten.
+const HILL_CELL = 4;
+const HILL_SIZE = { 'huegel-gross': 3, 'huegel-klein': 2 };   // Breite in Feldern
+function hillAt(cx, cy) {
+  if (hash(cy * 7 + 3, cx * 5 + 31) < 0.3) return null;
+  const x = cx * HILL_CELL + Math.floor(hash(cx, cy + 77) * HILL_CELL), y = cy * HILL_CELL + Math.floor(hash(cx + 13, cy) * HILL_CELL);
+  if (!inMap(x, y) || terrain[y * N + x] !== TERRAIN.gras.id) return null;
+  let near = Infinity;
+  for (let dy = -6; dy <= 6; dy++)
+    for (let dx = -6; dx <= 6; dx++)
+      if (inMap(x + dx, y + dy) && isMountainAt(x + dx, y + dy)) near = Math.min(near, Math.max(Math.abs(dx), Math.abs(dy)));
+  if (near < 2 || near > 6) return null;
+  return { x, y, name: hash(x + 3, y + 5) > 0.55 ? 'huegel-gross' : 'huegel-klein' };
+}
+function hillsIn(x0, y0, x1, y1) {
+  const out = [];
+  for (let cy = Math.max(0, Math.floor(y0 / HILL_CELL)); cy <= Math.floor(y1 / HILL_CELL); cy++)
+    for (let cx = Math.max(0, Math.floor(x0 / HILL_CELL)); cx <= Math.floor(x1 / HILL_CELL); cx++) {
+      const h = hillAt(cx, cy);
+      if (h && h.x >= x0 && h.x <= x1 && h.y >= y0 && h.y <= y1) out.push(h);
+    }
+  return out.sort((a, b) => a.x + a.y - b.x - b.y);
+}
+function hillRect(img, name, px, py, z = 1) {   // wo das Hügelbild liegt (Mitte des Fußes auf dem Feld)
+  const w = TW * HILL_SIZE[name] * z, h = w * img.height / img.width;
+  return { x: px - w / 2, y: py - h * 0.6, w, h };
+}
+
 function renderChunk(cx, cy) {
   const c = typeof document !== 'undefined' ? newCanvas() : null;
   if (!c || !c.getContext) return null;
@@ -504,6 +534,12 @@ function renderChunk(cx, cy) {
     }
     g.restore();
   }
+  // Hügel: auch die aus Nachbarstücken, die hereinragen – so passen die Stücke nahtlos aneinander
+  const hills = images['huegel-gross'] && images['huegel-klein'] ? hillsIn(x0 - 3, y0 - 3, x0 + CHUNK + 2, y0 + CHUNK + 2) : [];
+  for (const h of hills) {
+    const p = toPoint(h.x + 0.5, h.y + 0.5), r = hillRect(images[h.name], h.name, p.x, p.y);
+    g.drawImage(images[h.name], r.x, r.y, r.w, r.h);
+  }
   for (const [x, y, name] of decor) {
     const p = toPoint(x + 0.5, y + 0.5);
     if (name === 'schilf') { drawReeds(g, p.x, p.y, x, y); continue; }
@@ -517,7 +553,7 @@ function renderChunk(cx, cy) {
     const ox = (hash(y, x + 5) - 0.5) * TW * 0.25;
     g.drawImage(img, p.x - w / 2 + ox, p.y - h * 0.8, w, h);
   }
-  return { canvas: c, left, top, decor, depth: renderDepthLayer(x0, y0, left, top) };
+  return { canvas: c, left, top, decor, hills: hills.filter(h => h.x >= x0 && h.x < x0 + CHUNK && h.y >= y0 && h.y < y0 + CHUNK), depth: renderDepthLayer(x0, y0, left, top) };
 }
 
 // Schilfbüschel (fest im Boden-Bild, selbst gezeichnet): dünne Halme, oben dunkle Kolben
@@ -1086,6 +1122,12 @@ function drawDecorSnow(range) {
     for (let cx = Math.floor(range.x0 / CHUNK); cx <= Math.floor(range.x1 / CHUNK); cx++) {
       const ch = cx >= 0 && cy >= 0 && cx < per && cy < per ? chunks[cy * per + cx] : null;
       if (!ch || !ch.decor) continue;
+      for (const h of ch.hills || []) {   // Hügel bleiben im Winter als verschneite Form sichtbar
+        const himg = images[h.name];
+        if (!himg || landMask[h.y * N + h.x] !== 2) continue;
+        const p = tileToScreen(h.x + 0.5, h.y + 0.5), r = hillRect(himg, h.name, p.x, p.y, z);
+        drawSnowOver(himg, r.x, r.y, r.w, r.h);
+      }
       for (const [x, y, name] of ch.decor) {
         if (name !== 'busch' || landMask[y * N + x] !== 2) continue;
         const p = tileToScreen(x + 0.5, y + 0.5), ox = (hash(y, x + 5) - 0.5) * TW * 0.25 * z;

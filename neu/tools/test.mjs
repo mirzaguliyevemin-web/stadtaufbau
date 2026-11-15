@@ -3183,6 +3183,26 @@ test('Fundstellen: Der Abholer findet auch eine weit entfernte Brücke und läuf
   noErrors(g);
 });
 
+test('Hügel: nur zum Ansehen, auf Wiese 2 bis 6 Felder vom Gebirge, mit Abstand, jedes Mal gleich (Emin, 15.11.)', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const hills = hillsIn(0, 0, N - 1, N - 1), again = hillsIn(0, 0, N - 1, N - 1);
+    const bad = hills.filter(h => {
+      if (terrain[h.y * N + h.x] !== TERRAIN.gras.id) return true;
+      let near = Infinity;
+      for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) if (inMap(h.x + dx, h.y + dy) && isMountainAt(h.x + dx, h.y + dy)) near = Math.min(near, Math.max(Math.abs(dx), Math.abs(dy)));
+      return near < 2 || near > 6;
+    });
+    const close = hills.some((a, i) => hills.some((b, j) => j > i && Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 0));
+    const mountains = terrain.some(t => t === TERRAIN.berg.id);
+    return { n: hills.length, bad: bad.length, same: JSON.stringify(hills) === JSON.stringify(again), close, mountains };
+  })()`);
+  if (r.mountains) ok(r.n > 0, 'Keine Hügel am Gebirge');
+  ok(r.bad === 0, r.bad + ' Hügel an falscher Stelle');
+  ok(r.same && !r.close, 'Hügel nicht fest oder doppelt: ' + JSON.stringify(r));
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

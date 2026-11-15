@@ -3,6 +3,12 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-11-15 – Sitzung mit Emin (Version 186)
+
+- **Bot-Test wieder grün (alle 140 Tests).** Ursache des Hungers seit Version 172: Wege gehen nicht mehr übers Wasser, der Bot baute aber weiter Häuser jenseits des Flusses, die nie einen Weg bekamen (V171: 46 Brückenfelder per Weg, 273 Einwohner; V172: 62 Grubenhäuser, 198 Einwohner, Einbruch ab Minute 160).
+- `neu/tools/bot.mjs`: Bauplätze nur auf Land, das ohne Brücke vom Wegenetz erreichbar ist; ist das voll, baut der Bot eine Brücke zum eigenen Land drüben; abgeschnittene Gebäude bekommen eine Brücke.
+- Testlauf 240 min: Mittelsteinzeit 52,9 · Jungsteinzeit 120 · 186 Einwohner · Hunger 14 min. Offen: Der Bot bleibt ab Minute ~160 bei ~186 Einwohnern stehen (Stein fehlt für Langhäuser) – Bot-Verbesserung, kein Spielfehler.
+
 ## 2026-11-15 – Täglicher Lauf (Version 185)
 
 - **1 von 139 Epochia-Tests fehlgeschlagen** (unverändert seit 13.11.): „Bot: Altsteinzeit dauert über 45 Minuten …“ – Hunger 21 min (Grenze 20; Testlauf 240 min: Mittelsteinzeit 52,9 min · Jungsteinzeit 119,6 min · Kupferfund nicht erreicht · 198 Einwohner). Kein sicherer Fix ohne Balancing – bitte in einer Sitzung mit Emin klären.

@@ -41,6 +41,32 @@ function botOnRoadGrid(x, y, s) {
   return false;
 }
 
+// Land, das man ohne Brücke vom Wegenetz erreicht (seit Version 172 gehen Wege nicht mehr übers Wasser). Wie ein Spieler baut
+// der Bot nur dort – jenseits des Flusses erst, wenn eine Brücke hinüberführt. Gemerkt, bis sich Gebäude oder Land ändern.
+var botReachKey = '', botReach = null;
+function botReachable() {
+  const key = state.buildings.length + ':' + plotsBought() + ':' + state.cleared.length + ':' + state.buildings.filter(b => b.bg && !(b.build > 0)).length;
+  if (key === botReachKey) return botReach;
+  botReachKey = key;
+  updateNetwork();
+  const seen = new Uint8Array(N * N), queue = [];
+  const land = (x, y) => inMap(x, y) && isOwned(x, y) && (isWayOpen(x, y) || (!isWaterTile(x, y) && (!occ[y * N + x] || isPathAt(x, y))));
+  for (let y = landBox.y0; y <= landBox.y1; y++) for (let x = landBox.x0; x <= landBox.x1; x++)
+    if (reached[y * N + x] || isFireAt(x, y)) { seen[y * N + x] = 1; queue.push(y * N + x); }
+  for (let q = 0; q < queue.length; q++) {
+    const k = queue[q], x = k % N, y = (k - x) / N;
+    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+      const nk = ny * N + nx;
+      if (inMap(nx, ny) && !seen[nk] && land(nx, ny)) { seen[nk] = 1; queue.push(nk); }
+    }
+  }
+  return (botReach = seen);
+}
+function botSpotReachable(x, y, s) {
+  const r = botReachable();
+  return perimeter(x, y, s).some(([px, py]) => inMap(px, py) && r[py * N + px]);
+}
+
 // Freien Platz suchen: nur im eigenen Land, nah an einem Ziel (sonst am Lagerfeuer). Ergebnis merken, bis sich etwas ändert.
 var botSpotCache = {};
 function botSpot(type, near, anyGrid) {
@@ -58,7 +84,7 @@ function botSpot(type, near, anyGrid) {
       if (!isOwned(x, y)) continue;
       const d = Math.abs(x + half - tx) + Math.abs(y + half - ty);
       if (d >= bestD || near && Math.hypot(x + half - near.x, y + half - near.y) > reach) continue;
-      if ((!def.needsWater && !anyGrid && botOnRoadGrid(x, y, s)) || placeProblem(type, x, y)) continue;
+      if ((!def.needsWater && !anyGrid && botOnRoadGrid(x, y, s)) || placeProblem(type, x, y) || !botSpotReachable(x, y, s)) continue;
       best = { x, y }; bestD = d;
     }
   // zwischen den Wohnungen ist alles voll: dann auch auf die freigehaltenen Wegelinien (der Weg geht außen herum)
@@ -89,6 +115,7 @@ function botTryBuild(type, near) {
   }
   const spot = botSpot(type, near);
   if (!spot && near) return false;   // an dieser Wohnung ist kein Platz – nächstes Mal eine andere
+  if (!spot && botExpandBridge()) return false;   // eigenes Land jenseits des Flusses: erst eine Brücke hinüber
   if (!spot) {
     // kein Platz: Land dazukaufen – und wenn das zu teuer ist, wie ein Spieler Bäume fällen, um Platz zu schaffen
     // Wer ans Wasser muss, kauft wie ein Spieler ein Grundstück am Wasser, nicht irgendeines
@@ -365,8 +392,70 @@ function botRoads() {
   for (let i = 0; i < state.buildings.length; i++) {
     if (isConnected(i)) continue;
     if (pathRoute(i) === null) botClearLanes(state.buildings[i]);
+    if (pathRoute(i) === null && botBridge(i)) continue;   // Fluss dazwischen: erst eine Brücke (seit Version 172 gehen Wege nicht mehr übers Wasser)
     if (!buildRoute(i)) botReport.roads = (botReport.roads || 0) + 1;
   }
+}
+
+// Brücke von Ufer zu Ufer wie ein Spieler: vom Land des abgeschnittenen Gebäudes zum nächsten Ufer gegenüber, das am Wegenetz
+// liegt oder einen Weg dorthin hat. Solange eine Brücke im Bau ist, wartet der Bot. true = Brücke gebaut oder im Bau.
+// Kein Platz mehr auf dieser Flussseite, aber eigenes Land drüben: Brücke dorthin, so nah am Lagerfeuer wie möglich
+var botExpandTry = -Infinity;
+function botExpandBridge() {
+  if (state.buildings.some(b => b.bg && b.build > 0)) return true;
+  if (state.playTime - botExpandTry < 60) return false;
+  botExpandTry = state.playTime;
+  const r = botReachable(), fire = state.buildings.find(k => k.type === 'lagerfeuer');
+  let best = null, bestD = Infinity;
+  for (let y = landBox.y0; y <= landBox.y1; y++) for (let x = landBox.x0; x <= landBox.x1; x++) {
+    if (!r[y * N + x] || isWaterTile(x, y) || !perimeter(x, y, 1).some(([px, py]) => isWaterTile(px, py))) continue;
+    const d0 = Math.abs(x - fire.x) + Math.abs(y - fire.y);
+    if (d0 >= bestD) continue;
+    for (const t of bridgeTargets({ x, y })) {
+      if (r[t.y * N + t.x] || !isOwned(t.x, t.y)) continue;
+      const d = d0 + 3 * (Math.abs(t.x - x) + Math.abs(t.y - y));
+      if (d < bestD) { bestD = d; best = [{ x, y }, t]; }
+    }
+  }
+  if (!best) return false;
+  const plan = bridgePlan(best[0], best[1]);
+  if (buildBridge(best[0], best[1])) { if (typeof plan === 'object') botNoteMissing(bridgeCost(plan)); return false; }
+  botReport.bridges = (botReport.bridges || 0) + 1;
+  return true;
+}
+
+var botBridgeTry = -Infinity;
+function botBridge(i) {
+  if (state.buildings.some(b => b.bg && b.build > 0)) return true;
+  if (state.playTime - botBridgeTry < 60) return false;   // höchstens einmal je Spielminute suchen (die Suche ist teuer)
+  botBridgeTry = state.playTime;
+  const b = state.buildings[i], s = BUILDINGS[b.type].size;
+  // das Stück Land, auf dem das Gebäude steht (begrenzt, damit es schnell bleibt)
+  const side = new Uint8Array(N * N), queue = [];
+  const land = (x, y) => inMap(x, y) && !isWaterTile(x, y) && isOwned(x, y) && (isWayOpen(x, y) || !placeProblem('pfad', x, y));
+  for (const [x, y] of perimeter(b.x, b.y, s)) if (land(x, y) && !side[y * N + x]) { side[y * N + x] = 1; queue.push([x, y]); }
+  const shores = [];
+  for (let q = 0; q < queue.length && q < 4000; q++) {
+    const [x, y] = queue[q];
+    if (perimeter(x, y, 1).some(([px, py]) => isWaterTile(px, py))) shores.push([x, y]);
+    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]])
+      if (land(nx, ny) && !side[ny * N + nx]) { side[ny * N + nx] = 1; queue.push([nx, ny]); }
+  }
+  updateNetwork();
+  const fire = state.buildings.find(k => k.type === 'lagerfeuer');
+  let best = null, bestD = Infinity;
+  for (const [x, y] of shores) for (const t of bridgeTargets({ x, y })) {
+    if (side[t.y * N + t.x]) continue;   // Ufer auf derselben Seite
+    const d = Math.abs(t.x - x) + Math.abs(t.y - y) + 0.2 * (Math.abs(x - b.x) + Math.abs(y - b.y))
+      + (reached[t.y * N + t.x] ? 0 : 0.1 * (Math.abs(t.x - fire.x) + Math.abs(t.y - fire.y)));
+    if (d < bestD) { bestD = d; best = [{ x, y }, t]; }
+  }
+  if (!best) return false;
+  const plan = bridgePlan(best[1], best[0]);
+  const problem = buildBridge(best[1], best[0]);
+  if (problem) { if (typeof plan === 'object') botNoteMissing(bridgeCost(plan)); return false; }
+  botReport.bridges = (botReport.bridges || 0) + 1;
+  return true;
 }
 
 // Bäume und Felsen auf den Wegelinien rund um ein Gebäude räumen (wie ein Spieler)
@@ -486,6 +575,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.log(`  Forschungen (Start in min): ${report.log.join(' ')}`);
     for (const [id, l] of Object.entries(report.lager))
       console.log(`  Lager ${id.padEnd(12)} voll ${String(Math.round(100 * l.voll / l.sec)).padStart(3)} % · leer ${String(Math.round(100 * l.leer / l.sec)).padStart(3)} % · Mittel ${String(Math.round(l.summe / l.sec)).padStart(3)} · voll je Stufe: ${Object.entries(l.stufe).map(([s, st]) => s + ' ' + Math.round(100 * st.voll / st.sec) + ' %').join(', ')}`);
-    console.log(`  Mammutjagden ${report.hunts} · Aufträge ${report.quests} · Pausen ${report.paused}`);
+    console.log(`  Mammutjagden ${report.hunts} · Aufträge ${report.quests} · Pausen ${report.paused} · Brücken ${report.bridges || 0} · Wege fehlten ${report.roads || 0}`);
   }
 }

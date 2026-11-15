@@ -1,0 +1,6 @@
+{
+  "appId": "de.epochia.spiel",
+  "appName": "Epochia",
+  "webDir": "www",
+  "android": { "backgroundColor": "#3d7a2a" }
+}

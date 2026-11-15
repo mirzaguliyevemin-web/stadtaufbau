@@ -3149,6 +3149,19 @@ test('Fischerhütte: Auch aus dem Winterbild wird das gemalte Boot gelöst, das 
   noErrors(g);
 });
 
+test('Aufträge mit weiterentwickelten Gebäuden nennen die neue Stufe; Bernstein sagt, woher er kommt (Emin, 15.11.)', () => {
+  const g = fresh();
+  g.run(`state.techs.felsritzungen = true;`);
+  ok(g.run(`questText(QUESTS.find(q => q.id === 'q_b_felsritzer'))`) === 'Habe 7 Felsritzer', 'vor dem Sternkundiger falscher Text');
+  g.run(`state.techs.himmelsscheibe = true;`);
+  ok(g.run(`questText(QUESTS.find(q => q.id === 'q_b_felsritzer'))`).includes('Sternkundiger zählt mit'), 'Sternkundiger fehlt im Auftrag');
+  ok(g.run(`questIcon(QUESTS.find(q => q.id === 'q_b_felsritzer')) === iconHtml(BUILDINGS.sternkundiger.bild, BUILDINGS.sternkundiger.icon, 'big')`), 'Bild zeigt noch den Felsritzer');
+  ok(g.run(`goodOrigin('bernstein')`).includes('Bernsteinstraße'), 'Bernstein ohne Hinweis auf die Forschung');
+  g.run(`state.techs.bernsteinstrasse = true; state.stage = 'spaet';`);
+  ok(g.run(`goodOrigin('bernstein')`).includes('Händler'), 'Bernstein ohne Händler-Hinweis');
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

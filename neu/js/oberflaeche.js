@@ -199,6 +199,7 @@ function resourceTip(id) {
     <h3>Ausgaben je Minute</h3><div class="info-list">${rows(f.out, '−')}</div>
     ${id === 'wissen' ? '<p class="hint">Wissen wird beim Start einer Forschung auf einmal bezahlt.</p>' : ''}
     ${upkeepPerHead(id) > 0 && id !== 'nahrung' ? `<p class="hint">${{ holz: 'Einwohner verbrauchen Feuerholz.', stein: 'Einwohner bessern Wege und Häuser aus.', werkzeug: 'Werkzeug nutzt sich ab.' }[id]} Ein leeres Lager schadet nicht, nur Bauen geht dann nicht.</p>` : ''}
+    ${goodOrigin(id)}
     <p class="net">Zusammen: <b class="${net >= 0 ? 'good' : 'bad'}">${net >= 0 ? '+' : '−'}${perMin(Math.abs(net))} je Minute</b></p>
     ${eff.length ? `<p class="hint">Wirkt gerade: ${eff.join(' · ')}</p>` : ''}
     <div class="buttons"><button class="btn" onclick="closeDialog()">Schließen</button></div>`);
@@ -486,6 +487,15 @@ function stallText(techId) {
   const from = Object.keys(BUILDINGS).filter(t => BUILDINGS[t].produces && BUILDINGS[t].produces[s.id] && isUnlocked(t)).map(t => BUILDINGS[t].name);
   return `${r.name}: Deine ${Math.floor(state.pop)} Einwohner verbrauchen ${perMin(s.use)} je Minute, es entstehen ${perMin(s.made)}. ` +
     `So kommen die ${s.need} ${r.name} kaum zusammen. Baue mehr davon (${from.length ? from.slice(0, 2).join(" oder ") : "Hersteller"}) und vorerst keine neuen Wohnungen.`;
+}
+
+// Woher bekommt man die Ware? Wichtig für Waren ohne Hersteller (Emin, 15.11.: „Ich kann kein Bernstein erzeugen“)
+function goodOrigin(id) {
+  const src = sourceText(id);
+  if (src) return `<p class="hint">Kommt von: ${esc(src.replace(' – kommt von: ', ''))}</p>`;
+  const offer = CONFIG.trader.offers.find(o => o.get[id] && o.requires && !state.techs[o.requires]);
+  if (offer) return `<p class="hint">Stellt niemand her – gibt es nur beim Händler, sobald „${esc(TECHS[offer.requires].name)}“ erforscht ist.</p>`;
+  return '';
 }
 
 // Woher kommt eine Ware? (für Hinweise wie „Es fehlt Felle – kommt vom Jägerlager“)
@@ -1276,8 +1286,23 @@ function doResearch(id) {
 // Aufträge
 // ---------------------------------------------------------------------
 
+// Ist das genannte Gebäude inzwischen weiterentwickelt (Felsritzer → Sternkundiger)? Dann die neue Stufe, die man jetzt baut.
+// Emin, 15.11.: „Habe 7 Felsritzer“ in der Späten Bronzezeit – Felsritzer gibt es nicht mehr zu bauen, Sternkundige zählen aber mit.
+function questNewer(q) {
+  const type = q.goal.build || (q.goal.line && q.goal.type), def = type && BUILDINGS[type];
+  if (!def || !def.line || !isUnlocked(type)) return null;
+  const entry = barEntries().find(e => !e.locked && BUILDINGS[e.type].line === def.line);
+  return entry && entry.type !== type && BUILDINGS[entry.type].tier > def.tier ? entry.type : null;
+}
+
+function questText(q) {
+  const newer = questNewer(q);
+  return newer ? `${q.text} – ${BUILDINGS[newer].name} zählt mit` : q.text;
+}
+
 function questIcon(q) {
-  const g = q.goal;
+  const g = q.goal, newer = questNewer(q);
+  if (newer) return iconHtml(BUILDINGS[newer].bild, BUILDINGS[newer].icon, 'big');
   if (g.build) return iconHtml(BUILDINGS[g.build].bild, BUILDINGS[g.build].icon, 'big');
   if (g.resource) return iconHtml(RESOURCES[g.resource].bild, RESOURCES[g.resource].icon, 'big');
   if (g.line) return iconHtml(BUILDINGS[g.type].bild, BUILDINGS[g.type].icon, 'big');
@@ -1396,7 +1421,7 @@ function questsHtml() {
     return `<div class="quest-card${done ? ' done' : ''}">
       <div class="q-medal">${questIcon(q)}</div>
       <div class="q-main">
-        <b>${esc(q.text)}</b>
+        <b>${esc(questText(q))}</b>
         <span class="q-bar"><i style="width:${pct}%"></i><em>${p.have} / ${p.need}</em></span>
         <span class="q-reward">Belohnung ${rewardChips(q.reward)}</span>
       </div>

@@ -348,7 +348,8 @@ function boot() {
     window.addEventListener('pointerdown', freeTurn, { passive: true });
     if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', freeTurn);
   }
-  if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+  // In der Android-App (Capacitor) kommen Updates mit der App selbst – kein Service Worker, sonst hielte er alte Dateien fest
+  if (typeof navigator !== 'undefined' && navigator.serviceWorker && !(typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     navigator.serviceWorker.register('service-worker.js').catch(err => console.warn('Service Worker', err));
   }
   requestAnimationFrame(loop);

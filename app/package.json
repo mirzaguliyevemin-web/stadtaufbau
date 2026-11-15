@@ -1,0 +1,17 @@
+{
+  "name": "epochia-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Epochia als Android-App (Capacitor verpackt die PWA aus neu/)",
+  "scripts": {
+    "www": "node bauen.mjs",
+    "sync": "node bauen.mjs && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.10",
+    "@capacitor/core": "^7.6.10"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.10"
+  }
+}

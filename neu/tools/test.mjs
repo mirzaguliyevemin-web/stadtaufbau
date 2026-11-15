@@ -3179,7 +3179,7 @@ test('Fundstellen: Der Abholer findet auch eine weit entfernte Brücke und läuf
   const g = fresh();
   const r = g.run(`(() => {
     for (let y = 30; y <= 110; y++) for (let x = 30; x <= 100; x++) terrain[y * N + x] = TERRAIN.gras.id;
-    for (let y = 30; y <= 110; y++) terrain[y * N + 60] = TERRAIN.wasser.id;   // Fluss mit einer Lücke weit im Süden
+    for (let y = 0; y <= 220; y++) terrain[y * N + 60] = TERRAIN.wasser.id;   // Fluss mit einer Lücke weit im Süden (lang genug, dass kein Umweg ums Ende führt)
     terrain[100 * N + 60] = TERRAIN.gras.id;
     const narrow = walkRoute(50.5, 50.5, 70.5, 50.5);
     const wide = walkRouteWide(50.5, 50.5, 70.5, 50.5);
@@ -3216,28 +3216,38 @@ test('Hügel: nur zum Ansehen, auf Wiese 2 bis 6 Felder vom Gebirge, mit Abstand
   noErrors(g);
 });
 
-test('Gebirge: Minen und Steinbruch dürfen bis 2 Felder hinein, andere Gebäude nicht; Gipfel nach Tiefe (Emin, 15.11.)', () => {
+test('Gebirge: Hochgebirge unbebaubar, im Bergland nur Minen, Steinbrüche und Wege; Bilder nach Art (Emin, 15.11.)', () => {
   const g = fresh();
   const r = g.run(`(() => {
     state.plots = state.plots.map(() => 1); refreshLand();
-    for (let y = 30; y <= 60; y++) for (let x = 20; x <= 60; x++) terrain[y * N + x] = x >= 40 ? TERRAIN.berg.id : TERRAIN.gras.id;
+    for (let y = 30; y <= 70; y++) for (let x = 20; x <= 80; x++) terrain[y * N + x] = x >= 40 ? TERRAIN.berg.id : TERRAIN.gras.id;
     mountainDepthTerrain = null; rebuildOccupancy();
+    let hoch = null, berg = null;
+    for (let y = 36; y <= 64 && !(hoch && berg); y++) for (let x = 44; x <= 74; x++) {
+      if (!hoch && isHighland(x, y) && isHighland(x + 1, y) && isHighland(x, y + 1) && isHighland(x + 1, y + 1)) hoch = [x, y];
+      if (!berg && mountainDepth(x, y) >= 3 && ![0, 1].some(a => [0, 1].some(b => isHighland(x + a, y + b)))) berg = [x, y];
+    }
+    const pics = []; for (let y = 30; y <= 70; y++) for (let x = 40; x <= 80; x++) { const m = mountainAt(x, y); if (m) pics.push([isHighland(x, y), m.name]); }
     return {
       depth: [mountainDepth(39, 45), mountainDepth(40, 45), mountainDepth(41, 45), mountainDepth(44, 45)],
       rand: placeProblem('steinsammler', 39, 45),
-      ganzImBerg: placeProblem('steinsammler', 40, 45),
-      zuTief: placeProblem('steinsammler', 41, 45),
-      andere: placeProblem('sammlerin', 39, 45),
-      gipfel: mountainAt(50, 45) === null || /gipfel/.test(mountainAt(50, 45).name),
-      vorberg: [0, 1, 2, 3].map(dy => mountainAt(40, 44 + dy)).filter(Boolean).every(m => /vor/.test(m.name)),
+      hoch: hoch && placeProblem('steinsammler', hoch[0], hoch[1]),
+      berg: berg && placeProblem('steinsammler', berg[0], berg[1]),
+      bergAndere: berg && placeProblem('sammlerin', berg[0], berg[1]),
+      bergWeg: berg && placeProblem('pfad', berg[0], berg[1]),
+      gehen: berg && walkable(berg[0], berg[1]), hochGehen: hoch && walkable(hoch[0], hoch[1]),
+      found: [!!hoch, !!berg],
+      bilderOk: pics.every(([h, n]) => h ? /gipfel|grat/.test(n) : /vor|mittel|plateau/.test(n)),
     };
   })()`);
   ok(JSON.stringify(r.depth) === '[0,1,2,5]', 'Tiefe falsch: ' + JSON.stringify(r.depth));
   ok(r.rand === null, 'Steinsammler am Gebirgsrand geht nicht: ' + r.rand);
-  ok(r.ganzImBerg && /festen Boden/.test(r.ganzImBerg), 'Ganz im Gebirge erlaubt: ' + r.ganzImBerg);
-  ok(r.zuTief && /Zu tief/.test(r.zuTief), 'Zu tief im Gebirge erlaubt: ' + r.zuTief);
-  ok(r.andere && /Gebirge im Weg/.test(r.andere), 'Andere Gebäude dürfen ins Gebirge: ' + r.andere);
-  ok(r.gipfel && r.vorberg, 'Falsche Bergbilder nach Tiefe');
+  ok(r.found[0] && r.found[1], 'Testgebirge hat nicht beide Arten: ' + JSON.stringify(r.found));
+  ok(/Hochgebirge/.test(r.hoch || ''), 'Im Hochgebirge bauen erlaubt: ' + r.hoch);
+  ok(r.berg === null, 'Mine im Bergland verboten: ' + r.berg);
+  ok(/Bergland/.test(r.bergAndere || ''), 'Andere Gebäude im Bergland erlaubt: ' + r.bergAndere);
+  ok(r.bergWeg === null && r.gehen && !r.hochGehen, 'Wege/Gehen im Gebirge falsch: ' + JSON.stringify(r));
+  ok(r.bilderOk, 'Falsche Bergbilder je Gebirgsart');
   noErrors(g);
 });
 

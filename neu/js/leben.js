@@ -497,7 +497,7 @@ function walkable(x, y) {
   const i = buildingAt(x, y);
   if (i >= 0) return !!BUILDINGS[state.buildings[i].type].isPath && !(state.buildings[i].build > 0);   // Pfade und fertige Brücken ja, Gebäude nein
   const t = terrain[y * N + x];
-  return t !== TERRAIN.wasser.id && t !== TERRAIN.berg.id;
+  return t !== TERRAIN.wasser.id && !(t === TERRAIN.berg.id && isHighland(x, y));   // ins Bergland kommt man zu Fuß, ins Hochgebirge nicht
 }
 
 // own = Index eines Gebäudes, über dessen Fläche man gehen darf (Platz am Feuer); sonst nur das, in dem man startet

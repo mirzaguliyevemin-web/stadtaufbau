@@ -1043,17 +1043,22 @@ function treeSeasonName(name, v) {
 // Gebirge (Emin, 15.11.: „Ein Baum neben dem Berg ist genauso groß wie der Berg“): am Rand flache Vorberge, zwei Felder
 // tief mittlere Berge, ab drei Feldern hohe Schneegipfel – drei- bis viermal so hoch wie ein Baum. Nicht auf jedem Feld,
 // sondern je Zelle einer an zufälliger Stelle (sonst wirkt es gestempelt). Breite in Feldern.
-const MOUNTAIN_IMAGES = { gipfel: ['berg-gipfel-1', 'berg-gipfel-2'], mittel: ['berg-mittel-1', 'berg-mittel-2'], vor: ['berg-vor-1', 'berg-vor-2'] };
+// Hochgebirge: Schneegipfel und lange Grate. Bergland: Vorberge am Rand, dahinter mittlere Berge und Plateaus ohne Schnee.
+const MOUNTAIN_IMAGES = { gipfel: ['berg-gipfel-1', 'berg-gipfel-2'], grat: ['berg-grat-1', 'berg-grat-2'], mittel: ['berg-mittel-1', 'berg-mittel-2'], plateau: ['berg-plateau-1', 'berg-plateau-2'], vor: ['berg-vor-1', 'berg-vor-2'] };
 function cellPick(x, y, c, salt) {
   const cx = Math.floor(x / c), cy = Math.floor(y / c);
   return cx * c + Math.floor(hash(cx + salt, cy * 3 + salt) * c) === x && cy * c + Math.floor(hash(cx * 5 + salt, cy + salt * 2) * c) === y;
 }
 function mountainAt(x, y) {
-  const d = mountainDepth(x, y), v = hash(x * 3 + 1, y * 7 + 2), pick = list => list[v > 0.5 ? 1 : 0];
-  if (d >= 3) return cellPick(x, y, 4, 11) ? { name: pick(MOUNTAIN_IMAGES.gipfel), size: 4.8 + v * 1.8 } : null;
-  if (d === 2) return cellPick(x, y, 3, 23) ? { name: pick(MOUNTAIN_IMAGES.mittel), size: 2.4 + v * 0.7 } : null;
+  const d = mountainDepth(x, y), v = hash(x * 3 + 1, y * 7 + 2), w = hash(x + 41, y * 5 + 17), pick = list => list[v > 0.5 ? 1 : 0];
+  if (!d) return null;
+  if (isHighland(x, y)) {
+    if (!cellPick(x, y, 4, 11)) return null;
+    return w > 0.55 ? { name: pick(MOUNTAIN_IMAGES.grat), size: 6.2 + v * 1.6 } : { name: pick(MOUNTAIN_IMAGES.gipfel), size: 4.8 + v * 1.8 };
+  }
   if (d === 1) return cellPick(x, y, 2, 37) ? { name: pick(MOUNTAIN_IMAGES.vor), size: 1.7 + v * 0.5 } : null;
-  return null;
+  if (!cellPick(x, y, 3, 23)) return null;
+  return w > 0.5 ? { name: pick(MOUNTAIN_IMAGES.plateau), size: 3.4 + v * 1.0 } : { name: pick(MOUNTAIN_IMAGES.mittel), size: 2.4 + v * 0.7 };
 }
 // Neben Minen und Steinbrüchen am Gebirgsrand keine Bergbilder: dort sieht man den felsigen Boden wie bei einem Bergwerk
 function nearBuilding(x, y) {
@@ -1170,7 +1175,7 @@ function drawMountain(x, y, m) {
   ctx.translate(p.x, p.y);
   if (flip) ctx.scale(-1, 1);
   ctx.drawImage(lodImage(img), -w / 2, -h * 0.84, w, h);
-  if (!m.name.startsWith('berg-gipfel')) drawSnowOver(img, -w / 2, -h * 0.84, w, h);   // die Gipfel haben im Bild schon Schnee
+  if (!/berg-(gipfel|grat)/.test(m.name)) drawSnowOver(img, -w / 2, -h * 0.84, w, h);   // die Gipfel haben im Bild schon Schnee
   ctx.restore();
 }
 

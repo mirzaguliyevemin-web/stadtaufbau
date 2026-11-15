@@ -699,7 +699,18 @@ function mountainDepth(x, y) {
   return mountainDepthMap[i];
 }
 
-// Bergbau (Emin, 15.11.): Gebäude mit Gebirgs-Bonus dürfen bis 2 Felder ins Gebirge hinein
+// Zwei Arten Gebirge (Emin, 15.11.): Hochgebirge = Kerne ab 3 Feldern Tiefe in großen, zusammenhängenden Bereichen
+// (weiches Rauschen) mit Schneegipfeln und Graten – dort baut man nichts. Der Rest ist Bergland: Felsen und Plateaus,
+// dort dürfen Minen und Steinbrüche überall hin, dazu Wege. Aus der Karte berechnet, also auch in alten Spielständen.
+function highlandNoise(x, y) {
+  const c = 22, gx = Math.floor(x / c), gy = Math.floor(y / c), u0 = x / c - gx, v0 = y / c - gy;
+  const s = t => t * t * (3 - 2 * t), u = s(u0), v = s(v0);
+  const h = (a, b) => hash(a * 13 + 7, b * 29 + 3);
+  return (h(gx, gy) * (1 - u) + h(gx + 1, gy) * u) * (1 - v) + (h(gx, gy + 1) * (1 - u) + h(gx + 1, gy + 1) * u) * v;
+}
+function isHighland(x, y) { return mountainDepth(x, y) >= 3 && highlandNoise(x, y) > 0.5; }
+
+// Bergbau: Gebäude mit Gebirgs-Bonus (Minen, Steinbrüche) dürfen ins Bergland
 function minesMountain(def) { return !def.wonder && !!(def.needsMountain || (def.bonus && [].concat(def.bonus.terrain).includes('berg'))); }
 // Minen und Steinbrüche nur am Berg (Emin, 15.11.): ein Feld des Gebäudes liegt am oder im Gebirge
 function touchesMountain(ax, ay, size) {
@@ -708,7 +719,6 @@ function touchesMountain(ax, ay, size) {
       if (inMap(x, y) && terrain[y * N + x] === TERRAIN.berg.id) return true;
   return false;
 }
-const MOUNTAIN_BUILD_DEPTH = 2;
 
 function touchesRock(ax, ay, size) {
   for (let y = ay - 1; y <= ay + size; y++)
@@ -1002,11 +1012,10 @@ function placeProblem(type, x, y, ignore = -1, rot) {
         wet++; if (d === 0) cornerWet = true;
         continue;
       }
-      if (t === TERRAIN.berg && miner && mountainDepth(xx, yy) <= MOUNTAIN_BUILD_DEPTH) { onMountain++; continue; }
+      if (t === TERRAIN.berg && !isHighland(xx, yy) && (miner || (def.isPath && !def.onWater))) { onMountain++; continue; }
       if (t.blocks) return t === TERRAIN.wasser ? 'Nicht im Wasser – über den Fluss braucht es eine Brücke'
-        : t === TERRAIN.berg ? (miner ? 'Zu tief im Gebirge – höchstens 2 Felder hinein' : 'Gebirge im Weg – hier dürfen nur Minen und Steinbrüche an den Rand') : `${t.name} im Weg – antippen zum Räumen`;
+        : t === TERRAIN.berg ? (isHighland(xx, yy) ? 'Hochgebirge – hier kann man nicht bauen' : 'Bergland – hier dürfen nur Minen, Steinbrüche und Wege hin') : `${t.name} im Weg – antippen zum Räumen`;
     }
-  if (onMountain && onMountain === s * s) return 'Braucht am Gebirgsrand auch etwas festen Boden für den Weg';
   if (halfInWater(def)) {
     // Ältere Spielstände: Wassergebäude am Ufer bleiben an ihrem Platz gültig
     const old = ignore >= 0 && state.buildings[ignore];

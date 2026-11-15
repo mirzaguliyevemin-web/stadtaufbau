@@ -1559,6 +1559,8 @@ function drawWater(range) {
   paintRegion(ctx, box, isWaterShown, tilePattern(ctx, 'wasser', (t * 0.18) % TEXTURE_TILES, (t * 0.05) % TEXTURE_TILES), 1.0, 2);
   ctx.globalAlpha = 0.35;
   paintRegion(ctx, box, isWaterShown, tilePattern(ctx, 'wasser', (t * 0.07) % TEXTURE_TILES, (t * 0.15) % TEXTURE_TILES), 1.0, 2);
+  const snow = typeof snowCover === 'function' ? snowCover() : 0;
+  if (snow > 0) { ctx.globalAlpha = 0.42 * snow; paintRegion(ctx, box, isWaterShown, '#e4eff8', 1.0, 2); }   // im Winter: heller Eisschimmer
   ctx.restore();
   ctx.globalAlpha = 1;
   // Glitzern
@@ -2348,10 +2350,10 @@ function drawScene(dt) {
   const range = visibleRange();
   updateLife(dt, range);
   drawGround(range);
+  drawSeasonGround();   // Schnee und Jahreszeit vor dem Wasser: sonst lag die Schneewiese über dem Fluss (Emin, 15.11.: „Wo ist der Fluss?“)
   drawWater(range);
   drawWaterDepth(range);
   drawWaterfall(range);
-  drawSeasonGround();
   drawClouds(dt);
   drawDecorSnow(range);
   drawPaths(range);

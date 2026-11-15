@@ -723,12 +723,19 @@ function drawWaterfall(range) {
 // der Rest folgt in den nächsten Bildern (bis dahin liegt dort die Wolkenfarbe) – so ruckelt schnelles Verschieben nicht.
 const MAX_CHUNKS = 48, MAX_CHUNKS_HARD = 72;   // hart: auch sichtbare Stücke werden dann nicht mehr angelegt (nur bei sehr viel eigenem Land ganz weit weg)
 // Kleinere Stücke (weit herausgezoomt) brauchen weniger Speicher – dann dürfen es entsprechend mehr sein (sonst blieben Lücken)
-function chunkLimit(hard) { const k = chunkScale(); return Math.min(hard ? 900 : 600, Math.round((hard ? MAX_CHUNKS_HARD : MAX_CHUNKS) / (k * k))); }
+function chunkLimit(hard) { const k = chunkScale(); return Math.round((hard ? MAX_CHUNKS_HARD : MAX_CHUNKS) / k); }   // linear: Safari am iPhone hat wenig Platz für Zeichenflächen
 let chunksAlive = 0, chunkTick = 0;
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 // Auflösung der Bodenstücke je Zoom: nah voll, weiter weg halb bzw. ein Viertel (spart Speicher und Zeichenzeit)
-function chunkScale() { return cam.zoom >= 0.7 ? 1 : cam.zoom >= 0.35 ? 0.5 : 0.25; }
+function chunkScale() { return cam.zoom >= 0.7 ? 1 : 0.5; }
+
+// Liegt das Bodenstück wirklich auf dem Bildschirm? (Das Feld-Rechteck um die schräge Ansicht enthält doppelt so viele.)
+function chunkOnScreen(cx, cy) {
+  const x0 = cx * CHUNK, y0 = cy * CHUNK, p = worldToScreen((x0 - (y0 + CHUNK)) * TW / 2, (x0 + y0) * TH / 2);
+  const w = CHUNK * TW * cam.zoom, h = (CHUNK * TH + 2) * cam.zoom;
+  return p.x + w > 0 && p.y + h > 0 && p.x < viewW && p.y < viewH;
+}
 
 function chunkHasLand(cx, cy) {
   const k = CHUNK / CONFIG.plotSize;
@@ -740,6 +747,17 @@ function chunkHasLand(cx, cy) {
 function drawGround(range) {
   const per = N / CHUNK;
   if (!chunks.length) { chunks = new Array(per * per).fill(null); chunksAlive = 0; }
+  overviewStep(4);          // fehlt etwas an der Übersichtskarte (nach dem Leeren durch Chrome): nach und nach nachmalen
+  if (cam.zoom < OV_ZOOM && overviewReady()) { drawOverview(range); return; }   // weit draußen genügt sie (schnell, kein Nachmalen)
+  // nah: die Übersicht nur darunter legen, wenn ein sichtbares Bodenstück noch fehlt (sonst unnötige Arbeit)
+  {
+    const r = clipToLand(range), lod = chunkScale();
+    let gap = false;
+    for (let cy = Math.max(0, Math.floor(r.y0 / CHUNK)); cy <= Math.min(per - 1, Math.floor(r.y1 / CHUNK)) && !gap; cy++)
+      for (let cx = Math.max(0, Math.floor(r.x0 / CHUNK)); cx <= Math.min(per - 1, Math.floor(r.x1 / CHUNK)); cx++)
+        if ((!chunks[cy * per + cx] || chunks[cy * per + cx].scale !== lod) && chunkOnScreen(cx, cy)) { gap = true; break; }
+    if (gap) drawOverview(range);
+  }
   chunkTick++;
   let redraw = 1;   // veraltete Stücke: höchstens eins pro Bild neu malen
   let made = 0;
@@ -748,7 +766,7 @@ function drawGround(range) {
   const lod = chunkScale();
   for (let cy = Math.floor(range.y0 / CHUNK); cy <= Math.floor(range.y1 / CHUNK); cy++)
     for (let cx = Math.floor(range.x0 / CHUNK); cx <= Math.floor(range.x1 / CHUNK); cx++) {
-      if (cx < 0 || cy < 0 || cx >= per || cy >= per || !chunkHasLand(cx, cy)) continue;
+      if (cx < 0 || cy < 0 || cx >= per || cy >= per || !chunkHasLand(cx, cy) || !chunkOnScreen(cx, cy)) continue;
       const k = cy * per + cx;
       if (!chunks[k]) {
         // (ganz am Anfang, wenn noch nichts da ist: alles Sichtbare auf einmal, sonst beginnt das Spiel mit Löchern)
@@ -774,10 +792,100 @@ function drawGround(range) {
   }
 }
 
+// Übersichtskarte (Emin, 15.11.: „Kann die Karte als feste gezeichnete Fläche da sein? Die Gebäude kommen einfach dazu“):
+// die ganze Karte einmal in 1/8 Auflösung vorgemalt, in 4 × 4 Kacheln zu je 128 × 128 Feldern (zusammen etwa 46 MB).
+// Weit herausgezoomt wird nur sie gezeichnet, nah herangezoomt liegt sie unter den scharfen Bodenstücken.
+const OV_SCALE = 1 / 8, OV_SIZE = 128, OV_ZOOM = 0.3;
+let overview = [];   // je Kachel { canvas, g, next } – next = wie viele ihrer Bodenstücke schon gemalt sind
+function overviewTiles() { return Math.ceil(N / OV_SIZE); }
+function overviewReady() { return overview.length === overviewTiles() ** 2 && overview.every(t => t && t.next >= t.canvas.height); }
+function overviewTile(i) {
+  if (overview[i]) return overview[i];
+  const c = newCanvas();
+  c.width = Math.ceil(OV_SIZE * TW * OV_SCALE); c.height = Math.ceil((OV_SIZE * TH + 2) * OV_SCALE);
+  const g = c.getContext && c.getContext('2d');
+  if (!g) return null;
+  return (overview[i] = { canvas: c, g, next: 0 });
+}
+// Körnung der Bodenbilder: je Bild 16 × 16 Farbwerte (aus dem verkleinerten Bild), damit die Übersicht nicht flach wirkt
+let ovGrain = null;
+function overviewGrain() {
+  if (ovGrain) return ovGrain;
+  const out = {};
+  for (const name of ['wiese', 'sand', 'wasser', 'berg-boden']) {
+    const img = images[name], c = newCanvas(); c.width = 16; c.height = 16;
+    const g = c.getContext && c.getContext('2d');
+    if (!img || !g) return null;
+    g.drawImage(img, 0, 0, 16, 16);
+    out[name] = g.getImageData(0, 0, 16, 16).data;
+  }
+  return (ovGrain = out);
+}
+// Malt Zeilen der Übersicht Bildpunkt für Bildpunkt aus den Geländefarben, bis die Zeit um ist; true = fertig
+function overviewStep(ms) {
+  if (typeof document === 'undefined' || !state || !CONFIG.allLand) return true;
+  const grain = overviewGrain();
+  if (!grain) return true;   // Bodenbilder noch nicht geladen
+  const n = overviewTiles(), t0 = nowMs();
+  for (let i = 0; i < n * n; i++) {
+    const t = overviewTile(i);
+    if (!t) return true;
+    const W = t.canvas.width, H = t.canvas.height;
+    if (t.next >= H) continue;
+    if (!t.img) t.img = t.g.createImageData(W, H);
+    const d = t.img.data, x0 = (i % n) * OV_SIZE, y0 = Math.floor(i / n) * OV_SIZE;
+    const left = (x0 - (y0 + OV_SIZE)) * TW / 2, top = (x0 + y0) * TH / 2;
+    while (t.next < H) {
+      if (nowMs() - t0 > ms) return false;
+      const py = t.next++;
+      for (let px = 0; px < W; px++) {
+        const sx = px / OV_SCALE + left, sy = py / OV_SCALE + top;
+        const fx = sx / TW + sy / TH, fy = sy / TH - sx / TW, x = Math.floor(fx), y = Math.floor(fy);
+        if (x < x0 || y < y0 || x >= x0 + OV_SIZE || y >= y0 + OV_SIZE || x >= N || y >= N) continue;   // außerhalb dieser Kachel
+        const tt = terrain[y * N + x], gi = (((py & 15) * 16) + ((px * 3 + y) & 15)) * 4;
+        const src = tt === TERRAIN.wasser.id ? grain.wasser : tt === TERRAIN.sand.id ? grain.sand : tt === TERRAIN.berg.id ? grain['berg-boden'] : grain.wiese;
+        let r = src[gi], g = src[gi + 1], b = src[gi + 2];
+        if (tt === TERRAIN.wald.id) { r *= 0.8; g *= 0.86; b *= 0.8; }
+        else if (tt === TERRAIN.fels.id) { r = r * 0.85 + 20; g = g * 0.85 + 18; b = b * 0.85 + 14; }
+        else if (tt === TERRAIN.wasser.id && waterDepth) {   // tiefes Wasser dunkler, wie im Spiel
+          const dep = Math.min(1, waterDepth[y * N + x] || 0);
+          r *= 1 - 0.45 * dep; g *= 1 - 0.3 * dep; b *= 1 - 0.12 * dep;
+        }
+        const k = (py * W + px) * 4;
+        d[k] = r; d[k + 1] = g; d[k + 2] = b; d[k + 3] = 255;
+      }
+      if (t.next >= H) { t.g.putImageData(t.img, 0, 0); t.img = null; }
+    }
+  }
+  return true;
+}
+function drawOverview(range) {
+  const n = overviewTiles();
+  for (let i = 0; i < overview.length; i++) {
+    const t = overview[i];
+    if (!t || t.next < t.canvas.height) continue;   // erst zeigen, wenn die Kachel fertig ist
+    const x0 = (i % n) * OV_SIZE, y0 = Math.floor(i / n) * OV_SIZE;
+    if (x0 > range.x1 || y0 > range.y1 || x0 + OV_SIZE < range.x0 || y0 + OV_SIZE < range.y0) continue;
+    const p = worldToScreen((x0 - (y0 + OV_SIZE)) * TW / 2, (x0 + y0) * TH / 2);
+    ctx.drawImage(t.canvas, p.x, p.y, OV_SIZE * TW * cam.zoom, (OV_SIZE * TH + 2) * cam.zoom);
+  }
+}
+
 // Beim Betreten des Spiels (Emin, 15.11.: „viele ungeladene Kartenbereiche“): den Boden rund ums Bild schon vormalen, während
 // das Ladefenster zu sehen ist – ein Ring von einem Stück um den sichtbaren Bereich, nahe Stücke zuerst.
-function prerenderGround(onProgress, onDone) {
+function prerenderGround(onProgress, onDone, skipOverview = false) {
   if (typeof document === 'undefined' || !state) { onDone(); return; }
+  if (CONFIG.allLand && !skipOverview && !overviewReady() && overviewGrain()) {   // zuerst die ganze Karte grob (bis 80 %), dann die scharfen Stücke ums Bild
+    const total = overviewTiles() ** 2 * Math.ceil((OV_SIZE * TH + 2) * OV_SCALE);
+    const run = () => {
+      const done = overviewStep(40);
+      onProgress(0.8 * overview.reduce((a, t) => a + (t ? t.next : 0), 0) / total);
+      if (done) prerenderGround(p => onProgress(0.8 + 0.2 * p), onDone, true); else setTimeout(run, 0);
+    };
+    run();
+    return;
+  }
+  if (cam.zoom < OV_ZOOM) { onDone(); return; }
   const per = N / CHUNK, lod = chunkScale();
   if (!chunks.length) { chunks = new Array(per * per).fill(null); chunksAlive = 0; }
   const r = clipToLand(visibleRange()), m = CHUNK, list = [];
@@ -901,6 +1009,7 @@ function resetCanvasCaches() {
   alphaCache.clear();    // Durchsichtigkeit zum Antippen – aus einer geleerten Leinwand gelesen wäre alles durchsichtig
   if (typeof guideSprite !== 'undefined') guideSprite = null;
   chunks = []; chunksAlive = 0;
+  overview = []; ovGrain = null;   // Übersichtskarte: wird in den nächsten Bildern nach und nach neu gemalt
   // aus Bildern gebaute Leinwände (Pfahlbau ohne Boot, Wasserrand): aus der Datei neu bauen
   for (const [name, img] of Object.entries(images))
     if (img && typeof HTMLCanvasElement !== 'undefined' && img instanceof HTMLCanvasElement) loadImage(name);
@@ -1571,6 +1680,9 @@ function drawSmoke() {
 // Fließendes Wasser: über das vorgezeichnete Wasser zwei langsam wandernde Lagen der Wasser-Textur legen
 function drawWater(range) {
   if (!images.wasser) return;
+  // Weiter draußen (unter halbem Zoom) steckt das Wasser schon im Boden bzw. in der Übersichtskarte, das Wellen-Spiel sieht man
+  // dort kaum und es kostet bei viel Fluss viel Zeit – nur im Winter neu darüber (sonst läge Schnee darauf)
+  if (cam.zoom < 0.5 && !(typeof snowCover === 'function' && snowCover() > 0)) return;
   range = clipToLand(range);   // unter den Wolken fließt nichts (spart auf der großen Karte fast alles)
   const x0 = range.x0 - 1, y0 = range.y0 - 1, x1 = range.x1 + 1, y1 = range.y1 + 1;
   const isWaterShown = (x, y) => isWaterAt(x, y) && landMask[y * N + x] > 0;

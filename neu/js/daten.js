@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 193;
+const APP_VERSION = 194;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -1097,7 +1097,7 @@ const QUESTS = [
   { id: 'q_e_stadt4',   text: 'Baue 4 Stadthäuser',      goal: { build: 'stadthaus', count: 4 }, reward: { stein: 200 } },
   { id: 'q_e_ringwall', text: 'Baue den Ringwall',       goal: { build: 'ringwall', count: 1 }, reward: { eisen: 40, nahrung: 300 } },
   { id: 'q_e_stufe9',   text: 'Baue ein Gebäude auf Stufe 9 aus', goal: { level: 9, count: 1 }, reward: { eisen: 30, nahrung: 200 } },
-  { id: 'q_e_eschmied3', text: 'Baue 3 Eisenschmiede', goal: { build: 'eisenschmied', count: 3 }, reward: { eisen: 20 } },
+  { id: 'q_e_eschmied3', text: 'Baue 5 Eisenschmiede', goal: { build: 'eisenschmied', count: 5 }, reward: { eisen: 20 } },   // 5 statt 3 (Prüfung 15.11.: den Eisenschmied gibt es schon ab der Frühen Eisenzeit)
   { id: 'q_e_pop480',   text: 'Erreiche 480 Einwohner – bereit für den Aufbruch', goal: { population: 480 }, reward: { holz: 300, nahrung: 300 } },
 ];
 // Zeitalter je Auftrag: Ein Auftrag erscheint erst in seinem Abschnitt (Prüfung 07.11.: Einwohner-Aufträge der Eisenzeit

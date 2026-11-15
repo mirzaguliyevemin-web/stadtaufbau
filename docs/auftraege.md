@@ -62,7 +62,7 @@ Nach dem letzten Eisenzeit-Auftrag ist die Liste leer, bis die Antike kommt.
 | 11 | Baue 2 Höhlenmaler | Bauen | sofort | 💡 10 Wissen + 🪙 5 Gold |
 | 12 | Erfülle einen Wunsch des Stammes | Wünsche | sofort | 💡 10 Wissen + 🪙 5 Gold |
 | 13 | Baue eine Pflanzerin | Bauen | sofort | 🪵 25 Holz + 🪙 5 Gold |
-| 14 | Kaufe ein neues Landstück | Land | sofort | 🪨 40 Stein + 🪙 5 Gold |
+| 14 | ~~Kaufe ein neues Landstück~~ (seit 15.11. ausgeblendet: kein Landkauf mehr) | Land | sofort | 🪨 40 Stein + 🪙 5 Gold |
 | 15 | Baue 2 Jägerlager | Bauen | sofort | 🍖 40 Nahrung, 🦌 5 Felle + 🪙 5 Gold |
 | 16 | Erreiche 20 Einwohner | Einwohner | sofort | 🪵 40 Holz + 🪙 5 Gold |
 | 17 | Habe 8 Wohnungen | Habe (zählt, was jetzt steht) | sofort | 🪨 40 Stein + 🪙 5 Gold |
@@ -79,7 +79,7 @@ Nach dem letzten Eisenzeit-Auftrag ist die Liste leer, bis die Antike kommt.
 | Nr. | Auftrag | Art | Kommt … | Belohnung |
 |---|---|---|---|---|
 | 25 | Erreiche 30 Einwohner | Einwohner | sofort | 🗡️ 10 Werkzeug + 🪙 5 Gold |
-| 26 | Kaufe 3 neue Landstücke | Land | sofort | 🪵 60 Holz + 🪙 5 Gold |
+| 26 | ~~Kaufe 3 neue Landstücke~~ (seit 15.11. ausgeblendet: kein Landkauf mehr) | Land | sofort | 🪵 60 Holz + 🪙 5 Gold |
 | 27 | Baue 4 Jägerlager | Habe (zählt, was jetzt steht) | sofort | 🍖 60 Nahrung, 🦌 10 Felle + 🪙 5 Gold |
 | 28 | Baue einen Fischerplatz | Bauen | sobald Fischerplatz freigeschaltet ist (Einbaum) | 🍖 60 Nahrung + 🪙 5 Gold |
 | 29 | Baue 2 Steinschläger | Bauen | sobald Steinschläger freigeschaltet ist (Feine Klingen) | 🪨 50 Stein + 🪙 5 Gold |
@@ -191,7 +191,7 @@ Nach dem letzten Eisenzeit-Auftrag ist die Liste leer, bis die Antike kommt.
 | 100 | Baue 4 Stadthäuser | Bauen | sobald Stadthaus freigeschaltet ist (Stadthäuser) | 🪨 200 Stein + 🪙 5 Gold |
 | 101 | Baue den Ringwall | Bauen | sobald Ringwall freigeschaltet ist (Ringwall) | 🔩 40 Eisen, 🍖 300 Nahrung + 🪙 5 Gold |
 | 102 | Baue ein Gebäude auf Stufe 9 aus | Stufe | sobald Stufe 9 erlaubt ist und jemand Eisen herstellt | 🔩 30 Eisen, 🍖 200 Nahrung + 🪙 5 Gold |
-| 103 | Baue 3 Eisenschmiede | Bauen | sobald Eisenschmied freigeschaltet ist (Eisenschmiede) | 🔩 20 Eisen + 🪙 5 Gold |
+| 103 | Baue 5 Eisenschmiede (seit 15.11., vorher 3) | Bauen | sobald Eisenschmied freigeschaltet ist (Eisenschmiede) | 🔩 20 Eisen + 🪙 5 Gold |
 | 104 | Erreiche 480 Einwohner – bereit für den Aufbruch | Einwohner | sofort | 🪵 300 Holz, 🍖 300 Nahrung + 🪙 5 Gold |
 
 ## Geändert nach der Prüfung (Version 141, 07.11.2026)

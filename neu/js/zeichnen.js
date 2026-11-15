@@ -1005,7 +1005,7 @@ function resetCanvasCaches() {
   cloudPuffSprite = null;
   cloudLayer.canvas = null; cloudLayer.g = null; cloudLayer.z = 0;
   for (const k of Object.keys(sprites)) delete sprites[k];
-  snowSprites.clear(); lodImages.clear();   // auch die verkleinerten Bilder für weiten Zoom   // selbst verschneite Gebäude im Winter (Emin, 07.11.: Häuser ohne eigenes Winterbild fehlten)
+  snowSprites.clear(); lodImages.clear(); if (typeof resetPenSprites === 'function') resetPenSprites();   // auch die verkleinerten Bilder für weiten Zoom   // selbst verschneite Gebäude im Winter (Emin, 07.11.: Häuser ohne eigenes Winterbild fehlten)
   alphaCache.clear();    // Durchsichtigkeit zum Antippen – aus einer geleerten Leinwand gelesen wäre alles durchsichtig
   if (typeof guideSprite !== 'undefined') guideSprite = null;
   chunks = []; chunksAlive = 0;

@@ -193,6 +193,8 @@ Die Figuren sind im Spiel nur 30–45 Pixel hoch: Es zählt der klare Umriss von
 
 ### 5.3 Fehler und Lücken, die beim Durchgehen aufgefallen sind
 
+**Version 195:** 1–4, 6 und 7 behoben, soweit es ohne neue Bilder geht (eingefärbte Ziegen als Schafe/Rinder, passende vorhandene Bewegungen, Eisenzeit-Gebäude mit Bronzezeit-Bildern). Die eigenen Bilder bleiben auf der Liste. Offen: 5 (braucht ein Bild), 8 (Tragebilder).
+
 1. **Viehhof:** Der Arbeiter schert ein Schaf, aber im Gehege laufen **Ziegen**. Ein **Schaf**-Bild fehlt (1 Bild).
 2. **Rindergut:** Dort laufen gar keine Tiere (nur Ziegengehege und Viehhof bekommen Tiere). Braucht das Rind-Bild und
    eine kleine Codeänderung.

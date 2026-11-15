@@ -72,6 +72,34 @@ function updateWalkers(dt) {
 // Tiere: Hirsche, Mammutherde, Ziegen am Gehege
 // ---------------------------------------------------------------------
 
+// Welche Tiere im Gehege laufen. Bis es eigene Bilder gibt (schaf, rind), wird das Ziegenbild eingefärbt:
+// hell und wollig für Schafe, braun und etwas größer für Rinder.
+const PEN_LOOK = { ziegengehege: null, viehhof: 'schaf', rindergut: 'rind' };
+const PEN_TINT = { schaf: { color: '#f6f2e6', alpha: 0.62, size: 1.05 }, rind: { color: '#5a3218', alpha: 0.6, size: 1.45 } };
+const penSprites = {};   // eingefärbte Ziegenbilder (Leinwände; werden mit resetCanvasCaches geleert)
+function penAnimalImage(look) {
+  if (!look) return 'ziege';
+  if (images[look]) return look;   // eigenes Bild ist da
+  const base = images.ziege;
+  if (!base) return 'ziege';
+  const key = 'ziege-' + look;
+  if (!penSprites[key]) {
+    try {
+      const c = newCanvas(); c.width = base.width; c.height = base.height;
+      const g = c.getContext('2d');
+      g.drawImage(base, 0, 0);
+      g.globalCompositeOperation = 'source-atop';
+      g.globalAlpha = PEN_TINT[look].alpha; g.fillStyle = PEN_TINT[look].color;
+      g.fillRect(0, 0, c.width, c.height);
+      penSprites[key] = c;
+    } catch (e) { return 'ziege'; }
+  }
+  images[key] = penSprites[key];
+  LEGS[key] = LEGS.ziege;
+  return key;
+}
+function resetPenSprites() { for (const k of Object.keys(penSprites)) { delete penSprites[k]; delete images[k]; } }
+
 function spawnAnimal(kind, x, y, extra = {}) {
   life.animals.push({ kind, x: x + 0.5, y: y + 0.5, tx: x + 0.5, ty: y + 0.5, wait: lifeRandom() * 4, face: 1, ph: lifeRandom() * 9, ...extra });
 }
@@ -114,14 +142,14 @@ function updateAnimals(dt) {
   }
   for (const a of life.animals) if (a.flee) a.flee -= dt;
   life.animals = life.animals.filter(a => !(a.flee <= 0));
-  // Ziegen: zwei an jedem fertigen Ziegengehege
-  const pens = state.buildings.filter(b => (b.type === 'ziegengehege' || b.type === 'viehhof') && !b.build);
+  // Ziegen: zwei an jedem fertigen Gehege – am Viehhof Schafe, am Rindergut Rinder (Aussehen über PEN_LOOK)
+  const pens = state.buildings.filter(b => PEN_LOOK[b.type] !== undefined && !b.build);
   const goats = life.animals.filter(a => a.kind === 'ziege');
   if (goats.length < pens.length * 2) {
     const pen = pens[Math.floor(goats.length / 2)];
     const s = BUILDINGS.ziegengehege.size;
     const p = randomFreeTile(pen.x + s / 2, pen.y + s / 2, s / 2 + 2);
-    if (p) spawnAnimal('ziege', p[0], p[1], { home: [pen.x + s / 2, pen.y + s / 2], pen: pen });
+    if (p) spawnAnimal('ziege', p[0], p[1], { home: [pen.x + s / 2, pen.y + s / 2], pen: pen, look: PEN_LOOK[pen.type] });
   }
   life.animals = life.animals.filter(a => a.kind !== 'ziege' || state.buildings.includes(a.pen));
 
@@ -413,14 +441,15 @@ Object.assign(WORK, {
   obstgarten: { target: 'self', tool: null, carry: null, img: 'mensch-frau', chips: '#d8344a', swing: 'pick', anim: 'pfluecken' },
   holzhof: WORK.holzsammler, grosser_steinbruch: WORK.steinsammler, grosse_lehmgrube: WORK.tongrube, fischerei: WORK.fischerplatz,
   jagdhof: WORK.mammutjaegerlager, eisenfeld: { ...WORK.acker, tool: null, chips: '#e8c060', anim: 'sichel' }, rindergut: WORK.ziegengehege, forstmeisterin: WORK.pflanzerin, drehscheibe: { ...WORK.toepferei, anim: 'drehscheibe' },
-  druide:       { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: null, swing: 'gaze' },
-  eisenschmied: { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'knap', thing: 'ware-werkzeug' },
+  // Bis zu eigenen Bildern: die passendste vorhandene Bewegung (docs/plan-bilder-neu.md)
+  druide:       { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: null, swing: 'gaze', anim: 'sterne' },   // hebt den Stab zum Himmel
+  eisenschmied: { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'knap', thing: 'ware-werkzeug', anim: 'schmieden' },
   tuchmacherin: { target: 'self', tool: null,    carry: null, img: 'mensch-frau', chips: null, swing: 'scrape', thing: 'ware-kleidung', anim: 'weben' },
-  eisenmine:    { target: 'fels', tool: 'hacke', carry: null, img: 'mensch-mann', chips: '#a0604a', swing: 'hack', carryLook: 'mensch-mann-stein' },
-  rennofen:     { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'tend' },
-  salzsiederei: { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#f4f4ee', swing: 'tend' },
-  glasmacherin: { target: 'self', tool: null,    carry: null, img: 'mensch-frau', chips: '#7fe0b8', swing: 'tend' },
-  wagner:       { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#a8743f', swing: 'knap' },
+  eisenmine:    { target: 'fels', tool: 'hacke', carry: null, img: 'mensch-mann', chips: '#a0604a', swing: 'hack', carryLook: 'mensch-bergmann-korb', anim: 'bergbau' },   // trägt Erz im Korb
+  rennofen:     { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'tend', anim: 'blasebalg' },   // tritt den Blasebalg
+  salzsiederei: { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#f4f4ee', swing: 'tend', anim: 'stochern' },    // rührt mit der Stange
+  glasmacherin: { target: 'self', tool: null,    carry: null, img: 'mensch-frau', chips: '#7fe0b8', swing: 'tend', anim: 'schmuck' },     // feine Arbeit an Perlen
+  wagner:       { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#a8743f', swing: 'knap', anim: 'schmieden' },   // beschlägt das Rad
   zinnwaescherin: { target: 'wasser', tool: null,    carry: null, img: 'mensch-frau', chips: '#cfe9f7', swing: 'pan', anim: 'waschen' },    // schwenkt die Pfanne am Ufer
 });
 
@@ -436,6 +465,8 @@ const INSIDE_SPOTS = {
   toepferwerkstatt: [[1.65, 1.0, 1.35, 1.35], [1.05, 1.65, 1.35, 1.35]],
   toepferei:      [[1.65, 1.0, 1.35, 1.35], [1.05, 1.65, 1.35, 1.35]],  // zwischen Ofen und Töpfen
 };
+// Eisenzeit-Gebäude mit dem Bild ihres Vorgängers arbeiten an denselben Stellen
+Object.assign(INSIDE_SPOTS, { obstgarten: INSIDE_SPOTS.gemuesegarten, eisenschmied: INSIDE_SPOTS.bronzeschmied, tuchmacherin: INSIDE_SPOTS.weberin, drehscheibe: INSIDE_SPOTS.toepferwerkstatt });
 function insideSpot(b, k) {
   const list = INSIDE_SPOTS[b.type];
   if (!list) return null;
@@ -989,7 +1020,8 @@ function drawCarrier(c, t) {
 // Treffpunkte: Am Feuer sitzen die Leute zusammen (abends tanzen sie), am Ahnenplatz und Steinkreis beten sie
 // ---------------------------------------------------------------------
 
-const GATHER = { lagerfeuer: 'feuer', feuerplatz: 'feuer', geschichtenhoehle: 'feuer', dorfbrunnen: 'feuer', ahnenplatz: 'beten', steinkreis: 'beten', himmelshalle: 'beten' };
+const GATHER = { lagerfeuer: 'feuer', feuerplatz: 'feuer', geschichtenhoehle: 'feuer', dorfbrunnen: 'feuer', badehaus: 'feuer',
+  ahnenplatz: 'beten', steinkreis: 'beten', himmelshalle: 'beten', heiliger_hain: 'beten', druidenhain: 'beten', fuerstenhuegel: 'beten' };
 life.visitors = [];
 life.visitTimer = 0;
 
@@ -1291,11 +1323,11 @@ function lifeObjects(range) {
   for (const a of life.animals) {
     if (!inView(a.x, a.y)) continue;
     const moving = Math.hypot(a.tx - a.x, a.ty - a.y) > 0.05;
-    const size = a.kind === 'mammut' ? 56 : a.kind === 'hirsch' ? 32 : 22;
+    const size = a.kind === 'mammut' ? 56 : a.kind === 'hirsch' ? 32 : 22 * (a.look ? PEN_TINT[a.look].size : 1);
     const pace = a.kind === 'mammut' ? 4 : a.kind === 'hirsch' ? 9 : 7;
     const bob = moving ? Math.abs(Math.sin(t * pace + a.ph)) * 1.2 * cam.zoom : 0;
-    const icon = a.kind === 'mammut' ? '🦣' : a.kind === 'hirsch' ? '🦌' : '🐐';
-    out.push({ d: a.x + a.y - 0.5, kind: 'leben', draw: () => drawCreature(a.kind, a.x, a.y, size, a.face, bob, icon, moving ? t * pace + a.ph : null) });
+    const icon = a.kind === 'mammut' ? '🦣' : a.kind === 'hirsch' ? '🦌' : a.look === 'schaf' ? '🐑' : a.look === 'rind' ? '🐄' : '🐐';
+    out.push({ d: a.x + a.y - 0.5, kind: 'leben', draw: () => drawCreature(a.look ? penAnimalImage(a.look) : a.kind, a.x, a.y, size, a.face, bob, icon, moving ? t * pace + a.ph : null) });
   }
   return out;
 }

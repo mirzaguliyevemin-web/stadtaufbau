@@ -1385,6 +1385,23 @@ function snowSprite(img, building = false) {
   return out;
 }
 
+// Kurz vor dem Winter die verschneiten Fassungen schon nach und nach vorrechnen (höchstens ein paar ms je Bild).
+// Sonst kamen sie alle im ersten Winterbild auf einmal – ein spürbares Stocken (V211-Prüfung: 200–300 ms).
+let snowWarmList = null;
+function prewarmSnow() {
+  if (typeof snowCover !== 'function' || !state || typeof document === 'undefined') return;
+  const Y = CONFIG.yearSeconds, q = Y / 4, t = state.yearTime % Y;
+  if (!(t > 3 * q - Math.min(120, q * 0.3) && t < 3 * q)) { snowWarmList = null; return; }   // nur in den letzten Herbstminuten
+  if (!snowWarmList) snowWarmList = Object.keys(images).filter(n => images[n] && !snowSprites.has(images[n]) && (
+    /^(fels-|busch|baum-|berg-(mittel|plateau|vor))/.test(n) || /^huegel-/.test(n) || (/^[123]-/.test(n) && !/-winter$/.test(n) && missingImages.has(n + '-winter'))));
+  const t0 = nowMs();
+  while (snowWarmList.length && nowMs() - t0 < 4) {
+    const n = snowWarmList.shift(), img = images[n];
+    if (!img || snowSprites.has(img)) continue;
+    snowSprite(img, /^huegel-/.test(n) ? 'hill' : /^[123]-/.test(n) ? true : false);
+  }
+}
+
 // Gebäudebild ohne eigenes Winterbild: verschneite Fassung mit denselben Platten-Maßen (einmal je Bild)
 function buildingSnow(img) {
   if (!img) return img;
@@ -2643,6 +2660,7 @@ function drawScene(dt) {
   const range = visibleRange();
   updateLife(dt, range);
   drawGround(range);
+  prewarmSnow();
   drawSeasonGround(range);   // Schnee und Jahreszeit vor dem Wasser: sonst lag die Schneewiese über dem Fluss (Emin, 15.11.: „Wo ist der Fluss?“)
   drawWater(range);
   drawWaterDepth(range);

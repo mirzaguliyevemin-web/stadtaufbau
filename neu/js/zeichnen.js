@@ -66,15 +66,14 @@ const missingImages = new Set();
 // Hütte auf Säulen: keine Platte im Bild – die Säulenfüße sind die Ecken der Raute. Das Boot wird aus dem Bild
 // gelöst und liegt immer auf einem echten Wasserfeld. Werte in Bildpunkten des Bildes (538 × 640).
 const STILT_IMAGES = {
-  '1-fischerhuette': {
-    sockel: { lx: 22 / 538, ly: 500 / 640, rx: 515 / 538, ry: 495 / 640, fx: 238 / 538, fy: 635 / 640, dicke: 0, farbe: '#6b4a2a', noClip: true },
-    boat: 'fischerboot', spanPx: 493,
-    outline: [[251, 553], [257, 555], [283, 553], [310, 536], [360, 508], [397, 494], [433, 479], [467, 464], [477, 469], [474, 488], [454, 535], [420, 572], [360, 602], [313, 613], [282, 607], [257, 592], [251, 580]],
+  '1-fischerhuette': {   // Scenario-Bild (V201, 538 × 637): Säulenfüße und Boot neu vermessen
+    sockel: { lx: 22 / 538, ly: 500 / 637, rx: 512 / 538, ry: 492 / 637, fx: 238 / 538, fy: 634 / 637, dicke: 0, farbe: '#6b4a2a', noClip: true },
+    boat: 'fischerboot', spanPx: 490,
+    outline: [[262, 590], [258, 560], [276, 543], [330, 513], [368, 495], [398, 482], [428, 462], [456, 446], [474, 434], [488, 450], [478, 500], [450, 543], [409, 576], [359, 601], [316, 617], [285, 619], [264, 606]],
   },
 };
 // Das Winterbild ist gleich aufgebaut: Sein gemaltes Boot muss genauso heraus (das lose Boot bekommt seinen Schnee vom Spiel)
-STILT_IMAGES['1-fischerhuette-winter'] = { ...STILT_IMAGES['1-fischerhuette'], boat: null,
-  outline: [[249, 553], [257, 553], [283, 551], [310, 534], [360, 506], [397, 490], [433, 475], [467, 460], [480, 466], [477, 490], [457, 537], [423, 575], [360, 606], [313, 617], [282, 611], [255, 595], [249, 582]] };
+STILT_IMAGES['1-fischerhuette-winter'] = { ...STILT_IMAGES['1-fischerhuette'], boat: null };
 function splitStiltBoat(name, img) {
   try {
     const d = STILT_IMAGES[name];

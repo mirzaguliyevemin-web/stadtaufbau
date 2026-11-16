@@ -213,7 +213,7 @@ function botKnowledgeRate() {
 }
 
 // Wer stellt eine Ware her (neueste freigeschaltete Stufe)?
-var BOT_MAKER = { schmuck: 'schmuck', bronze: 'bronze', zinn: 'zinn', wolle: 'tiere', kupfer: 'schmelzen', holzkohle: 'kohle', kupfererz: 'erz', holz: 'holz', stein: 'stein', wissen: 'wissen', felle: 'jagen', kleidung: 'kleidung', werkzeug: 'werkzeug', ton: 'ton', toepferwaren: 'toepfern' };
+var BOT_MAKER = { eisen: 'eisen', eisenerz: 'eisenerz', salz: 'salz', glas: 'glas', schmuck: 'schmuck', bronze: 'bronze', zinn: 'zinn', wolle: 'tiere', kupfer: 'schmelzen', holzkohle: 'kohle', kupfererz: 'erz', holz: 'holz', stein: 'stein', wissen: 'wissen', felle: 'jagen', kleidung: 'kleidung', werkzeug: 'werkzeug', ton: 'ton', toepferwaren: 'toepfern' };
 
 // Braucht eine Ware einen weiteren Hersteller? Vergleicht, was alle Hersteller schaffen könnten, mit dem Bedarf
 // (laufender Verbrauch + Vorrat für die nächste Forschung, aufzufüllen in etwa 15 Minuten).
@@ -290,7 +290,7 @@ function botWants() {
   if ((stats.needs.waerme ?? 1) < 1) { const h = botUncovered('warmth', botBest('waerme')); if (h) w.push([botBest('waerme'), h]); }
   if ((stats.needs.glaube ?? 1) < 1) { const h = botUncovered('belief', botBest('glaube')); if (h) w.push([botBest('glaube'), h]); }
   // Waren für Bedürfnisse, Verarbeiter und Forschung (Verarbeiter zuerst, dann ihre Rohstoffe)
-  for (const res of ['schmuck', 'bronze', 'kupfer', 'zinn', 'wolle', 'kleidung', 'toepferwaren', 'werkzeug', 'felle', 'ton', 'holzkohle', 'kupfererz']) {
+  for (const res of ['glas', 'eisen', 'salz', 'schmuck', 'bronze', 'kupfer', 'zinn', 'wolle', 'kleidung', 'toepferwaren', 'werkzeug', 'felle', 'ton', 'holzkohle', 'eisenerz', 'kupfererz']) {
     const type = botBest(BOT_MAKER[res]);
     if (!type || !isUnlocked(type) || !botNeedsMore(res)) continue;
     // Warten die vorhandenen Verarbeiter schon auf eine Zutat, nützt ein weiterer nichts: erst die Zutat (sonst 24 Bronzegießer und 2 Zinnwäscherinnen)
@@ -312,6 +312,7 @@ function botWants() {
       Object.entries(state.res).some(([id, n]) => !RESOURCES[id].knowledge && n >= storageCap() - 1)) w.push([botBest('lager')]);
   if (isUnlocked('steinkreis') && botCount('steinkreis') < 1) w.push(['steinkreis']);
   if (isUnlocked('himmelshalle') && botCount('himmelshalle') < 1) w.push(['himmelshalle']);
+  if (isUnlocked('salzberg') && botCount('salzberg') < 1) w.push(['salzberg']);   // Wunderwerk der Eisenzeit
   return w;
 }
 

@@ -12,6 +12,9 @@ function newCanvas() {
   }
   return c;
 }
+// Nicht mehr gebrauchte Leinwand sofort freigeben: Safari gibt Leinwand-Speicher sonst erst beim Aufräumen frei und
+// stößt an seine Grenze (dann fehlen Boden oder Gebäude). Nur für Leinwände, die nirgends mehr gezeichnet werden.
+function freeCanvas(c) { try { if (c && c.width) { c.width = 0; c.height = 0; } } catch (e) { /* egal */ } }
 // Epochia – Zeichnen in Schrägansicht (isometrisch). Jedes Feld ist eine Raute, doppelt so breit wie hoch.
 // Hintere Dinge werden zuerst gezeichnet, vordere davor. Der Boden wird vorab in Stücke gezeichnet.
 
@@ -45,12 +48,22 @@ function imageFolder(name) {
 function imagePath(name) { return `${IMAGE_DIR}${imageFolder(name)}/${name}.webp`; }
 const images = {};
 
+// Sockel vermessen (getImageData über das ganze Bild) braucht nur, was auf Feldern steht. Figuren, Waren, Symbole und
+// Gelände nie – das kostete beim Start Sekunden (V209). Das Winterbild hat denselben Sockel wie das Sommerbild.
+const NO_PLATE = /^(f-|ware-|fund-|mensch-|fischer-|einbaum|hirsch|mammut|ziege|esel|baum-|berg-|fels-|huegel-|blumen|busch|wiese|schneewiese|sand|wasser|pfad|setzling)/;
+function plateFor(name, img) {
+  if (NO_PLATE.test(name)) return null;
+  const summer = /-winter$/.test(name) && images[name.replace(/-winter$/, '')];
+  if (summer && summer.sockel && summer.width === img.width && summer.height === img.height) return summer.sockel;
+  return measurePlate(img);
+}
+
 function loadImage(name) {
   return new Promise(resolve => {
     if (typeof Image === 'undefined') return resolve(false);
     const img = new Image();
     img.onload = () => {
-      img.sockel = STILT_IMAGES[name] ? STILT_IMAGES[name].sockel : measurePlate(img);
+      img.sockel = STILT_IMAGES[name] ? STILT_IMAGES[name].sockel : plateFor(name, img);
       images[name] = STILT_IMAGES[name] ? splitStiltBoat(name, img) : isHalfInWaterImage(name) ? featherWater(img) : img;
       if (GROUND_TEXTURES.includes(name) || name === 'busch' || name === 'blumen') onTerrainChanged();   // Boden neu zeichnen
       resolve(true);
@@ -85,6 +98,7 @@ function splitStiltBoat(name, img) {
     const bg = b.getContext('2d');
     bg.translate(-x0, -y0); trace(bg); bg.clip(); bg.drawImage(img, 0, 0);
     b.spanPx = d.spanPx * k;
+    b.derived = true;   // entsteht beim Laden des Pfahlbaus – keine eigene Datei
     if (d.boat) images[d.boat] = b;
     const c = newCanvas(); c.width = img.width; c.height = img.height;
     const g = c.getContext('2d');
@@ -607,7 +621,50 @@ function renderChunk(cx, cy, scale = 1) {
     const ox = (hash(y, x + 5) - 0.5) * TW * 0.25;
     g.drawImage(img, p.x - w / 2 + ox, p.y - h * 0.8, w, h);
   }
-  return { canvas: c, scale, left, top, decor, hills: hills.filter(h => h.x >= x0 && h.x < x0 + CHUNK && h.y >= y0 && h.y < y0 + CHUNK), depth: renderDepthLayer(x0, y0, left, top) };
+  let snow = chunkSnowLevel();
+  if (snow > 0 && !bakeSnow(c, x0, y0, left, top, scale, snow)) snow = 0;
+  return { canvas: c, scale, left, top, snow, decor, hills: hills.filter(h => h.x >= x0 && h.x < x0 + CHUNK && h.y >= y0 && h.y < y0 + CHUNK), depth: renderDepthLayer(x0, y0, left, top) };
+}
+
+// Schneedecke fest im Bodenstück (V209): vorher wurde sie in jedem Bild über den ganzen Bildschirm gemalt – im Winter
+// war das teurer als der ganze Rest. Stufen von 5 %: Ändert sich der Schnee, werden die Stücke nach und nach neu gemalt.
+// Ohne Schneewiesen-Bild bleibt es beim Schleier in drawSeasonGround.
+function chunkSnowLevel() {
+  if (typeof snowCover !== 'function' || !images.schneewiese || !state || typeof DOMMatrix === 'undefined') return 0;
+  return Math.round(snowCover() * 20) / 20;
+}
+let snowTemp = null;
+function bakeSnow(c, x0, y0, left, top, scale, snow) {
+  const M = 2, W = CHUNK + 2 * M;
+  const mask = newCanvas(); mask.width = W; mask.height = W;
+  const mg = mask.getContext && mask.getContext('2d');
+  if (!mg) return false;
+  const full = snow >= 0.98, a0 = full ? Math.min(1, 0.92 * snow) : 0.95;
+  const img = mg.createImageData(W, W), d = img.data;
+  for (let j = 0; j < W; j++)
+    for (let i = 0; i < W; i++) d[(j * W + i) * 4 + 3] = 255 * a0 * (full ? 1 : snowPatchAt(x0 - M + i, y0 - M + j, snow));
+  mg.putImageData(img, 0, 0);
+  if (!snowTemp) snowTemp = newCanvas();
+  if (snowTemp.width !== c.width || snowTemp.height !== c.height) { snowTemp.width = c.width; snowTemp.height = c.height; }
+  const tg = snowTemp.getContext('2d');
+  if (!tg) return false;
+  tg.setTransform(1, 0, 0, 1, 0, 0);
+  tg.globalCompositeOperation = 'source-over';
+  tg.clearRect(0, 0, c.width, c.height);
+  tg.setTransform(scale, 0, 0, scale, 0, 0);
+  const pattern = groundPattern(tg, 'schneewiese', -left, -top);
+  if (!pattern) return false;
+  tg.fillStyle = pattern;
+  tg.fillRect(0, 0, CHUNK * TW, CHUNK * TH + 2);
+  tg.globalCompositeOperation = 'destination-in';
+  tg.imageSmoothingEnabled = true;
+  tg.setTransform(scale * TW / 2, scale * TH / 2, -scale * TW / 2, scale * TH / 2, -left * scale, -top * scale);
+  tg.drawImage(mask, x0 - M, y0 - M, W, W);   // Bildpunkt i liegt auf Feld x0 - M + i
+  tg.globalCompositeOperation = 'source-over';
+  const g = c.getContext('2d');
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(snowTemp, 0, 0); g.restore();
+  freeCanvas(mask);
+  return true;
 }
 
 // Schilfbüschel (fest im Boden-Bild, selbst gezeichnet): dünne Halme, oben dunkle Kolben
@@ -798,11 +855,15 @@ function chunkHasLand(cx, cy) {
   return false;
 }
 
+let groundSnowBaked = false;
 function drawGround(range) {
   const per = N / CHUNK;
   if (!chunks.length) { chunks = new Array(per * per).fill(null); chunksAlive = 0; }
   overviewStep(4);          // fehlt etwas an der Übersichtskarte (nach dem Leeren durch Chrome): nach und nach nachmalen
+  groundSnowBaked = false;
   if (cam.zoom < OV_ZOOM && overviewReady()) { drawOverview(range); return; }   // weit draußen genügt sie (schnell, kein Nachmalen)
+  const snowNow = chunkSnowLevel();
+  groundSnowBaked = snowNow > 0;   // Schnee liegt in den Bodenstücken (drawSeasonGround malt ihn dann nicht noch einmal)
   // nah: die Übersicht nur darunter legen, wenn ein sichtbares Bodenstück noch fehlt (sonst unnötige Arbeit)
   {
     const r = clipToLand(range), lod = chunkScale();
@@ -822,6 +883,7 @@ function drawGround(range) {
     for (let cx = Math.floor(range.x0 / CHUNK); cx <= Math.floor(range.x1 / CHUNK); cx++) {
       if (cx < 0 || cy < 0 || cx >= per || cy >= per || !chunkHasLand(cx, cy) || !chunkOnScreen(cx, cy)) continue;
       const k = cy * per + cx;
+      if (chunks[k] && (chunks[k].snow || 0) !== snowNow) chunks[k].stale = true;   // Schnee hat sich geändert
       if (!chunks[k]) {
         // (ganz am Anfang, wenn noch nichts da ist: alles Sichtbare auf einmal, sonst beginnt das Spiel mit Löchern)
         if ((made && first === false && nowMs() - t0 > 10) || chunksAlive >= chunkLimit(true)) continue;
@@ -829,7 +891,8 @@ function drawGround(range) {
         if (chunks[k]) { chunksAlive++; made++; }
       } else if ((chunks[k].stale && redraw > 0) || (chunks[k].scale !== lod && !(made && nowMs() - t0 > 10))) {
         if (chunks[k].stale) redraw--; else made++;   // andere Zoomstufe: nach und nach in passender Auflösung neu malen
-        chunks[k] = renderChunk(cx, cy, lod) || chunks[k];
+        const fresh = renderChunk(cx, cy, lod);
+        if (fresh) { freeCanvas(chunks[k].canvas); chunks[k] = fresh; }
       }
       const ch = chunks[k];
       if (!ch) continue;
@@ -842,7 +905,7 @@ function drawGround(range) {
     const old = [];
     chunks.forEach((c, k) => { if (c && c.used !== chunkTick) old.push(k); });
     old.sort((a, b) => (chunks[a].used || 0) - (chunks[b].used || 0));
-    for (const k of old.slice(0, chunksAlive - limit)) { chunks[k] = null; chunksAlive--; }
+    for (const k of old.slice(0, chunksAlive - limit)) { freeCanvas(chunks[k].canvas); chunks[k] = null; chunksAlive--; }
   }
 }
 
@@ -1054,6 +1117,12 @@ const cloudLayer = { canvas: null, g: null, x: 0, y: 0, z: 0, w: 0, h: 0, plots:
 // unter ihnen lagen Fluss und Bäume frei – vermutlich auch die Ursache verschwindender Gebäude). Beim Zurückkommen und wenn
 // eine Leinwand meldet, dass sie verloren ist, wird alles Vorgezeichnete neu angelegt. Bilder aus Dateien bleiben.
 function canvasLost(g) { return !!(g && typeof g.isContextLost === 'function' && g.isContextLost()); }
+// Beim Zurückkommen: Ist eine der vorgezeichneten Leinwände geleert? (Stichprobe: Bodenstücke, Übersicht, Wolken)
+function anyCanvasLost() {
+  const list = [...chunks.filter(Boolean).slice(0, 12).map(ch => ch.g || (ch.canvas && ch.canvas.getContext && ch.canvas.getContext('2d'))),
+    ...overview.filter(Boolean).map(t => t.g), cloudLayer.g];
+  return list.some(canvasLost);
+}
 function resetCanvasCaches() {
   cloudSprites.length = 0;
   cloudPuffSprite = null;
@@ -1062,12 +1131,14 @@ function resetCanvasCaches() {
   snowSprites.clear(); lodImages.clear(); if (typeof resetPenSprites === 'function') resetPenSprites();   // auch die verkleinerten Bilder für weiten Zoom   // selbst verschneite Gebäude im Winter (Emin, 07.11.: Häuser ohne eigenes Winterbild fehlten)
   alphaCache.clear();    // Durchsichtigkeit zum Antippen – aus einer geleerten Leinwand gelesen wäre alles durchsichtig
   if (typeof guideSprite !== 'undefined') guideSprite = null;
+  for (const ch of chunks) if (ch) freeCanvas(ch.canvas);
   chunks = []; chunksAlive = 0;
   waterFieldCache = null;
+  for (const t of overview) if (t) freeCanvas(t.canvas);
   overview = []; ovGrain = null;   // Übersichtskarte: wird in den nächsten Bildern nach und nach neu gemalt
   // aus Bildern gebaute Leinwände (Pfahlbau ohne Boot, Wasserrand): aus der Datei neu bauen
   for (const [name, img] of Object.entries(images))
-    if (img && typeof HTMLCanvasElement !== 'undefined' && img instanceof HTMLCanvasElement) loadImage(name);
+    if (img && !img.derived && typeof HTMLCanvasElement !== 'undefined' && img instanceof HTMLCanvasElement) loadImage(name);
   if (typeof onTerrainChanged === 'function') onTerrainChanged();
 }
 

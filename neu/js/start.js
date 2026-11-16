@@ -178,8 +178,16 @@ function adaptQuality(dt, busyMs) {
   return true;   // die Karte ist jetzt leer und muss gleich neu gezeichnet werden
 }
 
+// Bildrate begrenzen (V209): Handys mit 120 Hz (S23) zeichneten 120 volle Bilder pro Sekunde – doppelte Akkulast.
+// Höchstens 60; wer 8 s nichts berührt und nur zuschaut, bekommt 30 (Figuren laufen trotzdem flüssig genug).
+let lastInputAt = 0;
+if (typeof window !== 'undefined' && window.addEventListener)
+  for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown']) window.addEventListener(ev, () => { lastInputAt = performance.now(); }, { passive: true, capture: true });
+function frameGap(now) { return now - lastInputAt > 8000 && !ghost && !pathMode ? 1000 / 31 : 1000 / 62; }
+
 function loop(now) {
   requestAnimationFrame(loop);
+  if (lastFrame && now - lastFrame < frameGap(now)) return;
   const dt = lastFrame ? Math.min(0.25, (now - lastFrame) / 1000) : 0;
   lastFrame = now;
   if (!gameRunning) return;
@@ -326,11 +334,16 @@ function boot() {
     window.addEventListener('orientationchange', () => { for (const ms of [50, 300, 800]) setTimeout(resizeCanvas, ms); });
     window.addEventListener('popstate', onHistoryBack);
   }
+  let hiddenAt = Date.now();
   document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') hiddenAt = Date.now();
     if (document.visibilityState === 'hidden' && gameRunning) saveGame();
     updateMusic();
     if (document.visibilityState === 'visible') checkForUpdate();
-    if (document.visibilityState === 'visible' && typeof resetCanvasCaches === 'function') resetCanvasCaches();   // Handy: Leinwände können geleert sein
+    // Handy: Leinwände können geleert sein. Alles neu malen kostet aber ein Ruckeln und kurz doppelten Speicher – darum nur,
+    // wenn eine Leinwand wirklich verloren ist oder das Spiel länger weg war (dort meldet nicht jedes Handy den Verlust) (V209)
+    if (document.visibilityState === 'visible' && typeof resetCanvasCaches === 'function'
+      && (Date.now() - hiddenAt > 3 * 60 * 1000 || (typeof anyCanvasLost === 'function' && anyCanvasLost()))) resetCanvasCaches();
     if (document.visibilityState === 'visible' && gameRunning) {
       // Zeit im Hintergrund nachholen
       const r = applyOfflineProgress(state.savedAt);

@@ -21,6 +21,7 @@ function drawSeasonGround(range) {
   if (si === 1) { ctx.fillStyle = 'rgba(255,225,120,0.06)'; ctx.fillRect(0, 0, viewW, viewH); }
   if (si === 2) { ctx.fillStyle = 'rgba(200,110,30,0.16)'; ctx.fillRect(0, 0, viewW, viewH); }
   if (snow <= 0) return;
+  if (typeof groundSnowBaked !== 'undefined' && groundSnowBaked) return;   // liegt schon in den Bodenstücken (V209)
   // Schneedecke: verschneite Wiese als Bild, die mit der Karte wandert (Emin, 15.11.: der weiße Schleier machte die
   // natürliche Wiese milchig); ohne Bild wie früher ein weißer Schleier
   const o = worldToScreen(0, 0), pattern = groundPattern(ctx, 'schneewiese', o.x, o.y, cam.zoom);

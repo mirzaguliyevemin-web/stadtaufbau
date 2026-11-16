@@ -223,7 +223,7 @@ function hunterObjects(inView, t) {
     const dx = p0.dx * (back ? -1 : 1), dy = p0.dy * (back ? -1 : 1);
     const face = dx - dy > 0 ? -1 : 1;
     const step = t * 10 + i * 2;
-    out.push({ d: x + y - 0.5, kind: 'leben', draw: () => {
+    out.push({ d: x + y - 0.5, kind: 'leben', fx: x, fy: y, draw: () => {
       drawCreature(images['mensch-jaeger'] ? 'mensch-jaeger' : 'mensch-mann', x, y, 32, face, Math.abs(Math.sin(step)) * 1.2 * cam.zoom, '🧍', step);
       if (back) {   // Beute auf dem Rückweg
         const p = tileToScreen(x, y), z = cam.zoom, img = images['ware-nahrung'];
@@ -246,7 +246,7 @@ function traderObjects(inView, t) {
   const p = traderSpot();
   if (!p) return [];
   const out = [];
-  if (inView(p.x, p.y)) out.push({ d: p.x + p.y - 0.5, kind: 'leben', draw: () => {
+  if (inView(p.x, p.y)) out.push({ d: p.x + p.y - 0.5, kind: 'leben', fx: p.x, fy: p.y, draw: () => {
     if (images['mensch-haendler']) { drawCreature('mensch-haendler', p.x, p.y, 34, 1, 0, '🧍', null); return; }
     drawCreature(personImg('mensch-mann', 'leer'), p.x, p.y, 32, 1, 0, '🧍', null);   // bis das Bild geladen ist
     const q = tileToScreen(p.x, p.y + 1), z = cam.zoom;
@@ -274,7 +274,7 @@ function suedObjects(inView, t) {
   const p = suedSpot();
   if (!p) return [];
   const out = [];
-  if (inView(p.x, p.y)) out.push({ d: p.x + p.y - 0.5, kind: 'leben', draw: () => {
+  if (inView(p.x, p.y)) out.push({ d: p.x + p.y - 0.5, kind: 'leben', fx: p.x, fy: p.y, draw: () => {
     if (images['esel-amphoren']) drawCreature('esel-amphoren', p.x - 0.7, p.y, 30, 1, 0, '🫏', null);
     drawCreature(images['mensch-suedhaendler'] ? 'mensch-suedhaendler' : personImg('mensch-mann', 'leer'), p.x, p.y, 34, 1, 0, '🧍', null);
     if (!images['esel-amphoren']) {   // bis das Eselbild da ist: Zeichen
@@ -314,7 +314,7 @@ function wandererObjects(inView, t) {
   const p = wandererSpot();
   if (!p || !inView(p.x, p.y)) return [];
   const face = (p.cx - p.x) - (p.cy - p.y) > 0 ? -1 : 1;   // zum Feuer schauen
-  return [{ d: p.x + p.y - 0.5, kind: 'leben', draw: () => drawCreature(images['mensch-hirte'] ? 'mensch-hirte' : personImg('mensch-mann', 'leer'), p.x, p.y, 32, face, 0, '🧍', null) },
+  return [{ d: p.x + p.y - 0.5, kind: 'leben', fx: p.x, fy: p.y, draw: () => drawCreature(images['mensch-hirte'] ? 'mensch-hirte' : personImg('mensch-mann', 'leer'), p.x, p.y, 32, face, 0, '🧍', null) },
     { d: p.x + p.y + 100, kind: 'leben', draw: () => {
       const q = wandererBubble(p), z = Math.max(cam.zoom, 1.4), r = (14 + Math.sin(t * 3) * 1.5) * z;
       ctx.fillStyle = 'rgba(255,250,235,0.95)'; ctx.strokeStyle = '#6b4a2b'; ctx.lineWidth = 2 * z;
@@ -652,7 +652,7 @@ function workerObjects(inView, t) {
     if (w.phase === 'rest' || !inView(w.x, w.y)) continue;
     const b = w.b, s = BUILDINGS[b.type].size;
     const onPlate = w.x > b.x && w.x < b.x + s && w.y > b.y && w.y < b.y + s;   // auf dem Acker: nicht vom Feld verdecken
-    out.push({ d: onPlate ? b.x + b.y + s + 0.01 + (w.x + w.y) * 1e-4 : w.x + w.y - 0.5, kind: 'leben', draw: () => drawWorker(w, t) });
+    out.push({ d: onPlate ? b.x + b.y + s + 0.01 + (w.x + w.y) * 1e-4 : w.x + w.y - 0.5, kind: 'leben', fx: w.x, fy: w.y, draw: () => drawWorker(w, t) });
   }
   return out;
 }
@@ -994,7 +994,7 @@ function updateCarriers(dt, range) {
 }
 
 function carrierObjects(inView, t) {
-  return life.carriers.filter(c => c.phase !== 'drop' && inView(c.x, c.y)).map(c => ({ d: c.x + c.y - 0.5, kind: 'leben', draw: () => drawCarrier(c, t) }));
+  return life.carriers.filter(c => c.phase !== 'drop' && inView(c.x, c.y)).map(c => ({ d: c.x + c.y - 0.5, kind: 'leben', fx: c.x, fy: c.y, draw: () => drawCarrier(c, t) }));
 }
 
 function drawCarrier(c, t) {
@@ -1105,7 +1105,7 @@ function visitorObjects(inView, t) {
     // Auf der Platte des Gebäudes: nach dem Gebäude zeichnen, sonst verdeckt es sie
     const b = v.b, s = BUILDINGS[b.type].size;
     const onPlate = v.x > b.x && v.x < b.x + s && v.y > b.y && v.y < b.y + s;
-    return { d: onPlate ? b.x + b.y + s + 0.01 + (v.x + v.y) * 1e-4 : v.x + v.y - 0.5, kind: 'leben', draw: () => drawVisitor(v, t) };
+    return { d: onPlate ? b.x + b.y + s + 0.01 + (v.x + v.y) * 1e-4 : v.x + v.y - 0.5, kind: 'leben', fx: v.x, fy: v.y, draw: () => drawVisitor(v, t) };
   });
 }
 
@@ -1312,7 +1312,7 @@ function lifeObjects(range) {
   for (const w of life.walkers) {
     if (!inView(w.x, w.y)) continue;
     const moving = w.wait <= 0;
-    out.push({ d: w.x + w.y - 0.5, kind: 'leben', draw: () =>
+    out.push({ d: w.x + w.y - 0.5, kind: 'leben', fx: w.x, fy: w.y, draw: () =>
       drawCreature(personImg(w.img, 'leer'), w.x, w.y, 32, w.face, moving ? Math.abs(Math.sin(t * 9 + w.ph)) * 1.2 * cam.zoom : 0, '🧍', moving ? t * 9 + w.ph : null) });
   }
   for (const a of life.animals) {
@@ -1322,7 +1322,7 @@ function lifeObjects(range) {
     const pace = a.kind === 'mammut' ? 4 : a.kind === 'hirsch' ? 9 : 7;
     const bob = moving ? Math.abs(Math.sin(t * pace + a.ph)) * 1.2 * cam.zoom : 0;
     const icon = a.kind === 'mammut' ? '🦣' : a.kind === 'hirsch' ? '🦌' : a.look === 'schaf' ? '🐑' : a.look === 'rind' ? '🐄' : '🐐';
-    out.push({ d: a.x + a.y - 0.5, kind: 'leben', draw: () => drawCreature(a.look ? penAnimalImage(a.look) : a.kind, a.x, a.y, size, a.face, bob, icon, moving ? t * pace + a.ph : null) });
+    out.push({ d: a.x + a.y - 0.5, kind: 'leben', fx: a.x, fy: a.y, draw: () => drawCreature(a.look ? penAnimalImage(a.look) : a.kind, a.x, a.y, size, a.face, bob, icon, moving ? t * pace + a.ph : null) });
   }
   return out;
 }

@@ -2718,6 +2718,20 @@ function drawScene(dt) {
     objects.push({ d: x + y + 1, kind: 'leben', draw: () => drawSapling(x, y, age / CONFIG.trees.growSeconds) });
   }
   objects.push(...lifeObjects(range));
+  // Figur knapp vor der rechten oder linken Vorderkante eines großen Gebäudes: Nach der Mitte sortiert kam sie zuerst
+  // dran und das Gebäudebild verdeckte sie, obwohl sie davor steht. Steht links oder oben ein Gebäude, kommt sie danach.
+  for (const o of objects) {
+    if (o.fx === undefined) continue;
+    const tx = Math.floor(o.fx), ty = Math.floor(o.fy), own = buildingAt(tx, ty);
+    for (const [dx, dy] of [[-1, 0], [0, -1], [-1, -1]]) {
+      const i = buildingAt(tx + dx, ty + dy);
+      if (i < 0 || i === own) continue;
+      const b = state.buildings[i], def = BUILDINGS[b.type];
+      if (!def || def.isPath) continue;
+      const bd = b.x + b.y + def.size;
+      if (o.d < bd + 0.01) o.d = bd + 0.01 + (o.fx + o.fy) * 1e-4;
+    }
+  }
   objects.sort((a, b) => a.d - b.d || (a.x || 0) - (b.x || 0));
   progressQueue = [];
   queueBridgeProgress(range);

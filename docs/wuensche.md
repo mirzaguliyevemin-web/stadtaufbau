@@ -25,6 +25,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 
 ## Erledigt
+- 2026-11-16, Epochia Version 213 – aus der großen Prüfung: Figuren, die knapp vor der rechten oder linken Kante eines großen Gebäudes stehen, werden nicht mehr vom Gebäudebild verdeckt.
 - 2026-11-16, Epochia Version 212 – aus der großen Prüfung: Die verschneiten Fassungen von Hügeln, Bergen, Felsen, Bäumen und Gebäuden ohne Winterbild werden in den letzten Herbstminuten nach und nach vorgerechnet – vorher kamen sie alle im ersten Winterbild auf einmal (spürbares Stocken).
 - 2026-11-16, Epochia Version 211 – aus der großen Prüfung: Im Hintergrund schläft der ganze Ton (in der Android-App blieb der Audio-Ausgang offen und zog Akku); sind Geräusche und Musik aus, wird der Ton gar nicht erst angelegt; ohne Konto erinnert das Spiel höchstens einmal die Woche ans Exportieren des Spielstands.
 - 2026-11-16, Epochia Version 210 – aus der großen Prüfung, Bedienung: Seitenknöpfe zeigen auf hohen Handys hochkant ihren Namen (kleine bleiben schlank); größere Tippflächen für die Anzeigen oben, ⓘ an den Baukarten und die Reiter quer; Seitenkopf, Fenster und Forschungsdetail halten Abstand zu Kerbe und Kamera; „Epoche“ → „Zeitalter“; Forschungsliste sagt „noch 2 bauen“ statt nur „🔨 2“; Startseite „Vom Lagerfeuer zur Stadt“; veraltete Punkte in Wünsche und Plänen berichtigt, nie benutzter Code entfernt.

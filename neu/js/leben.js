@@ -824,12 +824,8 @@ function drawWorker(w, t) {
     drawSparkle(p.x - w.face * 14 * z, p.y - 48 * z, (4 + q * 3) * z, '#fff6c8', t * 0.3);
     ctx.globalAlpha = 1;
   }
-  // Beeren pflücken: ab und zu hüpft eine Beere in den Korb
-  if (!walking && swing === 'pick') {
-    const q = (t * 0.9 + w.ph) % 1;
-    ctx.fillStyle = '#d8344a';
-    ctx.beginPath(); ctx.arc(p.x - 8 * z * w.face, p.y - 14 * z - Math.sin(q * Math.PI) * 8 * z, 2.2 * z, 0, 7); ctx.fill();
-  }
+  // Beeren pflücken: früher hüpfte hier ein gemalter roter Punkt als Beere in den Korb – er saß neben der Figur und wirkte
+  // fremd (Emin, 16.11.); das Pflücken zeigen jetzt die Bilder der Sammlerin selbst
   // Pflanzen: Erde krümelt neben den Händen
   if (!walking && swing === 'plant') {
     const q = (t * 1.3 + w.ph) % 1, g = tileToScreen(w.tx, w.ty);

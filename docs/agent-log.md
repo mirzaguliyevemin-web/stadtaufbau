@@ -3,6 +3,13 @@
 Der tägliche Cloud-Agent trägt hier nach jedem Lauf ein, was er geprüft und geändert hat.
 Neueste Einträge oben.
 
+## 2026-11-16 – Täglicher Lauf (Version 196)
+
+- Alle 144 Epochia-Tests bestanden. Bot (90 min, 3 Läufe): Mittelsteinzeit 53,1 min · Jungsteinzeit und Kupferfund nicht erreicht · ~124 Einwohner · Hunger 0 min · unzufrieden 0 min.
+- `wuensche.md`: keine Fehler eingetragen; offene Wünsche brauchen Emin bzw. Canva-Bilder – nicht angefasst.
+- Codebereich gelesen: `neu/js/klang.js` (Geräusche, Musikwechsel, Festlied, Stummschaltung) – keine Fehler gefunden.
+- Keine Code-Änderung, keine Versionserhöhung.
+
 ## 2026-11-15 – Sitzung mit Emin (Version 186)
 
 - **Bot-Test wieder grün (alle 140 Tests).** Ursache des Hungers seit Version 172: Wege gehen nicht mehr übers Wasser, der Bot baute aber weiter Häuser jenseits des Flusses, die nie einen Weg bekamen (V171: 46 Brückenfelder per Weg, 273 Einwohner; V172: 62 Grubenhäuser, 198 Einwohner, Einbruch ab Minute 160).

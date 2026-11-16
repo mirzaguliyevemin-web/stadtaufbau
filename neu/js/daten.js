@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 207;
+const APP_VERSION = 208;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -954,6 +954,17 @@ const NEXT_EPOCH = { name: 'Antike', icon: '🏛️', text: 'Schrift, Geld, Temp
   }
   for (const [to, from] of Object.entries(of)) if (OUTDOOR_WORK.includes(from)) OUTDOOR_WORK.push(to);
   OUTDOOR_WORK.push('kupfermine', 'zinnwaescherin');
+  // Eisenzeit (V207-Prüfung): Wetter, Jahreszeit, Katastrophen und Arbeit im Freien wie die Bronzezeit-Vorstufe –
+  // vorher brachte z. B. das Eisenfeld im Winter vollen Ertrag, obwohl dort „im Winter nichts“ steht.
+  // Die Forschungs-Boni regelt weiter die Liste iron oben.
+  const later = { obstgarten: 'gemuesegarten', jagdhof: 'jagdhuette', fischerei: 'fischerhuette', eisenfeld: 'feld', rindergut: 'viehhof',
+    holzhof: 'holzfaeller', forstmeisterin: 'baumgaertnerin', grosser_steinbruch: 'steinbruch', druide: 'sternkundiger', tuchmacherin: 'weberin',
+    eisenschmied: 'bronzeschmied', grosse_lehmgrube: 'lehmgrube', drehscheibe: 'toepferwerkstatt' };
+  const copyLater = map => { if (map) for (const [to, from] of Object.entries(later)) if (map[from] !== undefined && map[to] === undefined) map[to] = map[from]; };
+  for (const w of Object.values(WEATHERS)) copyLater(w.effect.buildings);
+  for (const d of Object.values(DISASTERS)) copyLater(d.buildings);
+  copyLater(SEASON_FACTORS);
+  for (const [to, from] of Object.entries(later)) if (OUTDOOR_WORK.includes(from) && !OUTDOOR_WORK.includes(to)) OUTDOOR_WORK.push(to);
 })();
 
 // Kategorien der Bauleiste (je Kategorie die Linien aus BUILDINGS)

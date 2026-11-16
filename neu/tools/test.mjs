@@ -3374,6 +3374,23 @@ test('V207: Volle Werkstatt ohne Rohstoffe bleibt nicht ewig voll, Abriss-Erstat
   noErrors(g);
 });
 
+test('V208: Eisenzeit-Gebäude haben Wetter, Jahreszeit und Katastrophen ihrer Vorstufe (Eisenfeld im Winter: nichts)', () => {
+  const g = fresh();
+  ok(g.run('SEASON_FACTORS.eisenfeld && SEASON_FACTORS.eisenfeld[3] === SEASON_FACTORS.feld[3] && SEASON_FACTORS.feld[3] === 0'), 'Eisenfeld bringt im Winter etwas');
+  // jede Weiterentwicklung: was die Vorstufe hat, hat sie auch
+  const bad = g.run(`const out = [];
+    for (const [from, def] of Object.entries(BUILDINGS)) {
+      const to = def.upgradeTo; if (!to || !BUILDINGS[to]) continue;
+      if (SEASON_FACTORS[from] && !SEASON_FACTORS[to]) out.push('Jahreszeit ' + to);
+      if (OUTDOOR_WORK.includes(from) && !OUTDOOR_WORK.includes(to)) out.push('draußen ' + to);
+      for (const [w, x] of Object.entries(WEATHERS)) if (x.effect.buildings && x.effect.buildings[from] !== undefined && x.effect.buildings[to] === undefined) out.push(w + ' ' + to);
+      for (const [d, x] of Object.entries(DISASTERS)) if (x.buildings && x.buildings[from] !== undefined && x.buildings[to] === undefined) out.push(d + ' ' + to);
+    }
+    out.join(', ')`);
+  ok(!bad, 'fehlt: ' + bad);
+  noErrors(g);
+});
+
 test('V207: Kaputte Stände – Jagd außerhalb der Karte, Tagesbelohnung 9 – stürzen nicht ab', () => {
   const g = fresh();
   g.run(`var __d = JSON.parse(serialize()); __d.hunt = { left: 30, cx: 99999, cy: -5, x: 1e6, y: 3 }; __d.daily = { last: '', streak: -3.5, pending: 9 };`);

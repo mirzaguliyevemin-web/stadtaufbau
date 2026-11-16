@@ -442,8 +442,9 @@ function regionField(x0, y0, x1, y1, inRegion, seed) {
 }
 
 // Schwelle aus grow: ein gerader Rand fällt mit diesem Filter um etwa 0.375 je Feld ab
+// g darf auch ein Path2D sein (dann einmal bauen und mehrmals füllen)
 function regionPath(g, x0, y0, x1, y1, inRegion, grow, seed, field) {
-  g.beginPath();
+  if (g.beginPath) g.beginPath();
   const F = field || regionField(x0, y0, x1, y1, inRegion, seed);
   if (!F) return;
   const { f, GW, GH, ox, oy, step } = F, th = 0.5 - 0.375 * grow;
@@ -1750,21 +1751,32 @@ function drawWater(range) {
   ctx.save();
   ctx.transform(ex.x - o.x, ex.y - o.y, ey.x - o.x, ey.y - o.y, o.x, o.y);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  const box = [x0, y0, x1, y1];
-  // Schaumsaum am Ufer (atmet leicht)
-  // Die Uferform kostet einige Millisekunden – nur neu rechnen, wenn sich der sichtbare Ausschnitt (in ganzen Feldern) ändert
-  const key = box.join();
-  if (!waterFieldCache || waterFieldCache.key !== key || waterFieldCache.terrain !== terrain || waterFieldCache.land !== landVersion)
-    waterFieldCache = { key, terrain, land: landVersion, f: regionField(...box, isWaterShown, 2) };
-  const wf = waterFieldCache.f;
-  paintRegion(ctx, box, isWaterShown, `rgba(255,255,255,${0.32 + 0.12 * Math.sin(t * 1.3)})`, 1.1 + 0.03 * Math.sin(t * 1.3), 2, wf);
+  // Die Uferform kostet einige Millisekunden: Feld und fertige Umrisse (Path2D) für einen etwas größeren Ausschnitt merken und
+  // erst neu rechnen, wenn der sichtbare Teil hinausläuft. Vorher wurde sie in jedem Bild viermal neu aufgebaut, das ruckelte
+  // auf dem iPhone (Emin, 16.11.). Der Schaumsaum atmet nur noch in der Helligkeit, seine Form bleibt gleich.
+  let C = waterFieldCache;
+  if (!C || C.terrain !== terrain || C.land !== landVersion || x0 < C.box[0] || y0 < C.box[1] || x1 > C.box[2] || y1 > C.box[3] || C.box[2] - C.box[0] > x1 - x0 + 30) {   // nach dem Hineinzoomen nicht die große Form weiterfüllen
+    const M = 6, box = [x0 - M, y0 - M, x1 + M, y1 + M], f = regionField(...box, isWaterShown, 2);
+    C = waterFieldCache = { box, terrain, land: landVersion, f, water: null, foam: null };
+    if (f && typeof Path2D !== 'undefined') {
+      C.water = new Path2D(); regionPath(C.water, ...box, isWaterShown, 0, 2, f);
+      C.foam = new Path2D(); regionPath(C.foam, ...box, isWaterShown, 0.05, 2, f);
+    }
+  }
+  const fillShape = (style, foam) => {
+    if (!style) return;
+    if (C.water) { ctx.fillStyle = style; ctx.fill(foam ? C.foam : C.water); }
+    else paintRegion(ctx, C.box, isWaterShown, style, foam ? 1.1 : 1.0, 2, C.f);
+  };
+  // Schaumsaum am Ufer
+  fillShape(`rgba(255,255,255,${0.32 + 0.12 * Math.sin(t * 1.3)})`, true);
   // zwei langsam wandernde Lagen der Wasser-Textur
-  paintRegion(ctx, box, isWaterShown, tilePattern(ctx, 'wasser', (t * 0.18) % TEXTURE_TILES, (t * 0.05) % TEXTURE_TILES), 1.0, 2, wf);
+  fillShape(tilePattern(ctx, 'wasser', (t * 0.18) % TEXTURE_TILES, (t * 0.05) % TEXTURE_TILES));
   // zweite Lage größer und schräg versetzt: so decken sich die Wiederholungen beider Lagen nicht (sonst sieht man ein Raster)
   ctx.globalAlpha = 0.4;
-  paintRegion(ctx, box, isWaterShown, tilePattern(ctx, 'wasser', 1.3 + (t * 0.07) % (TEXTURE_TILES * 1.73), 2.1 + (t * 0.15) % (TEXTURE_TILES * 1.73), 1.73), 1.0, 2, wf);
+  fillShape(tilePattern(ctx, 'wasser', 1.3 + (t * 0.07) % (TEXTURE_TILES * 1.73), 2.1 + (t * 0.15) % (TEXTURE_TILES * 1.73), 1.73));
   const snow = typeof snowCover === 'function' ? snowCover() : 0;
-  if (snow > 0) { ctx.globalAlpha = 0.42 * snow; paintRegion(ctx, box, isWaterShown, '#e4eff8', 1.0, 2, wf); }   // im Winter: heller Eisschimmer
+  if (snow > 0) { ctx.globalAlpha = 0.42 * snow; fillShape('#e4eff8'); }   // im Winter: heller Eisschimmer
   ctx.restore();
   ctx.globalAlpha = 1;
   // Glitzern

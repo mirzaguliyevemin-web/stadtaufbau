@@ -87,8 +87,13 @@ const CITY_FIRST_NAME = 'Erste Stadt';
 const CITY_LANDS = ['fluss', 'kueste'];
 const CITY_KEYS = ['seed', 'res', 'buildings', 'plots', 'cleared', 'planted', 'saplings', 'hunt', 'disaster', 'disasterCalm', 'disasterNext',
   'herdWait', 'needSince', 'hunger', 'wishWait', 'trader', 'suedhaendler', 'wanderer', 'wonders', 'spots', 'trips', 'pop',
-  'mapSize', 'mapCore', 'torches', 'mapGen'];
-const CITY_SHARED_RES = ['wissen'];   // Waren, die allen Städten gemeinsam gehören
+  'mapSize', 'mapCore', 'torches', 'mapGen', 'foothill'];
+const CITY_SHARED_RES = ['wissen'];
+function validFoothill(f) {
+  if (!f || typeof f !== 'object') return null;
+  if (f.skip) return { skip: 1 };
+  return ['ax', 'ay', 'bx', 'by'].every(k => Number.isInteger(f[k])) ? { ax: f.ax, ay: f.ay, bx: f.bx, by: f.by } : null;
+}   // Waren, die allen Städten gemeinsam gehören
 
 // Die Daten einer Stadt aus einem Stand herauslösen (als Kopie)
 function cityPart(s) {
@@ -160,6 +165,7 @@ function sanitizeState(data) {
       ...(Number.isInteger(b.level) && b.level > 1 && b.level <= CONFIG.levels.max ? { level: b.level } : {}), ...(Number.isFinite(b.up) && b.up > 0 ? { up: b.up } : {}),   // Stufe (seit Version 132, fehlt = 1)
       ...(b.type === 'bruecke' ? bridgeFields(b) : {}) }));   // Brücke von Ufer zu Ufer (seit Version 172, fehlt = altes einzelnes Brückenfeld)
   s.mapGen = data.mapGen === 3 ? 3 : data.mapGen === 2 ? 2 : 1;   // alte Stände behalten ihre Karte (fehlt = alter, schmaler Fluss)
+  s.foothill = validFoothill(data.foothill);   // fehlt = Gebirgsausläufer wird beim Laden gewählt (seit Version 197)
   s.mapCore = data.mapCore === OLD_N ? OLD_N : 0;   // fehlt = Karte aus einem Guss
   s.torches = data.torches === true;   // fehlt bei alten Ständen: Fackeln werden beim Laden einmal verteilt
   if (Array.isArray(data.plots) && data.plots.length === s.plots.length) s.plots = data.plots.map(p => (p === 1 ? 1 : 0));

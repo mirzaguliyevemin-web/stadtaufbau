@@ -61,6 +61,7 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     mapSize: N,              // Kartengröße beim Speichern (ältere Stände: kleiner, werden beim Laden in die Mitte gelegt)
     mapCore: 0,              // 0 = ganze Karte aus einem Guss; 128 = alte 128er-Karte liegt als Kern in der Mitte (Außenland neu)
     torches: true,           // Wege haben schon Fackeln bekommen (alte Stände: einmal beim Laden nachholen)
+    foothill: null,          // Gebirgsausläufer nahe beim Dorf: { ax, ay, bx, by } oder { skip: 1 }; null = beim nächsten Laden wählen
     mapGen: 3,               // Art der Kartenerzeugung: 3 = wie 2, See doppelt so breit (Emin); 2 = breiter, kurviger Fluss; 1 = alter Fluss. Alte Stände behalten ihre Art.
     city: 0,                 // Nummer der Stadt, die man gerade spielt (ihre Daten liegen direkt im Stand)
     cities: [{ name: CITY_FIRST_NAME, land: 'fluss' }],   // alle Städte; die übrigen tragen ihre Daten in data (siehe CITY_KEYS)
@@ -648,11 +649,77 @@ function computeWaterDepth() {
 
 let baseTerrain = null;   // Gelände, wie es aus der Spielstand-Zahl entsteht (ohne Fällen und Pflanzen)
 
+// Gebirgsausläufer (Emin, 16.11.): Das große Gebirge liegt am Kartenrand, über 200 Felder vom Lager – zu weit für die ersten
+// Minen (Minen und Steinbrüche nur am Berg, seit Version 190). Darum zieht sich auf jeder Karte ein Bergrücken bis etwa
+// 40 Felder an das Lager heran: innen Hochgebirge, am Rand Bergland für Minen, davor Felsen. Die Lage wird einmal gewählt
+// (wenig Wasser, keine Gebäude) und im Spielstand gemerkt; Berge entstehen nie auf Wasser, unter Gebäuden oder Wegen.
+const FOOTHILL = { near: 40, far: 74, width: 7 };
+function foothillTaken() {
+  const taken = new Set();
+  for (const b of state.buildings || []) {
+    const def = BUILDINGS[b.type], s = def ? def.size || 1 : 1;
+    for (let dy = -1; dy <= s; dy++) for (let dx = -1; dx <= s; dx++) taken.add((b.y + dy) * N + b.x + dx);   // mit einem Feld Abstand
+  }
+  return taken;
+}
+function foothillCamp() {
+  const camp = (state.buildings || []).find(b => b.type === 'lagerfeuer');
+  return camp ? { x: camp.x + 1.5, y: camp.y + 1.5 } : { x: N / 2, y: N / 2 };
+}
+// Wählt die Lage: 24 Richtungen, die mit am wenigsten Wasser und Gebäuden gewinnt. Liegt schon Gebirge nah genug, keiner.
+function foothillSpot(t) {
+  const c = foothillCamp(), taken = foothillTaken();
+  for (let y = Math.max(0, Math.floor(c.y - 60)); y < Math.min(N, c.y + 60); y++)
+    for (let x = Math.max(0, Math.floor(c.x - 60)); x < Math.min(N, c.x + 60); x++)
+      if (t[y * N + x] === TERRAIN.berg.id && Math.hypot(x - c.x, y - c.y) < 60) return { skip: 1 };
+  let best = null;
+  for (let k = 0; k < 24; k++) {
+    const a = (k / 24) * Math.PI * 2 + 0.13, ux = Math.cos(a), uy = Math.sin(a);
+    const ax = c.x + ux * FOOTHILL.near, ay = c.y + uy * FOOTHILL.near, bx = c.x + ux * FOOTHILL.far, by = c.y + uy * FOOTHILL.far;
+    if (Math.min(ax, ay, bx, by) < FOOTHILL.width + 4 || Math.max(ax, ay, bx, by) > N - FOOTHILL.width - 5) continue;
+    let score = seededRng((state.seed + k * 7907) >>> 0)() * 4;   // bei Gleichstand je Karte eine andere Richtung
+    for (let s = 0; s <= 1; s += 0.02) {   // Weg vom Lager hin: möglichst ohne Fluss dazwischen (keine Brücke nötig)
+      const x = Math.round(c.x + (ax - c.x) * s), y = Math.round(c.y + (ay - c.y) * s);
+      if (t[y * N + x] === TERRAIN.wasser.id) score += 8;
+    }
+    for (let s = 0; s <= 1; s += 0.05)
+      for (let o = -FOOTHILL.width; o <= FOOTHILL.width; o += 1.5) {
+        const x = Math.round(ax + (bx - ax) * s - uy * o), y = Math.round(ay + (by - ay) * s + ux * o), i = y * N + x;
+        if (t[i] === TERRAIN.wasser.id) score += 3;
+        if (taken.has(i)) score += 12;
+      }
+    if (!best || score < best.score) best = { score, ax: Math.round(ax), ay: Math.round(ay), bx: Math.round(bx), by: Math.round(by) };
+  }
+  return best ? { ax: best.ax, ay: best.ay, bx: best.bx, by: best.by } : { skip: 1 };
+}
+function addFoothill(t) {
+  if (!state.foothill) state.foothill = foothillSpot(t);
+  const f = state.foothill;
+  if (!f || f.skip) return;
+  const noise = makeNoise(seededRng((state.seed ^ 0x5bd1e995) >>> 0), 7), taken = foothillTaken();
+  const lx = f.bx - f.ax, ly = f.by - f.ay, len2 = lx * lx + ly * ly || 1, W = FOOTHILL.width, pad = W + 5;
+  for (let y = Math.max(0, Math.floor(Math.min(f.ay, f.by) - pad)); y <= Math.min(N - 1, Math.max(f.ay, f.by) + pad); y++)
+    for (let x = Math.max(0, Math.floor(Math.min(f.ax, f.bx) - pad)); x <= Math.min(N - 1, Math.max(f.ax, f.bx) + pad); x++) {
+      const i = y * N + x;
+      if (t[i] === TERRAIN.wasser.id || taken.has(i)) continue;
+      const u = Math.max(0, Math.min(1, ((x - f.ax) * lx + (y - f.ay) * ly) / len2));
+      const d = Math.hypot(x - f.ax - lx * u, y - f.ay - ly * u);
+      const w = W * (0.45 + 0.55 * Math.min(1, u * 2.5)) + (noise(x, y) - 0.5) * 5;   // zum Lager hin schmaler
+      const edge = w - d;
+      if (edge > 0) t[i] = TERRAIN.berg.id;
+      else if (edge > -2.5 && t[i] !== TERRAIN.berg.id) {
+        const h = (Math.imul(x, 73856093) ^ Math.imul(y, 19349663) ^ state.seed) >>> 0;
+        if ((h % 1000) / 1000 < 0.4 + edge * 0.12) t[i] = TERRAIN.fels.id;   // Felsen am Fuß
+      }
+    }
+}
+
 let terrainVersion = 0;   // zählt Geländeänderungen (für gemerkte Werte wie terrainBonus)
 function buildTerrain() {
   terrainVersion++;
   mapFeatures = { fall: null, lake: null, source: null };
   baseTerrain = generateWorld(state.seed);
+  addFoothill(baseTerrain);
   terrain = baseTerrain.slice();
   computeWaterDepth();
   for (const i of state.cleared) if (i >= 0 && i < N * N) terrain[i] = TERRAIN.gras.id;

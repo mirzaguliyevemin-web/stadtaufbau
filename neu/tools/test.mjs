@@ -3262,6 +3262,32 @@ test('Ganze Karte gehört dazu: keine Wolken, kein Landkauf, alte Stände bekomm
   noErrors(g);
 });
 
+test('Gebirgsausläufer: Minenplatz nahe am Lager, alte Stände bekommen ihn ohne Schaden (Emin, 16.11.)', () => {
+  const g = fresh();
+  for (const seed of [11, 12, 13]) {
+    const d = g.run(`(() => { startNewGame(${seed} * 7919); const f = state.buildings[0]; let best = 1e9;
+      for (let y = f.y - 70; y < f.y + 70; y++) for (let x = f.x - 70; x < f.x + 70; x++) {
+        if (!inMap(x, y) || terrain[y * N + x] === TERRAIN.wasser.id) continue;
+        const d = Math.hypot(x - f.x, y - f.y); if (d < best && !placeProblem('kupfermine', x, y, -1)) best = d; }
+      return Math.round(best); })()`);
+    ok(d <= 55, 'Karte ' + seed + ': nächster Minenplatz ' + d + ' Felder weg');
+  }
+  // Alter Stand ohne Ausläufer, mit Gebäuden genau dort, wo er hinkäme: Gebäude bleiben, Lage wird gemerkt
+  g.run(`startNewGame(4242); state.tutorial = -1;`);
+  const f = JSON.parse(g.run('JSON.stringify(state.foothill)'));
+  ok(f && Number.isInteger(f.ax), 'Kein Ausläufer gewählt');
+  g.run(`for (let k = 0; k < 6; k++) { const x = ${f.ax} + k * 3, y = ${f.ay}; addBuilding('grubenhaus', x, y, 0, true); }
+    rebuildOccupancy(); state.foothill = null; saveGame();`);
+  const before = g.run('state.buildings.length');
+  g.run('state = null; loadSlot(currentSlot);');
+  ok(g.run('state.buildings.length') === before, 'Gebäude verschwunden beim Laden');
+  ok(g.run(`state.buildings.every(b => { const s = BUILDINGS[b.type].size; for (let y = b.y; y < b.y + s; y++) for (let x = b.x; x < b.x + s; x++) if (terrain[y * N + x] === TERRAIN.berg.id && BUILDINGS[b.type].line === 'wohnen') return false; return true; })`), 'Haus steht im Gebirge');
+  const f2 = g.run('JSON.stringify(state.foothill)');
+  g.run('saveGame(); state = null; loadSlot(currentSlot);');
+  ok(g.run('JSON.stringify(state.foothill)') === f2, 'Lage nach Speichern und Laden anders');
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

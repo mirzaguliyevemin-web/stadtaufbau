@@ -51,9 +51,18 @@ function anyAvailableFind() {
 // Fundstellen auf der Karte
 // ---------------------------------------------------------------------
 
+// Fundstellen im Gebirge nur dort, wo man hinkommt: im Bergland oder direkt am Rand des Hochgebirges. Tief im Hochgebirge
+// blieb eine Erzader sonst für immer liegen – und solange sie lag, kam keine neue (keine Goldblättchen, kein Weg in die
+// Eisenzeit; Bot, 16.11.). Stellen, die das nicht erfüllen, verschwinden (dropInvalidSpots), auch in alten Spielständen.
+function spotReachableTile(x, y) {
+  if (typeof walkable !== 'function' || walkable(x, y)) return true;
+  return [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]].some(([a, b]) => walkable(x + a, y + b));
+}
+
 function spotTileFits(kind, x, y) {
   if (!inMap(x, y) || !isOwned(x, y) || buildingAt(x, y) >= 0) return false;
   const t = terrainAt(x, y);
+  if (t === TERRAIN.berg && !spotReachableTile(x, y)) return false;
   if (kind === 'fels') return t === TERRAIN.fels;
   if (kind === 'wald') return t === TERRAIN.wald;
   if (kind === 'erz') return t === TERRAIN.berg || t === TERRAIN.fels;
@@ -199,10 +208,14 @@ function collectSpot(i) {
     state.trips.push(trip);
     return { trip };
   }
-  const mine = spot.kind === 'erz' ? oreMines()[0] : null;
-  const home = mine ? { x: mine.x + BUILDINGS[mine.type].size / 2, y: mine.y + BUILDINGS[mine.type].size / 2 } : fireSpot() || { x: spot.x, y: spot.y };
+  // Erzader: ein Bergmann aus der nächsten Mine, von der ein Weg hinführt (nicht nur aus der ersten – die steht vielleicht am anderen Ufer)
+  const mineHome = b => ({ x: b.x + BUILDINGS[b.type].size / 2, y: b.y + BUILDINGS[b.type].size / 2 });
+  const homes = spot.kind === 'erz' && oreMines().length
+    ? oreMines().map(mineHome).sort((a, b) => Math.hypot(a.x - spot.x, a.y - spot.y) - Math.hypot(b.x - spot.x, b.y - spot.y)).slice(0, 4)
+    : [fireSpot() || { x: spot.x, y: spot.y }];
   // Kein Fußweg dorthin (anderes Ufer ohne fertige Brücke): niemand läuft übers Wasser, die Stelle bleibt liegen
-  if (!spotWay(home.x, home.y, spot.x + 0.5, spot.y + 0.5)) { state.spots.splice(i, 0, spot); return { noWay: true }; }
+  const home = homes.find(h => spotWay(h.x, h.y, spot.x + 0.5, spot.y + 0.5));
+  if (!home) { state.spots.splice(i, 0, spot); return { noWay: true }; }
   const dist = Math.hypot(spot.x - home.x, spot.y - home.y), c = CONFIG.finds;
   const seconds = spot.kind === 'erz' ? c.oreSeconds : Math.max(c.tripMin, Math.min(c.tripMax, dist * 2 * 0.8));
   const trip = { id: ++state.fund.tripId, left: seconds, total: seconds, cx: home.x, cy: home.y, x: spot.x + 0.5, y: spot.y + 0.5, kind: spot.kind, find: spot.find };

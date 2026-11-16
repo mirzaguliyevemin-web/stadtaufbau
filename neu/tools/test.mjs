@@ -3288,6 +3288,28 @@ test('Gebirgsausläufer: Minenplatz nahe am Lager, alte Stände bekommen ihn ohn
   noErrors(g);
 });
 
+test('Erzader nie tief im Hochgebirge, festsitzende verschwindet; Bergmann kommt aus einer erreichbaren Mine (Bot, 16.11.)', () => {
+  const g = fresh();
+  const r = JSON.parse(g.run(`(() => { startNewGame(4242); state.tutorial = -1;
+    // ein Feld mitten im Hochgebirge (ringsum kein begehbares Feld) und eins im Bergland
+    let deep = null, edge = null;
+    for (let y = 0; y < N && !(deep && edge); y++) for (let x = 0; x < N; x++) {
+      if (terrain[y * N + x] !== TERRAIN.berg.id) continue;
+      if (!deep && !walkable(x, y) && [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].every(([a, b]) => !walkable(x + a, y + b))) deep = [x, y];
+      if (!edge && walkable(x, y)) edge = [x, y];
+    }
+    const out = { deep: !!deep, edge: !!edge };
+    if (deep) { out.deepFits = spotTileFits('erz', deep[0], deep[1]); state.spots.push({ kind: 'erz', x: deep[0], y: deep[1], find: null }); dropInvalidSpots();
+      out.stuckLeft = state.spots.some(s => s.x === deep[0] && s.y === deep[1]); }
+    if (edge) out.edgeFits = spotTileFits('erz', edge[0], edge[1]);
+    return JSON.stringify(out); })()`));
+  ok(r.deep && r.edge, 'Testkarte ohne Hochgebirge oder Bergland: ' + JSON.stringify(r));
+  ok(r.deepFits === false, 'Erzader darf tief im Hochgebirge entstehen');
+  ok(r.stuckLeft === false, 'Festsitzende Erzader bleibt liegen');
+  ok(r.edgeFits === true, 'Im Bergland keine Erzader möglich');
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

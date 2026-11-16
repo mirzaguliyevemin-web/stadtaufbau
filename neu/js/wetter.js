@@ -16,7 +16,7 @@ function weatherRandom() { return Math.random(); }
 // Boden je Jahreszeit (wird unter Bäumen und Gebäuden gezeichnet)
 // ---------------------------------------------------------------------
 
-function drawSeasonGround() {
+function drawSeasonGround(range) {
   const si = seasonIndex(), snow = snowCover();
   if (si === 1) { ctx.fillStyle = 'rgba(255,225,120,0.06)'; ctx.fillRect(0, 0, viewW, viewH); }
   if (si === 2) { ctx.fillStyle = 'rgba(200,110,30,0.16)'; ctx.fillRect(0, 0, viewW, viewH); }
@@ -25,10 +25,69 @@ function drawSeasonGround() {
   // natürliche Wiese milchig); ohne Bild wie früher ein weißer Schleier
   const o = worldToScreen(0, 0), pattern = groundPattern(ctx, 'schneewiese', o.x, o.y, cam.zoom);
   const old = ctx.globalAlpha;
+  let patched = false;
+  if (pattern && snow < 0.98 && range) { try { patched = drawSnowPatches(pattern, snow, range); } catch (e) { patched = false; ctx.restore && ctx.setTransform(dpr, 0, 0, dpr, 0, 0); } }
+  if (patched) return;
   if (pattern) { ctx.globalAlpha = old * Math.min(1, 0.92 * snow); ctx.fillStyle = pattern; }
   else ctx.fillStyle = `rgba(246,250,255,${0.68 * snow})`;
   ctx.fillRect(0, 0, viewW, viewH);
   ctx.globalAlpha = old;
+}
+
+// Schnee kommt und taut fleckig: erst liegen einzelne Flecken, die wachsen zusammen (Frühling: schrumpfen wieder).
+// Vorher lag die Schneedecke halb durchsichtig über allem – ein milchiger Schleier über Wiese und Sand (16.11.).
+// Eine kleine Karte (ein Bildpunkt je Feld) sagt, wo schon Schnee liegt; sie wird weich vergrößert und schneidet die Schneedecke zu.
+let snowMask = null, snowLayer = null;
+// Wie viel Schnee liegt auf Feld (x, y), wenn die Schneedecke insgesamt bei snow steht? (0–1, weiche Flecken je etwa 5 Felder)
+function snowPatchAt(x, y, snow = snowCover()) {
+  if (snow >= 0.98) return 1;
+  if (snow <= 0) return 0;
+  const lattice = (i, j) => hash(i * 3 + 17, j * 5 + 29);
+  const gx = x / 5, gy = y / 5, ix = Math.floor(gx), iy = Math.floor(gy), fx = gx - ix, fy = gy - iy;
+  const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+  const v = (lattice(ix, iy) * (1 - sx) + lattice(ix + 1, iy) * sx) * (1 - sy) + (lattice(ix, iy + 1) * (1 - sx) + lattice(ix + 1, iy + 1) * sx) * sy;
+  const noise = 0.78 * v + 0.22 * hash(Math.floor(x), Math.floor(y));
+  return Math.max(0, Math.min(1, (snow * 1.3 - 0.15 - noise) / 0.12));
+}
+function drawSnowPatches(pattern, snow, range) {
+  if (typeof document === 'undefined' || !ctx.canvas || !(ctx.canvas.width > 0)) return false;
+  const x0 = range.x0 - 2, y0 = range.y0 - 2, x1 = range.x1 + 2, y1 = range.y1 + 2, W = x1 - x0 + 1, H = y1 - y0 + 1;
+  const key = [x0, y0, x1, y1, Math.round(snow * 100)].join();
+  if (!snowMask || snowMask.key !== key) {
+    const c = snowMask && snowMask.c.width === W && snowMask.c.height === H ? snowMask.c : newCanvas();
+    c.width = W; c.height = H;
+    const g = c.getContext('2d'), img = g.createImageData(W, H), d = img.data;
+    for (let j = 0; j < H; j++)
+      for (let i = 0; i < W; i++) {
+        const a = snowPatchAt(x0 + i, y0 + j, snow), o = (j * W + i) * 4;
+        d[o] = d[o + 1] = d[o + 2] = 0; d[o + 3] = a * 255;
+      }
+    g.putImageData(img, 0, 0);
+    snowMask = { c, key };
+  }
+  const cw = ctx.canvas.width, chh = ctx.canvas.height;
+  if (!snowLayer) snowLayer = newCanvas();
+  if (snowLayer.width !== cw || snowLayer.height !== chh) { snowLayer.width = cw; snowLayer.height = chh; }
+  const g = snowLayer.getContext('2d');
+  if (!g) return false;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalCompositeOperation = 'source-over';
+  g.clearRect(0, 0, cw, chh);
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = pattern; g.fillRect(0, 0, viewW, viewH);
+  // Maske in Feld-Koordinaten darüberlegen (wie das Wasser: Feld → Bildschirm)
+  const p0 = tileToScreen(0, 0), ex = tileToScreen(1, 0), ey = tileToScreen(0, 1);
+  g.globalCompositeOperation = 'destination-in';
+  g.imageSmoothingEnabled = true;
+  g.setTransform((ex.x - p0.x) * dpr, (ex.y - p0.y) * dpr, (ey.x - p0.x) * dpr, (ey.y - p0.y) * dpr, p0.x * dpr, p0.y * dpr);
+  g.drawImage(snowMask.c, x0, y0, W, H);   // Bildpunkt i liegt auf Feld x0 + i
+  g.globalCompositeOperation = 'source-over';
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha *= 0.95;
+  ctx.drawImage(snowLayer, 0, 0);
+  ctx.restore();
+  return true;
 }
 
 // ---------------------------------------------------------------------

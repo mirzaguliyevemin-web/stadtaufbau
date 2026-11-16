@@ -1264,9 +1264,11 @@ function nearBuilding(x, y) {
 // Verschneite Fassung eines Bildes (Felsen, Berge, Büsche – ohne eigenes Winterbild): Schnee liegt auf allem, was nach
 // oben zeigt: am oberen Rand des Umrisses und auf hellen Flächen. Wird je Bild nur einmal berechnet.
 const snowSprites = new Map();
+// building = 'hill': Gras wird weiß wie bei Gebäuden, behält aber Licht und Schatten (sonst flache weiße Scheiben)
 function snowSprite(img, building = false) {
   if (!img) return null;
   if (snowSprites.has(img)) return snowSprites.get(img);
+  const hill = building === 'hill';
   let out = null;
   try {
     const k = Math.min(1, (building ? 560 : 320) / Math.max(img.width, img.height)), w = Math.max(1, Math.round(img.width * k)), h = Math.max(1, Math.round(img.height * k));
@@ -1301,7 +1303,8 @@ function snowSprite(img, building = false) {
         }
         const grain = 0.82 + 0.18 * hash(x, y);
         const m = Math.min(1, Math.max(top * (building ? 0.8 : 1), bright, green) * grain);
-        a[j] += (248 - a[j]) * m; a[j + 1] += (251 - a[j + 1]) * m; a[j + 2] += (255 - a[j + 2]) * m;
+        const shade = hill ? Math.min(1, 0.55 + 0.85 * L[i]) : 1;   // Hügel: Sonnenseite hell, Schattenseite bläulich grau
+        a[j] += (248 * shade - a[j]) * m; a[j + 1] += (251 * shade - a[j + 1]) * m; a[j + 2] += (255 * Math.min(1, shade + 0.06) - a[j + 2]) * m;
       }
       g.putImageData(d, 0, 0);
       out = c;
@@ -1321,10 +1324,13 @@ function buildingSnow(img) {
 }
 
 // Im Winter: frisch verschneite Felsen, Berge und Büsche (sanft ein- und ausblenden)
-function drawSnowOver(img, x, y, w, h) {
-  const snow = typeof snowCover === 'function' ? snowCover() : 0;
+// grass = Gras wird ganz weiß (wie bei Gebäuden) – für die Hügel, die sonst als grüne Inseln im Schnee lagen (16.11.)
+// tile = [x, y]: dort liegt der Schnee fleckig wie auf der Wiese (beim Kommen und Tauen)
+function drawSnowOver(img, x, y, w, h, grass = false, tile = null) {
+  let snow = typeof snowCover === 'function' ? snowCover() : 0;
+  if (tile && snow > 0 && typeof snowPatchAt === 'function') snow = snowPatchAt(tile[0], tile[1], snow);
   if (snow <= 0.02) return;
-  const sp = snowSprite(img);
+  const sp = snowSprite(img, grass ? 'hill' : false);
   if (!sp) return;
   const old = ctx.globalAlpha;
   ctx.globalAlpha = old * Math.min(1, snow * 1.2);
@@ -1346,12 +1352,12 @@ function drawDecorSnow(range) {
         const himg = images[h.name];
         if (!himg || landMask[h.y * N + h.x] !== 2) continue;
         const p = tileToScreen(h.x + 0.5, h.y + 0.5), r = hillRect(himg, h.name, p.x, p.y, z);
-        drawSnowOver(himg, r.x, r.y, r.w, r.h);
+        drawSnowOver(himg, r.x, r.y, r.w, r.h, true, [h.x, h.y]);
       }
       for (const [x, y, name] of ch.decor) {
         if (name !== 'busch' || landMask[y * N + x] !== 2) continue;
         const p = tileToScreen(x + 0.5, y + 0.5), ox = (hash(y, x + 5) - 0.5) * TW * 0.25 * z;
-        drawSnowOver(img, p.x - w / 2 + ox, p.y - h * 0.8, w, h);
+        drawSnowOver(img, p.x - w / 2 + ox, p.y - h * 0.8, w, h, false, [x, y]);
       }
     }
 }
@@ -1370,7 +1376,7 @@ function drawMountain(x, y, m) {
   ctx.translate(p.x, p.y);
   if (flip) ctx.scale(-1, 1);
   ctx.drawImage(lodImage(img), -w / 2, -h * 0.84, w, h);
-  if (!/berg-(gipfel|grat)/.test(m.name)) drawSnowOver(img, -w / 2, -h * 0.84, w, h);   // die Gipfel haben im Bild schon Schnee
+  if (!/berg-(gipfel|grat)/.test(m.name)) drawSnowOver(img, -w / 2, -h * 0.84, w, h, false, [x, y]);   // die Gipfel haben im Bild schon Schnee
   ctx.restore();
 }
 
@@ -1447,7 +1453,7 @@ function drawTerrainObject(x, y, kind, anim = null) {
       return;
     }
     ctx.drawImage(lodImage(img), p.x - w / 2 + ox, p.y - h + foot, w, h);
-    if (photo) drawSnowOver(img, p.x - w / 2 + ox, p.y - h + foot, w, h);
+    if (photo) drawSnowOver(img, p.x - w / 2 + ox, p.y - h + foot, w, h, false, [x, y]);
     return;
   }
   // Wind: jeder Baum wiegt sich etwas anders, dazu laufen sanfte Böen über die Karte
@@ -2566,7 +2572,7 @@ function drawScene(dt) {
   const range = visibleRange();
   updateLife(dt, range);
   drawGround(range);
-  drawSeasonGround();   // Schnee und Jahreszeit vor dem Wasser: sonst lag die Schneewiese über dem Fluss (Emin, 15.11.: „Wo ist der Fluss?“)
+  drawSeasonGround(range);   // Schnee und Jahreszeit vor dem Wasser: sonst lag die Schneewiese über dem Fluss (Emin, 15.11.: „Wo ist der Fluss?“)
   drawWater(range);
   drawWaterDepth(range);
   drawWaterfall(range);

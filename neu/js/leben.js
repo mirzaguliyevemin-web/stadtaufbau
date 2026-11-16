@@ -1335,14 +1335,20 @@ function updateSky(dt, range) {
   const z = cam.zoom;
   range = clipToLand(range);   // Fische und Schmetterlinge nur über eigenem Land
   // Vögel: ab und zu fliegt ein kleiner Schwarm quer über das Bild
+  // nicht nachts und nicht bei Gewitter, Hagel oder Sturm (Prüfung Wetter, 16.11.)
+  const wid = typeof currentWeather === 'function' ? currentWeather().id : 'klar';
+  const dark = typeof darkness === 'function' ? darkness() : 0, winter = typeof snowCover === 'function' ? snowCover() : 0;
+  const birdWeather = dark < 0.4 && wid !== 'gewitter' && wid !== 'hagel' && wid !== 'sturm';
   life.birdTimer -= dt;
   if (life.birdTimer <= 0) {
     life.birdTimer = 10 + lifeRandom() * 14;
+    if (birdWeather) {
     const fromLeft = lifeRandom() < 0.5;
     const y0 = viewH * (0.1 + lifeRandom() * 0.5);
     const n = 3 + Math.floor(lifeRandom() * 4);
     for (let i = 0; i < n; i++) {
       life.birds.push({ x: fromLeft ? -30 - i * 18 : viewW + 30 + i * 18, y: y0 + (i % 2 ? 12 : -4) * (i * 0.6), v: (fromLeft ? 1 : -1) * (70 + lifeRandom() * 15), ph: lifeRandom() * 6 });
+    }
     }
   }
   for (const b of life.birds) { b.x += b.v * dt; b.y += Math.sin(frameTime * 0.8 + b.ph) * 4 * dt; }
@@ -1351,7 +1357,7 @@ function updateSky(dt, range) {
   life.fishTimer -= dt;
   if (life.fishTimer <= 0) {
     life.fishTimer = 1.5 + lifeRandom() * 2.5;
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < (winter > 0.5 ? 0 : 12); i++) {   // unter dem Eisschimmer springt keiner
       const x = range.x0 + Math.floor(lifeRandom() * (range.x1 - range.x0 + 1)), y = range.y0 + Math.floor(lifeRandom() * (range.y1 - range.y0 + 1));
       if (inMap(x, y) && terrain[y * N + x] === TERRAIN.wasser.id && landMask[y * N + x] === 2) { life.jumps.push({ x: x + 0.5, y: y + 0.5, k: 0, face: lifeRandom() < 0.5 ? 1 : -1 }); break; }
     }
@@ -1359,7 +1365,10 @@ function updateSky(dt, range) {
   for (const j of life.jumps) j.k += dt / 1.1;
   life.jumps = life.jumps.filter(j => j.k < 1.6);
   // Schmetterlinge: über Blumen im sichtbaren Bereich
-  if (life.butterflies.length < 6) {
+  // Schmetterlinge nur bei Tag, ohne Schnee und bei ruhigem Wetter – sonst fliegen die da sind davon
+  const butterflyWeather = dark < 0.3 && winter <= 0 && (wid === 'klar' || wid === 'wolkig');
+  if (!butterflyWeather) for (const f of life.butterflies) f.life = Math.min(f.life, 1.5);
+  if (butterflyWeather && life.butterflies.length < 6) {
     const x = range.x0 + Math.floor(lifeRandom() * (range.x1 - range.x0 + 1)), y = range.y0 + Math.floor(lifeRandom() * (range.y1 - range.y0 + 1));
     if (inMap(x, y) && terrain[y * N + x] === TERRAIN.gras.id && hash(x, y + 3) > 0.92 && !occ[y * N + x] && landMask[y * N + x] === 2) {
       const colors = ['#ffd84a', '#ff8ac0', '#8ecbff', '#ffffff', '#ffa94d'];

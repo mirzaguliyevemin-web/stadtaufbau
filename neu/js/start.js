@@ -135,6 +135,17 @@ function enterGame() {
   setLoading(0);
   if (step) step.textContent = 'Die Landschaft wird gemalt …';
   prerenderGround(p => setLoading(p), () => { setLoading(1); show($('loading'), false); });
+  remindExport();
+}
+
+// Ohne Konto ist der Export-Code die einzige Sicherung (V211): höchstens einmal die Woche daran erinnern
+function remindExport() {
+  const now = Date.now();
+  if (!settings.exportedAt) { settings.exportedAt = now; saveSettings(); return; }
+  if ((typeof konto !== 'undefined' && konto) || state.playTime < 2 * 3600 || now - settings.exportedAt < 7 * 86400000) return;
+  if (now - (settings.exportRemindedAt || 0) < 7 * 86400000) return;
+  settings.exportRemindedAt = now; saveSettings();
+  setTimeout(() => toast('💾 Tipp: Sichere deinen Spielstand ab und zu – Menü ⚙️ → Exportieren'), 6000);
 }
 
 // Hochkant auf dem Handy: einmal je Start darauf hinweisen, dass quer schöner ist (verschwindet beim Drehen)

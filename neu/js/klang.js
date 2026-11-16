@@ -10,6 +10,7 @@ function unlockAudio() {
   if (typeof window === 'undefined') return;
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
+  if (!audio && !(settings.sound || settings.music)) return;   // alles aus: gar nicht erst anlegen (spart Akku, V211)
   if (!audio) {
     try { audio = new AC(); } catch (e) { audio = null; return; }
     master = audio.createGain();
@@ -68,6 +69,10 @@ function fadeTo(t, vol) {
 function updateMusic() {
   if (typeof document === 'undefined' || typeof Audio === 'undefined' || !audio) return;
   const on = settings.music && typeof gameRunning !== 'undefined' && gameRunning && document.visibilityState === 'visible';
+  // Im Hintergrund den ganzen Ton schlafen legen: sonst bleibt der Audio-Ausgang (Android-App) offen und zieht Akku (V211)
+  const hidden = document.visibilityState !== 'visible';
+  if (hidden && audio.state === 'running' && audio.suspend) audio.suspend().catch(() => {});
+  if (!hidden && audio.state === 'suspended' && audio.resume && (settings.sound || settings.music)) audio.resume().catch(() => {});
   if (!on) {   // alles anhalten
     for (const t of Object.values(tracks)) if (!t.el.paused) t.el.pause();
     musicNow = null;

@@ -1652,6 +1652,7 @@ let exportCodeText = '';
 async function showExport() {
   openDialog(`<h2>📤 Exportieren</h2><p>Code wird erstellt …</p>`);
   exportCodeText = await exportCode();
+  settings.exportedAt = Date.now(); saveSettings();   // für die Erinnerung ans Sichern
   const share = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
   openDialog(`<h2>📤 Exportieren</h2>
     <p>Spielstand von Platz ${currentSlot} als Code (${exportCodeText.length.toLocaleString('de-DE')} Zeichen). Schick ihn dir selbst, z. B. per WhatsApp oder in eine Notiz.

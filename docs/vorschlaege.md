@@ -5,6 +5,8 @@ wenn Emin zugestimmt hat.** Neue Einträge oben, mit Datum und kurzer Begründun
 
 ## Offen
 
+_Hinweis (16.11.2026): Einträge vom Oktober 2026 stammen aus dem alten Spiel mit Draufsicht und sind großteils überholt; sie bleiben als Ideensammlung stehen._
+
 - **VIP-Modus** (2026-10-26, Wunsch Emin – „dazu später“) – mehr als 2 Baustellen gleichzeitig. Offen: wie man
   VIP wird (Erfolg, Gründerruhm, Einstellung?). Technisch einfach: `CONFIG.maxConstructions` je nach VIP erhöhen.
 - **Gebäudebilder aus KI-Bildern** (2026-10-26, Wunsch Emin) – Emin erzeugt Bilder im festen Stil; Claude baut

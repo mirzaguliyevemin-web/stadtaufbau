@@ -2,7 +2,6 @@
 // Epochia – Wunderwerke: Bau in Abschnitten, jeder Abschnitt ist ein Kapitel einer kleinen Geschichte (docs/konzept-wunderwerke.md).
 // Solange ein Wunderwerk nicht fertig ist, bleibt b.build auf 1 (zählt nicht als Baustelle), der Fortschritt steht in state.wonders.
 
-function wonderIdOf(type) { const d = BUILDINGS[type]; return d && d.wonder || null; }
 function wonderState(id) { return state.wonders[id] || (state.wonders[id] = { step: 0, left: 0 }); }
 function wonderDone(id) { return wonderState(id).step >= WONDERS[id].steps.length; }
 function wonderIndex(id) { return state.buildings.findIndex(b => b.type === WONDERS[id].building); }

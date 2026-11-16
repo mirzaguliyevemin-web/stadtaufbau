@@ -453,26 +453,6 @@ function showBarInfo(type) {
 let infoFor = null;   // { kind: 'b', i } oder { kind: 'tile', x, y }
 let infoTimer = 0;
 
-function infoText(i) {
-  const b = state.buildings[i];
-  const def = BUILDINGS[b.type];
-  if (b.build > 0) return `🔨 ${def.name} · noch ${formatTime(b.build)}`;
-  if (!isConnected(i)) return `${def.icon} ${def.name} · 🛤️ Kein Weg zum Lagerfeuer!`;
-  const parts = [`${def.icon} ${def.name}${hasLevels(def) ? ' · ⭐' + levelOf(b) : ''}`];
-  if (def.housing) parts.push(`🏠 ${housingOf(b.type)} Plätze`);
-  if (def.produces) {
-    const out = outputPerMinute(i);
-    parts.push(Object.entries(out).map(([id, n]) => `+${perMin(n)} ${RESOURCES[id].icon}/min`).join(' '));
-  }
-  if (def.workers) parts.push(`👤 ${stats.staff[i] || 0}/${workersOf(b)}`);
-  const lacking = def.consumes && Object.keys(def.consumes).find(id => (state.res[id] || 0) < 0.5);
-  if (lacking) parts.push(`❗ Fehlt: ${RESOURCES[lacking].name}${sourceText(lacking)}`);
-  if (def.warmth) parts.push(`🔥 Umkreis ${warmthRadius(def)}`);
-  if (def.belief) parts.push(`🗿 Umkreis ${def.belief}`);
-  if (def.storage) parts.push(`📦 +${storageOf(b)}`);
-  return parts.join(' · ');
-}
-
 // Wo fehlen Leute? Für das Einwohner-Fenster
 function understaffedText() {
   const missing = {};
@@ -1086,7 +1066,7 @@ function researchItemHtml(id) {
     meta = `<span class="rs-meta rs-lock">🔒 Erst: ${esc(t.requires.filter(r => !state.techs[r]).map(r => TECHS[r].name).join(', '))}</span>`;
   } else {
     const fewPeople = t.population && state.pop < t.population;
-    meta = `<span class="rs-meta">${costHtml(t.cost)}<span class="rs-time">⏱ ${formatTime(t.time)}</span>${fewPeople ? `<span class="rs-time bad">👥 ${t.population}</span>` : ''}${techBuildGaps(id).length ? `<span class="rs-time bad">🔨 ${techBuildGaps(id).reduce((n, g) => n + g.need - g.have, 0)}</span>` : ''}</span>`;
+    meta = `<span class="rs-meta">${costHtml(t.cost)}<span class="rs-time">⏱ ${formatTime(t.time)}</span>${fewPeople ? `<span class="rs-time bad">👥 ${t.population}</span>` : ''}${techBuildGaps(id).length ? `<span class="rs-time bad" title="So viele Gebäude fehlen noch">🏗️ noch ${techBuildGaps(id).reduce((n, g) => n + g.need - g.have, 0)} bauen</span>` : ''}</span>`;
   }
   return `<button class="rs-item ${status}${researchSelected === id ? ' sel' : ''}" onclick="selectTech('${id}')">
     <span class="rs-pic">${iconHtml(t.bild, t.icon)}</span><span class="rs-mid"><span class="rs-name">${esc(t.name)}${state.researchNext === id ? ' <small>📌 Danach</small>' : ''}</span>${meta}</span><span class="rs-arrow">›</span></button>`;
@@ -1419,7 +1399,7 @@ function questsHtml() {
   const head = `<div class="quest-sum"><span>🏆 Erledigt <b>${doneCount}</b> von ${total}</span>
     <span class="q-bar thin"><i style="width:${Math.round(100 * doneCount / total)}%"></i></span></div>`;
   const list = activeQuests();
-  if (!list.length) return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${suedCardHtml()}${wandererCardHtml()}${wishHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit der nächsten Epoche.</p></div>`;
+  if (!list.length) return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${suedCardHtml()}${wandererCardHtml()}${wishHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit dem nächsten Zeitalter.</p></div>`;
   return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${suedCardHtml()}${wandererCardHtml()}${wishHtml()}` + list.map(q => {
     const p = questProgress(q);
     const done = p.have >= p.need;
@@ -1568,7 +1548,7 @@ function menuHtml() {
     <section class="card wide">
       <h3>🏕️ Dein Stamm</h3>
       <div class="stats">
-        ${stat(Math.floor(state.pop), 'Einwohner')}${stat(esc(STAGES[stageIndex()].name), 'Epoche')}
+        ${stat(Math.floor(state.pop), 'Einwohner')}${stat(esc(STAGES[stageIndex()].name), 'Zeitalter')}
         ${stat(Object.keys(state.techs).length, 'Forschungen')}${stat(formatTime(state.playTime), 'gespielt')}
       </div>
     </section>

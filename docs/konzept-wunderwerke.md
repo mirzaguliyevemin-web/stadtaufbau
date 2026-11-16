@@ -167,7 +167,7 @@ wir, wann der Sommer kommt und wann wir säen müssen.“
 | Fundstück | Woher | Ersatzweg / Glücksschutz |
 |---|---|---|
 | 🗺️ **Sternkarte** (3 Stück) | nachts bei klarem Wetter fällt eine Sternschnuppe – antippen | jede klare Nacht garantiert eine |
-| 🪨 **Riesenfindling** (5 Stück) | Ereignis „Ein riesiger Findling liegt am Gebirge“: antippen → 8 Leute rollen ihn auf Holzstämmen zum Bauplatz (2 min, sichtbar, wie die Mammutjagd) | kommt alle 10 min, solange welche fehlen |
+| 🪨 **Riesenfindling** (3 Stück, im Entwurf 5) | Ereignis „Ein riesiger Findling liegt am Gebirge“: antippen → 8 Leute rollen ihn auf Holzstämmen zum Bauplatz (2 min, sichtbar, wie die Mammutjagd) | kommt alle 10 min, solange welche fehlen |
 | ☀️ **Sonnenstein** (1 Stück) | Glück: ein Steinsammler an Felsen findet einen besonders hellen Stein | wird jede Minute wahrscheinlicher, spätestens nach etwa 30 min sicher |
 | 🌼 **Blumenkranz** (3 Stück) | nur im Frühling und Sommer: Sammlerinnen bringen manchmal einen | 💡 im Herbst/Winter tauschbar beim Ältesten (3 doppelte Fundstücke) |
 

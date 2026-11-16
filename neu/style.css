@@ -1119,3 +1119,22 @@ details.more[open] summary::before { content: '▾ '; }
   #buildbar { padding-left: calc(10px + var(--safe-l)); }
   #bar-tabs { left: calc(8px + var(--safe-l)); right: calc(60px + var(--safe-r)); }
 }
+
+/* V210 (große Prüfung): Bedienung am Handy */
+/* größere Tippflächen, ohne dass sich das Aussehen ändert */
+.chip { position: relative; }
+.chip::after { content: ''; position: absolute; inset: -7px -2px; }   /* Anzeigen oben waren nur 26 px hoch */
+.bar-info::after { content: ''; position: absolute; inset: -10px; border-radius: 50%; }   /* ⓘ war 22 px */
+@media (max-height: 500px) { .bar-tab::after { inset: -5px -2px; } }
+/* Kerbe und Kamera: auch Seitenkopf, Fenster und Forschungsdetail halten Abstand (vorher nur die obere Leiste) */
+.page-head { padding-top: calc(4px + var(--safe-t)); }
+#page-body { padding-bottom: calc(8px + var(--safe-b)); }
+#dialog-box { max-height: calc(100vh - 24px - var(--safe-t) - var(--safe-b)); }
+@media (max-width: 699px) and (min-height: 521px) { .rs.sheet .rs-detail { padding-top: calc(12px + var(--safe-t)); } }
+/* Seitenknöpfe mit Namen, wo der Platz reicht (hohe Handys hochkant); kleine Bildschirme bleiben schlank wie seit 07.11. */
+@media (min-height: 760px) and (orientation: portrait) {
+  .side-btn { height: 60px; }
+  .side-btn span { display: block; font-size: 9.5px; line-height: 1.1; margin-top: 1px; max-width: 48px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side-btn .ic { width: 30px; height: 30px; }
+  .side-btn.running { height: 60px; }
+}

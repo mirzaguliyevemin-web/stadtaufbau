@@ -102,12 +102,13 @@ const CITY_LANDS = ['fluss', 'kueste'];
 const CITY_KEYS = ['seed', 'res', 'buildings', 'plots', 'cleared', 'planted', 'saplings', 'hunt', 'disaster', 'disasterCalm', 'disasterNext',
   'herdWait', 'needSince', 'hunger', 'wishWait', 'trader', 'suedhaendler', 'wanderer', 'wonders', 'spots', 'trips', 'pop',
   'mapSize', 'mapCore', 'torches', 'mapGen', 'foothill'];
-const CITY_SHARED_RES = ['wissen'];
+const CITY_SHARED_RES = ['wissen'];   // Waren, die allen Städten gemeinsam gehören
+// Gebirgsausläufer im Stand (seit Version 197): zwei Felder oder „übersprungen“
 function validFoothill(f) {
   if (!f || typeof f !== 'object') return null;
   if (f.skip) return { skip: 1 };
   return ['ax', 'ay', 'bx', 'by'].every(k => Number.isInteger(f[k])) ? { ax: f.ax, ay: f.ay, bx: f.bx, by: f.by } : null;
-}   // Waren, die allen Städten gemeinsam gehören
+}
 
 // Die Daten einer Stadt aus einem Stand herauslösen (als Kopie)
 function cityPart(s) {

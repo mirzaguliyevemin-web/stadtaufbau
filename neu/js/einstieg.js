@@ -58,10 +58,6 @@ function tutorialAlreadyDone(step) {
   }
 }
 
-function sammlerinConnected() {
-  return state.buildings.some((b, i) => b.type === 'sammlerin' && isConnected(i));
-}
-
 // ---------------------------------------------------------------------
 // Belohnungen: je Spielstand einmal (state.tutorialRewards), auch nach Neuladen und erneutem Einstieg
 // ---------------------------------------------------------------------

@@ -11,20 +11,21 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, noch ohne Bilder (ab 27.11.). Plan: `docs/epoche-2-bronzezeit.md`.
+- Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, Bilder eingebaut (Version 153/158). Offen nach Scenario Pro: Arbeiterbilder in Bronzezeit-Kleidung. Plan: `docs/epoche-2-bronzezeit.md`.
 
-- Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit und Bronzezeit gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis, Halle der Himmelsscheibe). Offen: Fundstück-Bilder ab der Bronzezeit (Steinzeit fertig seit Version 108); Rückseiten von Höhle und Halle fertig (Version 109/110); spätere Zeitalter mit deren Bau. Plan: `docs/konzept-wunderwerke.md`.
+- Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit und Bronzezeit gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis, Halle der Himmelsscheibe). Eisenzeit-Wunderwerk (Salzberg) gebaut, alle Fundstück-Bilder bis zur Eisenzeit da (Stand 16.11.). Offen: spätere Zeitalter mit deren Bau. Plan: `docs/konzept-wunderwerke.md`.
 
 - Arbeitsbewegungen (Emin, 03.11.): 74 Bilder mit je 3 Stufen, Plan `docs/plan-arbeitsbewegungen.md`. Item-Shop: Plan `docs/plan-item-shop.md`; Emin probiert Schritt 1 ohne Geld aus, Preise danach anpassen.
 
 - Eisenzeit (Emin, 03.11.): Technik mit vorläufigen Bildern gebaut (Version 86). Offen: etwa 200 Bilder, später nach den Bildern für Steinzeit und Bronzezeit. Plan: `docs/epoche-3-eisenzeit.md`.
 
-- Design (Emin, 04.11.): Schritt 1–3 gebaut (Version 95), Leisten, Titelband und Symbole gemalt (Version 105). Offen: 5 Waren und Boden mit Canva, danach prüfen, welche Gebäude noch zu dunkel sind. Plan: `docs/plan-design.md`.
+- Design (Emin, 04.11.): Schritt 1–3 gebaut (Version 95), Leisten, Titelband und Symbole gemalt (Version 105). Alle Warenbilder da (Version 106), Boden neu mit Scenario (Version 187). Offen: prüfen, welche Gebäude noch zu dunkel sind. Plan: `docs/plan-design.md`.
 
 - Zweite Karte und zweite Stadt (Emin, 03.11.): nur ein Plan, wichtigere Sachen gehen vor. Plan: `docs/plan-zweite-stadt.md`, → Frage: 6 Fragen an Emin, wenn es so weit ist.
 
 
 ## Erledigt
+- 2026-11-16, Epochia Version 210 – aus der großen Prüfung, Bedienung: Seitenknöpfe zeigen auf hohen Handys hochkant ihren Namen (kleine bleiben schlank); größere Tippflächen für die Anzeigen oben, ⓘ an den Baukarten und die Reiter quer; Seitenkopf, Fenster und Forschungsdetail halten Abstand zu Kerbe und Kamera; „Epoche“ → „Zeitalter“; Forschungsliste sagt „noch 2 bauen“ statt nur „🔨 2“; Startseite „Vom Lagerfeuer zur Stadt“; veraltete Punkte in Wünsche und Plänen berichtigt, nie benutzter Code entfernt.
 - 2026-11-16, Epochia Version 209 – aus der großen Prüfung, Tempo und Akku: Die Schneedecke liegt jetzt fest in den vorgezeichneten Bodenstücken statt in jedem Bild über den ganzen Bildschirm gemalt zu werden (Winterbild im Test etwa 7-mal schneller); höchstens 60 Bilder pro Sekunde, beim reinen Zuschauen 30 (S23 zeichnete 120); beim Zurückkommen ins Spiel wird nur neu gemalt, wenn Bilder wirklich verloren sind oder das Spiel länger weg war; verworfene Leinwände geben ihren Speicher sofort frei; Sockel werden nur noch bei Gebäudebildern vermessen (schnellerer Start).
 - 2026-11-16, Epochia Version 208 – aus der großen Prüfung: Die Eisenzeit-Gebäude (Eisenpflug-Feld, Obstgarten, Jagdhof, Fischerei, Rindergut, Holzhof, Großer Steinbruch, Tuchmacherin u. a.) richten sich jetzt nach Wetter, Jahreszeit und Katastrophen wie ihre Bronzezeit-Vorstufe – vorher brachte z. B. das Eisenpflug-Feld im Winter vollen Ertrag, obwohl dort „im Winter nichts“ steht.
 - 2026-11-16, Epochia Version 207 – Wunsch Emin: große Prüfung mit fünf Prüfern, erste Runde Fehler behoben. Alte Zwischenspeicher-Fassungen (seit V61 über 100 Kopien aller Bilder am Handy) werden gelöscht; Geisterfinger nach dem Verlassen der App (jeder Tipp wurde Zoom) weg; Android-App: Zurück-Taste schließt Fenster statt die App; Werkstatt ohne Rohstoffe hielt ihr volles Lager ewig voll; Abriss erstattet auch bei vollem Lager, Stufen zum bezahlten Preis und den laufenden Ausbau; Wagner wirkt nur besetzt und am Weg; Speichern meldet, wenn es scheitert; Import hebt den alten Stand auf (zurückholbar) und lädt auch Codes mit Text dahinter; beim Bauen liegen ▾ und Meldungen nicht mehr auf dem Bau-Fenster; Seitenknöpfe nicht mehr unter den Reitern; Sprechblase nicht über dem Menü; „Wunsch in 0 s“ und verlorene Eingaben im Konto behoben; kaputte Stände (Jagd außerhalb der Karte, Tagesbelohnung) stürzen nicht ab.

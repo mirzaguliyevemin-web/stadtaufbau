@@ -161,7 +161,7 @@ Wissen:   Feuer hüten ─┘         Höhlenmalerei ─ Ahnenkult ─┴► [Ju
 |---|---|---|---|---|---|---|
 | 1 | 🔥 Feuer hüten | Alt | – | 5 Wissen | 45 s | Lagerfeuer wärmt größeren Umkreis |
 | 2 | 🪨 Faustkeil | Alt | – | 8 Wissen | 60 s | Holz- und Steinsammler +15 % (seit 15.11., vorher +30 %) |
-| 3 | 🧺 Flechtkörbe | Alt | – | 8 Wissen | 60 s | Sammlerin +15 % (seit 15.11., vorher +40 %) |
+| 3 | 🧺 Flechtkörbe | Alt | – | 20 Wissen | 300 s | Sammlerin +15 % (seit 15.11., vorher +40 %) |
 | 4 | 🗡️ Speerspitzen | Alt | Faustkeil | 12 Wissen | 75 s | Jägerlager +15 % (seit 15.11., vorher +40 %) |
 | 5 | ⛺ Fellzelte | Alt | Faustkeil | 12 Wissen | 75 s | Zelte +1 Wohnplatz |
 | 6 | 🎨 Höhlenmalerei | Alt | Feuer hüten | 15 Wissen | 90 s | Höhlenmaler +15 % Wissen (seit 15.11., vorher +30 %) |

@@ -140,6 +140,7 @@ function skipTutorial() {
   state.tutorial = -1;
   guide.flash = null;
   renderTutorial();
+  if (typeof toast === 'function') toast('Einstieg beendet – im Menü ⚙️ unter „Einstieg neu starten“ geht er wieder los');
 }
 
 function restartTutorial() {
@@ -808,7 +809,9 @@ function positionGuideBubble(plan, t, g, visible) {
   const e = { l: feet.x - g / 2, r: feet.x + g / 2, t: feet.y - g * 0.94, b: feet.y + g * 0.06 };
   const r = guideBubbleRect(guide.side[1], e, bub, 4 * guideScale());
   const box = guideFreeBox(), area = guide.bounds || box;
-  const x = Math.max(area.l + 2, Math.min(area.r - bub.w - 2, r.l));
+  const side = guideRect('side');   // die Blase nie über die Seitenknöpfe (verdeckte im Hochformat das Menü, V207)
+  const left = Math.max(area.l, side && area.r - side.r > bub.w + 4 ? side.r : area.l);
+  const x = Math.max(left + 2, Math.min(area.r - bub.w - 2, r.l));
   let y = Math.max(box.t + 3, Math.min(box.b - bub.h - 3, r.t));
   const skip = guide.skipRect;   // „Überspringen“ bleibt frei
   if (skip && x + bub.w > skip.l && x < skip.r && y < skip.b && y + bub.h > skip.t) y = Math.min(box.b - bub.h - 3, skip.b + 3);

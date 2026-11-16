@@ -103,7 +103,9 @@ function enterGame() {
   show($('game'), true);
   resizeCanvas();
   let offline = null;
-  if (loadSlot(currentSlot)) {
+  let loaded = false;
+  try { loaded = loadSlot(currentSlot); } catch (e) { loaded = false; }   // nie auf leerem Bild hängen bleiben (V207)
+  if (loaded) {
     offline = applyOfflineProgress(state.savedAt);
   } else {
     // Es lag etwas auf dem Platz, ließ sich aber nicht laden: erst beiseitelegen, nicht einfach überschreiben
@@ -358,6 +360,15 @@ function boot() {
   if (typeof navigator !== 'undefined' && navigator.serviceWorker && !(typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     navigator.serviceWorker.register('service-worker.js').catch(err => console.warn('Service Worker', err));
   }
+  // Android-App: Die Zurück-Taste schließt erst offene Fenster (wie im Browser), sonst geht die App in den Hintergrund.
+  // Ohne das schloss sie die App mitten aus einem Fenster heraus (V207).
+  const capApp = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if (capApp && capApp.addListener) capApp.addListener('backButton', () => {
+    if (typeof histDepth !== 'undefined' && histDepth > 0) history.back();
+    else { if (gameRunning) saveGame(); capApp.minimizeApp(); }
+  });
+  // Spielstände dauerhaft behalten: ohne das darf Safari den Speicher nach 7 Tagen ohne Besuch räumen (V207)
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) { /* egal */ }
   requestAnimationFrame(loop);
   setTimeout(() => checkForUpdate(), 4000);
   setInterval(() => checkForUpdate(), 5 * 60 * 1000);

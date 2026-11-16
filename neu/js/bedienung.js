@@ -320,6 +320,9 @@ function pointerPos(e) {
 function onPointerDown(e) {
   if (!state) return;
   const p = pointerPos(e);
+  // Der erste Finger einer neuen Berührung: alte Finger, deren Loslassen nie ankam (App im Hintergrund, Anruf),
+  // sind Geister – sonst wurde jeder Tipp zum Zwei-Finger-Zoom (V207)
+  if (e.isPrimary && pointers.size) { pointers.clear(); gesture = null; }
   pointers.set(e.pointerId, p);
   try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* egal */ }
   clearTimeout(pressTimer);
@@ -473,6 +476,9 @@ function setupInput() {
   canvas.addEventListener('pointermove', onPointerMove);
   canvas.addEventListener('pointerup', onPointerUp);
   canvas.addEventListener('pointercancel', onPointerUp);
+  const dropFingers = () => { pointers.clear(); clearTimeout(pressTimer); const was = gesture; gesture = null; if (was && was.mode === 'ghost') renderActionBar(); };
+  window.addEventListener('blur', dropFingers);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') dropFingers(); });
   canvas.addEventListener('wheel', onWheel, { passive: false });
   canvas.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('keydown', e => {

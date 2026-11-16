@@ -34,9 +34,15 @@ function serialize() {
   return JSON.stringify(state);
 }
 
+let saveWarnedAt = -1e12;
 function saveGame() {
   if (!state) return false;
   const ok = storageSet(SAVE_PREFIX + currentSlot, serialize());
+  // Speicher voll oder gesperrt: nicht still scheitern, höchstens alle 5 Minuten warnen (V207)
+  if (!ok && typeof toast === 'function' && Date.now() - saveWarnedAt > 300000) {
+    saveWarnedAt = Date.now();
+    toast('⚠️ Speichern hat nicht geklappt – Gerätespeicher voll? Bitte im Menü den Spielstand exportieren.');
+  }
   if (ok && typeof kontoNachSpeichern === 'function') kontoNachSpeichern();   // Cloud-Sicherung (gedrosselt, nur mit Konto)
   return ok;
 }
@@ -77,6 +83,14 @@ function bridgeFields(b) {
     out.paid = paid;
   }
   return out;
+}
+
+// Was für die Stufen eines Gebäudes bezahlt wurde (seit V207, fehlt = aus der Stufe nachgerechnet)
+function levelPaidField(b) {
+  if (!b.lvPaid || typeof b.lvPaid !== 'object') return {};
+  const lv = {};
+  for (const [id, n] of Object.entries(b.lvPaid)) if (RESOURCES[id] && Number.isFinite(n) && n >= 0) lv[id] = n;
+  return { lvPaid: lv };
 }
 
 // Mehrere Städte (seit Version 185, Plan docs/plan-zweite-stadt.md): Die Stadt, die man spielt, liegt wie bisher direkt
@@ -163,7 +177,7 @@ function sanitizeState(data) {
     .map(b => ({ type: b.type, x: b.x, y: b.y, rot: (Number(b.rot) || 0) & 3, build: Number.isFinite(b.build) && b.build > 0 ? b.build : 0, ...(b.paused ? { paused: true } : {}), ...(BUILDINGS[b.from] ? { from: b.from } : {}),
       ...(Number.isFinite(b.chop) && b.chop > 0 ? { chop: b.chop } : {}), ...(Number.isFinite(b.mine) && b.mine > 0 ? { mine: b.mine } : {}), ...(Number.isFinite(b.plant) && b.plant > 0 ? { plant: b.plant } : {}), ...(b.torch && BUILDINGS[b.type].isPath ? { torch: 1 } : {}),
       ...(Number.isInteger(b.level) && b.level > 1 && b.level <= CONFIG.levels.max ? { level: b.level } : {}), ...(Number.isFinite(b.up) && b.up > 0 ? { up: b.up } : {}),   // Stufe (seit Version 132, fehlt = 1)
-      ...(b.type === 'bruecke' ? bridgeFields(b) : {}) }));   // Brücke von Ufer zu Ufer (seit Version 172, fehlt = altes einzelnes Brückenfeld)
+      ...levelPaidField(b), ...(b.type === 'bruecke' ? bridgeFields(b) : {}) }));   // Brücke von Ufer zu Ufer (seit Version 172, fehlt = altes einzelnes Brückenfeld)
   s.mapGen = data.mapGen === 3 ? 3 : data.mapGen === 2 ? 2 : 1;   // alte Stände behalten ihre Karte (fehlt = alter, schmaler Fluss)
   s.foothill = validFoothill(data.foothill);   // fehlt = Gebirgsausläufer wird beim Laden gewählt (seit Version 197)
   s.mapCore = data.mapCore === OLD_N ? OLD_N : 0;   // fehlt = Karte aus einem Guss
@@ -178,7 +192,8 @@ function sanitizeState(data) {
   if (STAGES.some(st => st.id === data.stage)) s.stage = data.stage;
   if (data.hunt && Number.isFinite(data.hunt.left)) {
     const h = data.hunt, num = v => (Number.isFinite(Number(v)) ? Number(v) : 0);
-    s.hunt = { left: Math.max(0, h.left), cx: num(h.cx), cy: num(h.cy), x: num(h.x), y: num(h.y) };
+    const inMap = v => Math.max(0, Math.min(N - 1, num(v)));   // Felder außerhalb der Karte ließen den Weg der Jäger abstürzen
+    s.hunt = { left: Math.max(0, h.left), cx: inMap(h.cx), cy: inMap(h.cy), x: inMap(h.x), y: inMap(h.y) };
   }
   if (data.disaster && DISASTERS[data.disaster.id] && Number.isFinite(data.disaster.left)) s.disaster = { id: data.disaster.id, left: Math.max(0, data.disaster.left) };
   if (data.needSince && typeof data.needSince === 'object')
@@ -222,7 +237,7 @@ function sanitizeState(data) {
   const onMap = (x, y) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < N && y < N;
   if (Array.isArray(data.spots)) s.spots = data.spots.filter(k => k && SPOT_STYLE[k.kind] && onMap(k.x, k.y) && (k.kind === 'erz' || FINDS[k.find])).map(k => ({ kind: k.kind, x: k.x, y: k.y, find: k.find || null }));
   if (Array.isArray(data.trips)) s.trips = data.trips.filter(k => k && SPOT_STYLE[k.kind] && Number.isFinite(k.left) && k.total > 0 && [k.cx, k.cy, k.x, k.y].every(Number.isFinite) && (k.kind === 'erz' || FINDS[k.find]))
-    .map(k => ({ id: Number(k.id) || 0, left: Math.max(0, k.left), total: k.total, cx: k.cx, cy: k.cy, x: k.x, y: k.y, kind: k.kind, find: k.find || null }));
+    .map(k => ({ id: Number(k.id) || 0, left: Math.max(0, k.left), total: k.total, ...Object.fromEntries(['cx', 'cy', 'x', 'y'].map(c => [c, Math.max(0, Math.min(N - 1, k[c]))])), kind: k.kind, find: k.find || null }));
   if (Array.isArray(data.basket)) s.basket = data.basket.filter(id => FINDS[id]).slice(0, CONFIG.finds.basketMax);
   if (data.fund && typeof data.fund === 'object') {
     const f = data.fund;
@@ -233,7 +248,8 @@ function sanitizeState(data) {
   if (data.quests && typeof data.quests === 'object') s.quests = { ...data.quests };
   if (data.built && typeof data.built === 'object') s.built = { ...data.built };
   if (data.seen && typeof data.seen === 'object') s.seen = { ...data.seen };
-  if (data.daily && typeof data.daily === 'object') s.daily = { last: String(data.daily.last || ''), streak: Number(data.daily.streak) || 0, pending: Number(data.daily.pending) || 0 };
+  const dayNum = v => Math.max(0, Math.min(DAILY_REWARDS.length, Math.floor(Number(v)) || 0));   // Tag 0–7 (sonst Absturz beim Abholen)
+  if (data.daily && typeof data.daily === 'object') s.daily = { last: String(data.daily.last || ''), streak: dayNum(data.daily.streak), pending: dayNum(data.daily.pending) };
   // Einstieg: Die Liste hat noch dieselbe Reihenfolge, der Index alter Stände gilt also weiter. Unsinnige Werte heißen „fertig“.
   if (Number.isInteger(data.tutorial)) s.tutorial = data.tutorial >= 0 && data.tutorial < TUTORIAL.length ? data.tutorial : -1;
   if (data.tutorialRewards && typeof data.tutorialRewards === 'object') {
@@ -335,12 +351,17 @@ async function importCode(text) {
   const at = text.indexOf(EXPORT_PREFIX);
   if (at < 0) return importText(text);
   if (!canPack()) return false;
-  try {
-    const bin = atob(text.slice(at + EXPORT_PREFIX.length).replace(/[^A-Za-z0-9+/=]/g, ''));
-    const b = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i);
-    return loadFromText(await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
-  } catch (e) {
-    return false;
+  // Der Code darf umbrochen sein und Text dahinter haben („Gesendet von meinem iPhone“): erst alles, dann Stück für
+  // Stück weniger Zeilen/Wörter versuchen (V207)
+  const parts = text.slice(at + EXPORT_PREFIX.length).split(/\s+/).map(w => w.replace(/[^A-Za-z0-9+/=]/g, '')).filter(Boolean);
+  for (let k = parts.length; k >= 1; k--) {
+    try {
+      const bin = atob(parts.slice(0, k).join(''));
+      const b = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i);
+      const json = await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+      if (json.trim().startsWith('{')) return loadFromText(json);
+    } catch (e) { /* nächster Versuch mit weniger Text */ }
   }
+  return false;
 }

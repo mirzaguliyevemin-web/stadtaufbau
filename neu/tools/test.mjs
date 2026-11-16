@@ -3328,6 +3328,58 @@ await testAsync('Export und Import: kurzer gepackter Code, alter Text und JSON-D
   ok(await run('importCode(__alt)') === true && g.run('state.res.stein') === 123, 'Alter Text lädt nicht');
   ok(await run('importCode(serialize())') === true, 'JSON-Datei lädt nicht');
   ok(await run('importCode("EPOCHIA1:Quatsch")') === false && await run('importCode("")') === false, 'Unsinn importiert');
+  g.run('state.res.stein = 3;');
+  const umbrochen = code.slice(0, 40) + '\n' + code.slice(40, 90) + '\n' + code.slice(90);
+  ok(await run(`importCode(${JSON.stringify(umbrochen + '\n\nGesendet von meinem iPhone')})`) === true && g.run('state.res.stein') === 123, 'Code mit Text dahinter lädt nicht (V207)');
+  noErrors(g);
+});
+
+test('V207: Version an allen drei Stellen gleich, Service Worker räumt nur alte Epochia-Fassungen', () => {
+  const root = new URL('../', import.meta.url);
+  const daten = fs.readFileSync(new URL('js/daten.js', root), 'utf8'), html = fs.readFileSync(new URL('index.html', root), 'utf8'), sw = fs.readFileSync(new URL('service-worker.js', root), 'utf8');
+  const v1 = (daten.match(/APP_VERSION\s*=\s*['"]?(\d+)/) || [])[1], v2 = (html.match(/name="app-version" content="(\d+)"/) || [])[1], v3 = (sw.match(/const CACHE = 'v(\d+)'/) || [])[1];
+  ok(v1 && v1 === v2 && v2 === v3, `Versionen verschieden: daten ${v1}, index ${v2}, service-worker ${v3}`);
+  const filter = (sw.match(/keys\.filter\((k => [^\n]*?)\)\.map/) || [])[1];
+  ok(filter, 'Aufräumen im Service Worker nicht gefunden');
+  const keep = eval(`const CACHE = 'v${v3}'; (${filter})`);
+  ok(keep('v61') && keep('v205') && keep('epochia-v3') && !keep('v' + v3) && !keep('stadtaufbau-v9') && !keep('anderes-spiel'), 'Service Worker räumt falsch auf');
+  for (const f of [...html.matchAll(/(?:src|href)="((?:js\/)?[\w.-]+\.(?:js|css))"/g)].map(m => m[1])) ok(sw.includes(`'${f}'`), 'fehlt im Service Worker: ' + f);
+});
+
+test('V207: Volle Werkstatt ohne Rohstoffe bleibt nicht ewig voll, Abriss-Erstattung geht übers Lager, Stufen zum bezahlten Preis', () => {
+  const g = fresh();
+  g.run(`isConnected = () => true; state.pop = 30; { const m = Math.floor(N / 2) + 12;
+    state.buildings.push({ type: 'fellmacherin', x: m, y: m, rot: 0, build: 0 }); } rebuildOccupancy(); recalcStats();
+    state.res.felle = 0; state.res.kleidung = capOf('kleidung'); updateProduction(0.25);`);
+  ok(!(g.run('stats.potential.kleidung') > 0), 'Ohne Felle zählt die Fellmacherin trotzdem als Hersteller: ' + g.run('stats.potential.kleidung'));
+  g.run(`state.res.felle = 100; updateProduction(0.25);`);
+  ok(g.run('stats.potential.kleidung') > 0, 'Mit Fellen zählt sie nicht mehr');
+  // Abriss bei vollem Lager: Erstattung verfällt nicht
+  g.run(`var __i = state.buildings.findIndex(b => b.type === 'fellmacherin'); var __refund = refundOf(state.buildings[__i]); for (const id of Object.keys(__refund)) state.res[id] = capOf(id); var __vor = { ...state.res }; demolish(__i);`);
+  ok(g.run('Object.entries(__refund).every(([id, n]) => n === 0 || state.res[id] === __vor[id] + n)'), 'Erstattung verfällt bei vollem Lager');
+  // Stufen: was bezahlt wurde, zählt – auch nach einem Umbau und während des Ausbaus
+  g.run(`{ const m = Math.floor(N / 2) + 20; state.buildings.push({ type: 'fellmacherin', x: m, y: m, rot: 0, build: 0 }); } rebuildOccupancy(); recalcStats();
+    var __b = state.buildings[state.buildings.length - 1]; var __vorher = refundOf(__b);
+    for (const id of Object.keys(RESOURCES)) state.res[id] = 5000; state.stage = 'frueh';
+    var __p = levelUp(state.buildings.indexOf(__b));`);
+  ok(g.run('__b.up > 0 && __b.lvPaid && JSON.stringify(__b.lvPaid) === JSON.stringify(levelCost("fellmacherin", 2))'), 'Bezahlte Stufe nicht festgehalten: ' + g.run('__p'));
+  ok(g.run('Object.entries(levelCost("fellmacherin", 2)).every(([id, n]) => refundOf(__b)[id] >= Math.floor(((__b.paid || BUILDINGS.fellmacherin.cost)[id] || 0) * CONFIG.refundShare + n * CONFIG.refundShare) - 1)'), 'Laufender Ausbau wird nicht erstattet');
+  g.run('delete __b.lvPaid;');
+  ok(g.run('JSON.stringify(levelsPaid(__b)) === JSON.stringify(levelCost("fellmacherin", 2))'), 'Alter Stand: laufender Ausbau zählt nicht mit');
+  g.run('__b.lvPaid = levelsPaid(__b); delete __b.up; __b.level = 2; __b.type = "weberin";');
+  ok(g.run('JSON.stringify(levelsPaid(__b)) === JSON.stringify(levelCost("fellmacherin", 2))'), 'Nach dem Umbau zählen die neuen Preise');
+  const back = g.run('JSON.parse(serialize()).buildings.find(b => b.type === "weberin")');
+  ok(back && back.lvPaid, 'lvPaid wird nicht gespeichert');
+  ok(g.run(`sanitizeState(JSON.parse(serialize())).buildings.some(b => b.lvPaid && Object.keys(b.lvPaid).length)`), 'lvPaid geht beim Laden verloren');
+  noErrors(g);
+});
+
+test('V207: Kaputte Stände – Jagd außerhalb der Karte, Tagesbelohnung 9 – stürzen nicht ab', () => {
+  const g = fresh();
+  g.run(`var __d = JSON.parse(serialize()); __d.hunt = { left: 30, cx: 99999, cy: -5, x: 1e6, y: 3 }; __d.daily = { last: '', streak: -3.5, pending: 9 };`);
+  ok(g.run('loadFromText(JSON.stringify(__d))'), 'Stand lädt nicht');
+  ok(g.run('["cx", "cy", "x", "y"].every(k => state.hunt[k] >= 0 && state.hunt[k] < N)'), 'Jagd liegt außerhalb der Karte');
+  ok(g.run('state.daily.pending >= 0 && state.daily.pending <= DAILY_REWARDS.length && Number.isInteger(state.daily.streak) && state.daily.streak >= 0'), 'Tagesbelohnung nicht begrenzt');
   noErrors(g);
 });
 

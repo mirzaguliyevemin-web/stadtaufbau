@@ -69,6 +69,10 @@ let toastTimer = 0;
 function toast(text) {
   const el = $('toast');
   el.textContent = text;
+  // Beim Bauen liegt unten das Bau-Fenster: die Meldung darüber zeigen, nicht auf Name und Kosten (V207)
+  const bar = $('action-bar');
+  const r = bar && bar.classList && bar.classList.contains && !bar.classList.contains('hidden') && bar.getBoundingClientRect ? bar.getBoundingClientRect() : null;
+  el.style.bottom = r && r.height > 0 && typeof innerHeight === 'number' ? `${Math.round(innerHeight - r.top + 10)}px` : '';
   el.classList.add('on');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('on'), 2600);
@@ -377,7 +381,7 @@ function renderActionBar() {
     const s = def.size;
     const road = ghost.from >= 0 ? touchesNetwork(ghost.x, ghost.y, s) || state.buildings[ghost.from].type === 'lagerfeuer' : touchesNetwork(ghost.x, ghost.y, s);
     const title = ghost.from >= 0 ? `${def.icon} ${esc(def.name)} verschieben` : def.deko ? `${def.icon} ${esc(def.name)} · noch ${dekoOwned(ghost.type)} zum Aufstellen`
-      : `${def.icon} ${esc(def.name)} · ${costHtml(def.cost)} · ⏱ ${formatTime(buildTimeOf(ghost.type))}`;
+      : `${def.icon} ${esc(def.name)} · ${costHtml(def.cost)} · ⏱&nbsp;${formatTime(buildTimeOf(ghost.type)).replace(' ', '&nbsp;')}`;
     const what = ghost.from < 0 ? `<small class="ghost-info">${buildFactsHtml(ghost.type)}</small>` : '';
     html = `<div class="action-text">${title}${what}<small class="${problem ? 'bad' : road || def.deko ? 'good' : 'warn'}">${esc(problem || (def.deko ? 'Passt! Mit ✔ aufstellen' : road ? (ghost.from < 0 ? 'Passt! Mit ✔ bauen' : 'Passt! Mit ✔ abstellen') : 'Passt – danach einen Trampelpfad zum Lagerfeuer legen'))}</small></div>
       <button class="round no" onclick="cancelGhost()">✖</button>
@@ -407,6 +411,7 @@ function renderActionBar() {
   if (html !== lastAction) { el.innerHTML = html; lastAction = html; }
   show($('buildbar'), !html);
   show($('bar-tabs'), !html);
+  if ($('bar-toggle')) show($('bar-toggle'), !html);   // ▾ lag beim Bauen über der Kostenzeile (V207)
 }
 
 // Was macht ein Gebäude, bevor man es baut? (Emin, 07.11.) Kurz: die wichtigsten Zahlen in einer Zeile
@@ -1323,7 +1328,7 @@ function rewardChips(reward) {
 // Wunsch des Stammes: steht über den Aufträgen
 function wishHtml() {
   const w = currentWish();
-  if (!w) return state.tutorial >= 0 ? '' : `<div class="wish-card later"><span class="q-medal"><span class="ic emoji big">🤲</span></span><div class="q-main"><b>Wunsch des Stammes</b><span>Der nächste Wunsch kommt in ${formatTime(state.wishWait)}.</span></div></div>`;
+  if (!w) return state.tutorial >= 0 ? '' : `<div class="wish-card later"><span class="q-medal"><span class="ic emoji big">🤲</span></span><div class="q-main"><b>Wunsch des Stammes</b><span>${state.wishWait > 0 ? `Der nächste Wunsch kommt in ${formatTime(state.wishWait)}.` : 'Sobald ein Gebäude Waren herstellt, äußert der Stamm einen Wunsch.'}</span></div></div>`;
   const can = canAfford({ [w.id]: w.amount });
   const res = RESOURCES[w.id];
   return `<div class="wish-card"><span class="q-medal">${iconHtml(res.bild, res.icon, 'big')}</span>
@@ -1579,7 +1584,7 @@ function menuHtml() {
     <section class="card">
       <h3>💾 Spielstand <small>Platz ${currentSlot}</small></h3>
       <div class="tiles">
-        ${tile('💾', 'Speichern', "saveGame(); toast('Gespeichert')")}
+        ${tile('💾', 'Speichern', "if (saveGame()) toast('Gespeichert')")}
         ${tile('🗂', 'Spielstände', 'openSlots(true)')}
         ${tile('☁️', 'Konto', 'openKonto()')}
         ${tile('🌱', 'Neu starten', 'askRestart()')}
@@ -1702,13 +1707,24 @@ async function exportTeilen() {
 function showImport() {
   openDialog(`<h2>📥 Importieren</h2>
     <p>Den Code auf diesem Gerät kopieren (z. B. lange auf die WhatsApp-Nachricht tippen → Kopieren), dann hier auf „Einfügen“ tippen.
-    Der Spielstand auf Platz ${currentSlot} wird ersetzt.</p>
+    Der Spielstand auf Platz ${currentSlot} wird ersetzt – er bleibt aber einmal aufgehoben.</p>
     <div class="buttons"><button class="btn primary" onclick="importEinfuegen()">📋 Einfügen und laden</button>
       <button class="btn" onclick="$('import-datei').click()">📂 Datei wählen</button></div>
     <input type="file" id="import-datei" accept=".txt,.json,text/plain,application/json" style="display:none" onchange="importDatei(this)">
     <details><summary>Code von Hand einfügen</summary><textarea id="import-text"></textarea>
       <div class="buttons"><button class="btn" onclick="doImport()">Laden</button></div></details>
+    ${storageGet(SAVE_PREFIX + currentSlot + '-vorher') ? `<details><summary>Vorherigen Stand zurückholen</summary>
+      <p>Holt den Spielstand zurück, der vor dem letzten Import oder Laden aus dem Konto auf diesem Platz lag.</p>
+      <div class="buttons"><button class="btn" onclick="importVorher()">↩️ Zurückholen</button></div></details>` : ''}
     <div class="buttons"><button class="btn" onclick="closeDialog()">Abbrechen</button></div>`);
+}
+
+// Den aufgehobenen Stand zurückholen; der jetzige wird dabei selbst aufgehoben (Tausch, nichts geht verloren)
+function importVorher() {
+  const key = SAVE_PREFIX + currentSlot + '-vorher';
+  const old = storageGet(key);
+  if (!old) return;
+  doImport(old);
 }
 
 async function importEinfuegen() {
@@ -1729,7 +1745,10 @@ async function importDatei(input) {
 
 async function doImport(text) {
   if (text === undefined) text = $('import-text').value;
+  // Der bisherige Stand wird vorher aufgehoben (wie beim Laden aus dem Konto), ein Fehlgriff ist so nicht endgültig (V207)
+  const before = storageGet(SAVE_PREFIX + currentSlot);
   if (await importCode(text)) {
+    if (before) storageSet(SAVE_PREFIX + currentSlot + '-vorher', before);
     saveGame();
     closeDialog();
     closeAllPages();

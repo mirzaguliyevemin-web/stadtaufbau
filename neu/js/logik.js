@@ -223,11 +223,21 @@ function buildRoute(i) {
   return null;
 }
 
+// Was für die Stufen bezahlt wurde (b.lvPaid seit V207). Ältere Gebäude: aus der Stufe nachgerechnet, ein laufender
+// Ausbau zählt mit – er ist schon bezahlt.
+function levelsPaid(b) {
+  if (b.lvPaid) return { ...b.lvPaid };
+  const out = {};
+  const top = levelOf(b) + (b.up > 0 ? 1 : 0);
+  for (let n = 2; n <= top; n++) for (const [id, k] of Object.entries(levelCost(b.type, n))) out[id] = (out[id] || 0) + k;
+  return out;
+}
+
 function refundOf(b) {
   const def = BUILDINGS[b.from && BUILDINGS[b.from] ? b.from : b.type];   // von selbst weiterentwickelt: zählt das Bezahlte
   const out = {};
   const paid = { ...(b.paid || def.cost || {}) };   // Brückenfeld: was im Zeitalter des Baus bezahlt wurde
-  for (let n = 2; n <= levelOf(b); n++) for (const [id, k] of Object.entries(levelCost(b.type, n))) paid[id] = (paid[id] || 0) + k;   // bezahlte Ausbauten
+  for (const [id, k] of Object.entries(levelsPaid(b))) paid[id] = (paid[id] || 0) + k;   // bezahlte Ausbauten
   for (const [id, n] of Object.entries(paid)) out[id] = Math.floor(n * CONFIG.refundShare);
   return out;
 }
@@ -246,17 +256,19 @@ function demolish(i) {
   if (!b || BUILDINGS[b.type].buildable === false || BUILDINGS[b.type].wonder) return false;
   if (b.bg) {   // Brücke von Ufer zu Ufer: geht nur ganz weg
     const group = bridgeTiles(b);
-    for (const k of group) addResources(refundOf(k));
+    for (const k of group) addReward(refundOf(k));
     for (let j = state.buildings.length - 1; j >= 0; j--) if (group.includes(state.buildings[j])) state.buildings.splice(j, 1);
     rebuildOccupancy();
+    recalcStats();
     emit('demolished', b);
     return true;
   }
-  addResources(refundOf(b));
+  addReward(refundOf(b));   // bei vollem Lager verfiel die Erstattung sonst (V207)
   if (BUILDINGS[b.type].deko) state.shop.deko[b.type] = dekoOwned(b.type) + 1;   // Deko kommt zurück in die Bauleiste
   state.buildings.splice(i, 1);
   rebuildOccupancy();
   state.pop = Math.min(state.pop, Math.max(housingTotal(), 1));
+  recalcStats();   // sonst arbeiten die Gebäude bis zur nächsten Rechnung mit der Besetzung ihres Nachbarn
   emit('demolished', b);
   return true;
 }
@@ -292,6 +304,7 @@ function upgradeBuilding(i) {
   const to = upgradeTarget(b);
   payCost(BUILDINGS[to].cost);
   setOccupied(b, 0);
+  if (!b.lvPaid) b.lvPaid = levelsPaid(b);   // Stufen wurden zum Preis des alten Gebäudes bezahlt
   b.type = to;
   delete b.from;   // bezahlt: Erstattung nach dem neuen Gebäude
   b.build = buildTimeOf(to);
@@ -451,7 +464,11 @@ function levelUp(i) {
   const problem = levelProblem(i);
   if (problem) return problem;
   const b = state.buildings[i];
-  payCost(levelCost(b.type, levelOf(b) + 1));
+  const cost = levelCost(b.type, levelOf(b) + 1);
+  const paid = levelsPaid(b);
+  payCost(cost);
+  for (const [id, n] of Object.entries(cost)) paid[id] = (paid[id] || 0) + n;
+  b.lvPaid = paid;
   b.up = levelTime(b.type, levelOf(b) + 1);
   emit('levelStarted', b);
   return null;
@@ -976,7 +993,14 @@ function updateProductionStep(dt) {
       const amount = n * dt / 60;
       if (amount > 0) room = Math.max(room, Math.max(0, capOf(id) - (state.res[id] || 0)) / amount);
     }
-    for (const [id, n] of Object.entries(def.produces)) { potential[id] = (potential[id] || 0) + n * f; if (room < f) throttled.add(id); }   // könnte mehr – Lager ist voll
+    // Was ohne Lagergrenze ginge – aber nur so weit die Rohstoffe reichen (sonst hielt eine Werkstatt ohne Rohstoffe
+    // ihr volles Lager für immer voll, V207)
+    let fIn = f;
+    if (def.consumes) for (const [id, n] of Object.entries(def.consumes)) {
+      const need = n * fIn * dt / 60;
+      if (need > 0) fIn = Math.min(fIn, fIn * available(id) / need);
+    }
+    for (const [id, n] of Object.entries(def.produces)) { potential[id] = (potential[id] || 0) + n * fIn; if (room < fIn) throttled.add(id); }   // könnte mehr – Lager ist voll
     f = Math.min(f, room);
     if (f <= 0) return;
     if (def.consumes) {
@@ -1174,6 +1198,7 @@ function evolveBuildings() {
       entry.count++;
       if (!b.build) state.built[to] = (state.built[to] || 0) + 1;
       if (!b.from) b.from = b.type;
+      if (!b.lvPaid && levelOf(b) > 1) b.lvPaid = levelsPaid(b);
       b.type = to;
       again = true;
     }
@@ -1304,7 +1329,7 @@ function traderOffers() {
   const open = c.offers.filter(o => (!o.requires || state.techs[o.requires]) && (!o.getFind || findCount(o.getFind) < findNeed(o.getFind)) && Object.keys(o.give).every(hasMaker)).map(o => [mix(o), o]).sort((a, b) => a[0] - b[0]).map(a => a[1]);
   const zinn = open.find(o => o.get.zinn);
   const fest = [...(zinn ? [zinn] : []), ...open.filter(o => o.get.bernstein || o.getFind)];   // immer dabei: Zinn, Bernstein und das Fundstück für die Halle
-  return [...fest, ...open.filter(o => !fest.includes(o))].slice(0, c.count + techSum('traderOffers') + (state.buildings.some(b => (b.type === 'wagner' || b.type === 'handelshof') && !b.build) ? 1 : 0));
+  return [...fest, ...open.filter(o => !fest.includes(o))].slice(0, c.count + techSum('traderOffers') + (state.buildings.some((b, i) => (b.type === 'wagner' || b.type === 'handelshof') && !b.build && !b.paused && isConnected(i) && (!BUILDINGS[b.type].workers || (stats.staff[i] || 0) > 0)) ? 1 : 0));
 }
 
 // Händler aus dem Süden (CONFIG.suedhaendler): wie der normale Händler, aber seltener, länger und mit festen Angeboten

@@ -202,7 +202,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   position: absolute;
   left: calc(6px + var(--safe-l));
   top: calc(var(--top-h, 40px) + 6px);
-  bottom: calc(var(--bar-h, 90px) + 6px);   /* nie unter die Bauleiste – reicht der Platz nicht, kommt eine zweite Spalte */
+  bottom: calc(var(--bar-h, 90px) + 40px);   /* nie unter Bauleiste und Reiter (V207: Reiter überdeckten den letzten Knopf) – reicht der Platz nicht, kommt eine zweite Spalte */
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;
@@ -853,6 +853,7 @@ small.ok { color: var(--green-dark); }
   .bar-tab::after { content: ''; position: absolute; inset: -2px; }   /* größere Tippfläche, sieht gleich aus */
   .bar-tab .emoji { font-size: 15px; }
   #bar-toggle { right: calc(8px + var(--safe-r)); bottom: calc(var(--bar-h, 60px) / 2 - 18px); }
+  #side { bottom: calc(var(--bar-h, 60px) + 6px); }   /* quer liegen die Reiter in der Leiste */
 }
 
 /* Info-Fenster (Waren, Einwohner, Zufriedenheit, Wetter, Gebäude) */

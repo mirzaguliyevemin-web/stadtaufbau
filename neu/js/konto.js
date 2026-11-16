@@ -510,10 +510,16 @@ function kontoHtml() {
 
 function kontoSeiteNeu() {
   if (pageOpen !== 'konto') return;
-  const pass = $('konto-pass'), wert = pass ? pass.value : '';   // eingegebenes Passwort beim Neuzeichnen behalten (steht nirgends sonst)
+  // Alles Eingetippte beim Neuzeichnen behalten (vorher nur das Passwort – ein halb getippter Name sprang zurück, V207)
+  const werte = {};
+  let fokus = '';
+  for (const el of document.querySelectorAll('#page-body input[id], #page-body textarea[id]')) {
+    if (el.type !== 'checkbox' && el.type !== 'file') werte[el.id] = el.value;
+    if (el === document.activeElement) fokus = el.id;
+  }
   $('page-body').innerHTML = kontoHtml();
-  const neu = $('konto-pass');
-  if (neu && wert) neu.value = wert;
+  for (const [id, v] of Object.entries(werte)) { const el = $(id); if (el && v) el.value = v; }
+  if (fokus && $(fokus)) try { $(fokus).focus({ preventScroll: true }); } catch (e) { /* egal */ }
 }
 
 function openKonto() {

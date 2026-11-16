@@ -1,6 +1,6 @@
 // Epochia – offline spielen. Bei Änderungen die Versionsnummer erhöhen (gleiche Nummer wie
 // APP_VERSION in js/daten.js und <meta name="app-version"> in index.html).
-const CACHE = 'v206';
+const CACHE = 'v207';
 const ASSETS = [
   './',
   'index.html',
@@ -29,14 +29,17 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
+  // cache: 'reload' – am HTTP-Zwischenspeicher vorbei, sonst kann offline eine Mischung aus alten und neuen Dateien liegen
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS.map(u => new Request(u, { cache: 'reload' })))));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k.startsWith('epochia-') && k !== CACHE).map(k => caches.delete(k))))
+      // ältere Epochia-Fassungen löschen: seit V61 hießen sie 'vNN' und blieben liegen – über 100 Kopien aller Bilder (V207).
+      // Nur eigene Namen: andere Seiten unter derselben github.io-Adresse teilen sich den Speicher.
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE && (/^v\d+$/.test(k) || k.startsWith('epochia-'))).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -48,9 +51,9 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(req, { cache: 'no-cache' })
       .then(res => {
-        if (res.ok) {
+        if (res.status === 200) {   // 206 (Musik in Stücken) lässt sich nicht ablegen
           const copy = res.clone();
-          caches.open(CACHE).then(cache => cache.put(req, copy));
+          caches.open(CACHE).then(cache => cache.put(req, copy)).catch(() => {});
         }
         return res;
       })

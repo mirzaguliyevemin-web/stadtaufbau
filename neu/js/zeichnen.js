@@ -380,67 +380,116 @@ function textureFor(t) {
   return t === TERRAIN.wasser.id ? 'wasser' : t === TERRAIN.sand.id ? 'sand' : 'wiese';
 }
 
-// Sand und Wasser als zusammenhängende, runde Flächen (statt eckiger Rauten): dicke Linien mit runden Enden
-// zwischen den Mitten benachbarter Felder, gezeichnet in Feld-Koordinaten (g ist schon passend transformiert).
-function regionStroke(g, x0, y0, x1, y1, inRegion) {
-  g.beginPath();
-  for (let y = y0; y <= y1; y++)
-    for (let x = x0; x <= x1; x++) {
-      if (!inMap(x, y) || !inRegion(x, y)) continue;
-      const cx = x + 0.5, cy = y + 0.5;
-      // Felder mitten in der Fläche brauchen nur zwei Linien (breiter Fluss: spart viel Rechenzeit)
-      if (inMap(x - 1, y - 1) && inMap(x + 1, y + 1) && inRegion(x - 1, y) && inRegion(x + 1, y) && inRegion(x, y - 1) && inRegion(x, y + 1)
-        && inRegion(x - 1, y - 1) && inRegion(x + 1, y - 1) && inRegion(x - 1, y + 1) && inRegion(x + 1, y + 1)) {
-        g.moveTo(cx, cy); g.lineTo(cx + 1, cy);
-        g.moveTo(cx, cy); g.lineTo(cx, cy + 1);
-        continue;
-      }
-      g.moveTo(cx, cy); g.lineTo(cx + 0.001, cy);
-      for (const [dx, dy] of [[1, 0], [0, 1], [1, 1], [1, -1]]) {
-        if (!inMap(x + dx, y + dy) || !inRegion(x + dx, y + dy)) continue;
-        g.moveTo(cx, cy); g.lineTo(cx + dx, cy + dy);
-      }
+// Sand, Wasser und Gebirge als zusammenhängende Flächen mit weich geschwungenem Rand (statt eckiger Rauten).
+// Jedes Feld gibt 1 (drin) oder 0 (draußen), das wird leicht weichgezeichnet und etwas verrauscht; die Linie bei 0.5
+// ergibt den Rand (Marching Squares zwischen den Feldmitten). Jedes Feld bleibt dabei auf seiner Seite, nur die Ecken
+// werden rund. Früher: dicke Linien plus kleine Kreise – das gab Wolken-Bögen am Ufer (Emin, 15.11.).
+// grow = wie weit der Rand nach außen rückt (in Feldern), g ist schon in Feld-Koordinaten transformiert.
+const REGION_SUB = 2;   // Rand-Punkte je Feld (feiner = rundere Linie)
+function regionField(x0, y0, x1, y1, inRegion, seed) {
+  const M = 4, W = x1 - x0 + 1 + 2 * M, H = y1 - y0 + 1 + 2 * M, raw = new Float32Array(W * H);
+  let any = false;
+  for (let j = 0; j < H; j++)
+    for (let i = 0; i < W; i++) {
+      const x = x0 - M + i, y = y0 - M + j;
+      if (inMap(x, y) && inRegion(x, y)) { raw[j * W + i] = 1; any = true; }
     }
+  if (!any) return null;
+  // zweimal mit 1-2-1 weichzeichnen (wie ein 5×5-Glockenfilter)
+  const blur = src => {
+    const tmp = new Float32Array(W * H), out = new Float32Array(W * H);
+    for (let j = 0; j < H; j++)
+      for (let i = 0; i < W; i++) {
+        const o = j * W + i;
+        tmp[o] = (src[o - (i > 0)] + 2 * src[o] + src[o + (i < W - 1)]) / 4;
+      }
+    for (let j = 0; j < H; j++)
+      for (let i = 0; i < W; i++) {
+        const o = j * W + i;
+        out[o] = (tmp[o - (j > 0) * W] + 2 * tmp[o] + tmp[o + (j < H - 1) * W]) / 4;
+      }
+    return out;
+  };
+  const c = blur(blur(raw));
+  // Jedes Feld bleibt auf seiner Seite der Linie, dazu etwas Unregelmäßigkeit (immer gleich je Feld)
+  for (let j = 0; j < H; j++)
+    for (let i = 0; i < W; i++) {
+      const o = j * W + i, x = x0 - M + i, y = y0 - M + j;
+      const v = c[o] + (hash(x * 7 + seed, y * 13 - seed) - 0.5) * 0.1;
+      c[o] = raw[o] ? Math.max(0.56, v) : Math.min(0.44, v);
+    }
+  // feiner unterteilen (Catmull-Rom zwischen den Feldmitten): Punkte für Felder x0−1 … x1+1
+  const S = REGION_SUB, n = x1 - x0 + 3, m = y1 - y0 + 3, FW = (n - 1) * S + 1, FH = (m - 1) * S + 1;
+  const wts = [];
+  for (let k = 0; k < S; k++) {
+    const t = k / S;
+    wts.push([(-t + 2 * t * t - t * t * t) / 2, (2 - 5 * t * t + 3 * t * t * t) / 2, (t + 4 * t * t - 3 * t * t * t) / 2, (-t * t + t * t * t) / 2]);
+  }
+  const rows = new Float32Array(FW * H);   // erst waagrecht
+  for (let j = 0; j < H; j++)
+    for (let I = 0; I < FW; I++) {
+      const ci = M - 1 + Math.floor(I / S), w = wts[I % S], o = j * W + ci;
+      rows[j * FW + I] = w[1] === 1 ? c[o] : w[0] * c[o - 1] + w[1] * c[o] + w[2] * c[o + 1] + w[3] * c[o + 2];
+    }
+  const f = new Float32Array(FW * FH);     // dann senkrecht
+  for (let J = 0; J < FH; J++) {
+    const cj = M - 1 + Math.floor(J / S), w = wts[J % S];
+    for (let I = 0; I < FW; I++) {
+      const o = cj * FW + I;
+      f[J * FW + I] = w[1] === 1 ? rows[o] : w[0] * rows[o - FW] + w[1] * rows[o] + w[2] * rows[o + FW] + w[3] * rows[o + 2 * FW];
+    }
+  }
+  return { f, GW: FW, GH: FH, ox: x0 - 0.5, oy: y0 - 0.5, step: 1 / S };
 }
 
-// Uferlinie natürlicher machen: an Rändern einer Fläche zufällige kleine Ausbuchtungen (immer gleich je Feld)
-function regionWobble(g, x0, y0, x1, y1, inRegion, grow, seed) {
+// Schwelle aus grow: ein gerader Rand fällt mit diesem Filter um etwa 0.375 je Feld ab
+function regionPath(g, x0, y0, x1, y1, inRegion, grow, seed, field) {
   g.beginPath();
-  for (let y = y0; y <= y1; y++)
-    for (let x = x0; x <= x1; x++) {
-      if (!inMap(x, y) || !inRegion(x, y)) continue;
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        if (!inMap(x + dx, y + dy) || inRegion(x + dx, y + dy)) continue;
-        for (let k = 0; k < 2; k++) {
-          const h = hash(x * 3 + dx + k * 17 + seed, y * 5 + dy - k * 11);
-          if (h < 0.45) continue;
-          const along = (hash(x + k * 7 + seed, y + dx * 3 + dy * 5) - 0.5) * 0.9;
-          const out = 0.38 + 0.18 * hash(y + k + seed, x - dy);
-          const r = 0.14 + 0.15 * h + grow;
-          const cx = x + 0.5 + dx * out + dy * along, cy = y + 0.5 + dy * out + dx * along;
-          g.moveTo(cx + r, cy);
-          g.arc(cx, cy, r, 0, Math.PI * 2);
+  const F = field || regionField(x0, y0, x1, y1, inRegion, seed);
+  if (!F) return;
+  const { f, GW, GH, ox, oy, step } = F, th = 0.5 - 0.375 * grow;
+  for (let j = 0; j < GH - 1; j++) {
+    let run = -1;   // Reihen ganz innen liegender Zellen als ein Rechteck
+    const py = oy + j * step;
+    for (let i = 0; i <= GW - 1; i++) {
+      const a = i < GW - 1 ? f[j * GW + i] : 0, b = i < GW - 1 ? f[j * GW + i + 1] : 0;
+      const c = i < GW - 1 ? f[(j + 1) * GW + i + 1] : 0, d = i < GW - 1 ? f[(j + 1) * GW + i] : 0;
+      const full = i < GW - 1 && a >= th && b >= th && c >= th && d >= th;
+      if (full) { if (run < 0) run = i; continue; }
+      if (run >= 0) { g.rect(ox + run * step, py, (i - run) * step, step); run = -1; }
+      if (i >= GW - 1 || (a < th && b < th && c < th && d < th)) continue;
+      // Ecken im Uhrzeigersinn, an jeder gekreuzten Kante den Schnittpunkt einfügen
+      const cx = ox + i * step, pts = [[cx, py, a], [cx + step, py, b], [cx + step, py + step, c], [cx, py + step, d]];
+      let first = true;
+      for (let k = 0; k < 4; k++) {
+        const [ax, ay, av] = pts[k], [bx, by, bv] = pts[(k + 1) % 4];
+        if (av >= th) { if (first) { g.moveTo(ax, ay); first = false; } else g.lineTo(ax, ay); }
+        if ((av >= th) !== (bv >= th)) {
+          const t = (th - av) / (bv - av), qx = ax + (bx - ax) * t, qy = ay + (by - ay) * t;
+          if (first) { g.moveTo(qx, qy); first = false; } else g.lineTo(qx, qy);
         }
       }
+      g.closePath();
     }
+  }
 }
 
-// Fläche malen: runde Linien plus Ausbuchtungen, alles mit einem Stil (width = Linienbreite in Feldern)
-function paintRegion(g, box, inRegion, style, width, seed) {
+// Fläche malen (width = wie früher die Linienbreite in Feldern: 1 = genau die Felder, größer = Rand rückt nach außen)
+// field: schon berechnetes regionField für dieselbe Fläche (spart Zeit, wenn sie mehrmals gemalt wird)
+function paintRegion(g, box, inRegion, style, width, seed, field) {
   const [x0, y0, x1, y1] = box;
-  g.strokeStyle = style; g.fillStyle = style;
-  regionStroke(g, x0, y0, x1, y1, inRegion);
-  g.lineWidth = width; g.stroke();
-  regionWobble(g, x0, y0, x1, y1, inRegion, (width - 1) / 2, seed);
+  if (!style) return;
+  g.fillStyle = style;
+  regionPath(g, x0, y0, x1, y1, inRegion, (width - 1) / 2, seed, field);
   g.fill();
 }
 
 // Textur in Feld-Koordinaten (eine Textur deckt TEXTURE_TILES × TEXTURE_TILES Felder), verschiebbar für fließendes Wasser
-function tilePattern(g, name, fx = 0, fy = 0) {
+function tilePattern(g, name, fx = 0, fy = 0, size = 1) {
   const img = images[name];
   if (!img || !g.createPattern || typeof DOMMatrix === 'undefined') return null;
   const p = g.createPattern(img, 'repeat');
-  const k = TEXTURE_TILES / img.width;
+  const k = TEXTURE_TILES * size / img.width;
   p.setTransform(new DOMMatrix([k, 0, 0, k, fx, fy]));
   return p;
 }
@@ -525,15 +574,17 @@ function renderChunk(cx, cy, scale = 1) {
     g.transform(TW / 2, TH / 2, -TW / 2, TH / 2, -left, -top);
     g.lineCap = 'round'; g.lineJoin = 'round';
     const box = [x0 - 2, y0 - 2, x0 + CHUNK + 1, y0 + CHUNK + 1];   // Rand mitnehmen: keine Kanten an Stückgrenzen
-    paintRegion(g, box, isShoreAt, 'rgba(96, 120, 40, 0.3)', 1.22, 1);   // grünlich-dunkler Saum ins Gras
-    paintRegion(g, box, isShoreAt, tilePattern(g, 'sand'), 1.06, 1);
-    paintRegion(g, box, isWaterAt, 'rgba(120, 88, 48, 0.32)', 1.42, 2);   // nasser Sand
-    paintRegion(g, box, isWaterAt, 'rgba(105, 78, 44, 0.28)', 1.2, 2);
-    if (patterns.wasser) paintRegion(g, box, isWaterAt, tilePattern(g, 'wasser'), 1.0, 2);
+    const shoreF = regionField(...box, isShoreAt, 1), waterF = regionField(...box, isWaterAt, 2);
+    paintRegion(g, box, isShoreAt, 'rgba(96, 120, 40, 0.3)', 1.22, 1, shoreF);   // grünlich-dunkler Saum ins Gras
+    paintRegion(g, box, isShoreAt, tilePattern(g, 'sand'), 1.06, 1, shoreF);
+    paintRegion(g, box, isWaterAt, 'rgba(120, 88, 48, 0.32)', 1.42, 2, waterF);   // nasser Sand
+    paintRegion(g, box, isWaterAt, 'rgba(105, 78, 44, 0.28)', 1.2, 2, waterF);
+    if (patterns.wasser) paintRegion(g, box, isWaterAt, tilePattern(g, 'wasser'), 1.0, 2, waterF);
     // Gebirge: felsiger Boden mit dunklem Rand
     if (images['berg-boden']) {
-      paintRegion(g, box, isMountainAt, 'rgba(70, 60, 45, 0.35)', 1.25, 3);
-      paintRegion(g, box, isMountainAt, tilePattern(g, 'berg-boden'), 1.08, 3);
+      const bergF = regionField(...box, isMountainAt, 3);
+      paintRegion(g, box, isMountainAt, 'rgba(70, 60, 45, 0.35)', 1.25, 3, bergF);
+      paintRegion(g, box, isMountainAt, tilePattern(g, 'berg-boden'), 1.08, 3, bergF);
     }
     g.restore();
   }
@@ -624,9 +675,8 @@ function renderDepthLayer(x0, y0, left, top) {
   mg.lineCap = 'round'; mg.lineJoin = 'round';
   paintRegion(mg, box, isWaterAt, '#000', 1.0, 2);
   g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-in'; g.drawImage(mask, 0, 0); g.restore();
-  // Nur die Raute des eigenen Boden-Stücks: Die Bilder überlappen sich, sonst läge die Tiefe am Rand doppelt (am großen See als Muster zu sehen)
-  g.save(); g.globalCompositeOperation = 'destination-in'; g.fillStyle = '#000';
-  g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0 + CHUNK, y0); g.lineTo(x0 + CHUNK, y0 + CHUNK); g.lineTo(x0, y0 + CHUNK); g.closePath(); g.fill(); g.restore();
+  // Die Raute des eigenen Boden-Stücks wird erst beim Zeichnen in voller Auflösung ausgeschnitten (drawWaterDepth). Hier im
+  // groben Raster ausgeschnitten, gab jeder Rand eine helle Naht – auf dem See ein Rautenmuster (Emin, 15.11.).
   // ein paar Steine auf den Sandbänken
   for (let y = Math.max(0, box[1]); y <= Math.min(N - 1, box[3]); y++)
     for (let x = Math.max(0, box[0]); x <= Math.min(N - 1, box[2]); x++) {
@@ -647,7 +697,11 @@ function drawWaterDepth(range) {
       const ch = chunks[cy * per + cx];
       if (!ch || !ch.depth) continue;
       const p = worldToScreen(ch.left, ch.top);
+      const x0 = cx * CHUNK, y0 = cy * CHUNK, corners = [[x0, y0], [x0 + CHUNK, y0], [x0 + CHUNK, y0 + CHUNK], [x0, y0 + CHUNK]].map(([x, y]) => tileToScreen(x, y));
+      ctx.save();
+      ctx.beginPath(); corners.forEach((q, k) => k ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)); ctx.closePath(); ctx.clip();
       ctx.drawImage(ch.depth, p.x, p.y, CHUNK * TW * cam.zoom * ch.depth.width / (CHUNK * TW * DEPTH_SCALE), (CHUNK * TH + 2) * cam.zoom * ch.depth.height / ((CHUNK * TH + 2) * DEPTH_SCALE));
+      ctx.restore();
     }
 }
 
@@ -1009,6 +1063,7 @@ function resetCanvasCaches() {
   alphaCache.clear();    // Durchsichtigkeit zum Antippen – aus einer geleerten Leinwand gelesen wäre alles durchsichtig
   if (typeof guideSprite !== 'undefined') guideSprite = null;
   chunks = []; chunksAlive = 0;
+  waterFieldCache = null;
   overview = []; ovGrain = null;   // Übersichtskarte: wird in den nächsten Bildern nach und nach neu gemalt
   // aus Bildern gebaute Leinwände (Pfahlbau ohne Boot, Wasserrand): aus der Datei neu bauen
   for (const [name, img] of Object.entries(images))
@@ -1677,6 +1732,7 @@ function drawSmoke() {
   smokeQueue = [];
 }
 
+let waterFieldCache = null;
 // Fließendes Wasser: über das vorgezeichnete Wasser zwei langsam wandernde Lagen der Wasser-Textur legen
 function drawWater(range) {
   if (!images.wasser) return;
@@ -1697,13 +1753,19 @@ function drawWater(range) {
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const box = [x0, y0, x1, y1];
   // Schaumsaum am Ufer (atmet leicht)
-  paintRegion(ctx, box, isWaterShown, `rgba(255,255,255,${0.32 + 0.12 * Math.sin(t * 1.3)})`, 1.1 + 0.03 * Math.sin(t * 1.3), 2);
+  // Die Uferform kostet einige Millisekunden – nur neu rechnen, wenn sich der sichtbare Ausschnitt (in ganzen Feldern) ändert
+  const key = box.join();
+  if (!waterFieldCache || waterFieldCache.key !== key || waterFieldCache.terrain !== terrain || waterFieldCache.land !== landVersion)
+    waterFieldCache = { key, terrain, land: landVersion, f: regionField(...box, isWaterShown, 2) };
+  const wf = waterFieldCache.f;
+  paintRegion(ctx, box, isWaterShown, `rgba(255,255,255,${0.32 + 0.12 * Math.sin(t * 1.3)})`, 1.1 + 0.03 * Math.sin(t * 1.3), 2, wf);
   // zwei langsam wandernde Lagen der Wasser-Textur
-  paintRegion(ctx, box, isWaterShown, tilePattern(ctx, 'wasser', (t * 0.18) % TEXTURE_TILES, (t * 0.05) % TEXTURE_TILES), 1.0, 2);
-  ctx.globalAlpha = 0.35;
-  paintRegion(ctx, box, isWaterShown, tilePattern(ctx, 'wasser', (t * 0.07) % TEXTURE_TILES, (t * 0.15) % TEXTURE_TILES), 1.0, 2);
+  paintRegion(ctx, box, isWaterShown, tilePattern(ctx, 'wasser', (t * 0.18) % TEXTURE_TILES, (t * 0.05) % TEXTURE_TILES), 1.0, 2, wf);
+  // zweite Lage größer und schräg versetzt: so decken sich die Wiederholungen beider Lagen nicht (sonst sieht man ein Raster)
+  ctx.globalAlpha = 0.4;
+  paintRegion(ctx, box, isWaterShown, tilePattern(ctx, 'wasser', 1.3 + (t * 0.07) % (TEXTURE_TILES * 1.73), 2.1 + (t * 0.15) % (TEXTURE_TILES * 1.73), 1.73), 1.0, 2, wf);
   const snow = typeof snowCover === 'function' ? snowCover() : 0;
-  if (snow > 0) { ctx.globalAlpha = 0.42 * snow; paintRegion(ctx, box, isWaterShown, '#e4eff8', 1.0, 2); }   // im Winter: heller Eisschimmer
+  if (snow > 0) { ctx.globalAlpha = 0.42 * snow; paintRegion(ctx, box, isWaterShown, '#e4eff8', 1.0, 2, wf); }   // im Winter: heller Eisschimmer
   ctx.restore();
   ctx.globalAlpha = 1;
   // Glitzern

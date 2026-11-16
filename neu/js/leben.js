@@ -448,7 +448,7 @@ Object.assign(WORK, {
   eisenmine:    { target: 'fels', tool: 'hacke', carry: null, img: 'mensch-mann', chips: '#a0604a', swing: 'hack', carryLook: 'mensch-bergmann-korb', anim: 'bergbau' },   // trägt Erz im Korb
   rennofen:     { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#ff8a3c', swing: 'tend', anim: 'blasebalg' },   // tritt den Blasebalg
   salzsiederei: { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#f4f4ee', swing: 'tend', anim: 'stochern' },    // rührt mit der Stange
-  glasmacherin: { target: 'self', tool: null,    carry: null, img: 'mensch-frau', chips: '#7fe0b8', swing: 'tend', anim: 'schmuck' },     // feine Arbeit an Perlen
+  glasmacherin: { target: 'self', tool: null,    carry: null, img: 'mensch-frau', chips: '#7fe0b8', swing: 'knap', anim: 'schmuck' },     // feine Arbeit an Perlen
   wagner:       { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#a8743f', swing: 'knap', anim: 'schmieden' },   // beschlägt das Rad
   zinnwaescherin: { target: 'wasser', tool: null,    carry: null, img: 'mensch-frau', chips: '#cfe9f7', swing: 'pan', anim: 'waschen' },    // schwenkt die Pfanne am Ufer
 });
@@ -705,7 +705,8 @@ function drawWorker(w, t) {
   } else drawCreature(look, w.x, w.y, 32, w.face, bob, '🧍', walking ? step : null);
   // Werkzeug schwingen (hoch – runter – Schlag)
   if (!walking && w.kind.tool && (posed || images[w.kind.tool])) {
-    const cyc = (t * 1.6 + w.ph) % 1;
+    // im selben Takt wie die Bilder (Bergmann schlägt langsamer zu als der Holzfäller), sonst flogen Späne beim Ausholen
+    const cyc = (t * ((posed && w.kind.anim && ANIM_TIMING[w.kind.anim] && ANIM_TIMING[w.kind.anim].speed) || 1.6) + w.ph) % 1;
     if (!posed) {
     const ang = cyc < 0.7 ? -1.6 * (cyc / 0.7) : -1.6 + 2.2 * ((cyc - 0.7) / 0.3);   // langsam ausholen, schnell zuschlagen
     const s = 24 * z;
@@ -719,7 +720,10 @@ function drawWorker(w, t) {
     // Späne bzw. Splitter beim Aufschlag
     if (cyc > 0.85 && w.kind.chips) {
       const q = (cyc - 0.85) / 0.15;
+      // Baum und Fels: Späne am Stamm bzw. an der Wand; Acker und Tongrube: Erde fliegt am Boden auf (nicht in der Luft)
+      const high = w.kind.target === 'wald' || w.kind.target === 'fels';
       const hx = tileToScreen(w.tx, w.ty);
+      if (!high) hx.y += 10 * z;
       ctx.fillStyle = w.kind.chips;
       for (let i = 0; i < 4; i++) {
         const a = i * 1.7 + w.ph;
@@ -750,7 +754,10 @@ function drawWorker(w, t) {
       ctx.globalAlpha = 1;
     }
   }
-  if (!walking && swing === 'spear' && posed) {   // Canva-Haltungen: beim Zustechen spritzt es an der Speerspitze
+  if (!walking && swing === 'spear' && posed && w.kind.anim === 'netz') {   // das Netz klatscht weit vorn aufs Wasser
+    const cyc = (t * ANIM_TIMING.netz.speed + w.ph) % 1;
+    if (cyc >= 0.6 && cyc < 0.85) splash(p.x - w.face * 30 * z, p.y - 2 * z, z, 1 - (cyc - 0.6) / 0.25);
+  } else if (!walking && swing === 'spear' && posed) {   // Canva-Haltungen: beim Zustechen spritzt es an der Speerspitze
     const cyc = (t * 1.6 + w.ph) % 1;
     if (cyc >= 0.7) splash(p.x - w.face * 15 * z, p.y - 1 * z, z, 1 - (cyc - 0.7) / 0.3);
   }
@@ -767,18 +774,12 @@ function drawWorker(w, t) {
     ctx.beginPath(); ctx.moveTo(ex + ux * 5, ey + uy * 5); ctx.lineTo(ex - uy * 1.6 - ux * 1.5, ey + ux * 1.6 - uy * 1.5); ctx.lineTo(ex + uy * 1.6 - ux * 1.5, ey - ux * 1.6 - uy * 1.5); ctx.fill();
     if (thrust > 0.6) splash(ex, ey + 2 * z, z, thrust);
   }
-  if (!walking && swing === 'paint') {   // Pinsel an die Felswand, bunte Tupfen erscheinen nach und nach
-    const q = tileToScreen(w.tx, w.ty), done = Math.min(1, (WORK_SECONDS - w.t) / WORK_SECONDS);
-    const cols = ['#b5462a', '#e0a040', '#3a2a1a', '#f2e6c8'];
-    for (let i = 0; i < Math.floor(done * 7); i++) {
-      ctx.fillStyle = cols[i % 4];
-      ctx.beginPath(); ctx.arc(q.x + (hash(i, w.k + 3) - 0.5) * 16 * z, q.y - 10 * z - hash(w.k, i + 5) * 12 * z, 1.8 * z, 0, 7); ctx.fill();
-    }
-    if (!posed) {   // sonst zeigen die Bilder den Pinsel schon
-      const dab = Math.sin(t * 5 + w.ph);
-      ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 1.5 * z; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(hand.x, hand.y); ctx.lineTo(hand.x - (6 + dab * 2) * z * w.face, hand.y - (5 + dab * 3) * z); ctx.stroke();
-    }
+  // Malen: Die gemalten Farbtupfen schwebten neben der Figur in der Luft (Prüfung aller Figuren, 16.11.) – die Bilder zeigen
+  // den Pinsel an der Wand; ohne Bilder bleibt der gezeichnete Pinsel
+  if (!walking && swing === 'paint' && !posed) {
+    const dab = Math.sin(t * 5 + w.ph);
+    ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 1.5 * z; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(hand.x, hand.y); ctx.lineTo(hand.x - (6 + dab * 2) * z * w.face, hand.y - (5 + dab * 3) * z); ctx.stroke();
   }
   if (!walking && !posed && (swing === 'scrape' || swing === 'knap' || swing === 'pot')) {   // Hände über dem Werkstück
     const pw = tileToScreen(w.x, w.y);
@@ -805,8 +806,9 @@ function drawWorker(w, t) {
   }
   // Felsritzer: kleine Splitter an der Wand
   if (!walking && swing === 'chisel') {
-    const g = tileToScreen(w.tx, w.ty), q = (t * 2 + w.ph) % 1;
-    if (q < 0.4) {
+    const cyc = (t * (posed ? ANIM_TIMING.ritzen.speed : 2) + w.ph) % 1, q = posed ? cyc - 0.55 : cyc;   // Schlag bei 0.55
+    const g = tileToScreen(w.tx, w.ty);
+    if (q >= 0 && q < 0.4) {
       ctx.fillStyle = w.kind.chips; ctx.globalAlpha = 1 - q / 0.4;
       for (let i = 0; i < 3; i++) ctx.fillRect(g.x + (i - 1) * 5 * q * z * 2.5, g.y - 14 * z - q * 8 * z, 2 * z, 2 * z);
       ctx.globalAlpha = 1;
@@ -814,8 +816,8 @@ function drawWorker(w, t) {
   }
   // Zinn waschen: das Wasser spritzt beim Schwenken
   if (!walking && swing === 'pan') {
-    const q = (t * 1.2 + w.ph) % 1;
-    if (q < 0.5) splash(p.x - w.face * 12 * z, p.y - 2 * z, z, 1 - q * 2);
+    const q = posed ? ((t * ANIM_TIMING.waschen.speed + w.ph) % 1) / 0.25 : ((t * 1.2 + w.ph) % 1) * 2;   // Bilder: beim Schöpfen
+    if (q < 1) splash(p.x - w.face * 12 * z, p.y - 2 * z, z, 1 - q);
   }
   // Sternkundiger: nachts funkelt über ihm ein Stern
   if (!walking && swing === 'gaze' && darkness() > 0.3) {
@@ -827,17 +829,14 @@ function drawWorker(w, t) {
   // Beeren pflücken: früher hüpfte hier ein gemalter roter Punkt als Beere in den Korb – er saß neben der Figur und wirkte
   // fremd (Emin, 16.11.); das Pflücken zeigen jetzt die Bilder der Sammlerin selbst
   // Pflanzen: Erde krümelt neben den Händen
-  if (!walking && swing === 'plant') {
+  if (!walking && swing === 'plant' && !posed) {
     const q = (t * 1.3 + w.ph) % 1, g = tileToScreen(w.tx, w.ty);
     ctx.fillStyle = '#7a5230'; ctx.globalAlpha = 1 - q;
     for (let i = 0; i < 3; i++) ctx.fillRect(g.x + (i - 1) * 4 * z + (p.x - g.x) * 0.4, g.y - 3 * z - q * (4 + i * 2) * z, 2 * z, 2 * z);
     ctx.globalAlpha = 1;
   }
-  // Beute auf dem Rückweg tragen
-  if (w.phase === 'back' && w.kind.carry && images[w.kind.carry] && look !== w.kind.carryLook) {
-    const s = 14 * z;
-    ctx.drawImage(images[w.kind.carry], p.x - s / 2, p.y - 32 * z - s * 0.6 - bob, s, s);
-  }
+  // Ohne eigenes Tragebild (Fischer, Maler, Felsritzer) schwebte hier früher das Warenbild über dem Kopf – sah aus wie ein
+  // Fehler (Prüfung aller Figuren, 16.11.). Die Ware kommt trotzdem an; Tragebilder folgen mit den neuen Figuren.
 }
 
 // Kleine Wasserspritzer (Speer, Paddel)

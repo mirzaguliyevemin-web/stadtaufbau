@@ -1662,24 +1662,78 @@ function doDeleteSlot(slot) {
   if (pageOpen === 'slots') $('page-body').innerHTML = slotsHtml(gameRunning);
 }
 
-function showExport() {
-  openDialog(`<h2>📤 Exportieren</h2><p>Diesen Text kopieren und sicher aufheben (z. B. in einer Notiz):</p>
-    <textarea readonly onclick="this.select()">${esc(exportText())}</textarea>
+// Spielstand umziehen ohne langen Text (Emin, 16.11.): kurzer Code, Teilen/Kopieren mit einem Tipp, Einfügen mit einem Tipp
+let exportCodeText = '';
+async function showExport() {
+  openDialog(`<h2>📤 Exportieren</h2><p>Code wird erstellt …</p>`);
+  exportCodeText = await exportCode();
+  const share = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  openDialog(`<h2>📤 Exportieren</h2>
+    <p>Spielstand von Platz ${currentSlot} als Code (${exportCodeText.length.toLocaleString('de-DE')} Zeichen). Schick ihn dir selbst, z. B. per WhatsApp oder in eine Notiz.
+    Auf dem anderen Gerät den Code kopieren und unter „Importieren“ auf „Einfügen“ tippen.</p>
+    <div class="buttons">${share ? '<button class="btn primary" onclick="exportTeilen()">📤 Teilen</button>' : ''}
+      <button class="btn${share ? '' : ' primary'}" onclick="exportKopieren()">📋 Kopieren</button></div>
+    <details><summary>Code anzeigen</summary><textarea readonly onclick="this.select()">${esc(exportCodeText)}</textarea></details>
     <div class="buttons"><button class="btn" onclick="closeDialog()">Fertig</button></div>`);
 }
 
-function showImport() {
-  openDialog(`<h2>📥 Importieren</h2><p>Exportierten Text hier einfügen. Der Spielstand auf Platz ${currentSlot} wird ersetzt.</p>
-    <textarea id="import-text"></textarea>
-    <div class="buttons"><button class="btn primary" onclick="doImport()">Laden</button><button class="btn" onclick="closeDialog()">Abbrechen</button></div>`);
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* weiter unten versuchen */ }
+  try {
+    const t = document.createElement('textarea');
+    t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
+    document.body.appendChild(t); t.select();
+    const ok = document.execCommand('copy');
+    t.remove();
+    return ok;
+  } catch (e) { return false; }
 }
 
-function doImport() {
-  if (importText($('import-text').value)) {
+async function exportKopieren() {
+  if (await copyText(exportCodeText)) toast('Code kopiert – jetzt z. B. in WhatsApp oder eine Notiz einfügen');
+  else { toast('Kopieren ging nicht – bitte den Code von Hand markieren'); const d = document.querySelector('#dialog-box details'); if (d) d.open = true; }
+}
+
+async function exportTeilen() {
+  try { await navigator.share({ title: 'Epochia-Spielstand', text: exportCodeText }); }
+  catch (e) { if (e && e.name !== 'AbortError') exportKopieren(); }
+}
+
+function showImport() {
+  openDialog(`<h2>📥 Importieren</h2>
+    <p>Den Code auf diesem Gerät kopieren (z. B. lange auf die WhatsApp-Nachricht tippen → Kopieren), dann hier auf „Einfügen“ tippen.
+    Der Spielstand auf Platz ${currentSlot} wird ersetzt.</p>
+    <div class="buttons"><button class="btn primary" onclick="importEinfuegen()">📋 Einfügen und laden</button>
+      <button class="btn" onclick="$('import-datei').click()">📂 Datei wählen</button></div>
+    <input type="file" id="import-datei" accept=".txt,.json,text/plain,application/json" style="display:none" onchange="importDatei(this)">
+    <details><summary>Code von Hand einfügen</summary><textarea id="import-text"></textarea>
+      <div class="buttons"><button class="btn" onclick="doImport()">Laden</button></div></details>
+    <div class="buttons"><button class="btn" onclick="closeDialog()">Abbrechen</button></div>`);
+}
+
+async function importEinfuegen() {
+  let text = '';
+  try { text = await navigator.clipboard.readText(); } catch (e) { /* manche Geräte erlauben das nicht */ }
+  if (!text || !text.trim()) {
+    toast('Nichts in der Zwischenablage gefunden – bitte unten von Hand einfügen');
+    const d = document.querySelector('#dialog-box details'); if (d) d.open = true;
+    return;
+  }
+  doImport(text);
+}
+
+async function importDatei(input) {
+  const f = input.files && input.files[0];
+  if (f) doImport(await f.text());
+}
+
+async function doImport(text) {
+  if (text === undefined) text = $('import-text').value;
+  if (await importCode(text)) {
     saveGame();
     closeDialog();
     closeAllPages();
     enterGame();   // setzt Figuren, Wetter, Kamera und Hinweise zurück
     toast('Spielstand geladen');
-  } else toast('Der Text ist kein gültiger Spielstand');
+  } else toast(String(text).includes(EXPORT_PREFIX) && !canPack() ? 'Dieses Gerät kann den Code nicht entpacken – bitte Browser aktualisieren' : 'Das ist kein gültiger Spielstand-Code');
 }

@@ -3310,6 +3310,27 @@ test('Erzader nie tief im Hochgebirge, festsitzende verschwindet; Bergmann kommt
   noErrors(g);
 });
 
+// Asynchron (Packen läuft über Streams): testAsync steht weiter oben bei den Konto-Tests
+await testAsync('Export und Import: kurzer gepackter Code, alter Text und JSON-Datei laden weiter (16.11.)', async () => {
+  const g = fresh();
+  Object.assign(g.run('this'), { CompressionStream, DecompressionStream, Response, Blob });
+  const run = async code => {
+    g.run(`var __fertig = false, __r; Promise.resolve(${code}).then(x => { __r = x; __fertig = true; })`);
+    for (let i = 0; i < 500 && !g.run('__fertig'); i++) await new Promise(r => setTimeout(r, 10));
+    return g.run('__r');
+  };
+  g.run('state.res.stein = 123; saveGame();');
+  const code = await run('exportCode()');
+  ok(code.startsWith('EPOCHIA1:') && code.length < g.run('exportText().length') / 3, 'Code nicht gepackt/kurz: ' + code.length);
+  g.run('state.res.stein = 1;');
+  ok(await run(`importCode(${JSON.stringify('Mein Stand: ' + code + '\n')})`) === true && g.run('state.res.stein') === 123, 'Code mit Text drumherum lädt nicht');
+  g.run('var __alt = exportText(); state.res.stein = 2;');
+  ok(await run('importCode(__alt)') === true && g.run('state.res.stein') === 123, 'Alter Text lädt nicht');
+  ok(await run('importCode(serialize())') === true, 'JSON-Datei lädt nicht');
+  ok(await run('importCode("EPOCHIA1:Quatsch")') === false && await run('importCode("")') === false, 'Unsinn importiert');
+  noErrors(g);
+});
+
 const quick = process.argv.includes('--quick');
 if (!quick) {
   // Seit Version 44 (Forschung halb so lang) und dem besseren Bot dauert die Altsteinzeit gut 1 Stunde

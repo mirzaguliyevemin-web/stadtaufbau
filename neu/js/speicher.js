@@ -310,3 +310,37 @@ function importText(text) {
     return false;
   }
 }
+
+// Kurzer Code zum Umziehen (Emin, 16.11.: „immer viel zu viel Text“): gepackt (gzip) etwa neunmal kürzer, mit Kennung davor.
+// Ältere, ungepackte Texte (exportText) und eine reine JSON-Datei lassen sich weiter laden.
+const EXPORT_PREFIX = 'EPOCHIA1:';
+const canPack = () => typeof CompressionStream !== 'undefined' && typeof DecompressionStream !== 'undefined' && typeof Response !== 'undefined' && typeof Blob !== 'undefined';
+
+async function exportCode() {
+  const json = serialize();
+  if (!canPack()) return exportText();
+  try {
+    const b = new Uint8Array(await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+    return EXPORT_PREFIX + btoa(bin);
+  } catch (e) {
+    return exportText();
+  }
+}
+
+async function importCode(text) {
+  text = String(text || '').trim();
+  if (text.startsWith('{')) return loadFromText(text);
+  const at = text.indexOf(EXPORT_PREFIX);
+  if (at < 0) return importText(text);
+  if (!canPack()) return false;
+  try {
+    const bin = atob(text.slice(at + EXPORT_PREFIX.length).replace(/[^A-Za-z0-9+/=]/g, ''));
+    const b = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i);
+    return loadFromText(await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+  } catch (e) {
+    return false;
+  }
+}

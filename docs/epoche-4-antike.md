@@ -156,14 +156,67 @@ Schon im Wunderwerk-Plan vorgesehen. Ab der Antike sind Wunderwerke 5×5 groß.
 
 ## Forschungsbaum
 
-Etwa 32 Forschungen in den gewohnten vier Ästen:
+Entwurf vom 17.11. Er ist aufgebaut wie die Eisenzeit, mit vier Reihen:
+- 🍞 Nahrung
+- 🏠 Wohnen und Bauen
+- 🔨 Handwerk
+- 📜 Wissen, Glaube und Handel
 
-| | Frühe Antike | Mittlere Antike | Späte Antike |
+Jede Stufe endet mit einer Übergangs-Forschung, die bestimmte Gebäude verlangt. Zusammen sind es **37 Forschungen** mit etwa **9 Stunden** reiner Forschungszeit. Die Eisenzeit hat 31 Forschungen und gut 7 Stunden.
+
+### Frühe Antike (11 + Übergang)
+
+| Reihe | Forschung | braucht vorher | schaltet frei |
 |---|---|---|---|
-| **Nahrung** | Gutshöfe | Weinbau, Fischmärkte, Schafzucht | Vorratshallen |
-| **Wohnen** | Ziegel, Villen | Hafenhäuser | Mietshäuser, Aquädukt, Thermen |
-| **Handwerk** | Silberbergbau, Werkstätten, Marmor | Schiffbau, Wassersäge, Amphoren, Walkerei | Mörtel, Glasfenster |
-| **Wissen, Glaube, Handel** | Schrift, Münzen, Markt | Seehandel, **Kolonien** | Theater, Tempel, Leuchtfeuer, **Aufbruch ins Mittelalter** |
+| 🍞 | Gutshöfe | Aufbruch | Eisenpflug-Feld → Gutshof |
+| 🏠 | Ziegelbrennen | Aufbruch | Ziegelei, Lehmgrube → Tongrube |
+| 🏠 | Ziegelhäuser | Ziegelbrennen | Steinhaus → Ziegelhaus |
+| 🏠 | Villen | Ziegelhäuser | Stadthaus → Villa |
+| 🏠 | Römerstraßen 💡 | Ziegelbrennen | gepflasterte Wege, auf denen die Leute schneller laufen |
+| 🔨 | Silberbergbau | Aufbruch | Silbermine |
+| 🔨 | Werkstätten | Silberbergbau | Eisenschmied → Werkstatt |
+| 🔨 | Marmor | Werkstätten | Großer Steinbruch → Marmorbruch |
+| 📜 | Schrift | Aufbruch | Druide → Schreibstube |
+| 📜 | Münzen | Schrift + Silberbergbau | Münzprägerei und Steuer der Häuser |
+| 📜 | Markt | Münzen | Handelshof → Markt, Kaufen mit Münzen |
+| ➡️ | **Mittlere Antike** | alle oben | Gebäude: 6 Ziegelhäuser, 2 Münzprägereien, 1 Markt, 2 Ziegeleien |
+
+### Mittlere Antike (13 + Übergang)
+
+| Reihe | Forschung | braucht vorher | schaltet frei |
+|---|---|---|---|
+| 🍞 | Weinbau | Übergang | Obstgarten → Weingarten |
+| 🍞 | Wildgehege | Weinbau | Jagdhof → Wildgehege |
+| 🍞 | Fischmärkte | Weinbau | Fischerei → Fischmarkt |
+| 🍞 | Schafzucht | Wildgehege | Rindergut → Schafgut |
+| 🏠 | Hafenhäuser | Übergang | Seehof → Hafenhaus |
+| 🏠 | Lagerhallen | Hafenhäuser | Vorratshof → Lagerhalle, mehr Lagerplatz |
+| 🔨 | Schiffbau | Übergang | **Hafen** und **Schiffsreise**; Olivenöl wird ab hier gebraucht |
+| 🔨 | Wassersäge | Schiffbau | Holzhof → Sägewerk |
+| 🔨 | Baumschulen | Wassersäge | Forstmeisterin → Baumschule |
+| 🔨 | Amphoren | Schiffbau | Drehscheiben-Töpferei → Amphorenwerkstatt |
+| 🔨 | Walkerei | Amphoren | Tuchmacherin → Walkerei |
+| 📜 | Seehandel | Schiffbau + Markt | Händlerschiffe am Hafen, Öl und Wein kaufen |
+| 📜 | **Kolonien** | Seehandel | **Siedlerschiff**, das die zweite Stadt gründet |
+| ➡️ | **Späte Antike** | alle oben | Gebäude: 1 Hafen, 2 Amphorenwerkstätten, 2 Sägewerke, 4 Hafenhäuser oder Villen |
+
+### Späte Antike (10 + Aufbruch)
+
+| Reihe | Forschung | braucht vorher | schaltet frei |
+|---|---|---|---|
+| 🍞 | Olivenhaine | Übergang | Olivenhain und Ölmühle, nur auf der Inselkarte |
+| 🏠 | Mörtel | Übergang | eine fünfte Baustelle gleichzeitig |
+| 🏠 | Mietshäuser | Mörtel + Fensterglas | Villa → Mietshaus |
+| 🏠 | Aquädukt | Mörtel | Aquädukt als Weg ziehen |
+| 🏠 | Thermen | Aquädukt | Badehaus → Thermen |
+| 🔨 | Fensterglas | Übergang | Glasmacherin → Glasbläserei |
+| 📜 | Tempel | Übergang | Druidenhain → Säulentempel |
+| 📜 | Theater | Tempel | Theater |
+| 📜 | Leuchtfeuer | Theater + Thermen | Bau des **Großen Leuchtturms** |
+| 📜 | Triumphbogen | Leuchtfeuer | das Wahrzeichen |
+| ➡️ | **Aufbruch ins Mittelalter** | Triumphbogen, Mietshäuser, Olivenhaine | Gebäude: Großer Leuchtturm, Triumphbogen, Theater, 6 Mietshäuser, 2 Thermen. Die **Religion** wählt man hier. |
+
+💡 **Kosten:** wie in der Eisenzeit Wissen plus eine Ware, ab der Mittleren Antike oft **Münzen** (zum Beispiel 450 Wissen und 100 Münzen). Die genauen Zahlen kommen beim Messen.
 
 ## Aufträge, Ereignisse, Stimmung
 

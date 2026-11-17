@@ -19,12 +19,13 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 - Eisenzeit (Emin, 03.11.): Technik mit vorläufigen Bildern gebaut (Version 86). Offen: etwa 200 Bilder, später nach den Bildern für Steinzeit und Bronzezeit. Plan: `docs/epoche-3-eisenzeit.md`.
 
-- Design (Emin, 04.11.): Schritt 1–3 gebaut (Version 95), Leisten, Titelband und Symbole gemalt (Version 105). Alle Warenbilder da (Version 106), Boden neu mit Scenario (Version 187). Offen: prüfen, welche Gebäude noch zu dunkel sind. Plan: `docs/plan-design.md`.
+- Design (Emin, 04.11.): Schritt 1–3 gebaut (Version 95), Leisten, Titelband und Symbole gemalt (Version 105). Alle Warenbilder da (Version 106), Boden neu mit Scenario (Version 187). Zu dunkle Gebäude geprüft (V220: Halle und Pflanzerin aufgehellt, alle anderen im Rahmen). Plan: `docs/plan-design.md`.
 
 - Zweite Karte und zweite Stadt (Emin, 03.11.): nur ein Plan, wichtigere Sachen gehen vor. Plan: `docs/plan-zweite-stadt.md`, → Frage: 6 Fragen an Emin, wenn es so weit ist.
 
 
 - Wasserfall als echtes Video (Emin, 17.11.): das gemalte Bild (Version 216/217) später durch einen bewegten Wasserfall ersetzen (Video bzw. Bildfolge mit Scenario), wenn genug Credits da sind – keine Eile.
+- 2026-11-17, Epochia Version 220 – kleine offene Punkte: Halle und Pflanzerin (Stufe 2) aufgehellt (waren deutlich dunkler als alle anderen Gebäude); Gebirgsausläufer endet nicht mehr als runde Scheibe, sondern läuft unregelmäßig spitz aus (nur Zugaben, Minen behalten ihren Berg); Hochwasser: Fluss tritt sichtbar 1–3 Felder über die Ufer und geht am Ende zurück; Dürre: vertrocknete, rissige Flecken und Staub, kein Regen mehr während der Dürre.
 - 2026-11-17, Epochia Version 219 – erste Fassung, die als Live-Update in die App kommt (Probe für V218, sonst keine Änderung).
 - 2026-11-17, Epochia Version 218 – Emin: Live-Updates statt jedes Mal die ganze App: die Android-App liest app/live.json (Dateiliste mit Prüfsummen) von GitHub Pages und lädt nur geänderte Dateien nach (Capgo-Modul ohne fremden Server); neue APK nur noch bei Änderungen am Android-Teil. Startet eine Fassung nicht, springt die App auf die vorige zurück.
 

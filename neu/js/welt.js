@@ -697,7 +697,10 @@ function addFoothill(t) {
   const f = state.foothill;
   if (!f || f.skip) return;
   const noise = makeNoise(seededRng((state.seed ^ 0x5bd1e995) >>> 0), 7), taken = foothillTaken();
-  const lx = f.bx - f.ax, ly = f.by - f.ay, len2 = lx * lx + ly * ly || 1, W = FOOTHILL.width, pad = W + 5;
+  // Rand ausbuchten und Spitze zum Lager auslaufen lassen – vorher lag am Ende eine runde Scheibe (V220). Nur Zugaben:
+  // was schon Berg war, bleibt Berg (Minen am alten Rand behalten ihren Berg).
+  const lobes = makeNoise(seededRng((state.seed ^ 0x2545f491) >>> 0), 3);
+  const lx = f.bx - f.ax, ly = f.by - f.ay, len2 = lx * lx + ly * ly || 1, len = Math.sqrt(len2), W = FOOTHILL.width, pad = W + 8, TIP = 7;
   for (let y = Math.max(0, Math.floor(Math.min(f.ay, f.by) - pad)); y <= Math.min(N - 1, Math.max(f.ay, f.by) + pad); y++)
     for (let x = Math.max(0, Math.floor(Math.min(f.ax, f.bx) - pad)); x <= Math.min(N - 1, Math.max(f.ax, f.bx) + pad); x++) {
       const i = y * N + x;
@@ -705,7 +708,13 @@ function addFoothill(t) {
       const u = Math.max(0, Math.min(1, ((x - f.ax) * lx + (y - f.ay) * ly) / len2));
       const d = Math.hypot(x - f.ax - lx * u, y - f.ay - ly * u);
       const w = W * (0.45 + 0.55 * Math.min(1, u * 2.5)) + (noise(x, y) - 0.5) * 5;   // zum Lager hin schmaler
-      const edge = w - d;
+      const bump = Math.max(0, lobes(x, y) - 0.5) * 7;                              // Ausbuchtungen
+      let edge = w + bump - d;                                                       // bump ≥ 0: nie schmaler als vorher
+      const back = -((x - f.ax) * lx + (y - f.ay) * ly) / len;                      // Felder hinter dem Ende (Richtung Lager)
+      if (back > 0 && back < TIP) {
+        const side = Math.abs((x - f.ax) * ly - (y - f.ay) * lx) / len;
+        edge = Math.max(edge, W * 0.45 * (1 - back / TIP) + (noise(x, y) - 0.5) * 3 + bump * 0.5 - side);
+      }
       if (edge > 0) t[i] = TERRAIN.berg.id;
       else if (edge > -2.5 && t[i] !== TERRAIN.berg.id) {
         const h = (Math.imul(x, 73856093) ^ Math.imul(y, 19349663) ^ state.seed) >>> 0;

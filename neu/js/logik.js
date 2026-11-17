@@ -676,7 +676,9 @@ function currentWeather() {
 function computeWeather() {
   const len = CONFIG.weatherSeconds, ramp = 10;
   const slot = Math.floor(state.playTime / len), s = state.playTime - slot * len;
-  const id = weatherInSlot(slot);
+  let id = weatherInSlot(slot);
+  // Bei Dürre regnet es nicht (V220: vorher Regen mitten in der Dürre)
+  if (state.disaster && state.disaster.id === 'duerre' && (id === 'regen' || id === 'hagel' || id === 'gewitter')) return { id: 'klar', k: 1, ...WEATHERS.klar };
   let k = 1;
   if (s < ramp && weatherInSlot(slot - 1) !== id) k = Math.min(k, s / ramp);
   if (len - s < ramp && weatherInSlot(slot + 1) !== id) k = Math.min(k, (len - s) / ramp);

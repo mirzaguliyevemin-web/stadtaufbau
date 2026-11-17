@@ -2793,6 +2793,7 @@ function drawScene(dt) {
   drawSeasonGround(range);   // Schnee und Jahreszeit vor dem Wasser: sonst lag die Schneewiese über dem Fluss (Emin, 15.11.: „Wo ist der Fluss?“)
   drawWater(range);
   drawWaterDepth(range);
+  if (typeof drawDisasterGround === 'function') drawDisasterGround(range);   // Hochwasser/Dürre unter dem Wasserfall
   drawWaterfall(range);
   drawClouds(dt);
   drawDecorSnow(range);

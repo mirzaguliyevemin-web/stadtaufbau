@@ -330,3 +330,118 @@ function windStrength() {
 function resetWeather() {
   for (const key of Object.keys(weatherFx)) weatherFx[key] = [];
 }
+
+// ---------------------------------------------------------------------
+// Hochwasser und Dürre sichtbar machen (V220 – vorher nur ein Farbschleier)
+// Hochwasser: trübes Wasser steigt 1–3 Felder über die Ufer und geht am Ende zurück.
+// Dürre: vertrocknete, rissige Flecken im Gras und treibender Staub.
+// ---------------------------------------------------------------------
+
+let shoreDist = null, shoreDistKey = null;
+// Abstand jedes Landfeldes zum nächsten Wasser (1–3, sonst 0); einmal je Geländestand
+function shoreDistance() {
+  const key = typeof terrainVersion !== 'undefined' ? terrainVersion : 0;
+  if (shoreDist && shoreDistKey === key && shoreDist.length === N * N) return shoreDist;
+  const d = new Uint8Array(N * N), water = TERRAIN.wasser.id;
+  let front = [];
+  for (let i = 0; i < N * N; i++) if (terrain[i] === water) front.push(i);
+  for (let r = 1; r <= 3; r++) {
+    const next = [];
+    for (const i of front) {
+      const x = i % N, y = (i - x) / N;
+      for (const j of [x > 0 ? i - 1 : -1, x < N - 1 ? i + 1 : -1, y > 0 ? i - N : -1, y < N - 1 ? i + N : -1]) {
+        if (j < 0 || d[j] || terrain[j] === water) continue;
+        d[j] = r; next.push(j);
+      }
+    }
+    front = next;
+  }
+  shoreDist = d; shoreDistKey = key;
+  return d;
+}
+
+// 0–1: steigt in der ersten Minute, fällt in der letzten
+function disasterLevel() {
+  const s = state.disaster, d = s && DISASTERS[s.id];
+  if (!d) return 0;
+  const total = d.minutes * 60;
+  return Math.max(0, Math.min(1, (total - s.left) / 60, s.left / 60));
+}
+
+// Flächen erst deckend in eine kleine Leinwand malen und dann weich und halb durchsichtig darüberlegen:
+// so überlappen sich die Flecken nicht zu Ringen, und die Ränder werden beim Vergrößern weich.
+let disasterLayer = null;
+function softLayer(paint) {
+  const k = 3, w = Math.max(1, Math.ceil(viewW / k)), h = Math.max(1, Math.ceil(viewH / k));
+  if (!disasterLayer) disasterLayer = newCanvas();
+  if (disasterLayer.width !== w || disasterLayer.height !== h) { disasterLayer.width = w; disasterLayer.height = h; }
+  const g = disasterLayer.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h); g.setTransform(1 / k, 0, 0, 1 / k, 0, 0);
+  paint(g);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(disasterLayer, 0, 0, w * k, h * k);
+}
+
+function drawDisasterGround(range) {
+  const s = state.disaster;
+  if (!s || (s.id !== 'hochwasser' && s.id !== 'duerre') || typeof Path2D === 'undefined' || typeof newCanvas !== 'function') return;
+  const lvl = disasterLevel();
+  if (lvl <= 0.01) return;
+  const land = clipToLand(range), z = cam.zoom, t = frameTime;
+  if ((land.x1 - land.x0) * (land.y1 - land.y0) > 40000) return;   // ganz weit draußen genügt der Farbschleier
+  const rx = TW * 0.5 * z, ry = TH * 0.5 * z, old = ctx.globalAlpha;
+  if (s.id === 'hochwasser') {
+    const dist = shoreDistance(), reach = 0.6 + lvl * 2.4;
+    const deep = new Path2D(), all = new Path2D(), shine = [];
+    for (let y = land.y0; y <= land.y1; y++) for (let x = land.x0; x <= land.x1; x++) {
+      const i = y * N + x, dd = dist[i];
+      if (!dd || dd > reach || terrain[i] === TERRAIN.berg.id || landMask[i] !== 2) continue;
+      const p = tileToScreen(x + 0.5, y + 0.5), k = 0.95 + hash(x, y) * 0.35;
+      all.moveTo(p.x + rx * k, p.y); all.ellipse(p.x, p.y, rx * k, ry * k, 0, 0, Math.PI * 2);
+      if (dd <= reach - 1) { deep.moveTo(p.x + rx * k * 0.8, p.y); deep.ellipse(p.x, p.y, rx * k * 0.8, ry * k * 0.8, 0, 0, Math.PI * 2); }
+      if (hash(x + 7, y + 3) < 0.2) shine.push(p);
+    }
+    ctx.globalAlpha = old * 0.85 * lvl;
+    softLayer(g => { g.fillStyle = '#86aaa0'; g.fill(all); g.fillStyle = '#5e9aa6'; g.fill(deep); });   // trüb am Rand, flussblau innen
+    ctx.globalAlpha = old;
+    // Lichtkringel auf dem Wasser
+    ctx.strokeStyle = `rgba(230,240,235,${0.4 * lvl})`; ctx.lineWidth = Math.max(1, 1.4 * z);
+    ctx.beginPath();
+    for (const p of shine) {
+      const ph = (t * 0.4 + (p.x * 0.013 + p.y * 0.007)) % 1, r = 12 * z * (0.4 + ph);
+      ctx.moveTo(p.x + r, p.y); ctx.ellipse(p.x, p.y, r, r * 0.4, 0, 0, Math.PI * 2);
+    }
+    ctx.stroke();
+    return;
+  }
+  // Dürre
+  const dry = new Path2D(), cracks = new Path2D();
+  for (let y = land.y0; y <= land.y1; y++) for (let x = land.x0; x <= land.x1; x++) {
+    const i = y * N + x;
+    if (terrain[i] !== TERRAIN.gras.id || landMask[i] !== 2) continue;
+    const h = hash(x * 3 + 5, y * 7 + 1);
+    if (h > 0.3 + lvl * 0.35) continue;
+    const p = tileToScreen(x + 0.5 + (hash(x, y + 9) - 0.5) * 0.6, y + 0.5 + (hash(x + 9, y) - 0.5) * 0.6), k = 0.7 + hash(x + 2, y) * 0.8;
+    dry.moveTo(p.x + rx * k, p.y); dry.ellipse(p.x, p.y, rx * k, ry * k, 0, 0, Math.PI * 2);
+    if (z > 0.45 && h < 0.22) {   // Risse im Boden
+      for (let c = 0; c < 3; c++) {
+        const a = hash(x + c, y * 2 + c) * 6.28, l = (8 + hash(c, x + y) * 10) * z;
+        cracks.moveTo(p.x, p.y); cracks.lineTo(p.x + Math.cos(a) * l, p.y + Math.sin(a) * l * 0.5);
+        cracks.lineTo(p.x + Math.cos(a + 0.4) * l * 1.6, p.y + Math.sin(a + 0.4) * l * 0.8);
+      }
+    }
+  }
+  ctx.globalAlpha = old * 0.62 * lvl;
+  softLayer(g => { g.fillStyle = '#c4a463'; g.fill(dry); });
+  ctx.globalAlpha = old;
+  ctx.strokeStyle = `rgba(105,75,40,${0.5 * lvl})`; ctx.lineWidth = Math.max(1, 1.2 * z); ctx.stroke(cracks);
+  // treibender Staub (Bildschirm-Koordinaten, ziehen langsam nach rechts)
+  ctx.fillStyle = `rgba(215,185,130,${0.2 * lvl})`;
+  ctx.beginPath();
+  for (let n = 0; n < 26; n++) {
+    const sx = ((hash(n, 1) * viewW + t * (18 + hash(n, 2) * 25)) % (viewW + 200)) - 100, sy = hash(n, 3) * viewH + Math.sin(t * 0.7 + n) * 12;
+    const r = (14 + hash(n, 4) * 30);
+    ctx.moveTo(sx + r, sy); ctx.ellipse(sx, sy, r, r * 0.35, 0, 0, Math.PI * 2);
+  }
+  ctx.fill();
+}

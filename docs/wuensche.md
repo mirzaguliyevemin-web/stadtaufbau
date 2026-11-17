@@ -30,6 +30,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 - 2026-11-17, Epochia Version 218 – Emin: Live-Updates statt jedes Mal die ganze App: die Android-App liest app/live.json (Dateiliste mit Prüfsummen) von GitHub Pages und lädt nur geänderte Dateien nach (Capgo-Modul ohne fremden Server); neue APK nur noch bei Änderungen am Android-Teil. Startet eine Fassung nicht, springt die App auf die vorige zurück.
 
 ## Erledigt
+- 17.11. (V224) Kartenrand: hinter dem Land endlose Wolkendecke, hinter dem Meer geht das Meer weiter (Farbe auch im Herbst gleich), Bildmitte bleibt auf der Karte, helle Linie am Meeresrand weg.
 - 17.11. (V223) Meer am Handy: keine dunklen/hellen Rauten mehr (tiefes Meer teilt sich ein Bodenbild, Übersicht in gleichen Farben), keine grünen Linien zwischen den Übersichtskacheln, keine grauen Sandbänke um die Inseln.
 - 17.11. (V222) Meer statt See unten: Der See wird zur Bucht, dahinter offenes Meer bis über den Kartenrand, ein paar Inseln – Übergang zur zweiten Karte (für alle Spielstände, Land unter Gebäuden bleibt).
 - 17.11. (V221) Braune Striche im Winter: Der Sandstrand am Fluss schaute an den Grenzen der Bodenstücke durch den Schnee – die Schneedecke reicht jetzt so weit wie der Sand.

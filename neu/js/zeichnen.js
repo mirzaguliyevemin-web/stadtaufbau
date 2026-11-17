@@ -294,8 +294,11 @@ function screenToTile(sx, sy) {
 
 function clampCamera() {
   cam.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, cam.zoom));
-  cam.x = Math.min(N * TW / 2, Math.max(-N * TW / 2, cam.x));
-  cam.y = Math.min(N * TH, Math.max(0, cam.y));
+  // Die Bildmitte bleibt auf der Karte (Emin, 17.11.: der Rand „sieht nicht schön aus“) – vorher ging es an den Ecken
+  // bis weit hinaus, wo nur noch leerer Hintergrund lag
+  const tx = Math.min(N + 4, Math.max(-4, (cam.x / (TW / 2) + cam.y / (TH / 2)) / 2));
+  const ty = Math.min(N + 4, Math.max(-4, (cam.y / (TH / 2) - cam.x / (TW / 2)) / 2));
+  cam.x = (tx - ty) * TW / 2; cam.y = (tx + ty) * TH / 2;
 }
 
 function centerOnTile(x, y) {
@@ -701,8 +704,9 @@ function renderDepthLayer(x0, y0, left, top) {
   const W = c.width, H = c.height, img = g.createImageData && g.createImageData(W, H), d = img && img.data;
   if (!d) return null;
   const sample = (f, fx, fy) => {
+    if (fx < -0.5 || fy < -0.5 || fx > N - 0.5 || fy > N - 0.5) return 0;
+    fx = Math.max(0, Math.min(N - 1.001, fx)); fy = Math.max(0, Math.min(N - 1.001, fy));   // letzte Reihe am Kartenrand mitnehmen (sonst helle Linie am Meer)
     const ix = Math.floor(fx), iy = Math.floor(fy), ax = fx - ix, ay = fy - iy;
-    if (ix < 0 || iy < 0 || ix >= N - 1 || iy >= N - 1) return 0;
     const i = iy * N + ix;
     return (f[i] * (1 - ax) + f[i + 1] * ax) * (1 - ay) + (f[i + N] * (1 - ax) + f[i + N + 1] * ax) * ay;
   };
@@ -1341,7 +1345,7 @@ function paintCloudLayer() {
   // Feldbereich der Leinwand
   const toTile = (sx, sy) => { const wx = (sx - L.w / 2) / z + cam.x, wy = (sy - L.h / 2) / z + cam.y; return { x: (wx / (TW / 2) + wy / (TH / 2)) / 2, y: (wy / (TH / 2) - wx / (TW / 2)) / 2 }; };
   const corners = [toTile(0, 0), toTile(L.w, 0), toTile(0, L.h), toTile(L.w, L.h)];
-  const m = CLOUD_PAD / ps + 1, lim = 5;   // über den Kartenrand hinaus: dort geht das Wolkenmeer weiter
+  const m = CLOUD_PAD / ps + 1, lim = 400;   // über den Kartenrand hinaus: dort geht das Wolkenmeer bis zum Bildrand weiter
   const px0 = Math.max(-lim, Math.floor(Math.min(...corners.map(q => q.x)) / ps - m)), px1 = Math.min(PLOTS + lim, Math.ceil(Math.max(...corners.map(q => q.x)) / ps + m));
   const py0 = Math.max(-lim, Math.floor(Math.min(...corners.map(q => q.y)) / ps - m)), py1 = Math.min(PLOTS + lim, Math.ceil(Math.max(...corners.map(q => q.y)) / ps + m));
   const hw = TW / 2 * ps, hh = TH / 2 * ps, cx = L.w / 2 - cam.x * z, cy = L.h / 2 - cam.y * z;
@@ -1374,7 +1378,7 @@ function openSeaPlot(px, py) {
 }
 function drawOpenSea(range) {
   if (!mapFeatures.sea || !images.wasser) return;
-  const ps = CONFIG.plotSize, lim = 6;
+  const ps = CONFIG.plotSize, lim = 400;
   if (range.x1 < N - 2 && range.y1 < N - 2) return;   // nur am unteren Rand
   const pts = [screenToTileF(0, 0), screenToTileF(viewW, 0), screenToTileF(0, viewH), screenToTileF(viewW, viewH)];
   const tx0 = Math.min(...pts.map(q => q.x)), tx1 = Math.max(...pts.map(q => q.x)), ty0 = Math.min(...pts.map(q => q.y)), ty1 = Math.max(...pts.map(q => q.y));
@@ -1391,9 +1395,22 @@ function drawOpenSea(range) {
   ctx.save();
   ctx.transform(ex.x - o.x, ex.y - o.y, ey.x - o.x, ey.y - o.y, o.x, o.y);
   const t = frameTime;
+  // dieselben Lagen wie drinnen (drawGround/drawSeasonGround/drawWater/drawWaterDepth), sonst ist das Meer draußen heller
   ctx.fillStyle = tilePattern(ctx, 'wasser', (t * 0.18) % TEXTURE_TILES, (t * 0.05) % TEXTURE_TILES);
   ctx.fill(path);
-  ctx.fillStyle = 'rgba(16,72,140,0.5)';   // etwa wie die tiefste Stufe der Wassertiefe (renderDepthLayer)
+  const snow = typeof snowCover === 'function' ? snowCover() : 0, waterOnTop = cam.zoom >= 0.5 || snow > 0;
+  if (waterOnTop) {
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = tilePattern(ctx, 'wasser', 1.3 + (t * 0.07) % (TEXTURE_TILES * 1.73), 2.1 + (t * 0.15) % (TEXTURE_TILES * 1.73), 1.73);
+    ctx.fill(path);
+    if (snow > 0) { ctx.globalAlpha = 0.42 * snow; ctx.fillStyle = '#e4eff8'; ctx.fill(path); }
+    ctx.globalAlpha = 1;
+  } else if (typeof seasonIndex === 'function') {   // weiter draußen liegt der Jahreszeiten-Schimmer drinnen auf dem Wasser
+    const si = seasonIndex();
+    if (si === 1) { ctx.fillStyle = 'rgba(255,225,120,0.06)'; ctx.fill(path); }
+    if (si === 2) { ctx.fillStyle = 'rgba(200,110,30,0.16)'; ctx.fill(path); }
+  }
+  ctx.fillStyle = 'rgba(16,72,140,0.5)';   // wie die tiefste Stufe der Wassertiefe (renderDepthLayer)
   ctx.fill(path);
   ctx.restore();
 }

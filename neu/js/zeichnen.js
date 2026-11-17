@@ -248,7 +248,7 @@ function median(list) {
 
 function imageNames() {
   const names = new Set(['start', 'ladebild', 'logo', 'aeltester-1', 'baum-laub', 'baum-tanne', 'baum-birke',
-    'fels-gross', 'fels-klein', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'setzling', 'truhe', 'band', 'logo-rund', ...Object.values(MOUNTAIN_IMAGES).flat(),
+    'fels-gross', 'fels-klein', 'wasserfall', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'setzling', 'truhe', 'band', 'logo-rund', ...Object.values(MOUNTAIN_IMAGES).flat(),
     'leiste-holz-steinzeit', 'bruecke-senkrecht', 'bruecke-senkrecht-winter', 'bruecke-steg', 'bruecke-waagerecht', 'bruecke-waagerecht-winter', 'bruecke-pflock', 'bruecke-geruest',   // schräge Brücken
     ...BRIDGE_IMAGE_ERAS.flatMap(e => ['bruecke', 'bruecke-waagerecht', 'bruecke-steg'].flatMap(n => [n + e, n + e + '-winter'])),   // Brücken der späteren Zeitalter   // Holzmuster der Brücken (drawBridge), seit dem hellen Design versehentlich nicht mehr geladen
     'symbol-forschung', 'symbol-auftraege', 'symbol-haendler', 'symbol-schaetze', 'symbol-shop', 'symbol-grundriss', 'symbol-menue',
@@ -762,6 +762,37 @@ function drawWaterDepth(range) {
     }
 }
 
+// Lage im Bild wasserfall.webp (Anteile der Bildgröße): Kante oben, Wasserbreite an der Kante, Schaum unten
+const WATERFALL_IMG = { lip: 0.26, x0: 0.245, x1: 0.75, foot: 0.72 };
+function drawWaterfallImage(img, a, b, span, z, t) {
+  const W = WATERFALL_IMG, w = span / (W.x1 - W.x0), h = w * img.height / img.width;
+  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+  const ang = Math.max(-0.3, Math.min(0.3, Math.atan2(b.y - a.y, b.x - a.x)));   // Kante leicht schräg: Bild mitdrehen
+  ctx.save();
+  ctx.translate(mx, my); ctx.rotate(ang);
+  const left = -w * (W.x0 + W.x1) / 2, top = -h * W.lip;
+  ctx.drawImage(img, left, top, w, h);
+  // Bewegung: helle Strähnen gleiten über den Vorhang, Gischt steigt am Fuß auf
+  const x0 = left + w * W.x0, x1 = left + w * W.x1, fall = h * (W.foot - W.lip);
+  ctx.lineCap = 'round';
+  const n = Math.max(8, Math.round((x1 - x0) / (9 * z)));
+  for (let i = 0; i < n; i++) {
+    const x = x0 + (x1 - x0) * (i + 0.5) / n + (hash(i, 11) - 0.5) * 6 * z, sp = 0.6 + hash(i, 7) * 0.5, ph = hash(i, 19);
+    for (let j = 0; j < 2; j++) {
+      const v = (t * sp + ph + j / 2) % 1, e = v * v, y0 = e * fall * 0.9, len = (8 + e * 22) * z;
+      ctx.strokeStyle = `rgba(255,255,255,${0.32 * Math.sin(Math.PI * v)})`;
+      ctx.lineWidth = Math.max(1, (1.4 + hash(j, i) * 1.6) * z);
+      ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, Math.min(y0 + len, fall)); ctx.stroke();
+    }
+  }
+  for (let i = 0; i < 8; i++) {
+    const x = x0 + (x1 - x0) * (0.08 + hash(i, 53) * 0.84), v = (t * 0.2 + hash(i, 59)) % 1;
+    ctx.fillStyle = `rgba(255,255,255,${0.22 * (1 - v)})`;
+    ctx.beginPath(); ctx.arc(x + Math.sin(t + i) * 5 * z, fall - v * fall * 0.4, (8 + v * 18) * z, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
+
 // Wasserfall: Felsstufe quer über den Fluss, Wasservorhang (läuft), Becken mit Schaum und Gischt. Selbst gezeichnet, nur wenn sichtbar.
 // V215 (Emin: „sieht nicht wie ein Wasserfall aus“): viel höher, Felswand dahinter, helle Kante oben, schneller werdende Strähnen, Dunstwolke unten.
 function drawWaterfall(range) {
@@ -773,6 +804,8 @@ function drawWaterfall(range) {
   const at = k => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k });
   const span = Math.hypot(b.x - a.x, b.y - a.y);
   const H = Math.max(70 * z, Math.min(span * 0.45, 150 * z));   // Fallhöhe: deutlich höher als früher (46)
+  // Gemaltes Bild (Scenario, V216 – Emin: Stil passte nicht): liegt über dem Fluss, darüber nur leichte Bewegung
+  if (images.wasserfall) { drawWaterfallImage(images.wasserfall, a, b, span, z, t); return; }
   const wob = k => Math.sin(k * 23 + f.x) * 3 * z;
   const spread = k => (k - 0.5) * span * 0.06;                    // unten fächert der Vorhang etwas auf
   const rock = (x, y, r, col) => {

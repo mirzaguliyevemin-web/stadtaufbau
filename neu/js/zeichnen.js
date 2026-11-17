@@ -635,7 +635,9 @@ function chunkSnowLevel() {
 }
 let snowTemp = null;
 function bakeSnow(c, x0, y0, left, top, scale, snow) {
-  const M = 2, W = CHUNK + 2 * M;
+  // M: so weit über den Rand wie der Sand beim Malen (box ±2 und Pinsel bis 1,42) – sonst schaute im Winter ein
+  // Sandstreifen an den Stückgrenzen durch (Emin, 17.11.)
+  const M = 4, W = CHUNK + 2 * M;
   const mask = newCanvas(); mask.width = W; mask.height = W;
   const mg = mask.getContext && mask.getContext('2d');
   if (!mg) return false;

@@ -1,6 +1,7 @@
 # Epochia – Wunderwerke ab der Antike (Ideen und Plan)
 
 Entwurf von Claude, 2026-11-17, auf Emins Wunsch („Ideen und Pläne für Wunderwerke für die späteren Zeitalter“).
+**Am selben Tag von Emin entschieden (Abschnitt 5): alles nach Vorschlag.** Wird mit dem jeweiligen Zeitalter gebaut.
 Baut auf `docs/konzept-wunderwerke.md` auf: Technik, Fundstücke, Album, Glücksschutz und Emins Entscheidungen vom 03.11.
 gelten weiter (eins je Epoche, Pflicht für den Aufbruch, kein Zeitdruck, 3 Bilder je Werk, ab der Antike 5×5).
 Zahlen sind Startwerte, die Waren hängen vom Bau des jeweiligen Zeitalters ab.
@@ -27,7 +28,7 @@ Zeichen: ✅ schon entschieden · ❓ Frage an Emin · 💡 Vorschlag
 Am Ende erzählt der Älteste den Kreis zu Ende: „Unsere Ahnen haben am Feuer zu den Sternen geschaut. Jetzt waren wir dort.“
 Das Album ist dann eine kleine Geschichte der Menschheit in Bildern, und das letzte Fundstück ist ein Stück Mondgestein.
 
-❓ **Frage 1:** Gefällt dir dieser rote Faden? Er hilft bei der Wahl der Werke unten.
+✅ Emin, 17.11.: „Blick zum Himmel gefällt mir.“
 
 ---
 
@@ -90,7 +91,7 @@ und Zahlen. Die Fundstücke heißen passend (Glocke / Gong / Klangschale).
 
 **Wusstest du?** Am Kölner Dom wurde über 600 Jahre gebaut.
 
-### 3.3 Frühe Neuzeit – 🔭 Die Sternwarte mit dem großen Fernrohr 💡
+### 3.3 Frühe Neuzeit – 🔭 Die Sternwarte mit dem großen Fernrohr ✅
 
 **Idee:** Gelehrte schleifen Linsen, bauen ein Fernrohr und sehen zum ersten Mal die Monde des Jupiter. Die Sternwarte steht
 auf einem Hügel (das passt zu den neuen Hügeln auf der Karte), mit drehbarer Kuppel. Nachts öffnet sich die Kuppel und das
@@ -115,11 +116,11 @@ Einmal im Jahr eine „Sternennacht“, in der alle Figuren draußen stehen und 
 
 **Wusstest du?** Galileo Galilei entdeckte 1610 mit einem selbstgebauten Fernrohr vier Monde des Jupiter.
 
-❓ **Frage 2:** Sternwarte oder lieber eine **Wunderkammer mit botanischem Garten** (Sammelschränke voller seltener Dinge
+✅ Entschieden: Sternwarte. (Verworfen: eine **Wunderkammer mit botanischem Garten** (Sammelschränke voller seltener Dinge
 aus aller Welt, dazu ein Glashaus mit exotischen Pflanzen)? 💡 Die Sternwarte passt zum roten Faden. Die Wunderkammer
-passt besser zum Sammeln, weil sie ein „Museum“ im Spiel wäre.
+passt besser zum Sammeln, weil sie ein „Museum“ im Spiel wäre.)
 
-### 3.4 Jüngere Neuzeit – 🏛️ Der Glaspalast der Weltausstellung 💡
+### 3.4 Jüngere Neuzeit – 🏛️ Der Glaspalast der Weltausstellung ✅
 
 **Idee:** Eine riesige Halle aus Eisen und Glas, in der die Erfindungen der Zeit gezeigt werden. Mit dem Zug kommen
 Besucher aus anderen Städten, die Bahn hält direkt vor dem Palast. Das Werk ist auch eine Bühne für den neuen
@@ -146,10 +147,10 @@ Münzen, man wählt die Erfindung des Jahres. Nachts leuchtet die ganze Halle, s
 
 **Wusstest du?** Der Kristallpalast in London (1851) bestand aus fast 300.000 Glasscheiben.
 
-❓ **Frage 3:** Glaspalast oder lieber ein **großer Eisenturm** (wie in Paris 1889, mit Aufzug und Aussicht über die Stadt)?
-💡 Der Glaspalast, weil man dort die Erfindungen sammeln kann. Den Turm könnte es als Deko im Shop geben.
+✅ Entschieden: Glaspalast. (Verworfen: ein **großer Eisenturm** (wie in Paris 1889, mit Aufzug und Aussicht über die Stadt)?
+💡 Der Glaspalast, weil man dort die Erfindungen sammeln kann. Den Turm könnte es als Deko im Shop geben.)
 
-### 3.5 Zeitgeschichte – 🚀 Die Mondrakete 💡
+### 3.5 Zeitgeschichte – 🚀 Die Mondrakete ✅
 
 **Idee:** Das letzte Werk des Spiels. Auf einem Startplatz am Rand der Stadt entsteht eine große Rakete mit Turm.
 Fabriken bauen die Teile, die Forschung rechnet die Bahn aus. Am Ende kommt der **Countdown**: alle Einwohner schauen zu,
@@ -175,8 +176,8 @@ den Kreis zu Ende (Abschnitt 1). 💡 Danach kann man einfach weiterspielen und 
 
 **Wusstest du?** 1969 betraten zum ersten Mal Menschen den Mond. Ihre Fußspuren sind noch heute dort.
 
-❓ **Frage 4:** Mondrakete oder lieber ein **Stadion für ein Fest aller Völker**? 💡 Die Rakete, weil sie das Spiel mit
-einem großen Moment abschließt.
+✅ Entschieden: Mondrakete. (Verworfen: ein **Stadion für ein Fest aller Völker**? Die Rakete schließt das Spiel mit
+einem großen Moment ab.)
 
 ---
 
@@ -194,10 +195,26 @@ Die Technik (Abschnitte, Fundstücke, Album, Glücksschutz, Feste) steht seit Ve
 Gebaut wird jedes Werk **mit seinem Zeitalter**, nicht vorher. Der Plan bleibt hier liegen, bis das Zeitalter dran ist.
 Die Bilder kommen mit Scenario Pro.
 
-## 5 · Fragen an Emin
+## 5 · Entscheidungen von Emin (2026-11-17)
 
-1. ❓ Roter Faden „Der Blick zum Himmel“? 💡 Ja.
-2. ❓ Frühe Neuzeit: Sternwarte oder Wunderkammer mit botanischem Garten? 💡 Sternwarte.
-3. ❓ Jüngere Neuzeit: Glaspalast oder Eisenturm? 💡 Glaspalast.
-4. ❓ Zeitgeschichte: Mondrakete oder Stadion? 💡 Mondrakete.
-5. ❓ Je Zeitalter eine neue Spielidee zum Finden (Schiffsreise, Besucher, Entdeckerfahrt, Wettbewerb, Countdown)? 💡 Ja.
+1. ✅ Roter Faden „Der Blick zum Himmel“.
+2. ✅ Frühe Neuzeit: Sternwarte mit großem Fernrohr.
+3. ✅ Jüngere Neuzeit: Glaspalast der Weltausstellung (Eisenturm höchstens als Deko im Shop).
+4. ✅ Zeitgeschichte: Mondrakete als Abschluss des Spiels.
+5. ✅ Je Zeitalter eine neue Spielidee zum Finden: Schiffsreise, Besucher am Stadttor, Entdeckerfahrt, Erfinder-Wettbewerb, Countdown.
+
+## 6 · Bauplan
+
+Jedes Werk entsteht **zusammen mit seinem Zeitalter**, immer in derselben Reihenfolge:
+
+1. **Die neue Spielidee zuerst** (Schiffsreise, Besucher …), gleich in der ersten Stufe des Zeitalters. Sie bringt von
+   Anfang an Waren und Freude, auch bevor das Wunderwerk beginnt.
+2. **Die Fundstücke ins Album** (gesperrt sichtbar, so wie heute schon die späteren Stücke), mit Glücksschutz und Ersatzweg.
+3. **Das Werk mit seinen 4 Kapiteln** in der letzten Stufe des Zeitalters, Pflicht für den Aufbruch (außer dem letzten,
+   der Mondrakete, die das Spiel abschließt).
+4. **Der besondere Moment und das jährliche Fest** (Hafenfest, Feiertag, Sternennacht, Ausstellung, Abschlussfest).
+5. **Tests und Bot:** Der Bot lernt die neue Spielidee und baut das Werk mit; die Zeitmessung des Zeitalters wird wiederholt.
+6. **Bilder** mit Scenario: 3 Baustufen (5×5) und Winter, 4–6 Fundstücke. Bis dahin Emojis und Baustellenbild wie bisher.
+
+Reihenfolge der Zeitalter: Antike (Leuchtturm, Schiffsreise) → Mittelalter (Gotteshaus, Besucher) → Frühe Neuzeit
+(Sternwarte, Entdeckerfahrt) → Jüngere Neuzeit (Glaspalast, Wettbewerb) → Zeitgeschichte (Mondrakete, Countdown).

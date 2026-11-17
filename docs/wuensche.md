@@ -13,7 +13,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 <!-- Hier Veränderungswünsche eintragen -->
 - Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, Bilder eingebaut (Version 153/158). Offen nach Scenario Pro: Arbeiterbilder in Bronzezeit-Kleidung. Plan: `docs/epoche-2-bronzezeit.md`.
 
-- Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit und Bronzezeit gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis, Halle der Himmelsscheibe). Eisenzeit-Wunderwerk (Salzberg) gebaut, alle Fundstück-Bilder bis zur Eisenzeit da (Stand 16.11.). Offen: spätere Zeitalter mit deren Bau. Plan: `docs/konzept-wunderwerke.md`, Ideen ab der Antike (17.11.): `docs/plan-wunderwerke-spaeter.md` → Frage: 5 Fragen an Emin am Ende.
+- Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit und Bronzezeit gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis, Halle der Himmelsscheibe). Eisenzeit-Wunderwerk (Salzberg) gebaut, alle Fundstück-Bilder bis zur Eisenzeit da (Stand 16.11.). Offen: spätere Zeitalter mit deren Bau. Plan: `docs/konzept-wunderwerke.md`, Plan ab der Antike (17.11., von Emin entschieden): `docs/plan-wunderwerke-spaeter.md` – roter Faden „Blick zum Himmel“, gebaut mit dem jeweiligen Zeitalter.
 
 - Arbeitsbewegungen (Emin, 03.11.): 74 Bilder mit je 3 Stufen, Plan `docs/plan-arbeitsbewegungen.md`. Item-Shop: Plan `docs/plan-item-shop.md`; Emin probiert Schritt 1 ohne Geld aus, Preise danach anpassen.
 

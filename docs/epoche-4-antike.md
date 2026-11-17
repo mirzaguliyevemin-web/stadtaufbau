@@ -16,7 +16,7 @@ Zeichen: 💡 Vorschlag · ❓ Frage an Emin
 
 💡 **Dauer:** etwa 8 Stunden reine Forschungszeit, die Eisenzeit hat gut 7.
 
-💡 **Welche Antike?** Die bisherigen Zeitalter spielen in Mitteleuropa: Pfahlbauten, Himmelsscheibe, Hallstatt und Kelten. Dazu passt eine **römische Provinzstadt**. Die Keltenstadt wird römisch, mit Forum, Villen, Thermen und Aquädukt, so wie Trier, Köln oder Augsburg entstanden. Dazu kommen griechische Spuren über den Handel: Theater, Leuchtturm, Bibliothek. ❓ Oder lieber eine griechische Stadt am Mittelmeer mit Olivenhainen und Weißen Häusern?
+💡 **Welche Antike?** Die bisherigen Zeitalter spielen in Mitteleuropa: Pfahlbauten, Himmelsscheibe, Hallstatt und Kelten. Dazu passt eine **römische Provinzstadt**. Die Keltenstadt wird römisch, mit Forum, Villen, Thermen und Aquädukt, so wie Trier, Köln oder Augsburg entstanden. Dazu kommen griechische Spuren über den Handel: Theater, Leuchtturm, Bibliothek. ✅ Emin: römische Provinzstadt.
 
 **Historisch:** Die Römer gründeten nördlich der Alpen Städte wie Augusta Treverorum (Trier) und Colonia (Köln, „Kolonie“). Mit ihnen kamen Ziegel, Mörtel, Glasfenster, Fußbodenheizung, Wein und Olivenöl in Amphoren. Der Leuchtturm von Alexandria war eines der sieben Weltwunder.
 
@@ -122,7 +122,7 @@ Von Emin am 13.11. entschieden, Einzelheiten in `plan-zweite-stadt.md`.
 
 Laut Konzept wählt man beim Aufbruch in die Antike eine Religion: Christentum, Islam, Judentum, Buddhismus oder Hinduismus. Jede hat ein eigenes Gotteshaus und einen kleinen Vorteil, alle sind gleich stark.
 
-❓ **Ein Haken dabei:** Zur Zeit der Antike gab es Christentum und Islam noch nicht oder erst ganz am Ende. 💡 Vorschlag: Die Wahl wandert zum **Aufbruch ins Mittelalter**, wo auch das große Gotteshaus als Wunderwerk steht. In der Antike gibt es für alle einen **Säulentempel** ohne bestimmte Götter, als Ort für Feste und Wissen. Das spart außerdem Bilder: ein Tempel statt fünf.
+✅ Entschieden (Emin). **Der Grund:** Zur Zeit der Antike gab es Christentum und Islam noch nicht oder erst ganz am Ende. 💡 Vorschlag: Die Wahl wandert zum **Aufbruch ins Mittelalter**, wo auch das große Gotteshaus als Wunderwerk steht. In der Antike gibt es für alle einen **Säulentempel** ohne bestimmte Götter, als Ort für Feste und Wissen. Das spart außerdem Bilder: ein Tempel statt fünf.
 
 ## Wunderwerk: Der Große Leuchtturm
 
@@ -152,7 +152,7 @@ Schon im Wunderwerk-Plan vorgesehen. Ab der Antike sind Wunderwerke 5×5 groß.
 
 **Wusstest du?** Der Leuchtturm von Alexandria war über 100 Meter hoch, sein Feuer sah man 50 Kilometer weit.
 
-❓ Alternative: **Große Bibliothek** (Wissen und Forschung schneller). 💡 Der Leuchtturm passt besser, weil die Antike vom Meer und der zweiten Stadt handelt.
+✅ Emin: der Leuchtturm, keine Bibliothek. Die Kapitel oben sind noch ein Entwurf.
 
 ## Forschungsbaum
 
@@ -259,7 +259,7 @@ Laut Plan (`plan-arbeitsbewegungen.md`), je 3 Bilder:
 | Küstenkarte der zweiten Stadt (Gelände, Olivenbaum, Inseln) | etwa 15 |
 | **Zusammen** | **etwa 235** |
 
-💡 Wie bei der Eisenzeit: Die Technik wird mit vorläufigen Bildern gebaut, die Canva-Bilder kommen nach und nach.
+💡 Wie bei der Eisenzeit: Die Technik wird mit vorläufigen Bildern gebaut, die Scenario-Bilder kommen nach und nach.
 
 ## Reihenfolge beim Bau
 
@@ -267,7 +267,7 @@ Laut Plan (`plan-arbeitsbewegungen.md`), je 3 Bilder:
 |---|---|
 | 1 | Frühe Antike: Aufbruch, Forum, Ziegel, Silber, Münzen, Steuer, Markt |
 | 2 | Mittlere Antike: Hafen, Schiffe, Öl als Bedürfnis |
-| 3 | Spielstand auf mehrere Städte umstellen, ohne dass man im Spiel etwas merkt |
+| 3 | ~~Spielstand auf mehrere Städte umstellen~~ – schon gebaut (V185) |
 | 4 | Kolonien: zweite Stadt an der Küste, Wechseln, vereinfachtes Weiterlaufen |
 | 5 | Späte Antike: Tempel, Theater, Thermen, Aquädukt, Wahrzeichen |
 | 6 | Großer Leuchtturm mit Fundstücken |

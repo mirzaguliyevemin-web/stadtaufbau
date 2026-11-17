@@ -762,70 +762,131 @@ function drawWaterDepth(range) {
     }
 }
 
-// Wasserfall: Felsstufe quer über den Fluss, weißer Vorhang (läuft), Schaum am Fuß. Selbst gezeichnet, nur wenn sichtbar.
+// Wasserfall: Felsstufe quer über den Fluss, Wasservorhang (läuft), Becken mit Schaum und Gischt. Selbst gezeichnet, nur wenn sichtbar.
+// V215 (Emin: „sieht nicht wie ein Wasserfall aus“): viel höher, Felswand dahinter, helle Kante oben, schneller werdende Strähnen, Dunstwolke unten.
 function drawWaterfall(range) {
   const f = mapFeatures.fall;
-  if (!f || !landMask[Math.floor(f.y) * N + Math.floor(f.x)] || f.x < range.x0 - 8 || f.x > range.x1 + 8 || f.y < range.y0 - 8 || f.y > range.y1 + 8) return;
-  const z = cam.zoom, t = frameTime, H = 46 * z;
+  if (!f || !landMask[Math.floor(f.y) * N + Math.floor(f.x)] || f.x < range.x0 - 12 || f.x > range.x1 + 12 || f.y < range.y0 - 12 || f.y > range.y1 + 12) return;
+  const z = cam.zoom, t = frameTime;
   const px = f.uy, py = -f.ux;
   const a = tileToScreen(f.x - px * f.w, f.y - py * f.w), b = tileToScreen(f.x + px * f.w, f.y + py * f.w);
   const at = k => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k });
+  const span = Math.hypot(b.x - a.x, b.y - a.y);
+  const H = Math.max(70 * z, Math.min(span * 0.45, 150 * z));   // Fallhöhe: deutlich höher als früher (46)
   const wob = k => Math.sin(k * 23 + f.x) * 3 * z;
-  // Wasser-Vorhang
+  const spread = k => (k - 0.5) * span * 0.06;                    // unten fächert der Vorhang etwas auf
+  const rock = (x, y, r, col) => {
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath(); ctx.ellipse(x + 1.5 * z, y + r * 0.55, r * 1.1, r * 0.5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.78, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.beginPath(); ctx.ellipse(x - r * 0.25, y - r * 0.3, r * 0.5, r * 0.28, 0, 0, 7); ctx.fill();
+  };
+  // 1. Felswand hinter dem Wasser (etwas breiter als der Fluss, mit Schichtkanten)
+  const L = at(0), R = at(1);
+  const wall = ctx.createLinearGradient(0, Math.min(L.y, R.y), 0, Math.max(L.y, R.y) + H);
+  wall.addColorStop(0, '#6f6a60'); wall.addColorStop(0.5, '#57524a'); wall.addColorStop(1, '#3e3a34');
+  ctx.fillStyle = wall;
+  ctx.beginPath();
+  ctx.moveTo(L.x, L.y - 4 * z); ctx.lineTo(R.x, R.y - 4 * z);
+  for (let k = 1; k >= -0.001; k -= 0.05) { const q = at(k); ctx.lineTo(q.x + spread(k), q.y + H + (hash(Math.round(k * 20) + 5, 61) * 8 - 2) * z); }
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(30,26,22,0.35)'; ctx.lineWidth = Math.max(1, 1.5 * z);
+  for (let i = 1; i < 5; i++) {   // Gesteinsschichten
+    const v = i / 5 + (hash(i, 67) - 0.5) * 0.08;
+    ctx.beginPath(); ctx.moveTo(L.x, L.y + v * H); ctx.lineTo(R.x, R.y + v * H); ctx.stroke();
+  }
+  // 2. Wasservorhang
   const g = ctx.createLinearGradient(0, Math.min(a.y, b.y), 0, Math.max(a.y, b.y) + H);
-  g.addColorStop(0, 'rgba(70,165,225,1)');
-  g.addColorStop(0.3, 'rgba(120,200,240,1)');
-  g.addColorStop(0.7, 'rgba(205,238,250,1)');
-  g.addColorStop(1, 'rgba(255,255,255,1)');
+  g.addColorStop(0, 'rgba(55,140,200,0.97)');
+  g.addColorStop(0.12, 'rgba(110,190,235,0.95)');
+  g.addColorStop(0.5, 'rgba(195,232,248,0.93)');
+  g.addColorStop(1, 'rgba(245,252,255,0.97)');
   ctx.fillStyle = g;
   ctx.beginPath();
   ctx.moveTo(a.x, a.y - 2 * z);
   for (let k = 0; k <= 1.001; k += 0.1) { const q = at(k); ctx.lineTo(q.x, q.y - 2 * z + wob(k) * 0.3); }
-  for (let k = 1; k >= -0.001; k -= 0.1) { const q = at(k); ctx.lineTo(q.x, q.y + H + wob(k)); }
+  for (let k = 1; k >= -0.001; k -= 0.05) { const q = at(k); ctx.lineTo(q.x + spread(k), q.y + H + wob(k) * 2); }
   ctx.closePath(); ctx.fill();
-  // fallende Streifen
+  // feste Strähnen (hell/dunkel im Wechsel) geben dem Vorhang Struktur
+  const m = Math.max(10, Math.round(span / (5 * z)));
+  for (let i = 0; i < m; i++) {
+    const k = (i + 0.5) / m, q = at(k), sway = Math.sin(t * 1.3 + i * 0.7) * 0.6 * z;
+    ctx.strokeStyle = hash(i, 71) < 0.5 ? 'rgba(40,110,170,0.18)' : 'rgba(255,255,255,0.28)';
+    ctx.lineWidth = Math.max(1, (1 + hash(i, 73) * 2.2) * z);
+    ctx.beginPath(); ctx.moveTo(q.x, q.y + 2 * z); ctx.lineTo(q.x + spread(k) + sway, q.y + H); ctx.stroke();
+  }
+  // 3. fallende Streifen – werden nach unten schneller und länger
   ctx.lineCap = 'round';
-  const n = Math.max(6, Math.round(f.w * 7));
+  const n = Math.max(8, Math.round(span / (7 * z)));
   for (let i = 0; i < n; i++) {
-    const k = (i + 0.5) / n, q = at(k), sp = 0.55 + hash(i, 7) * 0.5, ph = hash(i, 19);
-    for (let j = 0; j < 2; j++) {
-      const v = (t * sp + ph + j * 0.5) % 1, y0 = q.y + v * H * 0.85, len = (5 + hash(i, j) * 7) * z;
-      ctx.strokeStyle = `rgba(255,255,255,${0.75 * (0.35 + 0.65 * v)})`;
-      ctx.lineWidth = Math.max(1, (1.1 + hash(j, i) * 1.2) * z);
-      ctx.beginPath(); ctx.moveTo(q.x, y0); ctx.lineTo(q.x, Math.min(y0 + len, q.y + H)); ctx.stroke();
+    const k = (i + 0.5) / n + (hash(i, 11) - 0.5) * 0.5 / n, q = at(k), sp = 0.7 + hash(i, 7) * 0.5, ph = hash(i, 19);
+    for (let j = 0; j < 3; j++) {
+      const v = (t * sp + ph + j / 3) % 1, e = v * v, y0 = q.y + e * H * 0.92, len = (6 + e * 18 + hash(i, j) * 6) * z;
+      ctx.strokeStyle = `rgba(255,255,255,${0.85 * (0.3 + 0.7 * v)})`;
+      ctx.lineWidth = Math.max(1, (1.2 + hash(j, i) * 1.4) * z);
+      const x0 = q.x + spread(k) * e;
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0, Math.min(y0 + len, q.y + H)); ctx.stroke();
     }
   }
-  // Schaum am Fuß
-  for (let i = 0; i < n + 5; i++) {
-    const k = (i + 0.5) / (n + 5), q = at(k), r = (3.5 + hash(i, 3) * 3.5 + Math.sin(t * 3 + i * 1.7) * 1.1) * z;
-    ctx.fillStyle = `rgba(255,255,255,${0.72 + 0.2 * Math.sin(t * 2 + i)})`;
-    ctx.beginPath(); ctx.ellipse(q.x, q.y + H + wob(k) + Math.sin(t * 2.2 + i) * 1.2 * z, r * 1.5, r * 0.75, 0, 0, 7); ctx.fill();
-  }
-  // Felsen an der Kante und an den Seiten
-  const rock = (x, y, r, col) => {
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.beginPath(); ctx.ellipse(x + 1.5 * z, y + r * 0.55, r * 1.1, r * 0.5, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.78, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.ellipse(x - r * 0.25, y - r * 0.3, r * 0.5, r * 0.28, 0, 0, 7); ctx.fill();
-  };
-  for (let i = 0; i < 6; i++) {
-    const k = hash(i, 41), q = at(k);
-    if (hash(i, 43) < 0.5) rock(q.x, q.y - 3 * z, (2.5 + hash(i, 47) * 2.5) * z, '#807c72');
-  }
-  // große Felsen rechts und links verdecken die Kanten des Vorhangs
-  for (const k of [0, 1]) {
-    const q = at(k), side = k ? 1 : -1;
-    for (let i = 0; i < 4; i++) {
-      const v = i / 3;
-      rock(q.x + side * (3 + hash(i, k + 2) * 7) * z, q.y + v * H, (10 - i) * z, i % 2 ? '#8a867b' : '#736f66');
-    }
-    rock(q.x - side * 3 * z, q.y + H + 3 * z, 7 * z, '#6d695f');
-  }
-  // Gischt: feiner Dunst über dem Schaum
+  // 4. helle Kante oben: hier kippt das Wasser über die Stufe
+  ctx.strokeStyle = 'rgba(235,250,255,0.9)'; ctx.lineWidth = Math.max(1.5, 3 * z);
+  ctx.beginPath();
+  for (let k = 0; k <= 1.001; k += 0.05) { const q = at(k); k ? ctx.lineTo(q.x, q.y - 1 * z + wob(k) * 0.3) : ctx.moveTo(q.x, q.y - 1 * z); }
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = Math.max(2, 7 * z);
+  ctx.beginPath(); ctx.moveTo(a.x, a.y + 4 * z); ctx.lineTo(b.x, b.y + 4 * z); ctx.stroke();
+  // Steine auf der Kante teilen das Wasser
   for (let i = 0; i < 5; i++) {
-    const k = hash(i, 53), q = at(k), v = (t * 0.25 + hash(i, 59)) % 1;
-    ctx.fillStyle = `rgba(255,255,255,${0.28 * (1 - v)})`;
-    ctx.beginPath(); ctx.arc(q.x + Math.sin(t + i) * 4 * z, q.y + H - v * 16 * z, (5 + v * 10) * z, 0, 7); ctx.fill();
+    const k = 0.08 + hash(i, 41) * 0.84, q = at(k);
+    if (hash(i, 43) >= 0.55) continue;
+    const r = (3 + hash(i, 47) * 3) * z;
+    // hinter dem Stein reißt der Vorhang kurz auf: dunkler Fels schimmert durch
+    const gap = ctx.createLinearGradient(0, q.y, 0, q.y + H * 0.45);
+    gap.addColorStop(0, 'rgba(60,66,72,0.45)'); gap.addColorStop(1, 'rgba(60,66,72,0)');
+    ctx.fillStyle = gap;
+    ctx.beginPath(); ctx.moveTo(q.x - r * 0.7, q.y); ctx.lineTo(q.x + r * 0.7, q.y); ctx.lineTo(q.x + r * 0.3, q.y + H * 0.45); ctx.lineTo(q.x - r * 0.3, q.y + H * 0.45); ctx.closePath(); ctx.fill();
+    rock(q.x, q.y - 2 * z, r, '#7d796f');
+  }
+  // 5. Becken: breiter Schaumkranz am Fuß
+  const nf = n + 8, mid = at(0.5);
+  ctx.save();
+  ctx.translate(mid.x, mid.y + H + 6 * z); ctx.scale(1, 0.32);
+  const cloud = ctx.createRadialGradient(0, 0, 0, 0, 0, span * 0.62);
+  cloud.addColorStop(0, 'rgba(255,255,255,0.7)'); cloud.addColorStop(0.6, 'rgba(240,250,255,0.35)'); cloud.addColorStop(1, 'rgba(240,250,255,0)');
+  ctx.fillStyle = cloud; ctx.beginPath(); ctx.arc(0, 0, span * 0.62, 0, 7); ctx.fill();
+  ctx.restore();
+  for (let row = 0; row < 3; row++) for (let i = 0; i < nf; i++) {
+    const k = -0.04 + 1.08 * (i + 0.5) / nf, q = at(k);
+    const r = (5.5 + hash(i, 3 + row) * 6 + Math.sin(t * 3 + i * 1.7) * 1.3) * z * (1 - row * 0.2);
+    if (row === 2 && hash(i, 31) < 0.4) continue;
+    ctx.fillStyle = `rgba(255,255,255,${(row ? 0.75 - row * 0.15 : 0.88) + 0.1 * Math.sin(t * 2 + i)})`;
+    ctx.beginPath(); ctx.ellipse(q.x + spread(k), q.y + H + wob(k) + row * 7 * z + Math.sin(t * 2.2 + i) * 1.4 * z, r * 1.6, r * 0.75, 0, 0, 7); ctx.fill();
+  }
+  // Wellenringe im Becken
+  for (let i = 0; i < 3; i++) {
+    const v = (t * 0.35 + i / 3) % 1, q = at(0.5);
+    ctx.strokeStyle = `rgba(255,255,255,${0.4 * (1 - v)})`; ctx.lineWidth = Math.max(1, 1.5 * z);
+    ctx.beginPath(); ctx.ellipse(q.x, q.y + H + 12 * z, span * (0.5 + v * 0.25), (8 + v * 14) * z, Math.atan2(b.y - a.y, b.x - a.x), 0, 7); ctx.stroke();
+  }
+  // 6. Felsbrocken links und rechts: unregelmäßige Haufen, die Wand und Vorhangkanten verdecken (keine Säule)
+  const cols = ['#7a756b', '#6a665d', '#8b867a', '#5f5b53'];
+  for (const k of [0, 1]) {
+    const q = at(k), side = k ? 1 : -1, sp = spread(k);
+    const pile = [];
+    for (let i = 0; i < 11; i++) {
+      const v = hash(i, k + 81), out = hash(i, k + 83);
+      pile.push({ x: q.x + sp * v + side * (-6 + out * 22 + (1 - v) * 3) * z, y: q.y - 12 * z + v * (H + 16 * z), r: (6 + hash(i, k + 85) * 9) * z, c: cols[i % 4] });
+    }
+    pile.push({ x: q.x - side * 3 * z, y: q.y - 6 * z, r: 9 * z, c: cols[1] });            // Kante oben
+    pile.push({ x: q.x + sp - side * 4 * z, y: q.y + H + 4 * z, r: 8 * z, c: cols[3] });  // Fuß unten
+    pile.sort((u, w) => u.y - w.y);
+    for (const r of pile) rock(r.x, r.y, r.r, r.c);
+  }
+  // 7. Gischt: Dunstwolke steigt aus dem Becken
+  for (let i = 0; i < 9; i++) {
+    const k = 0.05 + hash(i, 53) * 0.9, q = at(k), v = (t * 0.22 + hash(i, 59)) % 1;
+    ctx.fillStyle = `rgba(255,255,255,${0.3 * (1 - v)})`;
+    ctx.beginPath(); ctx.arc(q.x + spread(k) + Math.sin(t + i) * 5 * z, q.y + H - v * H * 0.45, (7 + v * 16) * z, 0, 7); ctx.fill();
   }
 }
 

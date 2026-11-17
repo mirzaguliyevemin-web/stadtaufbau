@@ -25,6 +25,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 
 ## Erledigt
+- 2026-11-17, Epochia Version 215 – Emin: Wasserfall schöner und höher: etwa dreimal so hoch, Felswand dahinter, helle Kante oben, Wasserstreifen werden beim Fallen schneller, Steine auf der Kante teilen den Vorhang, unten Schaumkranz, Wellenringe und aufsteigende Gischt, an den Seiten unregelmäßige Felsbrocken statt einer Felssäule.
 - 2026-11-17, Epochia Version 214 – Emin: Update in der App starten statt jedes Mal den Link öffnen: Die Android-App fragt beim Start und alle 30 min bei GitHub nach der neuesten App-Fassung (Release „app-vNNN“) und zeigt dann „Neue Version … – ⬇️ Herunterladen“; der Knopf lädt die neue App im Browser, Android fragt danach nur noch „Aktualisieren?“. Auch „Menü → Nach Updates suchen“ prüft in der App jetzt die App-Fassung.
 - 2026-11-16, Epochia Version 213 – aus der großen Prüfung: Figuren, die knapp vor der rechten oder linken Kante eines großen Gebäudes stehen, werden nicht mehr vom Gebäudebild verdeckt.
 - 2026-11-16, Epochia Version 212 – aus der großen Prüfung: Die verschneiten Fassungen von Hügeln, Bergen, Felsen, Bäumen und Gebäuden ohne Winterbild werden in den letzten Herbstminuten nach und nach vorgerechnet – vorher kamen sie alle im ersten Winterbild auf einmal (spürbares Stocken).

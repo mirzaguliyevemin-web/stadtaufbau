@@ -162,7 +162,7 @@ Entwurf vom 17.11. Er ist aufgebaut wie die Eisenzeit, mit vier Reihen:
 - 🔨 Handwerk
 - 📜 Wissen, Glaube und Handel
 
-Jede Stufe endet mit einer Übergangs-Forschung, die bestimmte Gebäude verlangt. Zusammen sind es **37 Forschungen** mit etwa **9 Stunden** reiner Forschungszeit. Die Eisenzeit hat 31 Forschungen und gut 7 Stunden.
+Jede Stufe endet mit einer Übergangs-Forschung, die bestimmte Gebäude verlangt. Zusammen sind es **40 Forschungen** mit etwa **9½ Stunden** reiner Forschungszeit. Die Eisenzeit hat 31 Forschungen und gut 7 Stunden.
 
 ### Frühe Antike (11 + Übergang)
 
@@ -181,7 +181,7 @@ Jede Stufe endet mit einer Übergangs-Forschung, die bestimmte Gebäude verlangt
 | 📜 | Markt | Münzen | Handelshof → Markt, Kaufen mit Münzen |
 | ➡️ | **Mittlere Antike** | alle oben | Gebäude: 6 Ziegelhäuser, 2 Münzprägereien, 1 Markt, 2 Ziegeleien |
 
-### Mittlere Antike (13 + Übergang)
+### Mittlere Antike (14 + Übergang)
 
 | Reihe | Forschung | braucht vorher | schaltet frei |
 |---|---|---|---|
@@ -198,18 +198,21 @@ Jede Stufe endet mit einer Übergangs-Forschung, die bestimmte Gebäude verlangt
 | 🔨 | Walkerei | Amphoren | Tuchmacherin → Walkerei |
 | 📜 | Seehandel | Schiffbau + Markt | Händlerschiffe am Hafen, Öl und Wein kaufen |
 | 📜 | **Kolonien** | Seehandel | **Siedlerschiff**, das die zweite Stadt gründet |
-| ➡️ | **Späte Antike** | alle oben | Gebäude: 1 Hafen, 2 Amphorenwerkstätten, 2 Sägewerke, 4 Hafenhäuser oder Villen |
+| 📜 | Schiffsrouten | Kolonien | feste Routen zwischen den Städten |
+| ➡️ | **Späte Antike** | alle oben | Gebäude: 1 Hafen, 2 Amphorenwerkstätten, 2 Sägewerke, 4 Hafenhäuser oder Villen. Außerdem **muss die zweite Stadt gegründet sein**. |
 
-### Späte Antike (10 + Aufbruch)
+### Späte Antike (12 + Aufbruch)
 
 | Reihe | Forschung | braucht vorher | schaltet frei |
 |---|---|---|---|
 | 🍞 | Olivenhaine | Übergang | Olivenhain und Ölmühle, nur auf der Inselkarte |
+| 🏠 | Bootsanleger | Übergang | Anleger, über den man Nachbarinseln ohne Brücke erreicht (Inselkarte) |
 | 🏠 | Mörtel | Übergang | eine fünfte Baustelle gleichzeitig |
 | 🏠 | Mietshäuser | Mörtel + Fensterglas | Villa → Mietshaus |
 | 🏠 | Aquädukt | Mörtel | Aquädukt als Weg ziehen |
 | 🏠 | Thermen | Aquädukt | Badehaus → Thermen |
 | 🔨 | Fensterglas | Übergang | Glasmacherin → Glasbläserei |
+| 🔨 | Salzgärten | Bootsanleger | Salzgarten an den Lagunen der Inselkarte |
 | 📜 | Tempel | Übergang | Druidenhain → Säulentempel |
 | 📜 | Theater | Tempel | Theater |
 | 📜 | Leuchtfeuer | Theater + Thermen | Bau des **Großen Leuchtturms** |
@@ -293,6 +296,8 @@ Neu im Spielstand sind die Münzen als Ware, die Religion und später die Städt
 
 12. ✅ **Das Wahrzeichen ist der Triumphbogen**, keine Säulenhalle.
 13. ✅ **Zahlen:** Kosten und Leistung im Plan sind Startwerte. Sie werden wie bei der Eisenzeit erst mit dem Testspieler gemessen, wenn alles gebaut ist.
+
+14. ✅ **Forschungsbaum** wie im Abschnitt „Forschungsbaum“: 40 Forschungen, etwa 9½ Stunden. Die zweite Stadt ist Pflicht für die Späte Antike. Römerstraßen kommen dazu, ebenso für die Inselkarte Bootsanleger, Salzgärten und Schiffsrouten.
 
 Die Entscheidungen zur zweiten Karte stehen in `plan-zweite-stadt.md`.
 

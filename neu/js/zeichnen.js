@@ -749,11 +749,16 @@ function renderDepthLayer(x0, y0, left, top) {
 function drawWaterDepth(range) {
   const per = N / CHUNK;
   if (!chunks.length) return;
+  if (cam.zoom < OV_ZOOM && overviewReady()) return;   // weit draußen steckt die Tiefe schon in der Übersichtskarte
   range = clipToLand(range);
   for (let cy = Math.floor(range.y0 / CHUNK); cy <= Math.floor(range.y1 / CHUNK); cy++)
     for (let cx = Math.floor(range.x0 / CHUNK); cx <= Math.floor(range.x1 / CHUNK); cx++) {
       if (cx < 0 || cy < 0 || cx >= per || cy >= per) continue;
-      const ch = chunks[cy * per + cx];
+      let ch = chunks[cy * per + cx];
+      if (chunkDeep(cx, cy)) {
+        const d = deepShared[chunkScale() + '|' + chunkSnowLevel()];
+        ch = d && d.depth ? { depth: d.depth, left: (cx * CHUNK - (cy * CHUNK + CHUNK)) * TW / 2, top: (cx + cy) * CHUNK * TH / 2 } : null;
+      }
       if (!ch || !ch.depth) continue;
       const p = worldToScreen(ch.left, ch.top);
       const x0 = cx * CHUNK, y0 = cy * CHUNK, corners = [[x0, y0], [x0 + CHUNK, y0], [x0 + CHUNK, y0 + CHUNK], [x0, y0 + CHUNK]].map(([x, y]) => tileToScreen(x, y));
@@ -986,6 +991,42 @@ function chunkHasLand(cx, cy) {
   return false;
 }
 
+// Offenes Meer (V223): Bodenstücke ganz in tiefem Wasser sehen alle gleich aus (die Wasser-Textur wiederholt sich alle 4 Felder,
+// die Tiefe ist dort überall gleich). Sie teilen sich darum ein einziges Bild. Vorher brauchte jedes Meer-Stück ein eigenes – auf
+// dem Handy reichte der Platz nicht, fehlende Stücke zeigten die hellere Übersicht: dunkle und helle Rauten (Emin, 17.11.).
+let deepChunkMap = null, deepShared = {};
+function chunkDeep(cx, cy) {
+  if (!mapFeatures.sea || !waterDepth) return false;
+  const per = N / CHUNK;
+  if (!deepChunkMap || deepChunkMap.v !== terrainVersion || deepChunkMap.d !== waterDepth) {
+    const a = new Uint8Array(per * per), W = TERRAIN.wasser.id, M = 3;
+    for (let y0 = 0; y0 < N; y0 += CHUNK) for (let x0 = 0; x0 < N; x0 += CHUNK) {
+      if (x0 + y0 + 2 * CHUNK < mapFeatures.sea.sum - 40) continue;
+      let deep = true;
+      for (let y = Math.max(0, y0 - M); y < Math.min(N, y0 + CHUNK + M) && deep; y++)
+        for (let x = Math.max(0, x0 - M); x < Math.min(N, x0 + CHUNK + M); x++) {
+          const i = y * N + x;
+          if (terrain[i] !== W || waterDepth[i] < 5 || waterShoal[i] > 0) { deep = false; break; }
+        }
+      if (deep) a[(y0 / CHUNK) * per + x0 / CHUNK] = 1;
+    }
+    deepChunkMap = { v: terrainVersion, d: waterDepth, a };
+  }
+  return deepChunkMap.a[cy * per + cx] === 1;
+}
+// das geteilte Bild (je Auflösung und Schneestufe); gemalt aus dem ersten tiefen Stück, das gebraucht wird
+function deepChunk(cx, cy, lod, snow) {
+  const key = lod + '|' + snow;
+  let d = deepShared[key];
+  if (d && canvasLost(d.canvas.getContext && d.canvas.getContext('2d'))) d = null;
+  if (!d) {
+    const ch = renderChunk(cx, cy, lod);
+    if (!ch) return null;
+    d = deepShared[key] = { canvas: ch.canvas, depth: ch.depth, snow: ch.snow };
+  }
+  return d;
+}
+
 let groundSnowBaked = false;
 function drawGround(range) {
   const per = N / CHUNK;
@@ -1001,7 +1042,7 @@ function drawGround(range) {
     let gap = false;
     for (let cy = Math.max(0, Math.floor(r.y0 / CHUNK)); cy <= Math.min(per - 1, Math.floor(r.y1 / CHUNK)) && !gap; cy++)
       for (let cx = Math.max(0, Math.floor(r.x0 / CHUNK)); cx <= Math.min(per - 1, Math.floor(r.x1 / CHUNK)); cx++)
-        if ((!chunks[cy * per + cx] || chunks[cy * per + cx].scale !== lod) && chunkOnScreen(cx, cy)) { gap = true; break; }
+        if ((!chunks[cy * per + cx] || chunks[cy * per + cx].scale !== lod) && chunkOnScreen(cx, cy) && !(chunkDeep(cx, cy) && deepShared[lod + '|' + snowNow])) { gap = true; break; }
     if (gap) drawOverview(range);
   }
   chunkTick++;
@@ -1014,6 +1055,10 @@ function drawGround(range) {
     for (let cx = Math.floor(range.x0 / CHUNK); cx <= Math.floor(range.x1 / CHUNK); cx++) {
       if (cx < 0 || cy < 0 || cx >= per || cy >= per || !chunkHasLand(cx, cy) || !chunkOnScreen(cx, cy)) continue;
       const k = cy * per + cx;
+      if (chunkDeep(cx, cy)) {   // offenes Meer: geteiltes Bild
+        const d = deepChunk(cx, cy, lod, snowNow);
+        if (d) { const p = worldToScreen((cx * CHUNK - (cy * CHUNK + CHUNK)) * TW / 2, (cx + cy) * CHUNK * TH / 2); ctx.drawImage(d.canvas, p.x, p.y, CHUNK * TW * cam.zoom, (CHUNK * TH + 2) * cam.zoom); continue; }
+      }
       if (chunks[k] && (chunks[k].snow || 0) !== snowNow) chunks[k].stale = true;   // Schnee hat sich geändert
       if (!chunks[k]) {
         // (ganz am Anfang, wenn noch nichts da ist: alles Sichtbare auf einmal, sonst beginnt das Spiel mit Löchern)
@@ -1089,15 +1134,18 @@ function overviewStep(ms) {
       for (let px = 0; px < W; px++) {
         const sx = px / OV_SCALE + left, sy = py / OV_SCALE + top;
         const fx = sx / TW + sy / TH, fy = sy / TH - sx / TW, x = Math.floor(fx), y = Math.floor(fy);
-        if (x < x0 || y < y0 || x >= x0 + OV_SIZE || y >= y0 + OV_SIZE || x >= N || y >= N) continue;   // außerhalb dieser Kachel
+        if (x < x0 - 1 || y < y0 - 1 || x > x0 + OV_SIZE || y > y0 + OV_SIZE || x < 0 || y < 0 || x >= N || y >= N) continue;   // außerhalb dieser Kachel (1 Feld Überlappung: sonst grüne Linien zwischen den Kacheln, Emin 17.11.)
         const tt = terrain[y * N + x], gi = (((py & 15) * 16) + ((px * 3 + y) & 15)) * 4;
         const src = tt === TERRAIN.wasser.id ? grain.wasser : tt === TERRAIN.sand.id ? grain.sand : tt === TERRAIN.berg.id ? grain['berg-boden'] : grain.wiese;
         let r = src[gi], g = src[gi + 1], b = src[gi + 2];
         if (tt === TERRAIN.wald.id) { r *= 0.8; g *= 0.86; b *= 0.8; }
         else if (tt === TERRAIN.fels.id) { r = r * 0.85 + 20; g = g * 0.85 + 18; b = b * 0.85 + 14; }
-        else if (tt === TERRAIN.wasser.id && waterDepth) {   // tiefes Wasser dunkler, wie im Spiel
-          const dep = Math.min(1, waterDepth[y * N + x] || 0);
-          r *= 1 - 0.45 * dep; g *= 1 - 0.3 * dep; b *= 1 - 0.12 * dep;
+        else if (tt === TERRAIN.wasser.id && waterDepth) {   // Tiefe in denselben Farben wie die Tiefenschicht (renderDepthLayer)
+          const dep = waterDepth[y * N + x] || 0;
+          let a, cr, cg, cb;
+          if (dep < 1.7) { a = 0.46 * (1 - Math.max(0, (dep - 0.6) / 1.1)); cr = 185; cg = 238; cb = 212; }
+          else { a = 0.5 * Math.min(1, (dep - 1.7) / 3.0); cr = 16; cg = 72; cb = 140; }
+          r = r * (1 - a) + cr * a; g = g * (1 - a) + cg * a; b = b * (1 - a) + cb * a;
         }
         const k = (py * W + px) * 4;
         d[k] = r; d[k + 1] = g; d[k + 2] = b; d[k + 3] = 255;
@@ -1264,6 +1312,8 @@ function resetCanvasCaches() {
   if (typeof guideSprite !== 'undefined') guideSprite = null;
   for (const ch of chunks) if (ch) freeCanvas(ch.canvas);
   chunks = []; chunksAlive = 0;
+  for (const d of Object.values(deepShared)) freeCanvas(d.canvas);
+  deepShared = {};
   waterFieldCache = null;
   for (const t of overview) if (t) freeCanvas(t.canvas);
   overview = []; ovGrain = null;   // Übersichtskarte: wird in den nächsten Bildern nach und nach neu gemalt

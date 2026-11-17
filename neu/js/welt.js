@@ -484,6 +484,7 @@ function applySea(t, sea, field, bank, beach) {
   for (let y = 0; y < N; y++)
     for (let x = Math.max(0, Math.floor(sea.sum - 110 - y)); x < N; x++) {
       const i = y * N + x, v = sea.dist(x, y);
+      if (v < -12) sea.open[i] = 1;   // offenes Meer: dort keine Sandbänke (computeWaterDepth)
       if (v > 12 || taken.has(i)) continue;
       const f = Math.min(field[i], v) + (bank(x, y) - 0.5) * 1.3;
       if (f < 0) t[i] = TERRAIN.wasser.id;
@@ -495,6 +496,9 @@ function applySea(t, sea, field, bank, beach) {
     const x0 = sea.sum / 2 + rng() * N * 0.5 - N * 0.1, y0 = sea.sum / 2 + rng() * N * 0.5 - N * 0.1, r = 3 + rng() * 5;
     if (x0 < r + 3 || y0 < r + 3 || x0 > N - r - 3 || y0 > N - r - 3 || sea.dist(x0, y0) < 22 + r) continue;
     made++;
+    const R = r + 14;   // um die Insel herum keine Sandbänke (sahen aus wie graue Flecken, Emin 17.11.)
+    for (let y = Math.max(0, Math.floor(y0 - R)); y <= Math.min(N - 1, y0 + R); y++)
+      for (let x = Math.max(0, Math.floor(x0 - R)); x <= Math.min(N - 1, x0 + R); x++) if (Math.hypot(x - x0, y - y0) < R) sea.open[y * N + x] = 1;
     for (let y = Math.floor(y0 - r - 3); y <= y0 + r + 3; y++)
       for (let x = Math.floor(x0 - r - 3); x <= x0 + r + 3; x++) {
         const i = y * N + x, d = Math.hypot(x + 0.5 - x0, y + 0.5 - y0) - r * (0.75 + shape(x, y) * 0.5);
@@ -549,7 +553,8 @@ function generateWorld(seed) {
   mapFeatures.lake = { x: lake.x, y: lake.y, r: lake.r };
   mapFeatures.source = { x: plan.source.x, y: plan.source.y };
   const sea = seaPlan(seed, lake);
-  mapFeatures.sea = { sum: sea.sum };
+  sea.open = new Uint8Array(N * N);
+  mapFeatures.sea = { sum: sea.sum, open: sea.open };
   const field = waterField(lists, lake);
   // kleiner Quellteich hoch in den Bergen
   const sx = plan.source.x, sy = plan.source.y;
@@ -686,7 +691,7 @@ function computeWaterDepth() {
     const x = i % N, y = (i - x) / N, nx = tri(x - off), ny = tri(y - off);
     waterDepth[i] = cur[i] * (0.75 + deep0(nx, ny) * 0.5);
     waterShoal[i] = step(0.68, 0.8, shoal0(nx, ny)) * step(1.6, 2.6, cur[i]) * (1 - step(6, 9, cur[i]));   // Sandbank mitten im breiten Fluss (nicht in der Seemitte)
-    if (mapFeatures.sea && x + y > mapFeatures.sea.sum - 30) waterShoal[i] = 0;   // draußen im Meer keine Sandbänke
+    if (mapFeatures.sea && (x + y > mapFeatures.sea.sum - 30 || mapFeatures.sea.open[i])) waterShoal[i] = 0;   // draußen im Meer und um die Inseln keine Sandbänke (Emin, 17.11.: „graue Sandbank“)
   }
 }
 

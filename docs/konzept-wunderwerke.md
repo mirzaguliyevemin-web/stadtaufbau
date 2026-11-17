@@ -26,7 +26,7 @@ Ist das Werk fertig, gibt es einen **dauerhaften Vorteil**, ein **Fest** und ein
 | 🪨 **Steinkreis** | normales Gebäude (4×4, 200 Stein, 100 Holz, 20 Werkzeug, 7,5 min), Glaube + Wärme im großen Umkreis, Pflicht für den Aufbruch | Wird das **erste richtige Wunderwerk** – mit Abschnitten statt einem einzigen Bau |
 | 🦣 **Mammutjagd** | Herde zieht vorbei, antippen → Jäger laufen los, nach 1 min Beute (150 Nahrung, 15 Felle, 10 Wissen) | Vorbild für alle „Antippen und Leute losschicken“-Ereignisse; kann zusätzlich ein Fundstück bringen |
 | 🌩️ **Ereignisse** | Wetter, 5 seltene Naturkatastrophen (Dürre, Hochwasser, Waldbrand, Kältewelle, Fieber) | Nach einer Katastrophe kann es etwas zu finden geben („Das Hochwasser hat etwas angespült …“) |
-| 🌙 **Tag/Nacht, Jahreszeiten** | Tag = 30 min, Jahr = 2 h | Manche Fundstücke gibt es nur nachts (Sternschnuppe) oder im Sommer (Blumen) |
+| 🌙 **Tag/Nacht, Jahreszeiten** | Tag = 25 min (bis V226: 30 min), Jahr = 2 h | Manche Fundstücke gibt es nur nachts (Sternschnuppe) oder im Sommer (Blumen) |
 | 🌳 **Gelände** | Wald, Fels, Fluss, Gebirge; Bäume fällen, Felsen abtragen | Glitzernde Fundstellen erscheinen passend zum Gelände |
 | 🎁 **Tägliche Belohnung** | 7-Tage-Reihe, Tag 7 große Truhe | In der Truhe an Tag 7 liegt zusätzlich ein Fundstück |
 | ➡️ **Stufen und Aufbruch** | Alt → Mittel → Jung → Aufbruch in die Bronzezeit (braucht den Steinkreis) | Wunderwerke passen zu den Stufen; das letzte ist Pflicht für den Aufbruch |

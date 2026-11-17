@@ -31,6 +31,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 ## Erledigt
 
+- 17.11., V227: Tag und Jahreszeit laufen nicht mehr gleich – ein Tag dauert jetzt 25 statt 30 Minuten, jede Jahreszeit hat 1,2 Tage und beginnt jedes Jahr zu einer anderen Tageszeit.
+
 - 17.11., V225: Nur noch ein Ladefenster beim Start – der letzte Spielstand und seine Landschaft werden schon vor der Startseite geladen, „Weiterspielen“ geht sofort ins Spiel.
 - 17.11. (V224) Kartenrand: hinter dem Land endlose Wolkendecke, hinter dem Meer geht das Meer weiter (Farbe auch im Herbst gleich), Bildmitte bleibt auf der Karte, helle Linie am Meeresrand weg.
 - 17.11. (V223) Meer am Handy: keine dunklen/hellen Rauten mehr (tiefes Meer teilt sich ein Bodenbild, Übersicht in gleichen Farben), keine grünen Linien zwischen den Übersichtskacheln, keine grauen Sandbänke um die Inseln.

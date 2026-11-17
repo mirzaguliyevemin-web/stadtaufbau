@@ -1497,9 +1497,12 @@ test('Zurück: Menü → Spielstände → Zurück landet im Menü; Zurück-Taste
   noErrors(g);
 });
 
-test('Wetter wirkt: Hagel zerschlägt die Ernte, Gewitter bremst draußen, Schnee macht hungrig; Zeiten 30 min', () => {
+test('Wetter wirkt: Hagel zerschlägt die Ernte, Gewitter bremst draußen, Schnee macht hungrig; Jahreszeit 30 min, Tag 25 min', () => {
   const g = fresh();
-  ok(g.run('CONFIG.daySeconds') === 1800 && g.run('CONFIG.yearSeconds / 4') === 1800, 'Tag bzw. Jahreszeit nicht 30 Minuten');
+  ok(g.run('CONFIG.daySeconds') === 1500 && g.run('CONFIG.yearSeconds / 4') === 1800, 'Tag nicht 25 bzw. Jahreszeit nicht 30 Minuten');
+  // V227: Jahreszeit und Tag dürfen nicht gleich laufen – sonst beginnt jede Jahreszeit zur selben Tageszeit
+  const starts = g.run(`[...Array(20)].map((_, k) => Math.round((k * CONFIG.yearSeconds / 4 % CONFIG.daySeconds) / CONFIG.daySeconds * 100))`);
+  ok(new Set(starts).size >= 4, 'Jahreszeiten beginnen immer zur selben Tageszeit: ' + starts);
   for (let si = 0; si < 4; si++) {
     const sum = g.run(`Object.values(WEATHERS).reduce((a, w) => a + w.chance[${si}], 0)`);
     ok(Math.abs(sum - 1) < 1e-9, `Wetter-Wahrscheinlichkeiten in Jahreszeit ${si} ergeben ${sum}`);

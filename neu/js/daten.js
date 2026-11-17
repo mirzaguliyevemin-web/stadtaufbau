@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 226;
+const APP_VERSION = 227;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -23,7 +23,8 @@ const CONFIG = {
     // Bauzeit = Bauzeit des Gebäudes × neue Stufe
   },
   yearSeconds: 7200,      // ein Jahr = 4 Jahreszeiten à 30 Minuten (Emin, 31.10.; bis Version 22: 2 Minuten)
-  daySeconds: 1800,       // ein Tag mit Nacht dauert 30 Minuten (bis Version 22: 160 Sekunden)
+  daySeconds: 1500,       // ein Tag mit Nacht dauert 25 Minuten (V227, Emin: Tag und Jahreszeit liefen mit je 30 min gleich –
+                          // jede Jahreszeit war genau ein Tag). 25 min: 1,2 Tage je Jahreszeit, Beginn wandert durch den Tag (5 Jahre bis zur Wiederholung)
   weatherSeconds: 360,    // so lange hält ein Wetter an (6 Minuten), dann wird neu ausgewürfelt
   // Laufender Verbrauch je Einwohner und Minute (Emin, 01.11.: „Ich nehme viel mehr ein, als ich ausgebe“; vorher Nahrung immer 0,4).
   // Kleine Stämme kommen mit wenig aus: bis „von“ Einwohnern gilt „klein“, ab „bis“ Einwohnern „voll“, dazwischen gleitend.

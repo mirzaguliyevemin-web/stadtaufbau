@@ -1303,6 +1303,7 @@ function paintCloudLayer() {
     for (let px = px0; px <= px1; px++) {
       const inside = px >= 0 && py >= 0 && px < PLOTS && py < PLOTS, p = inside ? py * PLOTS + px : -1;
       if (inside && state.plots[p] === 1) continue;
+      if (!inside && openSeaPlot(px, py)) continue;   // hinter dem Kartenrand geht das Meer weiter
       const sx = cx + (px - py) * hw * z, sy = cy + (px + py) * hh * z;
       if (sx + W - ox < 0 || sx - ox > L.w || sy - oy > L.h || sy + H - oy < 0) continue;
       const img = cloudSprite(Math.floor(hash(px + 40, py + 40) * CLOUD_VARIANTS));
@@ -1311,6 +1312,40 @@ function paintCloudLayer() {
   L.sprites = n;
   L.plots = landVersion;
   return true;
+}
+
+// Offenes Meer hinter dem Kartenrand (V222): Wo das Meer an den Rand stößt, liegen draußen keine Wolken, sondern weiter
+// tiefes Wasser bis zum Horizont. Ein Landstück außerhalb gilt als Meer, wenn das nächste Feld am Rand Wasser ist.
+function openSeaPlot(px, py) {
+  if (!mapFeatures.sea) return false;
+  const ps = CONFIG.plotSize, cl = v => Math.max(0, Math.min(N - 1, v));
+  const x = cl(Math.floor((px + 0.5) * ps)), y = cl(Math.floor((py + 0.5) * ps));
+  return x + y > mapFeatures.sea.sum - 40 && isWaterAt(x, y);
+}
+function drawOpenSea(range) {
+  if (!mapFeatures.sea || !images.wasser) return;
+  const ps = CONFIG.plotSize, lim = 6;
+  if (range.x1 < N - 2 && range.y1 < N - 2) return;   // nur am unteren Rand
+  const pts = [screenToTileF(0, 0), screenToTileF(viewW, 0), screenToTileF(0, viewH), screenToTileF(viewW, viewH)];
+  const tx0 = Math.min(...pts.map(q => q.x)), tx1 = Math.max(...pts.map(q => q.x)), ty0 = Math.min(...pts.map(q => q.y)), ty1 = Math.max(...pts.map(q => q.y));
+  const o = tileToScreen(0, 0), ex = tileToScreen(1, 0), ey = tileToScreen(0, 1);
+  const path = new Path2D();
+  let any = false;
+  for (let py = Math.max(-lim, Math.floor(ty0 / ps) - 1); py <= Math.min(PLOTS + lim, Math.ceil(ty1 / ps) + 1); py++)
+    for (let px = Math.max(-lim, Math.floor(tx0 / ps) - 1); px <= Math.min(PLOTS + lim, Math.ceil(tx1 / ps) + 1); px++) {
+      if (px >= 0 && py >= 0 && px < PLOTS && py < PLOTS) continue;
+      if (!openSeaPlot(px, py)) continue;
+      path.rect(px * ps - 0.8, py * ps - 0.8, ps + 1.6, ps + 1.6); any = true;   // etwas in die Karte hinein: keine Naht am Rand
+    }
+  if (!any) return;
+  ctx.save();
+  ctx.transform(ex.x - o.x, ex.y - o.y, ey.x - o.x, ey.y - o.y, o.x, o.y);
+  const t = frameTime;
+  ctx.fillStyle = tilePattern(ctx, 'wasser', (t * 0.18) % TEXTURE_TILES, (t * 0.05) % TEXTURE_TILES);
+  ctx.fill(path);
+  ctx.fillStyle = 'rgba(16,72,140,0.5)';   // etwa wie die tiefste Stufe der Wassertiefe (renderDepthLayer)
+  ctx.fill(path);
+  ctx.restore();
 }
 
 function drawClouds(dt) {
@@ -2797,6 +2832,7 @@ function drawScene(dt) {
   drawWaterDepth(range);
   if (typeof drawDisasterGround === 'function') drawDisasterGround(range);   // Hochwasser/Dürre unter dem Wasserfall
   drawWaterfall(range);
+  if (typeof Path2D !== 'undefined') drawOpenSea(range);
   drawClouds(dt);
   drawDecorSnow(range);
   drawPaths(range);

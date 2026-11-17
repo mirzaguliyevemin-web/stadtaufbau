@@ -1821,7 +1821,7 @@ test('Menü: Neu starten – freier Platz lässt den alten Stand stehen, Ersetze
   noErrors(g);
 });
 
-test('Karte: Quelle im Gebirge oben, Wasserfall, langer Fluss rechts am Lager vorbei, See unten; Fischer im Startland', () => {
+test('Karte: Quelle im Gebirge oben, Wasserfall, langer Fluss rechts am Lager vorbei, See als Bucht am Meer unten; Fischer im Startland', () => {
   const g = fresh();
   for (const seed of [4242, 1, 77, 999, 31337, 5, 12, 2024, 8, 23]) {
     const r = g.run(`(() => { startNewGame(${seed}); let own = 0, minD = 1e9;
@@ -1833,19 +1833,22 @@ test('Karte: Quelle im Gebirge oben, Wasserfall, langer Fluss rechts am Lager vo
       seen[q[0]] = 1; let wet = 0;
       for (let h = 0; h < q.length; h++) { const i = q[h]; wet++; for (const d of [1, -1, N, -N]) { const k = i + d; if (k >= 0 && k < N * N && !seen[k] && terrain[k] === W && Math.abs((k % N) - (i % N)) <= 1) { seen[k] = 1; q.push(k); } } }
       const lakeReached = !!seen[Math.floor(f.lake.y) * N + Math.floor(f.lake.x)];
-      // kein Wasser am Kartenrand: Der Fluss endet im See
-      let edge = 0; for (let k = 0; k < N; k++) if (terrain[k] === W || terrain[(N - 1) * N + k] === W || terrain[k * N] === W || terrain[k * N + N - 1] === W) edge++;
+      // kein Wasser am Kartenrand außer am Meer (seit V222: hinter dem See liegt unten das offene Meer)
+      const S = f.sea.sum - 110, rim = (x, y) => terrain[y * N + x] === W && x + y < S;
+      let edge = 0; for (let k = 0; k < N; k++) if (rim(k, 0) || rim(k, N - 1) || rim(0, k) || rim(N - 1, k)) edge++;
+      const sea = terrain[(N - 1) * N + N - 1] === W && terrain[(N - 1) * N + N - 60] === W && terrain[(N - 60) * N + N - 1] === W;
       // Gebirge oben am Stück, um die Quelle herum
       let top = 0, topAll = 0; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (x + y < N * 0.2 && terrain[y * N + x] !== W) { topAll++; if (terrain[y * N + x] === TERRAIN.berg.id) top++; }
       let spot = false; for (let y = a; y < b - 1 && !spot; y++) for (let x = a; x < b - 1 && !spot; x++) if (!placeProblem('fischerplatz', x, y)) spot = true;
       return { gen: state.mapGen, own, minD, lakeReached, edge, top: top / topAll, spot, fall: f.fall && (f.fall.x + f.fall.y) / N, fallDir: f.fall && (f.fall.ux + f.fall.uy) / Math.SQRT2, srcDepth: (f.source.x + f.source.y) / N, lakeDepth: (f.lake.x + f.lake.y) / N, lakeR: f.lake.r,
-        lakeWet: wet, campOk: state.buildings.every((b, i) => !b.build && !placeProblem(b.type, b.x, b.y, i)), depth: waterDepth.reduce((a, v) => Math.max(a, v), 0) }; })()`);
+        lakeWet: wet, sea, campOk: state.buildings.every((b, i) => !b.build && !placeProblem(b.type, b.x, b.y, i)), depth: waterDepth.reduce((a, v) => Math.max(a, v), 0) }; })()`);
     const t = JSON.stringify(r);
     ok(r.gen === 3, 'neues Spiel sollte mapGen 3 haben');
     ok(r.own > 30, 'Fluss sollte durchs Startland gehen: ' + t);
     ok(r.minD >= 8, 'Lager zu nah am Fluss: ' + t);
     ok(r.lakeReached, 'Fluss kommt nicht durchgehend zum See: ' + t);
     ok(r.edge === 0, 'Fluss läuft durch den Kartenrand: ' + t);
+    ok(r.sea, 'unten fehlt das offene Meer: ' + t);
     ok(r.top > 0.95, 'oben fehlt das zusammenhängende Gebirge: ' + t);
     ok(r.srcDepth < 0.3 && r.lakeDepth > 1.3, 'Quelle/See nicht oben/unten im Bild: ' + t);   // der große See reicht weiter zur Mitte
     ok(r.fall && r.fall > 0.2 && r.fall < 0.55 && r.fallDir > 0.6, 'Wasserfall nicht am Bergfuß: ' + t);
@@ -1935,6 +1938,22 @@ test('Fischerplatz auf Säulen: teils im Fluss, ganz im Wasser oder ganz an Land
   ok(r.bank && /Fluss/.test(r.bank), 'Ganz an Land: ' + r.bank);
   ok(r.oldOk === null, 'Alter Stand am Ufer ungültig: ' + r.oldOk);
   ok(r.view === true, 'Drehung 1 sollte gespiegelt sein');
+  noErrors(g);
+});
+
+test('V222: Meer unten – Gebäude im Meer behalten ihr Land, gefällte Felder im Meer bleiben Wasser, sonst gleiche Karte', () => {
+  const g = fresh();
+  const r = g.run(`(() => { startNewGame(4242); const W = TERRAIN.wasser.id, x = N - 40, y = N - 40;
+    const vorher = terrain[y * N + x] === W;
+    state.buildings.push({ type: 'wohnhoehle', x, y, rot: 0 }); state.cleared.push((N - 20) * N + N - 20);
+    buildTerrain(); let dry = true;
+    for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) if (terrain[(y + dy) * N + x + dx] === W) dry = false;
+    const cleared = terrain[(N - 20) * N + N - 20] === W;
+    state.buildings.pop(); buildTerrain(); const wieder = terrain[y * N + x] === W;
+    return { vorher, dry, cleared, wieder }; })()`);
+  ok(r.vorher && r.wieder, 'Stelle sollte Meer sein: ' + JSON.stringify(r));
+  ok(r.dry, 'Gebäude steht im Wasser: ' + JSON.stringify(r));
+  ok(r.cleared, 'Gefälltes Feld im Meer wurde Wiese: ' + JSON.stringify(r));
   noErrors(g);
 });
 

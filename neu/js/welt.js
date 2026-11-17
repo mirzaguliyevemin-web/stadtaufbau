@@ -206,7 +206,7 @@ function generateTerrain(seed, n = OLD_N) {
 // Alte Spielstände behalten generateTerrain (oben) – sonst stünden ihre Gebäude plötzlich im Wasser.
 // ---------------------------------------------------------------------
 
-let mapFeatures = { fall: null, lake: null, source: null };   // Wasserfall: { x, y, ux, uy, w } (Mitte, Fließrichtung, halbe Breite); See: { x, y, r }; Quelle: { x, y }
+let mapFeatures = { fall: null, lake: null, source: null, sea: null };   // Wasserfall: { x, y, ux, uy, w } (Mitte, Fließrichtung, halbe Breite); See: { x, y, r }; Quelle: { x, y }
 
 // Mittellinie des Flusses: Die Richtung schwingt hin und her (so mäandern echte Flüsse).
 // Ergebnis: Punkte { x, y, ux, uy, w } im Abstand 0,5 Felder, oder null, wenn die Kurve nicht auf die Karte passt.
@@ -465,6 +465,45 @@ function waterField(lists, lake) {
   return field;
 }
 
+// Das Meer unten am Kartenrand (Emin, 17.11.): Der Fluss endet nicht mehr in einem See, sondern in einer großen Bucht, hinter
+// der das offene Meer bis zum Kartenrand reicht – der Übergang zur zweiten Karte (Küste und Inseln, ab der Antike).
+// Eigener Zufall aus der Spielstand-Zahl und erst nach dem übrigen Gelände gelegt (applySea): Der Generator zieht beim
+// Verteilen von Wald und Felsen fortlaufend Zufallszahlen – mehr Wasserfelder hätten den Wald bis ans Lager verschoben.
+// Gilt für alle Karten.
+function seaPlan(seed, lake) {
+  const rng = seededRng((seed ^ 0x2545f491) >>> 0);
+  const big = makeNoise(rng, 55), mid = makeNoise(rng, 18), small = makeNoise(rng, 7);
+  // Küstenlinie quer durch den unteren Teil des Sees (der Rest wird Bucht); auf alten Karten mit kleinem See trotzdem ein großes Meer
+  const sum = Math.min(lake.x + lake.y + lake.r * 0.55, N * 2 * 0.78);
+  // Küste als weiter Bogen um einen Punkt hinter der unteren Ecke, darauf große Buchten und Landzungen
+  const c = N * 1.08, R = Math.SQRT2 * (c - sum / 2);
+  return { sum, dist: (x, y) => Math.hypot(x - c, y - c) - R - (big(x, y) - 0.5) * 70 - (mid(x, y) - 0.5) * 20 - (small(x, y) - 0.5) * 5 };
+}
+function applySea(t, sea, field, bank, beach) {
+  const taken = foothillTaken();   // Schutz für Spielstände: unter Gebäuden und Wegen (mit einem Feld Rand) bleibt das Land
+  for (let y = 0; y < N; y++)
+    for (let x = Math.max(0, Math.floor(sea.sum - 110 - y)); x < N; x++) {
+      const i = y * N + x, v = sea.dist(x, y);
+      if (v > 12 || taken.has(i)) continue;
+      const f = Math.min(field[i], v) + (bank(x, y) - 0.5) * 1.3;
+      if (f < 0) t[i] = TERRAIN.wasser.id;
+      else if (v < 7 && t[i] !== TERRAIN.berg.id && f < 2.6 + beach(x, y) * 2.4) t[i] = TERRAIN.sand.id;   // breiter Sandstrand, an den Bergen Felsküste
+    }
+  // ein paar kleine Inseln draußen im Meer – ein erster Blick auf die zweite Karte (Küste und Inseln)
+  const rng = seededRng((state.seed ^ 0x68e31da4) >>> 0), shape = makeNoise(rng, 4);
+  for (let k = 0, made = 0; k < 60 && made < 5; k++) {
+    const x0 = sea.sum / 2 + rng() * N * 0.5 - N * 0.1, y0 = sea.sum / 2 + rng() * N * 0.5 - N * 0.1, r = 3 + rng() * 5;
+    if (x0 < r + 3 || y0 < r + 3 || x0 > N - r - 3 || y0 > N - r - 3 || sea.dist(x0, y0) < 22 + r) continue;
+    made++;
+    for (let y = Math.floor(y0 - r - 3); y <= y0 + r + 3; y++)
+      for (let x = Math.floor(x0 - r - 3); x <= x0 + r + 3; x++) {
+        const i = y * N + x, d = Math.hypot(x + 0.5 - x0, y + 0.5 - y0) - r * (0.75 + shape(x, y) * 0.5);
+        if (taken.has(i) || t[i] !== TERRAIN.wasser.id || d > 0) continue;
+        t[i] = d > -1.6 ? TERRAIN.sand.id : rng() < 0.55 ? TERRAIN.wald.id : TERRAIN.gras.id;
+      }
+  }
+}
+
 // Die ganze Karte aus der Spielstand-Zahl
 function generateWorld(seed) {
   let core = null;
@@ -509,6 +548,8 @@ function generateWorld(seed) {
   const lake = plan.lake;
   mapFeatures.lake = { x: lake.x, y: lake.y, r: lake.r };
   mapFeatures.source = { x: plan.source.x, y: plan.source.y };
+  const sea = seaPlan(seed, lake);
+  mapFeatures.sea = { sum: sea.sum };
   const field = waterField(lists, lake);
   // kleiner Quellteich hoch in den Bergen
   const sx = plan.source.x, sy = plan.source.y;
@@ -577,6 +618,7 @@ function generateWorld(seed) {
         else t[i] = TERRAIN.gras.id;
       }
     }
+  applySea(t, sea, field, bank, beach);
   if (core) {
     for (let y = 0; y < ON; y++) t.set(core.t.subarray(y * ON, (y + 1) * ON), (y + off) * N + off);
   } else {
@@ -627,7 +669,7 @@ function computeWaterDepth() {
     const nx = new Float32Array(N * N);
     for (const i of wet) {
       const x = i % N, y = (i - x) / N;
-      if (x < 1 || y < 1 || x >= N - 1 || y >= N - 1) continue;
+      if (x < 1 || y < 1 || x >= N - 1 || y >= N - 1) { nx[i] = cur[i]; continue; }   // Kartenrand: sonst helle Linie am Meer
       nx[i] = (cur[i] * 2 + cur[i - 1] + cur[i + 1] + cur[i - N] + cur[i + N]) / 6;
     }
     cur = nx;
@@ -644,6 +686,7 @@ function computeWaterDepth() {
     const x = i % N, y = (i - x) / N, nx = tri(x - off), ny = tri(y - off);
     waterDepth[i] = cur[i] * (0.75 + deep0(nx, ny) * 0.5);
     waterShoal[i] = step(0.68, 0.8, shoal0(nx, ny)) * step(1.6, 2.6, cur[i]) * (1 - step(6, 9, cur[i]));   // Sandbank mitten im breiten Fluss (nicht in der Seemitte)
+    if (mapFeatures.sea && x + y > mapFeatures.sea.sum - 30) waterShoal[i] = 0;   // draußen im Meer keine Sandbänke
   }
 }
 
@@ -726,13 +769,14 @@ function addFoothill(t) {
 let terrainVersion = 0;   // zählt Geländeänderungen (für gemerkte Werte wie terrainBonus)
 function buildTerrain() {
   terrainVersion++;
-  mapFeatures = { fall: null, lake: null, source: null };
+  mapFeatures = { fall: null, lake: null, source: null, sea: null };
   baseTerrain = generateWorld(state.seed);
   addFoothill(baseTerrain);
   terrain = baseTerrain.slice();
   computeWaterDepth();
-  for (const i of state.cleared) if (i >= 0 && i < N * N) terrain[i] = TERRAIN.gras.id;
-  for (const i of state.planted) if (i >= 0 && i < N * N) terrain[i] = TERRAIN.wald.id;
+  const dry = i => i >= 0 && i < N * N && baseTerrain[i] !== TERRAIN.wasser.id;   // seit dem Meer (V222) kann früheres Land Wasser sein
+  for (const i of state.cleared) if (dry(i)) terrain[i] = TERRAIN.gras.id;
+  for (const i of state.planted) if (dry(i)) terrain[i] = TERRAIN.wald.id;
   if (typeof chunks !== 'undefined') chunks = [];   // andere Karte: Boden ganz neu
   refreshLand();
 }

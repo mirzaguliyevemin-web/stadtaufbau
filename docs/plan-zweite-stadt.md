@@ -66,6 +66,16 @@ Das ist ein großer Umbau, der in mehreren Sitzungen mit Emin entsteht.
 5. **Forschung:** Ein gemeinsamer Forschungsbaum für alle Städte.
 6. **Anzahl:** Erst zwei Städte. Die Technik wird aber so gebaut, dass später mehr möglich sind.
 
+## Emins Idee vom 17.11.: Das Meer als Übergang
+
+- **Erste Karte:** Der Fluss endet nicht mehr in einem See, sondern in einer großen Bucht. Dahinter liegt unten das offene
+  Meer bis zum Kartenrand und darüber hinaus, davor ein paar kleine Inseln. ✅ Gebaut in Version 222, für alle Spielstände
+  (niemand war bis dort gekommen; unter Gebäuden bliebe das Land trotzdem stehen).
+- **Zweite Karte:** beginnt am anderen Ufer desselben Meeres: sonnig, viele Inseln, Lagunen und kleine Seen.
+- **Verbindung:** In der Antike fährt das Siedlerschiff von der Bucht der ersten Karte über das Meer zur zweiten. Die
+  Schiffsreise (Wunderwerk-Plan, `docs/plan-wunderwerke-spaeter.md`) startet am selben Hafen.
+- Später: Bilder für Meer, Brandung und Horizont mit Scenario.
+
 ## Gebaut: Spielstand für mehrere Städte (Version 185)
 
 - Die Stadt, die man gerade spielt, liegt wie bisher direkt im Spielstand. Dadurch bleibt das ganze Spiel unverändert.

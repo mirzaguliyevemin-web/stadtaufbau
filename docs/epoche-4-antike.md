@@ -1,6 +1,6 @@
 # Epochia – Epoche 4: Antike (Entwurf)
 
-Entwurf von Claude, 2026-11-13. **Nur ein Plan, nichts davon ist gebaut.** Alle Zahlen sind Startwerte und werden am Handy und mit dem Testspieler abgestimmt.
+Entwurf von Claude, 2026-11-13, alle Fragen am 17.11. von Emin entschieden (siehe unten). **Noch nichts davon ist gebaut.** Alle Zahlen sind Startwerte und werden am Handy und mit dem Testspieler abgestimmt.
 
 Zeichen: 💡 Vorschlag · ❓ Frage an Emin
 
@@ -218,7 +218,20 @@ Laut Plan (`plan-arbeitsbewegungen.md`), je 3 Bilder:
 
 Neu im Spielstand sind die Münzen als Ware, die Religion und später die Städte. Alles bekommt in `sanitizeState` einen Standardwert, alte Stände laden weiter.
 
-## Fragen an Emin
+## Entscheidungen von Emin (17.11.)
+
+1. ✅ **Römische Provinzstadt.** Aus der Keltenstadt wird eine römische Stadt. Theater und Leuchtturm kommen als griechische Spuren über den Handel.
+2. ✅ **Münzen** werden eine eigene silberne Ware, mit Münzprägerei, Steuer und Kauf beim Händler. Sie bleiben streng getrennt vom Gold aus dem Shop.
+3. ✅ **Religion:** Die Wahl kommt erst beim Aufbruch ins Mittelalter. In der Antike gibt es für alle einen Säulentempel.
+4. ✅ **Wunderwerk:** der Große Leuchtturm.
+5. ✅ **Olivenöl** wird ein Bedürfnis. Es kommt nur übers Wasser: vom Händler, per Schiffsreise und später aus den Olivenhainen der zweiten Stadt.
+6. ✅ **Die zweite Stadt** startet als kleine antike Siedlung mit Forum, ein paar Ziegelhäusern und der Ladung des Siedlerschiffs.
+7. ✅ **Der Hafen steht am Fluss beim Lager**, nicht unten an der Bucht. Die Schiffe fahren sichtbar den Fluss hinunter, durch die Bucht und aufs offene Meer hinaus. Dort verschwinden sie hinter dem Kartenrand und kommen später auf demselben Weg zurück.
+   💡 Der Hafen braucht ein breites, tiefes Flussstück. Der Fluss am Lager ist breit genug, die Prüfung „am Wasser“ wie bei der Fischerei reicht.
+
+Die Entscheidungen zur zweiten Karte stehen in `plan-zweite-stadt.md`.
+
+## Fragen an Emin (alle beantwortet, siehe oben)
 
 1. ❓ **Welche Antike?** 💡 Römische Provinzstadt (passt zu den Kelten).
 2. ❓ **Münzen** als eigene Ware neben dem Gold aus dem Shop, mit Steuer und Kauf beim Händler? 💡 Ja, getrennt vom Gold.

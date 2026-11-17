@@ -76,6 +76,29 @@ Das ist ein großer Umbau, der in mehreren Sitzungen mit Emin entsteht.
   Schiffsreise (Wunderwerk-Plan, `docs/plan-wunderwerke-spaeter.md`) startet am selben Hafen.
 - Später: Bilder für Meer, Brandung und Horizont mit Scenario.
 
+## Entscheidungen von Emin (17.11.): die Inselkarte
+
+- **Start:** eine kleine antike Siedlung mit Forum, ein paar Ziegelhäusern und den Waren aus dem Siedlerschiff. Man spielt nicht noch einmal ab der Steinzeit.
+- **Größe:** 256 × 256 Felder, ein Viertel der ersten Karte. Das spart Speicher und Akku. Viel davon ist Wasser.
+- **Landschaft:**
+  - sonnig, ohne Gebirge
+  - eine Hauptinsel mit dem Anleger, wo das Siedlerschiff ankommt
+  - rundherum viele kleine Inseln
+  - Lagunen und kleine Seen
+- **Besonderheiten** (alle vier gewählt):
+  - 🫒 **Olivenhaine und Wein** wachsen nur hier. Das Olivenöl geht in die erste Stadt, wo es Bedürfnis ist.
+  - 🌉 **Inseln erschließen:** Die Nachbarinseln erreicht man über Brücken (gibt es schon) oder einen Bootsanleger. Jede Insel ist wie ein neues Landstück.
+  - 🪵 **Wenig Holz und Stein:** Bauholz und Stein kommen per Schiff aus der ersten Stadt.
+  - 🧂 **Salz und Fisch:** Salzgärten an den Lagunen und reicher Fischfang.
+- **Handel: feste Schiffsrouten.** Man legt einmal fest, was in welchem Takt fährt, zum Beispiel alle 10 Minuten 50 Holz hin und 30 Öl zurück. Ein Schiff fährt die Route von selbst, auch während man in der anderen Stadt spielt. Man sieht es auf beiden Karten aus- und einlaufen.
+- **Ablauf in der Antike:**
+  1. In der Mittleren Antike baut man den Hafen am Fluss beim Lager.
+  2. Die Schiffsreise beginnt: Schiffe fahren den Fluss hinunter aufs Meer und bringen Waren und Fundstücke.
+  3. Mit der Forschung „Kolonien“ kann man das Siedlerschiff beladen. Es fährt los, und die zweite Stadt entsteht.
+  4. Danach kommen die Schiffsrouten zwischen beiden Städten.
+- 💡 **Zwischen den Städten wechseln:** über einen Knopf „Städte“, oder indem man im Hafen das Schiff antippt.
+- 💡 **Kein Wunderwerk auf der Inselkarte in der Antike.** Der Leuchtturm steht am Hafen der ersten Stadt. Die zweite Stadt bekommt ihr eigenes Wunderwerk erst in einem späteren Zeitalter.
+
 ## Gebaut: Spielstand für mehrere Städte (Version 185)
 
 - Die Stadt, die man gerade spielt, liegt wie bisher direkt im Spielstand. Dadurch bleibt das ganze Spiel unverändert.

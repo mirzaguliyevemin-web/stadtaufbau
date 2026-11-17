@@ -1307,6 +1307,8 @@ function anyCanvasLost() {
   return list.some(canvasLost);
 }
 function resetCanvasCaches() {
+  // Zur Fehlersuche (Emin, 17.11.: ruckelt nach einer Weile): im Fehlerprotokoll vermerken, wenn die gemalte Karte verloren geht
+  if (typeof noteError === 'function' && typeof gameRunning !== 'undefined' && gameRunning) noteError('Hinweis', 'Gemalte Karte war geleert und wird neu gemalt (' + new Date().toLocaleTimeString('de-DE') + ')');
   cloudSprites.length = 0;
   cloudPuffSprite = null;
   cloudLayer.canvas = null; cloudLayer.g = null; cloudLayer.z = 0;

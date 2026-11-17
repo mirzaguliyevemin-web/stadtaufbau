@@ -217,6 +217,7 @@ function adaptQuality(dt, busyMs) {
   if (busy > 12 && native * renderScale > 1) renderScale = Math.max(1 / native, renderScale - 0.15);
   else if (busy < 6 && renderScale < 1) renderScale = Math.min(1, renderScale + 0.05);
   else return false;
+  if (renderScale < 1) noteError('Hinweis', 'Handy überlastet: Bildschärfe ' + Math.round(renderScale * 100) + ' %');
   resizeCanvas();
   return true;   // die Karte ist jetzt leer und muss gleich neu gezeichnet werden
 }

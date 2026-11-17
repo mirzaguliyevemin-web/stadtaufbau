@@ -92,7 +92,7 @@ Das ist ein großer Umbau, der in mehreren Sitzungen mit Emin entsteht.
   - 🧂 **Salz und Fisch:** Salzgärten an den Lagunen und reicher Fischfang.
 - **Handel: feste Schiffsrouten.** Man legt einmal fest, was in welchem Takt fährt, zum Beispiel alle 10 Minuten 50 Holz hin und 30 Öl zurück. Ein Schiff fährt die Route von selbst, auch während man in der anderen Stadt spielt. Man sieht es auf beiden Karten aus- und einlaufen.
 - **Ablauf in der Antike:**
-  1. In der Mittleren Antike baut man den Hafen am Fluss beim Lager.
+  1. In der Mittleren Antike baut der Spieler den Hafen selbst. Er setzt ihn ans Wasser, meist an den Fluss beim Lager, und von dort muss das Wasser bis zum Meer reichen.
   2. Die Schiffsreise beginnt: Schiffe fahren den Fluss hinunter aufs Meer und bringen Waren und Fundstücke.
   3. Mit der Forschung „Kolonien“ kann man das Siedlerschiff beladen. Es fährt los, und die zweite Stadt entsteht.
   4. Danach kommen die Schiffsrouten zwischen beiden Städten.

@@ -226,8 +226,11 @@ Neu im Spielstand sind die Münzen als Ware, die Religion und später die Städt
 4. ✅ **Wunderwerk:** der Große Leuchtturm.
 5. ✅ **Olivenöl** wird ein Bedürfnis. Es kommt nur übers Wasser: vom Händler, per Schiffsreise und später aus den Olivenhainen der zweiten Stadt.
 6. ✅ **Die zweite Stadt** startet als kleine antike Siedlung mit Forum, ein paar Ziegelhäusern und der Ladung des Siedlerschiffs.
-7. ✅ **Der Hafen steht am Fluss beim Lager**, nicht unten an der Bucht. Die Schiffe fahren sichtbar den Fluss hinunter, durch die Bucht und aufs offene Meer hinaus. Dort verschwinden sie hinter dem Kartenrand und kommen später auf demselben Weg zurück.
-   💡 Der Hafen braucht ein breites, tiefes Flussstück. Der Fluss am Lager ist breit genug, die Prüfung „am Wasser“ wie bei der Fischerei reicht.
+7. ✅ **Den Hafen baut der Spieler selbst** wie jedes andere Gebäude: Man wählt ihn im Baumenü und setzt ihn ans Wasser, so wie die Fischerei. Er passt an den Fluss, und wer bis dorthin ausgebaut hat, auch an die Bucht. Gedacht ist der Fluss beim Lager.
+   - Der Hafen braucht ein Ufer, von dem aus das Wasser durchgehend bis zum Meer reicht. Beim Setzen wird geprüft, ob ein Schiff von dort aufs Meer kommt. Ein abgeschnittener Teich geht nicht, das Baumenü sagt dann „Von hier kommt kein Schiff aufs Meer“.
+   - Die Schiffe fahren sichtbar vom Hafen über das Wasser, den Fluss hinunter, durch die Bucht und aufs offene Meer. Hinter dem Kartenrand verschwinden sie und kommen auf demselben Weg zurück.
+   - 💡 Den Weg sucht das Spiel einmal beim Bauen über die Wasserfelder und merkt ihn sich.
+   - 💡 Es gibt zunächst einen Hafen je Stadt, ein zweiter bringt nichts zusätzlich.
 
 Die Entscheidungen zur zweiten Karte stehen in `plan-zweite-stadt.md`.
 

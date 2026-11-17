@@ -87,7 +87,7 @@ Jede Linie bekommt die nächste Stufe, wie gehabt: gleiche Größe, mehr Leistun
 | ⚓ **Hafen** | 4×4 am Wasser | Mittel | 300 Holz, 150 Stein, 60 Ziegel | Händlerschiffe kommen, bringen Öl, Wein, Glas, mit Glück Fundstücke |
 | 🎭 **Theater** | 4×4 | Spät | 400 Stein, 100 Ziegel, 200 Münzen | großes Fest, Laune im großen Umkreis |
 | 💧 **Aquädukt** | wie ein Weg gezogen | Spät | 300 Stein, 80 Ziegel | versorgt Brunnen und Thermen, mehr Einwohner in der Nähe |
-| 🏛️ **Triumphbogen** oder **Säulenhalle** | 3×3 | Spät | 500 Stein, 150 Ziegel, 300 Münzen | Wahrzeichen: Pflicht für den Aufbruch ins Mittelalter |
+| 🏛️ **Triumphbogen** | 3×3 | Spät | 500 Stein, 150 Ziegel, 300 Münzen | Wahrzeichen: Pflicht für den Aufbruch ins Mittelalter |
 
 ## Waren
 
@@ -237,6 +237,9 @@ Neu im Spielstand sind die Münzen als Ware, die Religion und später die Städt
 9. ✅ **Das Aquädukt** zieht man wie einen Weg, vom Fluss bis zu Thermen und Brunnen. Gezeichnet wird es als Steinbögen, die Technik vom Weg- und Brückenbau wird mitbenutzt. Häuser in der Nähe bekommen frisches Wasser und mehr Platz.
 10. ✅ **Der Hafen ist 4×4 groß.** Die Kaimauer liegt an der Wasserseite, das Schiff legt davor im Wasser an.
 11. ✅ **Die Wohnlinie bleibt wie geplant:** Ziegelhaus, dann Villa mit Innenhof, dann Mietshaus mit zwei Stockwerken.
+
+12. ✅ **Das Wahrzeichen ist der Triumphbogen**, keine Säulenhalle.
+13. ✅ **Zahlen:** Kosten und Leistung im Plan sind Startwerte. Sie werden wie bei der Eisenzeit erst mit dem Testspieler gemessen, wenn alles gebaut ist.
 
 Die Entscheidungen zur zweiten Karte stehen in `plan-zweite-stadt.md`.
 

@@ -20,6 +20,7 @@ Alles auf Deutsch: Texte im Spiel, Kommentare, Commit-Nachrichten, Dokumente.
 1. `node neu/tools/test.mjs` muss mit „Alle … Epochia-Tests bestanden“ enden (`--quick` ohne Bot). Schlägt etwas fehl: nicht pushen.
 2. Version an **drei** Stellen gleich erhöhen: `APP_VERSION` in `neu/js/daten.js`, `<meta name="app-version">` in `neu/index.html`,
    `CACHE` in `neu/service-worker.js`.
+   Danach `node app/live-liste.mjs` (Dateiliste für die Live-Updates der Android-App; der Test prüft sie).
 3. Commit mit kurzer deutscher Beschreibung, dann `git push`.
 
 ## Spielstände nie kaputt machen

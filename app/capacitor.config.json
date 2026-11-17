@@ -2,5 +2,17 @@
   "appId": "de.epochia.spiel",
   "appName": "Epochia",
   "webDir": "www",
-  "android": { "backgroundColor": "#3d7a2a" }
+  "android": { "backgroundColor": "#3d7a2a" },
+  "plugins": {
+    "CapacitorUpdater": {
+      "autoUpdate": false,
+      "statsUrl": "",
+      "updateUrl": "",
+      "channelUrl": "",
+      "appReadyTimeout": 20000,
+      "autoDeleteFailed": true,
+      "autoDeletePrevious": true,
+      "resetWhenUpdate": true
+    }
+  }
 }

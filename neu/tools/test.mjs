@@ -3346,6 +3346,18 @@ test('V207: Version an allen drei Stellen gleich, Service Worker räumt nur alte
   for (const f of [...html.matchAll(/(?:src|href)="((?:js\/)?[\w.-]+\.(?:js|css))"/g)].map(m => m[1])) ok(sw.includes(`'${f}'`), 'fehlt im Service Worker: ' + f);
 });
 
+await testAsync('V218: Live-Liste der App (app/live.json) passt zu den Dateien – sonst „node app/live-liste.mjs“ ausführen', async () => {
+  const { liveListe } = await import('../../app/live-liste.mjs');
+  const root = new URL('../../', import.meta.url).pathname;
+  const soll = liveListe(root), ist = JSON.parse(fs.readFileSync(root + 'app/live.json', 'utf8'));
+  ok(ist.version === soll.version, `app/live.json hat Version ${ist.version}, das Spiel ${soll.version} – node app/live-liste.mjs ausführen`);
+  ok(ist.nativ === soll.nativ, 'App-Stand in app/live.json veraltet – node app/live-liste.mjs ausführen');
+  const a = new Map(ist.dateien.map(d => [d[0], d[1]]));
+  const falsch = soll.dateien.filter(d => a.get(d[0]) !== d[1]).map(d => d[0]);
+  ok(!falsch.length && a.size === soll.dateien.length, 'app/live.json veraltet (' + (falsch.slice(0, 3).join(', ') || 'Dateien entfernt') + ') – node app/live-liste.mjs ausführen');
+  ok(a.has('index.html') && a.has('neu/index.html') && a.has('neu/js/start.js'), 'Startdateien fehlen in der Live-Liste');
+});
+
 test('V207: Volle Werkstatt ohne Rohstoffe bleibt nicht ewig voll, Abriss-Erstattung geht übers Lager, Stufen zum bezahlten Preis', () => {
   const g = fresh();
   g.run(`isConnected = () => true; state.pop = 30; { const m = Math.floor(N / 2) + 12;

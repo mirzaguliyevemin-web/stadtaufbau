@@ -304,19 +304,32 @@ on('disasterEnded', id => { if (gameRunning) toast(`${DISASTERS[id].icon} ${DISA
 // ---------------------------------------------------------------------
 
 let updateCheckAt = 0;
-// Android-App (Capacitor)? Dort liegen die Spieldateien in der App, Updates kommen als neue App von GitHub.
+// Android-App (Capacitor)? Dort liegen die Spieldateien in der App.
 function isNativeApp() {
   return typeof window !== 'undefined' && !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 }
-const APP_RELEASE_API = 'https://api.github.com/repos/mirzaguliyevemin-web/stadtaufbau/releases/latest';
+function capPlugin(name) {
+  return typeof window !== 'undefined' && window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins[name] : null;
+}
+// Live-Updates in der App (V218, Emin: lieber als jedes Mal die ganze App): app/live.json auf GitHub Pages listet alle
+// Spieldateien mit Prüfsumme; Capgo lädt nur geänderte nach und nimmt den Rest aus der App. Nur wenn sich der Android-Teil
+// ändert („nativ“ höher als in der installierten App), braucht es noch eine neue APK von GitHub.
+const PAGES_URL = 'https://mirzaguliyevemin-web.github.io/stadtaufbau/';
 const APP_DOWNLOAD_URL = 'https://github.com/mirzaguliyevemin-web/stadtaufbau/releases/latest/download/epochia.apk';
+let liveUpdate = null;   // { version, liste, apk } – was der Knopf tun soll
 
-// Neueste Fassung online: im Browser aus index.html, in der App aus dem GitHub-Release „app-vNNN“ (V214, Emin: Update im Spiel starten)
+async function nativeBuild() {
+  try { return Number((await capPlugin('App').getInfo()).build) || 0; } catch (e) { return 0; }
+}
+
+// Neueste Fassung online: im Browser aus index.html, in der App aus app/live.json
 async function onlineVersion(now) {
   if (isNativeApp()) {
-    const res = await fetch(APP_RELEASE_API, { cache: 'no-store', headers: { Accept: 'application/vnd.github+json' } });
-    const m = String((await res.json()).tag_name || '').match(/^app-v(\d+)$/);
-    return m ? Number(m[1]) : 0;
+    const res = await fetch(PAGES_URL + 'app/live.json?pruefen=' + now, { cache: 'no-store' });
+    const liste = await res.json();
+    const apk = !capPlugin('CapacitorUpdater') || (Number(liste.nativ) || 0) > await nativeBuild();
+    liveUpdate = { version: Number(liste.version) || 0, liste, apk };
+    return liveUpdate.version;
   }
   const res = await fetch('index.html?pruefen=' + now, { cache: 'no-store' });
   const m = (await res.text()).match(/name="app-version" content="(\d+)"/);
@@ -326,8 +339,8 @@ async function onlineVersion(now) {
 async function checkForUpdate(force = false) {
   if (typeof fetch === 'undefined' || typeof location === 'undefined' || !/^https?:/.test(location.protocol)) return;
   const now = Date.now();
-  // in der App seltener: GitHub erlaubt ohne Anmeldung 60 Abfragen je Stunde
-  if (!force && now - updateCheckAt < (isNativeApp() ? 30 * 60000 : 60000)) return;
+  if (liveLoading) return;
+  if (!force && now - updateCheckAt < (isNativeApp() ? 10 * 60000 : 60000)) return;
   updateCheckAt = now;
   try {
     const online = await onlineVersion(now);
@@ -340,17 +353,39 @@ async function checkForUpdate(force = false) {
 
 function showUpdateBanner(version) {
   const el = $('update-banner');
-  el.innerHTML = `<span>✨ Neue Version ${version} ist da!</span>
-    <button class="btn primary" onclick="applyUpdate()">${isNativeApp() ? '⬇️ Herunterladen' : '🔄 Jetzt aktualisieren'}</button>
+  const apk = isNativeApp() && liveUpdate && liveUpdate.apk;
+  el.innerHTML = `<span>✨ Neue Version ${version} ist da!${apk ? ' (neue App nötig)' : ''}</span>
+    <button class="btn primary" onclick="applyUpdate()">${apk ? '⬇️ Herunterladen' : '🔄 Jetzt aktualisieren'}</button>
     <button class="btn" onclick="show($('update-banner'), false)">Später</button>`;
   show(el, true);
 }
 
+let liveLoading = false;
+async function applyLiveUpdate() {
+  const up = capPlugin('CapacitorUpdater'), l = liveUpdate.liste;
+  liveLoading = true;
+  $('update-banner').innerHTML = '<span>⏳ Neue Version wird geladen …</span>';
+  try {
+    // ?v=: am Zwischenspeicher von GitHub Pages vorbei, sonst kämen kurz nach dem Hochladen noch alte Dateien
+    const manifest = l.dateien.map(([rel, hash, url]) => ({ file_name: rel, file_hash: hash, download_url: PAGES_URL + encodeURI(url) + '?v=' + l.version }));
+    const bundle = await up.download({ url: PAGES_URL + 'app/live.json', version: String(l.version), manifest });
+    if (gameRunning) saveGame();
+    await up.set({ id: bundle.id });   // startet das Spiel mit den neuen Dateien neu
+  } catch (e) {
+    liveLoading = false;
+    console.warn('Live-Update', e);
+    show($('update-banner'), false);
+    toast('Update hat nicht geklappt – in ein paar Minuten noch einmal versuchen');
+    updateCheckAt = Date.now() - 8 * 60000;   // in etwa 2 Minuten wieder anbieten
+  }
+}
+
 function applyUpdate() {
   if (gameRunning) saveGame();
-  // App: die neue APK im Browser herunterladen lassen – Capacitor öffnet fremde Adressen außerhalb der App.
-  // Installieren muss Android immer selbst bestätigen lassen; die Spielstände bleiben (gleicher Schlüssel).
   if (isNativeApp()) {
+    if (liveUpdate && !liveUpdate.apk) { applyLiveUpdate(); return; }
+    // Neue APK im Browser herunterladen lassen – Capacitor öffnet fremde Adressen außerhalb der App.
+    // Installieren muss Android immer selbst bestätigen lassen; die Spielstände bleiben (gleicher Schlüssel).
     show($('update-banner'), false);
     toast('⬇️ Download startet – danach die Datei antippen und „Aktualisieren“ wählen');
     location.href = APP_DOWNLOAD_URL;
@@ -360,6 +395,9 @@ function applyUpdate() {
 }
 
 function boot() {
+  // Live-Update: melden, dass diese Fassung startet – sonst setzt Capgo nach 20 s auf die vorige zurück (Schutz vor kaputten Updates)
+  const updater = capPlugin('CapacitorUpdater');
+  if (updater && updater.notifyAppReady) updater.notifyAppReady().catch(() => {});
   canvas = $('map');
   ctx = canvas.getContext('2d');
   loadSettings();
@@ -412,7 +450,7 @@ function boot() {
   }
   // Android-App: Die Zurück-Taste schließt erst offene Fenster (wie im Browser), sonst geht die App in den Hintergrund.
   // Ohne das schloss sie die App mitten aus einem Fenster heraus (V207).
-  const capApp = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  const capApp = capPlugin('App');
   if (capApp && capApp.addListener) capApp.addListener('backButton', () => {
     if (typeof histDepth !== 'undefined' && histDepth > 0) history.back();
     else { if (gameRunning) saveGame(); capApp.minimizeApp(); }

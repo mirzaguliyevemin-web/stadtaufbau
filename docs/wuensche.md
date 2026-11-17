@@ -25,6 +25,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 
 - Wasserfall als echtes Video (Emin, 17.11.): das gemalte Bild (Version 216/217) später durch einen bewegten Wasserfall ersetzen (Video bzw. Bildfolge mit Scenario), wenn genug Credits da sind – keine Eile.
+- 2026-11-17, Epochia Version 218 – Emin: Live-Updates statt jedes Mal die ganze App: die Android-App liest app/live.json (Dateiliste mit Prüfsummen) von GitHub Pages und lädt nur geänderte Dateien nach (Capgo-Modul ohne fremden Server); neue APK nur noch bei Änderungen am Android-Teil. Startet eine Fassung nicht, springt die App auf die vorige zurück.
 
 ## Erledigt
 - 2026-11-17, Epochia Version 217 – Emin: unterer Teil des Wasserfalls wirkte verschoben (Fluss biegt gleich danach ab, Becken lag auf der Wiese): das Bild richtet sich jetzt nach dem Flusslauf unterhalb und neigt sich leicht dorthin; Schaumflocken treiben vom Becken flussab, oberhalb ziehen feine Linien zur Kante.

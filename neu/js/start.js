@@ -6,7 +6,10 @@ let lastFrame = 0;
 let saveTimer = 0;
 let uiTimer = 0;
 
+// Der Balken kann in Abschnitte geteilt sein: erst Bilder (bis loadTo), dann Landschaft (ab loadFrom)
+let loadFrom = 0, loadTo = 1;
 function setLoading(progress) {
+  progress = loadFrom + progress * (loadTo - loadFrom);
   const bar = $('loading-bar'), pct = $('loading-pct');
   if (bar) bar.style.width = Math.round(progress * 100) + '%';
   if (pct) pct.textContent = Math.round(progress * 100) + ' %';
@@ -94,17 +97,42 @@ function centerOnCamp() {
   clampCamera();
 }
 
+// Nur ein Ladefenster (Emin, 17.11.): Schon beim ersten Laden wird der zuletzt gespielte Stand geöffnet und seine Landschaft
+// gemalt. „Weiterspielen“ geht dann sofort ins Spiel. Gemerkt wird der Text des Stands: Hat sich auf der Startseite etwas
+// geändert (anderer Platz, Import, Konto), wird ganz normal neu geladen.
+let prepared = null;   // { slot, text }
+function prepareGame(onDone) {
+  prepared = null;
+  const text = storageGet(SAVE_PREFIX + currentSlot);
+  if (!text || typeof document === 'undefined') { onDone(); return; }
+  const fail = () => { prepared = null; show($('game'), false); onDone(); };
+  try {
+    resetLife();
+    resetWeather();
+    show($('game'), true);   // unter dem Ladefenster, damit die Bildgröße stimmt
+    resizeCanvas();
+    if (!loadSlot(currentSlot)) { fail(); return; }
+    prepared = { slot: currentSlot, text };
+    centerOnCamp();
+    loadSteps.push('Die Landschaft wird gemalt …');
+    if (!loadStepTimer) nextLoadStep();
+    loadFrom = loadTo; loadTo = 1;
+    prerenderGround(p => setLoading(p), () => { setLoading(1); show($('game'), false); onDone(); });
+  } catch (e) { fail(); }
+}
+
 // Spiel auf dem aktuellen Platz öffnen (Stand laden oder neu anfangen)
 function enterGame() {
   if (typeof kontoVorSpielstart === 'function') kontoVorSpielstart();
-  resetLife();
-  resetWeather();
+  const ready = prepared && prepared.slot === currentSlot && storageGet(SAVE_PREFIX + currentSlot) === prepared.text;
+  prepared = null;
+  if (!ready) { resetLife(); resetWeather(); }
   show($('start'), false);
   show($('game'), true);
   resizeCanvas();
   let offline = null;
-  let loaded = false;
-  try { loaded = loadSlot(currentSlot); } catch (e) { loaded = false; }   // nie auf leerem Bild hängen bleiben (V207)
+  let loaded = ready;
+  if (!ready) try { loaded = loadSlot(currentSlot); } catch (e) { loaded = false; }   // nie auf leerem Bild hängen bleiben (V207)
   if (loaded) {
     offline = applyOfflineProgress(state.savedAt);
   } else {
@@ -129,12 +157,16 @@ function enterGame() {
   if (offline) showOfflineSummary(offline);
   else afterWelcome();
   checkTurnHint();
-  // Karte rund ums Dorf schon vormalen, solange das Ladefenster steht (sonst weiße bzw. leere Stellen beim ersten Umsehen)
-  const step = $('loading-step');
-  show($('loading'), true);
-  setLoading(0);
-  if (step) step.textContent = 'Die Landschaft wird gemalt …';
-  prerenderGround(p => setLoading(p), () => { setLoading(1); show($('loading'), false); });
+  // Karte rund ums Dorf schon vormalen, solange das Ladefenster steht (sonst weiße bzw. leere Stellen beim ersten Umsehen).
+  // Schon beim Start vorbereitet: kein zweites Ladefenster – außer die Bilder wurden inzwischen geleert (lange im Hintergrund).
+  if (!ready || !chunksAlive) {
+    const step = $('loading-step');
+    show($('loading'), true);
+    loadFrom = 0; loadTo = 1;
+    setLoading(0);
+    if (step) step.textContent = 'Die Landschaft wird gemalt …';
+    prerenderGround(p => setLoading(p), () => { setLoading(1); show($('loading'), false); });
+  }
   remindExport();
 }
 
@@ -428,7 +460,8 @@ function boot() {
     }
   });
   const minWait = new Promise(r => setTimeout(r, 900));
-  Promise.all([preloadImages(), minWait]).then(() => {
+  if (storageGet(SAVE_PREFIX + currentSlot)) loadTo = 0.6;   // Bilder bis 60 %, dann die Landschaft des Spielstands
+  Promise.all([preloadImages(), minWait]).then(() => new Promise(r => prepareGame(r))).then(() => {
     if (images.ladebild) $('loading').style.backgroundImage = `url(${imagePath('ladebild')})`;
     showStartScreen();
     // ?direkt überspringt die Startseite (zum Ausprobieren und für Bildschirmfotos)

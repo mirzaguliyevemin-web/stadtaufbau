@@ -304,15 +304,33 @@ on('disasterEnded', id => { if (gameRunning) toast(`${DISASTERS[id].icon} ${DISA
 // ---------------------------------------------------------------------
 
 let updateCheckAt = 0;
+// Android-App (Capacitor)? Dort liegen die Spieldateien in der App, Updates kommen als neue App von GitHub.
+function isNativeApp() {
+  return typeof window !== 'undefined' && !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+const APP_RELEASE_API = 'https://api.github.com/repos/mirzaguliyevemin-web/stadtaufbau/releases/latest';
+const APP_DOWNLOAD_URL = 'https://github.com/mirzaguliyevemin-web/stadtaufbau/releases/latest/download/epochia.apk';
+
+// Neueste Fassung online: im Browser aus index.html, in der App aus dem GitHub-Release „app-vNNN“ (V214, Emin: Update im Spiel starten)
+async function onlineVersion(now) {
+  if (isNativeApp()) {
+    const res = await fetch(APP_RELEASE_API, { cache: 'no-store', headers: { Accept: 'application/vnd.github+json' } });
+    const m = String((await res.json()).tag_name || '').match(/^app-v(\d+)$/);
+    return m ? Number(m[1]) : 0;
+  }
+  const res = await fetch('index.html?pruefen=' + now, { cache: 'no-store' });
+  const m = (await res.text()).match(/name="app-version" content="(\d+)"/);
+  return m ? Number(m[1]) : 0;
+}
+
 async function checkForUpdate(force = false) {
   if (typeof fetch === 'undefined' || typeof location === 'undefined' || !/^https?:/.test(location.protocol)) return;
   const now = Date.now();
-  if (!force && now - updateCheckAt < 60000) return;   // höchstens einmal pro Minute
+  // in der App seltener: GitHub erlaubt ohne Anmeldung 60 Abfragen je Stunde
+  if (!force && now - updateCheckAt < (isNativeApp() ? 30 * 60000 : 60000)) return;
   updateCheckAt = now;
   try {
-    const res = await fetch('index.html?pruefen=' + now, { cache: 'no-store' });
-    const m = (await res.text()).match(/name="app-version" content="(\d+)"/);
-    const online = m ? Number(m[1]) : 0;
+    const online = await onlineVersion(now);
     if (online > APP_VERSION) showUpdateBanner(online);
     else if (force) toast('✔ Du hast schon die neueste Version (' + APP_VERSION + ')');
   } catch (e) {
@@ -323,13 +341,21 @@ async function checkForUpdate(force = false) {
 function showUpdateBanner(version) {
   const el = $('update-banner');
   el.innerHTML = `<span>✨ Neue Version ${version} ist da!</span>
-    <button class="btn primary" onclick="applyUpdate()">🔄 Jetzt aktualisieren</button>
+    <button class="btn primary" onclick="applyUpdate()">${isNativeApp() ? '⬇️ Herunterladen' : '🔄 Jetzt aktualisieren'}</button>
     <button class="btn" onclick="show($('update-banner'), false)">Später</button>`;
   show(el, true);
 }
 
 function applyUpdate() {
   if (gameRunning) saveGame();
+  // App: die neue APK im Browser herunterladen lassen – Capacitor öffnet fremde Adressen außerhalb der App.
+  // Installieren muss Android immer selbst bestätigen lassen; die Spielstände bleiben (gleicher Schlüssel).
+  if (isNativeApp()) {
+    show($('update-banner'), false);
+    toast('⬇️ Download startet – danach die Datei antippen und „Aktualisieren“ wählen');
+    location.href = APP_DOWNLOAD_URL;
+    return;
+  }
   location.reload();
 }
 
@@ -381,7 +407,7 @@ function boot() {
     if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', freeTurn);
   }
   // In der Android-App (Capacitor) kommen Updates mit der App selbst – kein Service Worker, sonst hielte er alte Dateien fest
-  if (typeof navigator !== 'undefined' && navigator.serviceWorker && !(typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
+  if (typeof navigator !== 'undefined' && navigator.serviceWorker && !isNativeApp()) {
     navigator.serviceWorker.register('service-worker.js').catch(err => console.warn('Service Worker', err));
   }
   // Android-App: Die Zurück-Taste schließt erst offene Fenster (wie im Browser), sonst geht die App in den Hintergrund.

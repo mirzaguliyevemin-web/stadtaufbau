@@ -25,6 +25,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 
 ## Erledigt
+- 2026-11-17, Epochia Version 214 – Emin: Update in der App starten statt jedes Mal den Link öffnen: Die Android-App fragt beim Start und alle 30 min bei GitHub nach der neuesten App-Fassung (Release „app-vNNN“) und zeigt dann „Neue Version … – ⬇️ Herunterladen“; der Knopf lädt die neue App im Browser, Android fragt danach nur noch „Aktualisieren?“. Auch „Menü → Nach Updates suchen“ prüft in der App jetzt die App-Fassung.
 - 2026-11-16, Epochia Version 213 – aus der großen Prüfung: Figuren, die knapp vor der rechten oder linken Kante eines großen Gebäudes stehen, werden nicht mehr vom Gebäudebild verdeckt.
 - 2026-11-16, Epochia Version 212 – aus der großen Prüfung: Die verschneiten Fassungen von Hügeln, Bergen, Felsen, Bäumen und Gebäuden ohne Winterbild werden in den letzten Herbstminuten nach und nach vorgerechnet – vorher kamen sie alle im ersten Winterbild auf einmal (spürbares Stocken).
 - 2026-11-16, Epochia Version 211 – aus der großen Prüfung: Im Hintergrund schläft der ganze Ton (in der Android-App blieb der Audio-Ausgang offen und zog Akku); sind Geräusche und Musik aus, wird der Ton gar nicht erst angelegt; ohne Konto erinnert das Spiel höchstens einmal die Woche ans Exportieren des Spielstands.

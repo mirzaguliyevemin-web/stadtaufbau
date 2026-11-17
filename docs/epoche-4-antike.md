@@ -74,6 +74,7 @@ Jede Linie bekommt die nächste Stufe, wie gehabt: gleiche Größe, mehr Leistun
 | Ton | Große Lehmgrube | **Tongrube** | Früh | mehr Ton |
 | Töpfern | Drehscheiben-Töpferei | **Amphorenwerkstatt** | Mittel | Töpferwaren, Amphoren für den Hafen |
 | Lager | Vorratshof | **Lagerhalle** (Horreum) | Mittel | viel mehr Lager |
+| Glas | Glasmacherin | **Glasbläserei** | Spät | Fensterglas für Mietshaus und Thermen |
 | Handel | Handelshof | **Markt** | Früh | Händler öfter, Kauf mit Münzen |
 
 ## Gebäude: neu
@@ -83,9 +84,9 @@ Jede Linie bekommt die nächste Stufe, wie gehabt: gleiche Größe, mehr Leistun
 | 🧱 **Ziegelei** | 2×2 | Früh | 120 Holz, 60 Stein, 20 Eisen | 2 Ton + 1 Holz → 2 Ziegel |
 | ⛏️ **Silbermine** | 3×3 | Früh | 150 Holz, 100 Stein, 20 Eisen | 2 Silber, an Felsen oder Gebirge |
 | 🪙 **Münzprägerei** | 2×2 | Früh | 100 Stein, 40 Ziegel, 20 Eisen | 1 Silber → 10 Münzen |
-| ⚓ **Hafen** | 3×4 am Wasser | Mittel | 300 Holz, 150 Stein, 60 Ziegel | Händlerschiffe kommen, bringen Öl, Wein, Glas, mit Glück Fundstücke |
+| ⚓ **Hafen** | 4×4 am Wasser | Mittel | 300 Holz, 150 Stein, 60 Ziegel | Händlerschiffe kommen, bringen Öl, Wein, Glas, mit Glück Fundstücke |
 | 🎭 **Theater** | 4×4 | Spät | 400 Stein, 100 Ziegel, 200 Münzen | großes Fest, Laune im großen Umkreis |
-| 💧 **Aquädukt** | 1×4 Bogen, verbindbar | Spät | 300 Stein, 80 Ziegel | versorgt Brunnen und Thermen, mehr Einwohner in der Nähe |
+| 💧 **Aquädukt** | wie ein Weg gezogen | Spät | 300 Stein, 80 Ziegel | versorgt Brunnen und Thermen, mehr Einwohner in der Nähe |
 | 🏛️ **Triumphbogen** oder **Säulenhalle** | 3×3 | Spät | 500 Stein, 150 Ziegel, 300 Münzen | Wahrzeichen: Pflicht für den Aufbruch ins Mittelalter |
 
 ## Waren
@@ -231,6 +232,11 @@ Neu im Spielstand sind die Münzen als Ware, die Religion und später die Städt
    - Die Schiffe fahren sichtbar vom Hafen über das Wasser, den Fluss hinunter, durch die Bucht und aufs offene Meer. Hinter dem Kartenrand verschwinden sie und kommen auf demselben Weg zurück.
    - 💡 Den Weg sucht das Spiel einmal beim Bauen über die Wasserfelder und merkt ihn sich.
    - 💡 Es gibt zunächst einen Hafen je Stadt, ein zweiter bringt nichts zusätzlich.
+
+8. ✅ **Gebäude ohne Antike-Stufe:** Nur die Glasmacherin wird zur **Glasbläserei**. Sie macht Fensterglas, das Mietshaus und Thermen brauchen. Eisenmine, Rennofen, Salzsiederei und Wagner bleiben, wie sie sind.
+9. ✅ **Das Aquädukt** zieht man wie einen Weg, vom Fluss bis zu Thermen und Brunnen. Gezeichnet wird es als Steinbögen, die Technik vom Weg- und Brückenbau wird mitbenutzt. Häuser in der Nähe bekommen frisches Wasser und mehr Platz.
+10. ✅ **Der Hafen ist 4×4 groß.** Die Kaimauer liegt an der Wasserseite, das Schiff legt davor im Wasser an.
+11. ✅ **Die Wohnlinie bleibt wie geplant:** Ziegelhaus, dann Villa mit Innenhof, dann Mietshaus mit zwei Stockwerken.
 
 Die Entscheidungen zur zweiten Karte stehen in `plan-zweite-stadt.md`.
 

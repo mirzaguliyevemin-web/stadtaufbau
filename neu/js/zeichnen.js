@@ -764,12 +764,42 @@ function drawWaterDepth(range) {
 
 // Lage im Bild wasserfall.webp (Anteile der Bildgröße): Kante oben, Wasserbreite an der Kante, Schaum unten
 const WATERFALL_IMG = { lip: 0.26, x0: 0.245, x1: 0.75, foot: 0.72 };
+// Wohin fließt der Fluss unterhalb des Wasserfalls? Mitte der Wasserfelder 4–8 Felder flussab (gemerkt je Geländestand).
+// Biegt der Fluss gleich ab (Emin, 17.11.: „unterer Bereich sieht verschoben aus“), wird das Bild dorthin geschert.
+let fallDownCache = null;
+function fallDownstream(f) {
+  if (fallDownCache && fallDownCache.f === f && fallDownCache.v === terrainVersion) return fallDownCache.p;
+  let sx = 0, sy = 0, n = 0;
+  const water = TERRAIN.wasser.id;
+  for (let y = Math.floor(f.y - 9); y <= f.y + 9; y++) for (let x = Math.floor(f.x - 9); x <= f.x + 9; x++) {
+    if (x < 0 || y < 0 || x >= N || y >= N || terrain[y * N + x] !== water) continue;
+    const dx = x + 0.5 - f.x, dy = y + 0.5 - f.y, d = Math.hypot(dx, dy);
+    if (d < 4 || d > 8 || dx * f.ux + dy * f.uy < d * 0.2) continue;   // nur flussab, nicht der Fluss oberhalb
+    sx += x + 0.5; sy += y + 0.5; n++;
+  }
+  const p = n ? { x: sx / n, y: sy / n } : { x: f.x + f.ux * 6, y: f.y + f.uy * 6 };
+  fallDownCache = { f, v: terrainVersion, p };
+  return p;
+}
+
 function drawWaterfallImage(img, a, b, span, z, t) {
   const W = WATERFALL_IMG, w = span / (W.x1 - W.x0), h = w * img.height / img.width;
   const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
   const ang = Math.max(-0.3, Math.min(0.3, Math.atan2(b.y - a.y, b.x - a.x)));   // Kante leicht schräg: Bild mitdrehen
+  const f = mapFeatures.fall, dn = tileToScreen(fallDownstream(f).x, fallDownstream(f).y);
+  const dvx = dn.x - mx, dvy = Math.max(dn.y - my, 10 * z);
+  const shear = Math.max(-0.45, Math.min(0.45, dvx / dvy * 0.8));        // Fuß des Bildes zur Flussmitte unterhalb schieben
+  // Fließen: oben strömt das Wasser zur Kante, unten treiben Schaumflocken flussab (vor dem Bild bzw. danach)
+  const flow = (from, to, count, seed, alpha, size) => {
+    for (let i = 0; i < count; i++) {
+      const v = (t * (0.18 + hash(i, seed) * 0.12) + hash(i, seed + 1)) % 1, side = hash(i, seed + 2) - 0.5;
+      const x = from.x + (to.x - from.x) * v + side * span * 0.55 * (1 - v * 0.3), y = from.y + (to.y - from.y) * v + side * 4 * z;
+      ctx.fillStyle = `rgba(255,255,255,${alpha * Math.sin(Math.PI * v)})`;
+      ctx.beginPath(); ctx.ellipse(x, y, size * z * (1.4 + hash(i, seed + 3)), size * z * 0.45, Math.atan2(to.y - from.y, to.x - from.x), 0, 7); ctx.fill();
+    }
+  };
   ctx.save();
-  ctx.translate(mx, my); ctx.rotate(ang);
+  ctx.translate(mx, my); ctx.transform(1, 0, shear, 1, 0, 0); ctx.rotate(ang);
   const left = -w * (W.x0 + W.x1) / 2, top = -h * W.lip;
   ctx.drawImage(img, left, top, w, h);
   // Bewegung: helle Strähnen gleiten über den Vorhang, Gischt steigt am Fuß auf
@@ -791,6 +821,11 @@ function drawWaterfallImage(img, a, b, span, z, t) {
     ctx.beginPath(); ctx.arc(x + Math.sin(t + i) * 5 * z, fall - v * fall * 0.4, (8 + v * 18) * z, 0, 7); ctx.fill();
   }
   ctx.restore();
+  // Schaum treibt vom Becken flussab; oberhalb ziehen feine Linien zur Kante
+  const foot = { x: mx + shear * h * (W.foot - W.lip), y: my + h * (W.foot - W.lip) + 6 * z };
+  const end = { x: dn.x + dvx * 0.5, y: Math.max(dn.y + dvy * 0.5, foot.y + 40 * z) };
+  flow(foot, end, 16, 91, 0.55, 3.2);
+  flow({ x: mx, y: my - h * W.lip * 0.75 }, { x: mx, y: my - 2 * z }, 10, 97, 0.3, 2.6);
 }
 
 // Wasserfall: Felsstufe quer über den Fluss, Wasservorhang (läuft), Becken mit Schaum und Gischt. Selbst gezeichnet, nur wenn sichtbar.

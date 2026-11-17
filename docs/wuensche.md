@@ -24,6 +24,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 - Zweite Karte und zweite Stadt (Emin, 03.11.): nur ein Plan, wichtigere Sachen gehen vor. Plan: `docs/plan-zweite-stadt.md`, → Frage: 6 Fragen an Emin, wenn es so weit ist.
 
 
+- Wasserfall als echtes Video (Emin, 17.11.): das gemalte Bild (Version 216/217) später durch einen bewegten Wasserfall ersetzen (Video bzw. Bildfolge mit Scenario), wenn genug Credits da sind – keine Eile.
+
 ## Erledigt
 - 2026-11-17, Epochia Version 217 – Emin: unterer Teil des Wasserfalls wirkte verschoben (Fluss biegt gleich danach ab, Becken lag auf der Wiese): das Bild richtet sich jetzt nach dem Flusslauf unterhalb und neigt sich leicht dorthin; Schaumflocken treiben vom Becken flussab, oberhalb ziehen feine Linien zur Kante.
 - 2026-11-17, Epochia Version 216 – Emin: Wasserfall passte im Stil nicht (zu eckig, Felsen künstlich, Farben): jetzt ein gemaltes Bild (Scenario, halb-realistisch wie Berge und Gelände) mit mehreren Wasserströmen zwischen bemoosten Felsen, Tannen an den Seiten und Becken unten; oben und unten weich in den Fluss ausgeblendet, darüber gleiten helle Wasserstreifen und Gischt steigt auf. Die gezeichnete Fassung bleibt nur als Ersatz, falls das Bild nicht lädt.

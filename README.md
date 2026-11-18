@@ -9,7 +9,7 @@ Aufbauspiel durch die Zeitalter als PWA: reines HTML, CSS und JavaScript mit Can
 | Ordner | Inhalt |
 |---|---|
 | `neu/` | das Spiel: `js/`, `style.css`, `tools/` (Tests, Bot, Bild-Werkzeuge) |
-| `bilder/epochia/` | Bilder nach Art sortiert, Gebäude je im eigenen Ordner, Originale unter `quelle/`, dazu `musik/` und die Bild-Prompts |
+| `bilder/epochia/` | Bilder nach Art sortiert, Gebäude je im eigenen Ordner, Originale unter `quelle/`, dazu `musik/` |
 | `docs/` | Pläne, Wunschliste (`wuensche.md`), Protokoll des täglichen Agenten |
 
 Regeln für die Arbeit am Spiel: `CLAUDE.md`. Tests: `node neu/tools/test.mjs`, Bot: `node neu/tools/bot.mjs 90 3`.

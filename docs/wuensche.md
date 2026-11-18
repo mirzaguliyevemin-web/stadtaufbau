@@ -23,11 +23,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 - Zweite Karte und zweite Stadt (Emin, 03.11.): nur ein Plan, wichtigere Sachen gehen vor. Plan: `docs/plan-zweite-stadt.md`, → Frage: 6 Fragen an Emin, wenn es so weit ist.
 
-
 - Wasserfall als echtes Video (Emin, 17.11.): das gemalte Bild (Version 216/217) später durch einen bewegten Wasserfall ersetzen (Video bzw. Bildfolge mit Scenario), wenn genug Credits da sind – keine Eile.
-- 2026-11-17, Epochia Version 220 – kleine offene Punkte: Halle und Pflanzerin (Stufe 2) aufgehellt (waren deutlich dunkler als alle anderen Gebäude); Gebirgsausläufer endet nicht mehr als runde Scheibe, sondern läuft unregelmäßig spitz aus (nur Zugaben, Minen behalten ihren Berg); Hochwasser: Fluss tritt sichtbar 1–3 Felder über die Ufer und geht am Ende zurück; Dürre: vertrocknete, rissige Flecken und Staub, kein Regen mehr während der Dürre.
-- 2026-11-17, Epochia Version 219 – erste Fassung, die als Live-Update in die App kommt (Probe für V218, sonst keine Änderung).
-- 2026-11-17, Epochia Version 218 – Emin: Live-Updates statt jedes Mal die ganze App: die Android-App liest app/live.json (Dateiliste mit Prüfsummen) von GitHub Pages und lädt nur geänderte Dateien nach (Capgo-Modul ohne fremden Server); neue APK nur noch bei Änderungen am Android-Teil. Startet eine Fassung nicht, springt die App auf die vorige zurück.
 
 ## Erledigt
 
@@ -37,6 +33,10 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 - 18.11., V228: Pflanzerin gräbt genau dort, wo der nächste Setzling hinkommt – danach steht er sofort da.
 - 18.11., V228: Zeitalter-Forschung (z. B. Mittelsteinzeit) erst, wenn alle anderen Forschungen des Zeitalters erforscht sind.
+
+- 17.11., V220 – kleine offene Punkte: Halle und Pflanzerin (Stufe 2) aufgehellt (waren deutlich dunkler als alle anderen Gebäude); Gebirgsausläufer endet nicht mehr als runde Scheibe, sondern läuft unregelmäßig spitz aus (nur Zugaben, Minen behalten ihren Berg); Hochwasser: Fluss tritt sichtbar 1–3 Felder über die Ufer und geht am Ende zurück; Dürre: vertrocknete, rissige Flecken und Staub, kein Regen mehr während der Dürre.
+- 17.11., V219 – erste Fassung, die als Live-Update in die App kommt (Probe für V218, sonst keine Änderung).
+- 17.11., V218 – Emin: Live-Updates statt jedes Mal die ganze App: die Android-App liest app/live.json (Dateiliste mit Prüfsummen) von GitHub Pages und lädt nur geänderte Dateien nach (Capgo-Modul ohne fremden Server); neue APK nur noch bei Änderungen am Android-Teil. Startet eine Fassung nicht, springt die App auf die vorige zurück.
 
 - 17.11., V227: Tag und Jahreszeit laufen nicht mehr gleich – ein Tag dauert jetzt 25 statt 30 Minuten, jede Jahreszeit hat 1,2 Tage und beginnt jedes Jahr zu einer anderen Tageszeit.
 

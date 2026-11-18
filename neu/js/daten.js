@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 231;
+const APP_VERSION = 232;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -883,9 +883,10 @@ const TECHS = {
   marmor:        { name: 'Marmor',        icon: '⬜', stage: 'antike1', col: 41, row: 3, requires: ['werkstaetten'], population: 515, cost: { wissen: 520, werkzeug: 40 }, time: 1260, effect: {} },
   schrift:       { name: 'Schrift',       icon: '✍️', stage: 'antike1', col: 39, row: 4, requires: ['aufbruch_antike'], population: 490, cost: { wissen: 500, glas: 10 }, time: 1140, effect: {} },
   muenzen:       { name: 'Münzen',        icon: '🪙', stage: 'antike1', col: 40, row: 4, requires: ['schrift', 'silberbergbau'], population: 505, cost: { wissen: 510, silber: 30 }, time: 1200, effect: { tax: 1 } },
+  roemerstrassen: { name: 'Römerstraßen', icon: '🛣️', stage: 'antike1', col: 40, row: 1, requires: ['ziegelbrennen'], population: 500, cost: { wissen: 500, stein: 300 }, time: 1200, effect: { paved: 1, buildFaster: 0.1, traderFaster: 120 } },   // V232: Pflaster, schneller laufen, bauen und handeln
   markt:         { name: 'Markt',         icon: '🏪', stage: 'antike1', col: 41, row: 4, requires: ['muenzen'], population: 515, cost: { wissen: 520, muenzen: 60 }, time: 1260, effect: {} },
   mittlere_antike: {
-    name: 'Mittlere Antike', icon: '⚓', stage: 'antike1', col: 42, row: 2, transition: true, soon: true, requires: ['gutshoefe', 'villen', 'marmor', 'markt'],
+    name: 'Mittlere Antike', icon: '⚓', stage: 'antike1', col: 42, row: 2, transition: true, soon: true, requires: ['gutshoefe', 'villen', 'marmor', 'markt', 'roemerstrassen'],
     population: 540, cost: { wissen: 560, ziegel: 80, muenzen: 100 }, time: 1800, effect: {},   // Stufe 'antike2' kommt mit dem nächsten Bauschritt
   },
 };

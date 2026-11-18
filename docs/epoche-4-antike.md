@@ -301,7 +301,7 @@ Laut Plan (`plan-arbeitsbewegungen.md`), je 3 Bilder:
 
 | Schritt | Inhalt |
 |---|---|
-| 1 | Frühe Antike: Aufbruch, Forum, Ziegel, Silber, Münzen, Steuer, Markt – ✅ **V231 (18.11.)** als Technik mit vorläufigen Bildern (Bild der Vorstufe bzw. Platzhalter). Noch offen aus Stufe 1: Römerstraßen, Kleidung/Leisten im Antike-Stil, eigene Bilder |
+| 1 | Frühe Antike: Aufbruch, Forum, Ziegel, Silber, Münzen, Steuer, Markt – ✅ **V231 (18.11.)** als Technik mit vorläufigen Bildern (Bild der Vorstufe bzw. Platzhalter). Römerstraßen ✅ V232. Noch offen aus Stufe 1: Kleidung/Leisten im Antike-Stil, eigene Bilder |
 | 2 | Mittlere Antike: Hafen, Schiffe, Öl als Bedürfnis |
 | 3 | ~~Spielstand auf mehrere Städte umstellen~~ – schon gebaut (V185) |
 | 4 | Kolonien: zweite Stadt an der Küste, Wechseln, vereinfachtes Weiterlaufen |

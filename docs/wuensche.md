@@ -27,6 +27,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 ## Erledigt
 
+- 18.11., V232: Römerstraßen – Forschung pflastert alle Wege (graues Pflaster), Leute laufen schneller, Bauen +10 %, Händler kommen 2 min früher.
 - 18.11., V231: Antike Schritt 1 – Aufbruch in die Antike frei, Frühe Antike mit Ziegel, Silber, Münzen, Steuer, Forum, Markt (Kaufen mit Münzen), 8 Weiterentwicklungen, 3 neue Gebäude, 10 Forschungen (Römerstraßen folgt), 5 Aufträge. Bilder vorläufig.
 - 18.11., V230: Mehr Ausgaben für Nahrung und Holz – Feuer verbrennen Brennholz (Winter doppelt, ohne Holz keine Wärme), Arbeiter essen Proviant (ohne nur halbe Arbeit), freiwilliges 🎉 Festmahl im Auftragsfenster.
 - 18.11., V229: Aufträge abwechslungsreicher – Herstellen, Forschen, Bäume fällen, Pflanzen, Fundstücke (31 neue), höchstens ein Bau-Auftrag gleichzeitig, zufällige Zusatzaufträge.

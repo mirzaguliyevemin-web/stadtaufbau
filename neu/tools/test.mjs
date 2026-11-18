@@ -1670,6 +1670,8 @@ test('V231: Frühe Antike – Aufbruch, alle Forschungen erreichbar, Gebäude ba
   // Markt: Händler nimmt Münzen, und der Stand lädt in der Antike
   ok(g.run(`CONFIG.trader.offers.some(o => o.requires === 'markt' && o.give.muenzen)`), 'Markt-Angebote fehlen');
   ok(g.run(`loadFromText(serialize()) && state.stage === 'antike1' && state.techs.markt === true`), 'Laden');
+  // Römerstraßen (V232): Wege gepflastert, Bauen schneller, Wirkung steht im Forschungsfenster
+  ok(g.run(`techSum('paved') > 0 && techSum('buildFaster') >= 0.25 && techEffectText('roemerstrassen').includes('gepflastert')`), 'Römerstraßen wirken nicht');
   noErrors(g);
 });
 

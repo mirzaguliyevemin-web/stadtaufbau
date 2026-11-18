@@ -47,7 +47,7 @@ function updateWalkers(dt) {
   }
   for (const w of life.walkers) {
     if (w.wait > 0) { w.wait -= dt; continue; }
-    w.k += dt * w.speed;
+    w.k += dt * w.speed * (techSum('paved') > 0 ? 1.35 : 1);   // auf Römerstraßen schneller (V232)
     if (w.k >= 1) {
       // am nächsten Feld angekommen: ein Nachbarfeld mit Pfad wählen (nicht gleich zurück, außer in der Sackgasse)
       const [cx, cy] = w.to;

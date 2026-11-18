@@ -2464,6 +2464,32 @@ function drawGhost(g) {
 
 const PATH_WIDTH = 0.56;   // Breite des Weges (Anteil eines Feldes)
 
+// Pflaster der Römerstraßen: kleine Steine im Verband, einmal gemalt (wie alle Leinwände über newCanvas, V143)
+function pavingTexture() {
+  if (sprites.__pflaster) return sprites.__pflaster;
+  if (typeof document === 'undefined' || !document.createElement) return null;
+  const c = newCanvas(), n = 64;
+  c.width = c.height = n;
+  const g = c.getContext && c.getContext('2d');
+  if (!g) return null;
+  g.fillStyle = '#6f685e'; g.fillRect(0, 0, n, n);   // Fugen
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const rows = 4, h = n / rows;
+  for (let r = 0; r < rows; r++) {
+    const w = n / 3, shift = r % 2 ? w / 2 : 0;
+    for (let i = -1; i < 4; i++) {
+      const x = i * w + shift, v = Math.round(150 + rnd() * 40);
+      g.fillStyle = `rgb(${v + 8},${v + 2},${v - 10})`;
+      if (g.beginPath && g.roundRect) { g.beginPath(); g.roundRect(x + 1.5, r * h + 1.5, w - 3, h - 3, 4); g.fill(); }
+      else g.fillRect(x + 1.5, r * h + 1.5, w - 3, h - 3);
+      g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(x + 3, r * h + 3, w - 8, 2);   // Licht oben auf dem Stein
+    }
+  }
+  sprites.__pflaster = c;
+  return c;
+}
+
 function drawPaths(range) {
   const tiles = [], bridges = [];
   for (const b of state.buildings) {
@@ -2511,17 +2537,19 @@ function drawPaths(range) {
       ctx.moveTo(cx, cy); ctx.lineTo(cx + d.dx * 0.62, cy + d.dy * 0.62);
     }
   };
-  // Rand: etwas dunklere, festgetretene Erde am Grasrand
+  // Römerstraßen (V232): ab der Forschung sind alle Wege gepflastert
+  const paved = techSum('paved') > 0;
+  // Rand: etwas dunklere, festgetretene Erde am Grasrand (Pflaster: Bordsteine)
   shape();
-  ctx.strokeStyle = 'rgba(92, 64, 30, 0.55)';
+  ctx.strokeStyle = paved ? 'rgba(78, 72, 64, 0.7)' : 'rgba(92, 64, 30, 0.55)';
   ctx.lineWidth = PATH_WIDTH + 0.14;
   ctx.stroke();
   // Fläche mit der Weg-Textur
-  const img = images.pfad;
-  let fill = '#b8915a';
+  const img = paved ? pavingTexture() : images.pfad;
+  let fill = paved ? '#a39c90' : '#b8915a';
   if (img && ctx.createPattern && typeof DOMMatrix !== 'undefined') {
     fill = ctx.createPattern(img, 'repeat');
-    const k = 2 / img.width;   // eine Textur deckt 2 × 2 Felder
+    const k = (paved ? 1 : 2) / img.width;   // Weg: eine Textur deckt 2 × 2 Felder, Pflaster 1 Feld
     fill.setTransform(new DOMMatrix([k, 0, 0, k, 0, 0]));
   }
   shape();

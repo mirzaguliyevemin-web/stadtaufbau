@@ -461,6 +461,8 @@ Object.assign(WORK, {
   // Mittlere Antike (V233): Bewegung der Vorstufe
   weingarten: WORK.obstgarten, wildgehege: WORK.jagdhof, fischmarkt: WORK.fischerei, schafgut: WORK.rindergut, saegewerk: WORK.holzhof,
   baumschule: WORK.forstmeisterin, amphorenwerkstatt: WORK.drehscheibe, walkerei: WORK.tuchmacherin,
+  // Inselgebäude (Schritt 4 Teil 2)
+  olivenhain: WORK.obstgarten, weinberg: WORK.obstgarten, salzgarten: WORK.salzsiederei,
 });
 
 // Arbeitsplatz IN der Werkstatt (auf der Platte, vordere Hälfte, passend zum Bild): [Standplatz u, v, Werkstück u, v]

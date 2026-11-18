@@ -27,6 +27,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 ## Erledigt
 
+- 18.11.2026, V236: Kolonien Teil 2 – Schiffsrouten zwischen den Städten, Inselgebäude Olivenhain, Weinberg, Salzgarten, Bootsanleger.
+
 - 18.11., V235: Antike Schritt 4, Teil 1 – Forschung „Kolonien“, Siedlerschiff am Hafen gründet die Inselstadt (eigene Inselkarte), Knopf „Städte“ zum Wechseln, die ruhende Stadt rechnet beim Wechseln nach.
 - 18.11., V234: Holzkohle-Stift war eine schwarze Kugel – auf der Karte trägt der Sammler jetzt das gemalte Bild, in Meldungen steht ✏️, die Glut am Lagerfeuer zeigt 🔥.
 - 18.11., V233: Antike Schritt 2 – Mittlere Antike frei: Hafen mit Schiffsreise (Nahe Küste, Ölinseln, Ferne Länder; Tauschware laden, Sturm verzögert nur), Olivenöl als Bedürfnis ab Schiffbau, Amphoren, Marmor, 10 Weiterentwicklungen, 12 Forschungen, 5 Aufträge. Fehler behoben: Forstmeisterin pflanzte keine Bäume. Bilder vorläufig.

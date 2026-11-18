@@ -120,6 +120,7 @@ function barEntries() {
   for (const [type, def] of Object.entries(BUILDINGS)) {
     if (def.buildable === false || def.upgradeOnly || (onlyOne(def) && state.buildings.some(b => b.type === type))) continue;
     if (def.deko && dekoOwned(type) < 1) continue;   // Deko erst, wenn gekauft
+    if (def.land && def.land !== cityLand()) continue;   // Inselgebäude nur auf der Insel
     const list = lines.get(def.line) || [];
     list.push(type);
     lines.set(def.line, list);
@@ -1710,6 +1711,7 @@ function update(dt) {
   updateFeast(dt);
   updateShips(dt);
   updateColonyShip(dt);
+  updateRoutes(dt);
 }
 
 // ---------------------------------------------------------------------
@@ -1841,6 +1843,55 @@ function foundColony() {
   const k = addCity(CONFIG.colony.name, 'kueste', seed, { res: cs.cargo, pop: cs.settlers });
   if (k >= 0) { state.colonyShip = null; emit('colonyFounded', k); }
   return k;
+}
+
+// ---------------------------------------------------------------------
+// Schiffsrouten (Schritt 4, Teil 2, CONFIG.routes): state.routes = [{ from, to, ware, amount, wait }] – gehört allen Städten.
+// Alle „every“ Sekunden bringt ein Schiff die Menge (oder was da ist) von Stadt „from“ nach „to“, auch aus der ruhenden Stadt.
+// ---------------------------------------------------------------------
+function cityBuildings(i) { return i === state.city ? state.buildings : ((state.cities[i] && state.cities[i].data && state.cities[i].data.buildings) || []); }
+function cityResOf(i) { return i === state.city ? state.res : ((state.cities[i] && state.cities[i].data && state.cities[i].data.res) || null); }
+function cityHasPort(i) { return cityBuildings(i).some(b => BUILDINGS[b.type] && (BUILDINGS[b.type].harbor || BUILDINGS[b.type].pier) && !b.build); }
+function routeProblem(r) {
+  const c = CONFIG.routes;
+  if (!state.techs.schiffsrouten) return 'Erst „Schiffsrouten“ erforschen';
+  if (state.cities.length < 2) return 'Erst eine zweite Stadt gründen';
+  if (state.routes.length >= c.max) return `Höchstens ${c.max} Routen`;
+  if (!r || !state.cities[r.from] || !state.cities[r.to] || r.from === r.to) return 'Unbekannte Stadt';
+  if (!c.goods.includes(r.ware)) return 'Diese Ware fährt nicht mit';
+  if (!c.amounts.includes(r.amount)) return 'Unbekannte Menge';
+  if (!cityHasPort(r.from) || !cityHasPort(r.to)) return 'Beide Städte brauchen einen Hafen oder Bootsanleger';
+  return null;
+}
+function addRoute(r) {
+  const problem = routeProblem(r);
+  if (problem) return problem;
+  state.routes.push({ from: r.from, to: r.to, ware: r.ware, amount: r.amount, wait: CONFIG.routes.every });
+  emit('routeAdded');
+  return null;
+}
+function removeRoute(k) { if (state.routes[k]) state.routes.splice(k, 1); }
+// Eine Fahrt: Gibt die gebrachte Menge zurück
+function runRoute(r) {
+  if (!cityHasPort(r.from) || !cityHasPort(r.to)) return 0;
+  const src = cityResOf(r.from), dst = cityResOf(r.to);
+  if (!src || !dst) return 0;
+  let n = Math.floor(Math.min(r.amount, src[r.ware] || 0));
+  if (r.to === state.city) n = Math.min(n, Math.max(0, Math.floor(storageCap() - (dst[r.ware] || 0))));   // hier passt nur, was ins Lager geht
+  if (n <= 0) return 0;
+  src[r.ware] -= n;
+  dst[r.ware] = (dst[r.ware] || 0) + n;
+  emit('routeDone', { route: r, n });
+  return n;
+}
+function updateRoutes(dt) {
+  if (state.cities.length < 2) return;
+  for (const r of state.routes) {
+    r.wait -= dt;
+    if (r.wait > 0) continue;
+    r.wait = CONFIG.routes.every;
+    runRoute(r);
+  }
 }
 
 // Ruhende Stadt nachrechnen (beim Wechseln): nur Waren herstellen und verbrauchen, Schiffe kommen heim.

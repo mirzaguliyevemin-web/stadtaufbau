@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 235;
+const APP_VERSION = 236;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -175,6 +175,12 @@ const CONFIG = {
     maxCargo: 500, step: 50, settlers: 20, minPop: 30, seconds: 300, name: 'Inselstadt',
     goods: ['holz', 'stein', 'ziegel', 'nahrung', 'werkzeug', 'kleidung', 'toepferwaren', 'muenzen', 'amphoren', 'olivenoel'],
     restHours: 2,   // so lange rechnet eine ruhende Stadt höchstens nach (wie offline)
+  },
+  // Schiffsrouten (Schritt 4, Teil 2, Emin 17.11.): einmal festlegen, was hin und was zurück fährt; alle „every“ Sekunden
+  // fährt ein Schiff von selbst, auch während man in der anderen Stadt spielt. Beide Städte brauchen Hafen oder Bootsanleger.
+  routes: {
+    every: 600, max: 2, amounts: [25, 50, 100],
+    goods: ['holz', 'stein', 'ziegel', 'nahrung', 'werkzeug', 'kleidung', 'toepferwaren', 'muenzen', 'amphoren', 'olivenoel', 'wein', 'salz', 'marmor', 'glas'],
   },  // Steuer nach der Forschung „Münzen“: Münzen je Einwohner und Minute, mal Zufriedenheit
   // Mehr Ausgaben für Holz und Nahrung (V230, Emin 18.11.: „Nahrung und Holz zu hoch“, Ideen 1, 2 und 5)
   fuel: { winter: 2 },    // Feuer verbrennen Holz (BUILDINGS[…].fuel je Minute), im Winter doppelt; ohne Holz wärmen sie nicht
@@ -598,6 +604,11 @@ const BUILDINGS = {
   amphorenwerkstatt: { name: 'Amphorenwerkstatt', icon: '🏺', size: 2, line: 'toepfern', tier: 3, stage: 'antike2', bild: '2-toepferwerkstatt', color: '#c0784a', cost: { holz: 70, stein: 50, ziegel: 15 }, time: 110, workers: 3, consumes: { ton: 4, holzkohle: 1 }, produces: { toepferwaren: 3, amphoren: 2 }, requires: 'amphoren', info: 'Große Krüge für Öl und Wein: Töpferwaren und Amphoren für den Hafen.' },
   walkerei: { name: 'Walkerei', icon: '🧺', size: 2, line: 'kleidung', tier: 3, stage: 'antike2', bild: '2-weberin', color: '#a0705a', cost: { holz: 80, stein: 40, ziegel: 15 }, time: 110, workers: 2, consumes: { wolle: 7 }, produces: { kleidung: 8 }, requires: 'walkerei', info: 'Stoffe werden gewalkt und dicht: mehr Kleidung aus Wolle.' },
   hafen: { name: 'Hafen', icon: '⚓', size: 4, line: 'hafen', tier: 0, stage: 'antike2', bild: '2-fischerhaus', color: '#6a5a4a', cost: { holz: 300, stein: 150, ziegel: 60 }, time: 300, needsWater: true, harbor: true, shipGoods: ['olivenoel', 'wein', 'marmor', 'glas'], requires: 'schiffbau', info: 'Schiffe fahren von hier zur Küste, zu den Ölinseln und in ferne Länder. Antippen, Ziel wählen, Tauschware laden.' },
+  // Nur auf der Inselkarte (land: 'kueste', Schritt 4 Teil 2; Zahlen vorläufig, mit Emin abstimmen)
+  olivenhain: { name: 'Olivenhain', icon: '🫒', size: 3, line: 'oliven', tier: 0, stage: 'antike2', land: 'kueste', bild: '2-gemuesegarten', color: '#7a8a4a', cost: { holz: 120, ziegel: 20 }, time: 150, workers: 3, produces: { olivenoel: 8 }, requires: 'kolonien', info: 'Ölbäume und eine Presse – Olivenöl für beide Städte. Wächst nur auf den Inseln.' },
+  weinberg: { name: 'Weinberg', icon: '🍇', size: 3, line: 'weinberg', tier: 0, stage: 'antike2', land: 'kueste', bild: '2-gemuesegarten', color: '#6a3a6a', cost: { holz: 120, ziegel: 20 }, time: 150, workers: 3, produces: { wein: 5, nahrung: 10 }, requires: 'kolonien', info: 'Reben in der Sonne: Wein und Trauben. Wächst nur auf den Inseln.' },
+  salzgarten: { name: 'Salzgarten', icon: '🧂', size: 3, line: 'salzgarten', tier: 0, stage: 'antike2', land: 'kueste', color: '#d8d8cc', cost: { holz: 80, stein: 40 }, time: 140, workers: 2, produces: { salz: 5 }, needsWater: true, requires: 'kolonien', info: 'Flache Becken an der Lagune: Die Sonne verdunstet das Meerwasser, Salz bleibt liegen. Muss am Wasser stehen, nur auf den Inseln.' },
+  bootsanleger: { name: 'Bootsanleger', icon: '⛵', size: 2, line: 'anleger', tier: 0, stage: 'antike2', land: 'kueste', bild: '1-fischerhuette', color: '#7a5a3a', cost: { holz: 80, stein: 20 }, time: 90, needsWater: true, pier: true, requires: 'kolonien', info: 'Hier legen die Schiffe der Schiffsrouten an. Muss am Wasser stehen, nur auf den Inseln.' },
   salzberg: { name: 'Salzberg', icon: '⛰️', size: 4, line: 'wunder_eisen', tier: 0, stage: 'eisen2', wonder: 'salzberg', needsRock: true, color: '#bdbdb0', cost: {}, time: 1, produces: { salz: 4 }, requires: 'salzbergbau', info: 'Wunderwerk der Eisenzeit: Tippe es an, um Abschnitt für Abschnitt weiterzubauen. Muss an Felsen oder am Gebirge stehen.' },
   // ----- Bronzezeit, Stufe Kupferzeit. Bilder folgen ab 27.11.: Weiterentwicklungen zeigen so lange das Bild der Vorstufe,
   // neue Gebäude ein Platzhalter-Feld.
@@ -944,6 +955,7 @@ const TECHS = {
   amphoren:     { name: 'Amphoren',     icon: '🏺', stage: 'antike2', col: 44, row: 4, requires: ['schiffbau'], population: 560, cost: { wissen: 580, ton: 200 }, time: 1320, effect: {} },
   walkerei:     { name: 'Walkerei',     icon: '🧺', stage: 'antike2', col: 45, row: 4, requires: ['amphoren'], population: 575, cost: { wissen: 600, kleidung: 80 }, time: 1380, effect: {} },
   seehandel:    { name: 'Seehandel',    icon: '🚢', stage: 'antike2', col: 45, row: 2, requires: ['schiffbau', 'markt', 'amphoren'], population: 580, cost: { wissen: 610, amphoren: 40, muenzen: 80 }, time: 1440, effect: { ships: 1 } },
+  schiffsrouten: { name: 'Schiffsrouten', icon: '🔁', stage: 'antike2', col: 47, row: 2, requires: ['kolonien'], population: 610, cost: { wissen: 640, holz: 300, amphoren: 50 }, time: 1560, effect: { ships: 1, routes: 1 } },   // Teil 2: feste Routen zwischen den Städten, 3. Schiff
   kolonien:     { name: 'Kolonien',     icon: '🏝️', stage: 'antike2', col: 46, row: 2, requires: ['seehandel'], population: 600, cost: { wissen: 630, holz: 300, ziegel: 100 }, time: 1500, effect: { colony: 1 } },   // Schritt 4: Siedlerschiff gründet die Inselstadt
   spaete_antike: {
     name: 'Späte Antike', icon: '🏛️', stage: 'antike2', col: 48, row: 2, transition: true, soon: true, requires: ['kolonien'],
@@ -1121,9 +1133,9 @@ for (const [id, d] of Object.entries(DEKO)) BUILDINGS[id] = { size: 1, line: id,
 
 const BAR_CATEGORIES = [
   { id: 'wohnen',    name: 'Wohnen',    icon: '🏠', lines: ['wohnen', 'grosswohnen', 'wasserwohnen'] },
-  { id: 'nahrung',   name: 'Nahrung',   icon: '🍖', lines: ['sammeln', 'jagen', 'fischen', 'feld', 'tiere'] },
-  { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton', 'erz', 'eisenerz', 'kohle', 'zinn', 'silber'] },
-  { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'bronze', 'eisen', 'kleidung', 'werkzeug', 'toepfern', 'schmuck', 'glas', 'salz', 'wagner', 'ziegel', 'muenzen', 'lager', 'handel', 'hafen'] },
+  { id: 'nahrung',   name: 'Nahrung',   icon: '🍖', lines: ['sammeln', 'jagen', 'fischen', 'feld', 'tiere', 'weinberg'] },
+  { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton', 'erz', 'eisenerz', 'kohle', 'zinn', 'silber', 'oliven'] },
+  { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'bronze', 'eisen', 'kleidung', 'werkzeug', 'toepfern', 'schmuck', 'glas', 'salz', 'wagner', 'ziegel', 'muenzen', 'lager', 'handel', 'hafen', 'anleger', 'salzgarten'] },
   { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['wunder', 'wunder_bronze', 'wunder_eisen', 'waerme', 'glaube', 'wissen', 'wahrzeichen'] },
   { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg', 'bruecke'] },
   { id: 'deko',      name: 'Deko',      icon: '🌷', lines: Object.keys(DEKO) },   // nur, was man gekauft und noch nicht aufgestellt hat
@@ -1287,6 +1299,8 @@ const QUESTS = [
   { id: 'q_m_seehandel', text: 'Erforsche den Seehandel', goal: { learn: 'seehandel' }, reward: { wissen: 180 } },
   { id: 'q_m_kolonien', text: 'Erforsche die Kolonien',  goal: { learn: 'kolonien' }, reward: { wissen: 190 } },
   { id: 'q_m_stadt2',   text: 'Gründe die zweite Stadt', goal: { colonies: 1 }, reward: { muenzen: 100 } },
+  { id: 'q_m_olivenhain', text: 'Baue auf der Insel einen Olivenhain', goal: { build: 'olivenhain', count: 1 }, reward: { ziegel: 50 } },
+  { id: 'q_m_routen',   text: 'Erforsche die Schiffsrouten', goal: { learn: 'schiffsrouten' }, reward: { wissen: 200 } },
 ];
 // Zeitalter je Auftrag: Ein Auftrag erscheint erst in seinem Abschnitt (Prüfung 07.11.: Einwohner-Aufträge der Eisenzeit
 // waren schon in der Steinzeit erfüllt). Der Abschnitt beginnt beim genannten Auftrag und gilt bis zum nächsten.

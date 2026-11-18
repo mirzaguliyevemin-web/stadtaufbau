@@ -1704,7 +1704,7 @@ test('V233: Mittlere Antike – Forschungen, Gebäude, Hafen mit Schiffsreise, O
     out.next = researchProblem('spaete_antike');
     out.fehler = [];
     for (const [id, d] of Object.entries(BUILDINGS)) {
-      if (d.stage !== 'antike2') continue;
+      if (d.stage !== 'antike2' || d.land) continue;   // Inselgebäude prüft der V236-Test
       if (!d.requires || !TECHS[d.requires]) out.fehler.push(id + ': keine Forschung');
       if (!findFreeSpot(id, N, N)) out.fehler.push(id + ': kein Platz');
       if (!WORK[id] && d.workers) out.fehler.push(id + ': keine Bewegung');
@@ -1721,7 +1721,7 @@ test('V233: Mittlere Antike – Forschungen, Gebäude, Hafen mit Schiffsreise, O
   ok(String(r.next).includes('nächsten Ausbau'), 'Späte Antike nicht gesperrt: ' + r.next);
   ok(!r.fehler.length, r.fehler.join('; '));
   ok(r.oel, 'Olivenöl ist kein Bedürfnis');
-  ok(r.ships === 2, 'Schiffe: ' + r.ships);
+  ok(r.ships === 3, 'Schiffe (mit Schiffsrouten): ' + r.ships);
   // Schiffsreise: Ladung bezahlen, Sturm höchstens verzögern, Rückfracht ins Lager und in die Auftrags-Zähler
   const s = g.run(`(() => {
     const out = {};
@@ -1749,6 +1749,61 @@ test('V233: Mittlere Antike – Forschungen, Gebäude, Hafen mit Schiffsreise, O
   ok(s.harbor, 'Hafenfenster ohne Ablegen-Knopf');
   // kaputte Schiffe im Spielstand fallen weg
   ok(g.run(`(() => { const d = JSON.parse(serialize()); d.ships = [{ dest: 'mond', left: 5, total: 9, loads: { nahrung: 1 } }, { dest: 'kueste', left: 5, total: 9, loads: { gold: 1 } }, null]; return loadFromText(JSON.stringify(d)) && state.ships.length === 0; })()`), 'Kaputte Schiffe geladen');
+  noErrors(g);
+});
+
+test('V236: Schiffsrouten und Inselgebäude – nur auf der Insel bauen, Route bringt Waren auch aus der ruhenden Stadt', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const M = Math.floor(CONFIG.mapSize / 2), out = {};
+    isConnected = () => true;
+    for (const id in TECHS) if (!TECHS[id].transition || TECHS[id].stage !== 'antike2') state.techs[id] = true;
+    delete state.techs.spaete_antike; delete state.techs.schiffsrouten;
+    state.stage = 'antike2';
+    const sp = findFreeSpot('hafen', M, M); const k = state.buildings.length;
+    state.buildings.push({ type: 'hafen', x: sp.x, y: sp.y, rot: 0, build: 0 }); setOccupied(state.buildings[k], k + 1);
+    rebuildOccupancy();
+    for (const id in RESOURCES) state.res[id] = 400;
+    out.flussLeiste = barEntries().flat().some(t => String(t).includes('olivenhain') || (t && t.type === 'olivenhain'));
+    out.flussBauen = placeProblem('olivenhain', M, M);
+    out.ohneInsel = routeProblem({ from: 0, to: 1, ware: 'holz', amount: 50 });
+    state.pop = 80; recalcStats();
+    sendColonyShip({ holz: 200 });
+    state.colonyShip.left = 0; foundColony();
+    state.techs.schiffsrouten = true;
+    out.ohneAnleger = routeProblem({ from: 0, to: 1, ware: 'holz', amount: 50 });
+    goToCityState(1);
+    out.inselLeiste = JSON.stringify(barEntries()).includes('olivenhain');
+    const C = Math.floor(N / 2);
+    let pier = null;
+    for (let d = 10; d < 120 && !pier; d++) for (const [dx, dy] of [[d, 0], [-d, 0], [0, d], [0, -d]]) { if (!placeProblem('bootsanleger', C + dx, C + dy)) { pier = { x: C + dx, y: C + dy }; break; } }
+    out.pier = !!pier;
+    if (pier) { const j = state.buildings.length; state.buildings.push({ type: 'bootsanleger', x: pier.x, y: pier.y, rot: 0, build: 0 }); setOccupied(state.buildings[j], j + 1); }
+    const op = findFreeSpot('olivenhain', C, C); out.oliveOk = !!op && !placeProblem('olivenhain', op.x, op.y);
+    state.res.olivenoel = 0;
+    goToCityState(0);
+    out.fremd = routeProblem({ from: 0, to: 1, ware: 'gold', amount: 50 });
+    out.add = addRoute({ from: 1, to: 0, ware: 'holz', amount: 50 });
+    out.add2 = addRoute({ from: 0, to: 1, ware: 'ziegel', amount: 100 });
+    out.voll = routeProblem({ from: 0, to: 1, ware: 'stein', amount: 25 });
+    out.liste = citiesHtml().includes('Schiffsrouten');
+    state.res.holz = 100; state.res.ziegel = 300;
+    const inselHolz = state.cities[1].data.res.holz, inselZiegel = state.cities[1].data.res.ziegel;
+    for (let i = 0; i < CONFIG.routes.every + 2; i++) update(1);
+    out.holzHier = state.res.holz; out.ziegelHier = state.res.ziegel;
+    out.inselHolz = state.cities[1].data.res.holz - inselHolz; out.inselZiegel = state.cities[1].data.res.ziegel - inselZiegel;
+    out.saved = loadFromText(serialize()) && state.routes.length === 2;
+    removeRoute(0); out.weg = state.routes.length === 1;
+    const d = JSON.parse(serialize()); d.routes = [{ from: 0, to: 5, ware: 'holz', amount: 50 }, { from: 0, to: 1, ware: 'gold', amount: 50 }, { from: 1, to: 0, ware: 'holz', amount: 25, wait: 1e9 }];
+    out.kaputt = loadFromText(JSON.stringify(d)) && state.routes.length === 1 && state.routes[0].wait <= CONFIG.routes.every;
+    return out;
+  })()`);
+  ok(!r.flussLeiste && String(r.flussBauen).includes('Inseln'), 'Inselgebäude am Fluss: ' + JSON.stringify(r));
+  ok(r.ohneInsel && String(r.ohneAnleger).includes('Bootsanleger'), 'Route ohne Insel oder Anleger: ' + JSON.stringify(r));
+  ok(r.inselLeiste && r.pier && r.oliveOk, 'Inselgebäude auf der Insel: ' + JSON.stringify(r));
+  ok(r.fremd && r.add === null && r.add2 === null && r.voll && r.liste, 'Routen anlegen: ' + JSON.stringify(r));
+  ok(r.inselHolz === -50 && r.ziegelHier === 200 && r.inselZiegel === 100 && r.holzHier > 60, 'Fahrt: ' + JSON.stringify(r));
+  ok(r.saved && r.weg && r.kaputt, 'Speichern: ' + JSON.stringify(r));
   noErrors(g);
 });
 

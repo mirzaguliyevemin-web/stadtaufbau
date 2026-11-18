@@ -294,6 +294,10 @@ function sanitizeState(data) {
     if (s.tutorial < 0 || s.buildings.some(b => b.type === 'hoehlenmaler')) s.tutorialRewards.forschung_bau = true;
   }
   sanitizeCities(data, s);
+  // Schiffsrouten (V236): nur gültige Städte, Waren und Mengen
+  if (Array.isArray(data.routes)) s.routes = data.routes.filter(r => r && Number.isInteger(r.from) && Number.isInteger(r.to) && r.from !== r.to
+    && r.from >= 0 && r.to >= 0 && r.from < s.cities.length && r.to < s.cities.length && CONFIG.routes.goods.includes(r.ware) && CONFIG.routes.amounts.includes(r.amount))
+    .slice(0, CONFIG.routes.max).map(r => ({ from: r.from, to: r.to, ware: r.ware, amount: r.amount, wait: Math.min(CONFIG.routes.every, pos(r.wait)) }));
   return s;
 }
 

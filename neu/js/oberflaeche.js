@@ -1007,7 +1007,39 @@ function citiesHtml() {
   const cs = state.colonyShip;
   return `<ul class="lines">${rows}</ul>
     ${cs ? `<p>🚢 Das Siedlerschiff ist unterwegs – Ankunft in ${formatTime(cs.left)}.</p>` : ''}
+    ${routesHtml()}
     ${state.cities.length > 1 ? '<p><small>Die andere Stadt ruht: Ihre Werkstätten arbeiten weiter und verbrauchen Waren, es zieht aber niemand zu und es wird nichts gebaut.</small></p>' : ''}`;
+}
+// Schiffsrouten (V236): Liste und Knöpfe zum Anlegen
+let routeDraft = { from: 0, to: 1, ware: 'holz', amount: 50 };
+function routesHtml() {
+  if (state.cities.length < 2) return '';
+  const c = CONFIG.routes, name = i => esc(state.cities[i] ? state.cities[i].name : '?');
+  if (!state.techs.schiffsrouten) return `<p><small>🔁 Mit der Forschung „Schiffsrouten“ fahren Schiffe von selbst Waren zwischen den Städten hin und her.</small></p>`;
+  const list = state.routes.map((r, k) => `<li>🔁 ${r.amount} ${iconHtml(RESOURCES[r.ware].bild, RESOURCES[r.ware].icon, 'mini')} ${esc(RESOURCES[r.ware].name)}: ${name(r.from)} → ${name(r.to)}
+    <small>· nächste Fahrt in ${formatTime(Math.max(0, r.wait))}</small> <button class="btn" onclick="removeRoute(${k}); openCities()">✖</button></li>`).join('');
+  let add = '';
+  if (state.routes.length < c.max) {
+    const d = routeDraft;
+    if (!state.cities[d.from] || !state.cities[d.to] || d.from === d.to) { d.from = state.city; d.to = state.city === 0 ? 1 : 0; }
+    const wares = c.goods.filter(id => stageReached(RESOURCES[id].from || 'alt'));
+    if (!wares.includes(d.ware)) d.ware = wares[0];
+    const problem = routeProblem(d);
+    add = `<p>Neue Route: <b>${name(d.from)} → ${name(d.to)}</b> <button class="btn" onclick="[routeDraft.from, routeDraft.to] = [routeDraft.to, routeDraft.from]; openCities()">⇄</button></p>
+      <div class="buttons">${wares.map(id => `<button class="btn ${id === d.ware ? 'primary' : ''}" onclick="routeDraft.ware='${id}'; openCities()">${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')}</button>`).join('')}</div>
+      <div class="buttons">${c.amounts.map(n => `<button class="btn ${n === d.amount ? 'primary' : ''}" onclick="routeDraft.amount=${n}; openCities()">${n}</button>`).join('')}
+      <button class="btn primary" ${problem ? 'disabled' : ''} onclick="doAddRoute()">🔁 Route anlegen</button></div>
+      ${problem ? `<small class="bad">${esc(problem)}</small>` : ''}`;
+  }
+  return `<div class="harbor"><h3>🔁 Schiffsrouten</h3>
+    <p><small>Alle ${formatTime(c.every)} fährt ein Schiff die Menge (oder was da ist) in die andere Stadt – auch wenn du gerade woanders spielst. Beide Städte brauchen einen Hafen oder Bootsanleger.</small></p>
+    ${list ? `<ul class="lines">${list}</ul>` : ''}${add}</div>`;
+}
+function doAddRoute() {
+  const problem = addRoute(routeDraft);
+  if (problem) { toast(problem); return; }
+  toast('🔁 Die Route fährt ab jetzt von selbst');
+  openCities();
 }
 function openCities() {
   openDialog(`<h2>🏝️ Städte</h2>${citiesHtml()}<div class="buttons"><button class="btn" onclick="closeDialog()">Schließen</button></div>`);
@@ -1101,6 +1133,8 @@ function techEffectText(id) {
   if (e.traderOffers) out.push('Der Händler bringt Bernstein und ein Angebot mehr');
   if (e.constructions) out.push(`🏗️ ${e.constructions === 1 ? 'Eine Baustelle' : e.constructions + ' Baustellen'} mehr gleichzeitig`);
   if (e.colony) out.push('🚢 Siedlerschiff am Hafen: gründe die zweite Stadt auf einer Insel');
+  if (e.routes) out.push('🔁 Feste Schiffsrouten zwischen den Städten (Knopf „Städte“)');
+  if (e.colony) out.push('🫒 Auf der Insel: Olivenhain, Weinberg, Salzgarten und Bootsanleger');
   if (e.ships) out.push(`⛵ ${e.ships === 1 ? 'Ein' : e.ships} Schiff${e.ships === 1 ? '' : 'e'} mehr am Hafen`);
   if (e.paved) out.push('🛣️ Alle Wege werden gepflastert, die Leute laufen schneller');
   if (e.buildFaster) out.push(`Bauzeiten −${Math.round(e.buildFaster * 100)} %`);

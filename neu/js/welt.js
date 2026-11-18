@@ -46,6 +46,7 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     spots: [],               // Fundstellen auf der Karte: { kind, x, y, find }
     trips: [],
     ships: [],               // Schiffe unterwegs (Mittlere Antike): { dest, left, total, loads, storm }
+    routes: [],              // Schiffsrouten zwischen den Städten (gemeinsam): [{ from, to, ware, amount, wait }]
     colonyShip: null,        // Siedlerschiff unterwegs (gemeinsam, Schritt 4): { left, total, cargo, settlers }
     basket: [],              // Fundkorb: Fundstücke aus der Zeit, in der das Spiel zu war
     fund: { rng: 0, spotWait: CONFIG.finds.firstSpot, oreWait: CONFIG.finds.oreEvery / 4, luck: {}, luckTick: 0, glutNight: -1, sternNight: -1, ores: 0, tripId: 0, used: {}, ever: {}, boulderWait: 30 },
@@ -1193,6 +1194,7 @@ function waterCornerDist(lx, ly, s, rot) {
 function placeProblem(type, x, y, ignore = -1, rot) {
   const def = BUILDINGS[type];
   const s = def.size;
+  if (def.land && def.land !== cityLand()) return 'Wächst nur auf den Inseln';
   if (halfInWater(def)) {
     if (rot === undefined || rot === null || rot === false) {
       let first = null;

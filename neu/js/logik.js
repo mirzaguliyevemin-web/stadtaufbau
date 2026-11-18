@@ -1455,9 +1455,10 @@ function questCounter(g) {
   if (g.planted) return state.tally.planted;
   if (g.finds) return state.tally.finds;
   if (g.voyages) return state.tally.voyages;
+  if (g.colonies) return state.cities.length - 1;
   return null;
 }
-function questNeed(g) { return g.made ? g.count : g.felled || g.planted || g.finds || g.voyages; }
+function questNeed(g) { return g.made ? g.count : g.felled || g.planted || g.finds || g.voyages || g.colonies; }
 
 // Gebäude dieser Art und ihre Weiterentwicklungen. mixed: große Wohnhäuser zählen bei den kleinen mit („Habe 8 Wohnungen“).
 function questLineCount(type, mixed) {
@@ -1490,6 +1491,7 @@ function questBlocked(q) {
   if (g.felled) return !hasWorking(def => def.fellsTrees);
   if (g.planted) return !hasWorking(def => def.plants);
   if (g.voyages) return !hasWorking(def => def.harbor);
+  if (g.colonies) return !state.techs.kolonien && state.cities.length < 2;
   if (g.finds) return !Object.keys(FINDS).some(id => findAvailable(id));
   // die Stufe gibt es erst in einem späteren Zeitalter, oder ihre Extra-Ware (Werkzeug, Bronze) kann noch niemand herstellen
   if (g.level) return maxLevel() < g.level || Object.keys(levelGoods(g.level)).some(id => !hasMaker(id));
@@ -1707,6 +1709,7 @@ function update(dt) {
   updateQuests(dt);
   updateFeast(dt);
   updateShips(dt);
+  updateColonyShip(dt);
 }
 
 // ---------------------------------------------------------------------
@@ -1793,6 +1796,83 @@ function updateShips(dt) {
     for (const id of Object.keys(got)) state.tally.made[id] = (state.tally.made[id] || 0) + Math.max(0, (state.res[id] || 0) - (before[id] || 0));
     emit('shipBack', { dest: s.dest, got, storm: s.storm });
   }
+}
+
+// ---------------------------------------------------------------------
+// Siedlerschiff und zweite Stadt (Schritt 4, CONFIG.colony, docs/plan-zweite-stadt.md)
+// state.colonyShip = { left, total, cargo: { ware: Menge }, settlers } – gehört allen Städten, kommt also auch an,
+// wenn man gerade woanders spielt. Ist es da, gründet foundColony() die Inselstadt (außerhalb von update, siehe start.js).
+// ---------------------------------------------------------------------
+function cargoCount(cargo) { return Object.values(cargo).reduce((a, n) => a + n, 0); }
+function colonyReady() { return !!state.techs.kolonien && state.cities.length < 2; }
+function colonyProblem(cargo) {
+  const c = CONFIG.colony, n = cargoCount(cargo);
+  if (!state.techs.kolonien) return 'Erst „Kolonien“ erforschen';
+  if (state.cities.length >= 2) return 'Die zweite Stadt gibt es schon';
+  if (state.colonyShip) return 'Das Siedlerschiff ist schon unterwegs';
+  if (!harbors().length) return 'Erst einen Hafen bauen';
+  if (Object.keys(cargo).some(id => !c.goods.includes(id))) return 'Diese Ware nimmt das Siedlerschiff nicht';
+  if (n > c.maxCargo) return `Höchstens ${c.maxCargo} Waren`;
+  if (state.pop < c.settlers + c.minPop) return `Erst ${c.settlers + c.minPop} Einwohner (${c.settlers} ziehen um)`;
+  if (!canAfford(cargo)) return 'Nicht genug Waren im Lager';
+  return null;
+}
+function sendColonyShip(cargo) {
+  const problem = colonyProblem(cargo);
+  if (problem) return problem;
+  const c = CONFIG.colony, clean = {};
+  for (const [id, n] of Object.entries(cargo)) if (n > 0) clean[id] = n;
+  payCost(clean);
+  state.pop -= c.settlers;
+  state.colonyShip = { left: c.seconds, total: c.seconds, cargo: clean, settlers: c.settlers };
+  recalcStats();
+  emit('colonySent');
+  return null;
+}
+function updateColonyShip(dt) {
+  if (state.colonyShip) state.colonyShip.left = Math.max(0, state.colonyShip.left - dt);
+}
+// Angekommen: die Inselstadt anlegen (ruhend). Gibt ihre Nummer zurück oder -1.
+function foundColony() {
+  const cs = state.colonyShip;
+  if (!cs || cs.left > 0) return -1;
+  if (state.cities.length >= 2) { state.colonyShip = null; return -1; }
+  const seed = (state.seed * 31 + 7919) % 1e9;
+  const k = addCity(CONFIG.colony.name, 'kueste', seed, { res: cs.cargo, pop: cs.settlers });
+  if (k >= 0) { state.colonyShip = null; emit('colonyFounded', k); }
+  return k;
+}
+
+// Ruhende Stadt nachrechnen (beim Wechseln): nur Waren herstellen und verbrauchen, Schiffe kommen heim.
+// Keine Ereignisse, kein Wachstum, kein Bauen (Emin, 18.11.). Gibt die Änderung der Waren zurück.
+function catchUpCity(secs) {
+  secs = Math.min(Math.max(0, secs || 0), CONFIG.colony.restHours * 3600);
+  const before = { ...state.res }, gained = {};
+  if (secs < 1) return gained;
+  const was = offlineRunning;
+  offlineRunning = true;
+  try {
+    for (let left = secs; left > 0; left -= 5) {
+      const step = Math.min(5, left);
+      recalcStats();
+      updateProduction(step);
+      updateShips(step);
+    }
+  } finally { offlineRunning = was; }
+  recalcStats();
+  for (const id of Object.keys(RESOURCES)) {
+    const d = (state.res[id] || 0) - (before[id] || 0);
+    if (Math.abs(d) >= 1) gained[id] = d;
+  }
+  return gained;
+}
+// Zu einer anderen Stadt wechseln und ihre Ruhezeit nachrechnen. Gibt { gained } zurück oder null.
+function goToCityState(i) {
+  if (!switchCity(i)) return null;
+  const meta = state.cities[state.city];
+  const secs = Number.isFinite(meta.restAt) ? state.playTime - meta.restAt : 0;
+  delete meta.restAt;
+  return { gained: catchUpCity(secs), seconds: secs };
 }
 
 // Läuft die Zeit nach, in der das Spiel zu war. Gibt zurück, was dazugekommen ist.

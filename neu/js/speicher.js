@@ -127,6 +127,7 @@ function sanitizeCities(data, s) {
   data.cities.forEach((c, i) => {
     if (!c || typeof c !== 'object') return;
     const meta = { name: typeof c.name === 'string' && c.name.trim() ? c.name.trim().slice(0, 30) : CITY_FIRST_NAME, land: CITY_LANDS.includes(c.land) ? c.land : 'fluss' };
+    if (Number.isFinite(c.restAt) && c.restAt >= 0) meta.restAt = c.restAt;   // Spielzeit, seit der sie ruht (goToCityState löscht es nach dem Nachrechnen)
     if (i === active) { s.city = list.length; list.push(meta); return; }
     if (!c.data || typeof c.data !== 'object') return;   // ruhende Stadt ohne Daten: unbrauchbar
     const res = { ...(c.data.res || {}) };
@@ -149,19 +150,26 @@ function switchCity(i) {
   Object.assign(d, next);
   d.res = { ...next.res, ...shared };
   d.cities[cur].data = park;
+  d.cities[cur].restAt = d.playTime;   // ab jetzt ruht sie (zum Nachrechnen beim Zurückwechseln)
   delete d.cities[i].data;
   d.city = i;
   return loadFromText(JSON.stringify(d));
 }
 
 // Neue Stadt anlegen (ruhend, noch nicht gewechselt). Gibt ihre Nummer zurück.
-function addCity(name, land = 'fluss', seed = Math.floor(Math.random() * 1e9)) {
+// start (Siedlerschiff): { res: mitgebrachte Waren, pop: Siedler } – sonst Startvorrat wie bei einem neuen Spiel.
+function addCity(name, land = 'fluss', seed = Math.floor(Math.random() * 1e9), start = null) {
   if (!state) return -1;
-  const keep = serialize();
-  startNewGame(seed);
+  land = CITY_LANDS.includes(land) ? land : 'fluss';
+  const keep = serialize(), now = state.playTime;
+  startNewGame(seed, land);
+  if (start) {
+    for (const id of Object.keys(state.res)) state.res[id] = Math.max(0, Number(start.res && start.res[id]) || 0);
+    state.pop = Math.max(0, Math.floor(start.pop) || 0);
+  }
   const part = cityPart(state);
   if (!loadFromText(keep)) return -1;
-  state.cities.push({ name: String(name || 'Neue Stadt').slice(0, 30), land: CITY_LANDS.includes(land) ? land : 'fluss', data: part });
+  state.cities.push({ name: String(name || 'Neue Stadt').slice(0, 30), land, data: part, restAt: now });
   return state.cities.length - 1;
 }
 
@@ -261,6 +269,11 @@ function sanitizeState(data) {
   if (Array.isArray(data.ships)) s.ships = data.ships.filter(k => k && CONFIG.ship.trips[k.dest] && Number.isFinite(k.left) && k.left >= 0 && k.total > 0
     && k.loads && typeof k.loads === 'object' && Object.entries(k.loads).every(([id, n]) => CONFIG.ship.value[id] && Number.isInteger(n) && n > 0))
     .map(k => ({ dest: k.dest, left: k.left, total: k.total, loads: { ...k.loads }, storm: k.storm ? 1 : 0 }));
+  // Siedlerschiff unterwegs (V235): Ladung nur aus erlaubten Waren, sonst fällt es weg
+  const cs = data.colonyShip;
+  if (cs && typeof cs === 'object' && Number.isFinite(cs.left) && cs.left >= 0 && cs.total > 0 && cs.cargo && typeof cs.cargo === 'object'
+    && Object.entries(cs.cargo).every(([id, n]) => CONFIG.colony.goods.includes(id) && Number.isFinite(n) && n > 0))
+    s.colonyShip = { left: cs.left, total: cs.total, cargo: { ...cs.cargo }, settlers: Math.max(0, Math.floor(pos(cs.settlers))) };
   if (data.feast && typeof data.feast === 'object') s.feast = { left: pos(data.feast.left), wait: pos(data.feast.wait) };
   if (data.extra && typeof data.extra === 'object' && validQuestGoal(data.extra.goal) && data.extra.reward && typeof data.extra.reward === 'object') {
     const reward = {};

@@ -53,8 +53,8 @@ Das ist ein großer Umbau, der in mehreren Sitzungen mit Emin entsteht.
 |---|---|
 | 1 | Erst fertig: Bilder Steinzeit und Bronzezeit, Eisenzeit, Arbeitsbewegungen, Antike |
 | 2 | ✅ Version 185 (13.11.): Spielstand auf mehrere Städte umgestellt, ohne dass man im Spiel etwas merkt (siehe unten) |
-| 3 | Kleine zweite Karte, Wechseln zwischen den Städten |
-| 4 | Vereinfachtes Weiterlaufen, Handelsrouten |
+| 3 | ✅ V235 (18.11.): Inselkarte, Siedlerschiff, Wechseln über „Städte“ |
+| 4 | Vereinfachtes Weiterlaufen ✅ V235 (beim Wechseln nachgerechnet), Handelsrouten offen |
 | 5 | Besonderheiten der Karte, Aufträge, Wunderwerk, Bilder |
 
 ## Entscheidungen von Emin (2026-11-13)
@@ -113,5 +113,6 @@ Das ist ein großer Umbau, der in mehreren Sitzungen mit Emin entsteht.
 - **Alte Spielstände** werden beim Laden zur „Ersten Stadt“.
 - **Ruhende Städte** werden beim Laden wie ein eigener Spielstand geprüft. Eine kaputte ruhende Stadt fällt weg, die gespielte bleibt immer erhalten.
 - **Funktionen:** `addCity(name, land, seed)` legt eine ruhende Stadt an. `switchCity(i)` wechselt; danach kommen `saveGame()` und `enterGame()`.
-- Im Spiel gibt es noch keinen Knopf dafür. Das kommt mit Schritt 3, zusammen mit der Antike.
-- Ruhende Städte laufen noch nicht weiter, das ist Schritt 4.
+- Seit V235 gibt es im Spiel den Knopf „Städte“ (erscheint mit dem Siedlerschiff), `goToCity(i)` in `start.js`.
+- Ruhende Städte merken sich in `cities[i].restAt` die Spielzeit, seit der sie ruhen. Beim Wechseln rechnet `catchUpCity` diese Zeit nach (nur Herstellen und Verbrauchen, Schiffe kommen heim, höchstens 2 Stunden).
+- Die Inselkarte ist technisch so groß wie die erste (512 × 512), Land gibt es aber nur in der Mitte (etwa 256 × 256), außen ist Meer. So bleibt der Code für beide Karten gleich; gespeichert wird die Karte ohnehin nicht, sie entsteht aus der Spielstand-Zahl.

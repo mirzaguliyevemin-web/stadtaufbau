@@ -1381,7 +1381,7 @@ function openSeaPlot(px, py) {
 function drawOpenSea(range) {
   if (!mapFeatures.sea || !images.wasser) return;
   const ps = CONFIG.plotSize, lim = 400;
-  if (range.x1 < N - 2 && range.y1 < N - 2) return;   // nur am unteren Rand
+  if (range.x1 < N - 2 && range.y1 < N - 2 && (!mapFeatures.sea.all || (range.x0 > 1 && range.y0 > 1))) return;   // nur am unteren Rand (Inselkarte: an jedem Rand)
   const pts = [screenToTileF(0, 0), screenToTileF(viewW, 0), screenToTileF(0, viewH), screenToTileF(viewW, viewH)];
   const tx0 = Math.min(...pts.map(q => q.x)), tx1 = Math.max(...pts.map(q => q.x)), ty0 = Math.min(...pts.map(q => q.y)), ty1 = Math.max(...pts.map(q => q.y));
   const o = tileToScreen(0, 0), ex = tileToScreen(1, 0), ey = tileToScreen(0, 1);

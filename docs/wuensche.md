@@ -21,12 +21,13 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 - Design (Emin, 04.11.): Schritt 1–3 gebaut (Version 95), Leisten, Titelband und Symbole gemalt (Version 105). Alle Warenbilder da (Version 106), Boden neu mit Scenario (Version 187). Zu dunkle Gebäude geprüft (V220: Halle und Pflanzerin aufgehellt, alle anderen im Rahmen). Plan: `docs/plan-design.md`.
 
-- Zweite Karte und zweite Stadt (Emin, 03.11.): nur ein Plan, wichtigere Sachen gehen vor. Plan: `docs/plan-zweite-stadt.md`, → Frage: 6 Fragen an Emin, wenn es so weit ist.
+- Zweite Karte und zweite Stadt (Emin, 03.11.): Inselstadt, Siedlerschiff und Wechseln gebaut (V235). Offen: Schiffsrouten und Inselgebäude. Plan: `docs/plan-zweite-stadt.md`.
 
 - Wasserfall als echtes Video (Emin, 17.11.): das gemalte Bild (Version 216/217) später durch einen bewegten Wasserfall ersetzen (Video bzw. Bildfolge mit Scenario), wenn genug Credits da sind – keine Eile.
 
 ## Erledigt
 
+- 18.11., V235: Antike Schritt 4, Teil 1 – Forschung „Kolonien“, Siedlerschiff am Hafen gründet die Inselstadt (eigene Inselkarte), Knopf „Städte“ zum Wechseln, die ruhende Stadt rechnet beim Wechseln nach.
 - 18.11., V234: Holzkohle-Stift war eine schwarze Kugel – auf der Karte trägt der Sammler jetzt das gemalte Bild, in Meldungen steht ✏️, die Glut am Lagerfeuer zeigt 🔥.
 - 18.11., V233: Antike Schritt 2 – Mittlere Antike frei: Hafen mit Schiffsreise (Nahe Küste, Ölinseln, Ferne Länder; Tauschware laden, Sturm verzögert nur), Olivenöl als Bedürfnis ab Schiffbau, Amphoren, Marmor, 10 Weiterentwicklungen, 12 Forschungen, 5 Aufträge. Fehler behoben: Forstmeisterin pflanzte keine Bäume. Bilder vorläufig.
 - 18.11., V232: Römerstraßen – Forschung pflastert alle Wege (graues Pflaster), Leute laufen schneller, Bauen +10 %, Händler kommen 2 min früher.

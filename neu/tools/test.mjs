@@ -1752,6 +1752,73 @@ test('V233: Mittlere Antike – Forschungen, Gebäude, Hafen mit Schiffsreise, O
   noErrors(g);
 });
 
+test('V235: Kolonien – Siedlerschiff beladen, Inselstadt mit Inselkarte gründen, wechseln, ruhende Stadt rechnet nach', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const M = Math.floor(CONFIG.mapSize / 2), out = {};
+    isConnected = () => true;
+    for (const id in TECHS) if (!TECHS[id].transition || TECHS[id].stage !== 'antike2') state.techs[id] = true;
+    delete state.techs.spaete_antike;
+    state.stage = 'antike2';
+    const sp = findFreeSpot('hafen', M, M); const k = state.buildings.length;
+    state.buildings.push({ type: 'hafen', x: sp.x, y: sp.y, rot: 0, build: 0 }); setOccupied(state.buildings[k], k + 1);
+    rebuildOccupancy();
+    for (const id in RESOURCES) state.res[id] = 400;
+    state.pop = 30; recalcStats();
+    const cargo = { holz: 200, ziegel: 100, nahrung: 150 };
+    out.wenig = colonyProblem(cargo);
+    state.pop = 80;
+    out.zuviel = colonyProblem({ holz: 400, stein: 150 });
+    out.fremd = colonyProblem({ gold: 50 });
+    out.fenster = harborHtml(k).includes('Siedler losschicken');
+    out.send = sendColonyShip(cargo);
+    out.pop = state.pop; out.holz = state.res.holz;
+    out.saved = loadFromText(serialize()) && state.colonyShip && state.colonyShip.cargo.ziegel === 100;
+    out.nochmal = colonyProblem({ holz: 50 });
+    for (let i = 0; i < 400 && state.colonyShip.left > 0; i++) { state.res.nahrung = 400; update(1); }
+    out.k = foundColony();
+    out.cities = state.cities.length; out.ship = state.colonyShip;
+    const d = state.cities[1].data;
+    out.inselPop = d.pop; out.inselHolz = d.res.holz; out.inselZiegel = d.res.ziegel; out.inselStein = d.res.stein;
+    out.haeuser = d.buildings.filter(b => b.type === 'ziegelhaus').length;
+    out.quest = questCounter({ colonies: 1 });
+    out.erste = state.city === 0 && cityLand() === 'fluss';
+    state.playTime += 100;
+    const w = goToCityState(1);
+    out.wechsel = !!w && state.city === 1 && cityLand() === 'kueste' && state.pop === 20;
+    let water = 0, berg = 0;
+    for (let i = 0; i < terrain.length; i++) { if (terrain[i] === TERRAIN.wasser.id) water++; if (terrain[i] === TERRAIN.berg.id) berg++; }
+    out.wasser = water / terrain.length; out.berg = berg;
+    out.mitte = terrainAt(M, M + 8).id !== 'wasser';
+    recalcStats();
+    out.wohnraum = stats.housing;
+    out.land = state.cities[1].land; out.techs = !!state.techs.kolonien;
+    state.playTime += 1200;
+    const back = goToCityState(0);
+    out.zurueck = !!back && state.city === 0 && back.seconds >= 1200 && cityLand() === 'fluss';
+    out.ruht = state.cities[1].restAt > 0 && !!state.cities[1].data;
+    out.geladen = loadFromText(serialize()) && state.cities.length === 2 && state.cities[1].land === 'kueste' && state.cities[1].restAt > 0;
+    out.liste = citiesHtml().includes('Inselstadt') && citiesHtml().includes('Hinfahren');
+    out.danach = colonyProblem({ holz: 50 });
+    return out;
+  })()`);
+  ok(String(r.wenig).includes('Einwohner'), 'zu wenig Einwohner erlaubt: ' + r.wenig);
+  ok(r.zuviel && r.fremd, 'falsche Ladung erlaubt: ' + JSON.stringify(r));
+  ok(r.fenster, 'Hafenfenster ohne Siedlerschiff');
+  ok(r.send === null && r.pop === 60 && r.holz === 200, 'Ablegen: ' + JSON.stringify(r));
+  ok(r.saved && r.nochmal, 'Siedlerschiff übersteht Speichern nicht oder fährt doppelt');
+  ok(r.k === 1 && r.cities === 2 && r.ship === null, 'Stadt nicht gegründet: ' + JSON.stringify(r));
+  ok(r.inselPop === 20 && r.inselHolz === 200 && r.inselZiegel === 100 && r.inselStein === 0 && r.haeuser === 3, 'Start der Inselstadt: ' + JSON.stringify(r));
+  ok(r.quest === 1 && r.erste, 'Auftrag oder erste Stadt falsch');
+  ok(r.wechsel && r.land === 'kueste' && r.techs, 'Wechseln: ' + JSON.stringify(r));
+  ok(r.wasser > 0.7 && r.berg === 0 && r.mitte, 'Inselkarte: ' + JSON.stringify(r));
+  ok(r.wohnraum >= 36, 'Wohnraum: ' + r.wohnraum);
+  ok(r.zurueck && r.ruht && r.geladen && r.liste, 'Zurück: ' + JSON.stringify(r));
+  ok(r.danach, 'Dritte Stadt erlaubt');
+  ok(g.run(`(() => { const d = JSON.parse(serialize()); d.colonyShip = { left: 5, total: 9, cargo: { gold: 5 }, settlers: 20 }; return loadFromText(JSON.stringify(d)) && state.colonyShip === null; })()`), 'Kaputtes Siedlerschiff geladen');
+  noErrors(g);
+});
+
 test('V230: Feuer verbrennen Holz (ohne Holz keine Wärme), Arbeiter essen Proviant (ohne nur halbe Arbeit), Festmahl kostet und wirkt', () => {
   const g = fresh();
   const r = g.run(`(() => {

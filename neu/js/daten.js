@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 234;
+const APP_VERSION = 235;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -168,6 +168,13 @@ const CONFIG = {
       oelinseln: { name: 'Ölinseln',     icon: '🫒', seconds: 600,  brings: { olivenoel: 35, wein: 12 } },
       ferne:     { name: 'Ferne Länder', icon: '🌍', seconds: 1200, brings: { glas: 10, marmor: 25, olivenoel: 20 } },
     },
+  },
+  // Siedlerschiff (Schritt 4, Emin 18.11.): nach „Kolonien“ am Hafen frei beladen (bis maxCargo Waren, je Antippen „step“),
+  // settlers Einwohner ziehen um (die erste Stadt braucht danach noch minPop). Nach „seconds“ entsteht die Inselstadt.
+  colony: {
+    maxCargo: 500, step: 50, settlers: 20, minPop: 30, seconds: 300, name: 'Inselstadt',
+    goods: ['holz', 'stein', 'ziegel', 'nahrung', 'werkzeug', 'kleidung', 'toepferwaren', 'muenzen', 'amphoren', 'olivenoel'],
+    restHours: 2,   // so lange rechnet eine ruhende Stadt höchstens nach (wie offline)
   },  // Steuer nach der Forschung „Münzen“: Münzen je Einwohner und Minute, mal Zufriedenheit
   // Mehr Ausgaben für Holz und Nahrung (V230, Emin 18.11.: „Nahrung und Holz zu hoch“, Ideen 1, 2 und 5)
   fuel: { winter: 2 },    // Feuer verbrennen Holz (BUILDINGS[…].fuel je Minute), im Winter doppelt; ohne Holz wärmen sie nicht
@@ -924,7 +931,7 @@ const TECHS = {
     name: 'Mittlere Antike', icon: '⚓', stage: 'antike1', col: 42, row: 2, transition: true, requires: ['gutshoefe', 'villen', 'marmor', 'markt', 'roemerstrassen'],
     population: 540, cost: { wissen: 560, ziegel: 80, muenzen: 100 }, time: 1800, effect: { stage: 'antike2', gift: { olivenoel: 80 } },
   },
-  // ----- Mittlere Antike (V233). Kolonien und Schiffsrouten kommen mit der zweiten Stadt (Schritt 4).
+  // ----- Mittlere Antike (V233). Kolonien seit V235 (Schritt 4), Schiffsrouten kommen danach.
   weinbau:      { name: 'Weinbau',      icon: '🍇', stage: 'antike2', col: 43, row: 0, requires: ['mittlere_antike'], population: 550, cost: { wissen: 570, nahrung: 400 }, time: 1260, effect: {} },
   wildgehege:   { name: 'Wildgehege',   icon: '🦌', stage: 'antike2', col: 44, row: 0, requires: ['weinbau'], population: 560, cost: { wissen: 580, holz: 300 }, time: 1320, effect: {} },
   fischmaerkte: { name: 'Fischmärkte',  icon: '🐟', stage: 'antike2', col: 44, row: 1, requires: ['weinbau'], population: 560, cost: { wissen: 580, muenzen: 60 }, time: 1320, effect: {} },
@@ -937,8 +944,9 @@ const TECHS = {
   amphoren:     { name: 'Amphoren',     icon: '🏺', stage: 'antike2', col: 44, row: 4, requires: ['schiffbau'], population: 560, cost: { wissen: 580, ton: 200 }, time: 1320, effect: {} },
   walkerei:     { name: 'Walkerei',     icon: '🧺', stage: 'antike2', col: 45, row: 4, requires: ['amphoren'], population: 575, cost: { wissen: 600, kleidung: 80 }, time: 1380, effect: {} },
   seehandel:    { name: 'Seehandel',    icon: '🚢', stage: 'antike2', col: 45, row: 2, requires: ['schiffbau', 'markt', 'amphoren'], population: 580, cost: { wissen: 610, amphoren: 40, muenzen: 80 }, time: 1440, effect: { ships: 1 } },
+  kolonien:     { name: 'Kolonien',     icon: '🏝️', stage: 'antike2', col: 46, row: 2, requires: ['seehandel'], population: 600, cost: { wissen: 630, holz: 300, ziegel: 100 }, time: 1500, effect: { colony: 1 } },   // Schritt 4: Siedlerschiff gründet die Inselstadt
   spaete_antike: {
-    name: 'Späte Antike', icon: '🏛️', stage: 'antike2', col: 46, row: 2, transition: true, soon: true, requires: ['seehandel'],
+    name: 'Späte Antike', icon: '🏛️', stage: 'antike2', col: 48, row: 2, transition: true, soon: true, requires: ['kolonien'],
     population: 620, cost: { wissen: 650, ziegel: 120, muenzen: 150, olivenoel: 60 }, time: 1800, effect: {},   // Stufe 'antike3' kommt mit Schritt 5, vorher die zweite Stadt (Schritt 4)
   },
 };
@@ -1277,6 +1285,8 @@ const QUESTS = [
   { id: 'q_m_amphoren100', text: 'Stelle 100 Amphoren her', goal: { made: 'amphoren', count: 100 }, reward: { ton: 150 } },
   { id: 'q_m_oel50',    text: 'Bringe 50 Olivenöl heim',  goal: { made: 'olivenoel', count: 50 }, reward: { muenzen: 50 } },
   { id: 'q_m_seehandel', text: 'Erforsche den Seehandel', goal: { learn: 'seehandel' }, reward: { wissen: 180 } },
+  { id: 'q_m_kolonien', text: 'Erforsche die Kolonien',  goal: { learn: 'kolonien' }, reward: { wissen: 190 } },
+  { id: 'q_m_stadt2',   text: 'Gründe die zweite Stadt', goal: { colonies: 1 }, reward: { muenzen: 100 } },
 ];
 // Zeitalter je Auftrag: Ein Auftrag erscheint erst in seinem Abschnitt (Prüfung 07.11.: Einwohner-Aufträge der Eisenzeit
 // waren schon in der Steinzeit erfüllt). Der Abschnitt beginnt beim genannten Auftrag und gilt bis zum nächsten.

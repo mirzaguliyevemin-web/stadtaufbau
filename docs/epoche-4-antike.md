@@ -304,7 +304,7 @@ Laut Plan (`plan-arbeitsbewegungen.md`), je 3 Bilder:
 | 1 | Frühe Antike: Aufbruch, Forum, Ziegel, Silber, Münzen, Steuer, Markt – ✅ **V231 (18.11.)** als Technik mit vorläufigen Bildern (Bild der Vorstufe bzw. Platzhalter). Römerstraßen ✅ V232. Noch offen aus Stufe 1: Kleidung/Leisten im Antike-Stil, eigene Bilder |
 | 2 | Mittlere Antike: Hafen, Schiffe, Öl als Bedürfnis – ✅ **V233 (18.11.)** mit vorläufigen Bildern. Kolonien und Schiffsrouten kommen mit Schritt 4, die Späte Antike bleibt bis dahin gesperrt. Seehandel gibt das 2. Schiff; Händler verkauft mit Seehandel Öl und Marmor. Fundstücke von fernen Ländern kommen mit dem Leuchtturm |
 | 3 | ~~Spielstand auf mehrere Städte umstellen~~ – schon gebaut (V185) |
-| 4 | Kolonien: zweite Stadt an der Küste, Wechseln, vereinfachtes Weiterlaufen |
+| 4 | Kolonien: zweite Stadt an der Küste, Wechseln, vereinfachtes Weiterlaufen – **Teil 1 ✅ V235 (18.11.):** Forschung „Kolonien“, Siedlerschiff am Hafen (bis 500 Waren, 20 Siedler, 5 min Fahrt), Inselkarte (Hauptinsel, 16 kleine Inseln, Lagune, Seen, kein Gebirge), Start mit Forum und 3 Ziegelhäusern, Knopf „Städte“, ruhende Stadt rechnet beim Wechseln nach (nur Waren, höchstens 2 h). **Teil 2 offen:** Schiffsrouten (3. Schiff), Olivenhain, Weinberg, Salzgarten, Bootsanleger nur auf der Insel |
 | 5 | Späte Antike: Tempel, Theater, Thermen, Aquädukt, Wahrzeichen |
 | 6 | Großer Leuchtturm mit Fundstücken |
 | 7 | Messen mit dem Testspieler, dann du am Handy |

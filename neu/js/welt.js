@@ -45,7 +45,8 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     finds: {},               // Fundstück → Anzahl
     spots: [],               // Fundstellen auf der Karte: { kind, x, y, find }
     trips: [],
-    ships: [],               // Schiffe unterwegs (Mittlere Antike): { dest, left, total, loads, storm }               // unterwegs zu einer Fundstelle: { id, left, total, cx, cy, x, y, kind, find }
+    ships: [],               // Schiffe unterwegs (Mittlere Antike): { dest, left, total, loads, storm }
+    colonyShip: null,        // Siedlerschiff unterwegs (gemeinsam, Schritt 4): { left, total, cargo, settlers }
     basket: [],              // Fundkorb: Fundstücke aus der Zeit, in der das Spiel zu war
     fund: { rng: 0, spotWait: CONFIG.finds.firstSpot, oreWait: CONFIG.finds.oreEvery / 4, luck: {}, luckTick: 0, glutNight: -1, sternNight: -1, ores: 0, tripId: 0, used: {}, ever: {}, boulderWait: 30 },
     disasterNext: null,      // angekündigte Katastrophe (Steinkreis warnt): { id, left }
@@ -75,12 +76,29 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
   };
 }
 
-// Neues Spiel: Gelände erzeugen, Lagerfeuer und zwei Wohnhöhlen in die Mitte stellen
-function startNewGame(seed) {
+// Landschaft der Stadt, die man gerade spielt ('fluss' = erste Karte, 'kueste' = Inselkarte)
+function cityLand() { const c = state && state.cities && state.cities[state.city]; return c ? c.land : 'fluss'; }
+
+// Neues Spiel: Gelände erzeugen, Lagerfeuer und zwei Wohnhöhlen in die Mitte stellen.
+// Inselkarte (Schritt 4): gleich eine kleine antike Siedlung – Forum (das Lagerfeuer der Antike) und drei Ziegelhäuser.
+function startNewGame(seed, land = 'fluss') {
   state = newState(seed);
+  state.cities[0].land = land;
+  if (land === 'kueste') state.foothill = { skip: 1 };   // kein Gebirge auf den Inseln
   buildTerrain();
   const c = Math.floor(N / 2) - 1;
   addBuilding('lagerfeuer', c, c, false, true);
+  if (land === 'kueste') {
+    addBuilding('ziegelhaus', c - 3, c + 1, false, true);
+    addBuilding('ziegelhaus', c, c + 4, false, true);
+    addBuilding('ziegelhaus', c + 4, c, false, true);
+    addBuilding('pfad', c - 1, c + 1, false, true);
+    addBuilding('pfad', c, c + 3, false, true);
+    addBuilding('pfad', c + 3, c, false, true);
+    rebuildOccupancy();
+    assignTorches();
+    return;
+  }
   addBuilding('wohnhoehle', c - 3, c + 1, false, true);
   addBuilding('wohnhoehle', c, c + 4, false, true);
   addBuilding('pfad', c - 1, c + 1, false, true);   // Trampelpfade von den Wohnhöhlen zum Feuer
@@ -514,8 +532,66 @@ function applySea(t, sea, field, bank, beach) {
   }
 }
 
+// Inselkarte (Schritt 4, Emin 17.11.): sonnig und ohne Gebirge. Eine Hauptinsel in der Mitte, rundherum kleine Inseln,
+// auf der Hauptinsel Lagune und kleine Seen; wenig Wald und Fels (Holz und Stein kommen per Schiff).
+// Die Karte ist so groß wie die erste, Land gibt es aber nur in der Mitte (etwa 256 × 256), außen ist offenes Meer.
+function generateIslands(seed) {
+  const rng = seededRng((seed ^ 0x51ed270b) >>> 0);
+  const shape = makeNoise(rng, 14), shape2 = makeNoise(rng, 5), forest = makeNoise(rng, 9), rocks = makeNoise(rng, 6), beach = makeNoise(rng, 8);
+  const W = TERRAIN.wasser.id, mid = N / 2;
+  const t = new Uint8Array(N * N).fill(W);
+  const isles = [{ x: mid, y: mid, r: 45 }];
+  for (let k = 0; k < 600 && isles.length < 17; k++) {
+    const a = rng() * Math.PI * 2, d = 72 + rng() * 54, r = 5 + rng() * 11;
+    const x = mid + Math.cos(a) * d, y = mid + Math.sin(a) * d;
+    if (!isles.some(o => Math.hypot(o.x - x, o.y - y) < o.r + r + 9)) isles.push({ x, y, r });
+  }
+  const land = new Float32Array(N * N).fill(-99);
+  for (const o of isles) {
+    const R = Math.ceil(o.r * 1.3 + 6);
+    for (let y = Math.max(0, Math.floor(o.y - R)); y <= Math.min(N - 1, o.y + R); y++)
+      for (let x = Math.max(0, Math.floor(o.x - R)); x <= Math.min(N - 1, o.x + R); x++) {
+        const i = y * N + x, v = o.r * (0.78 + shape(x, y) * 0.44) + (shape2(x, y) - 0.5) * 4 - Math.hypot(x + 0.5 - o.x, y + 0.5 - o.y);
+        if (v > land[i]) land[i] = v;
+      }
+  }
+  // Lagune (eine Bucht am Rand der Hauptinsel) und kleine Seen – nie zu nah am Forum
+  const holes = [];
+  const la = rng() * Math.PI * 2;
+  holes.push({ x: mid + Math.cos(la) * 41, y: mid + Math.sin(la) * 41, r: 10 });
+  for (let k = 0; k < 40 && holes.length < 4; k++) {
+    const a = rng() * Math.PI * 2, d = 17 + rng() * 16, r = 2.5 + rng() * 1.8;
+    const x = mid + Math.cos(a) * d, y = mid + Math.sin(a) * d;
+    if (!holes.some(h => Math.hypot(h.x - x, h.y - y) < h.r + r + 6)) holes.push({ x, y, r });
+  }
+  for (const h of holes) {
+    const R = Math.ceil(h.r * 1.3 + 2);
+    for (let y = Math.floor(h.y - R); y <= h.y + R; y++)
+      for (let x = Math.floor(h.x - R); x <= h.x + R; x++) {
+        if (!inMap(x, y) || Math.hypot(x + 0.5 - mid, y + 0.5 - mid) < 12) continue;
+        const v = Math.hypot(x + 0.5 - h.x, y + 0.5 - h.y) - h.r * (0.8 + shape2(x, y) * 0.4);
+        if (v < land[y * N + x]) land[y * N + x] = Math.min(land[y * N + x], v);
+      }
+  }
+  for (let y = 0; y < N; y++)
+    for (let x = 0; x < N; x++) {
+      const i = y * N + x, v = land[i];
+      if (v < 0) continue;
+      if (v < 1.6 + beach(x, y) * 1.8) t[i] = TERRAIN.sand.id;
+      else if (Math.hypot(x - mid, y - mid) < 9) t[i] = TERRAIN.gras.id;
+      else if (forest(x, y) > 0.7) t[i] = TERRAIN.wald.id;
+      else if (rocks(x, y) > 0.84 && rng() < 0.5) t[i] = TERRAIN.fels.id;
+      else if (rng() < 0.02) t[i] = TERRAIN.wald.id;
+      else t[i] = TERRAIN.gras.id;
+    }
+  mapFeatures.sea = { sum: -1e4, open: new Uint8Array(N * N), all: true };   // alles Wasser ist Meer, auch rund um die Karte
+  mapFeatures.isles = isles.map(o => ({ x: Math.round(o.x), y: Math.round(o.y), r: Math.round(o.r) }));
+  return t;
+}
+
 // Die ganze Karte aus der Spielstand-Zahl
 function generateWorld(seed) {
+  if (cityLand() === 'kueste') return generateIslands(seed);
   let core = null;
   if (hasOldCore() || N === OLD_N) {
     const t0 = state.mapGen >= 2 ? generateTerrain2(seed, OLD_N) : generateTerrain(seed, OLD_N);
@@ -782,7 +858,7 @@ function buildTerrain() {
   terrainVersion++;
   mapFeatures = { fall: null, lake: null, source: null, sea: null };
   baseTerrain = generateWorld(state.seed);
-  addFoothill(baseTerrain);
+  if (cityLand() !== 'kueste') addFoothill(baseTerrain);
   terrain = baseTerrain.slice();
   computeWaterDepth();
   const dry = i => i >= 0 && i < N * N && baseTerrain[i] !== TERRAIN.wasser.id;   // seit dem Meer (V222) kann früheres Land Wasser sein

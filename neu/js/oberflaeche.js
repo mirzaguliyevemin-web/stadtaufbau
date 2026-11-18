@@ -276,6 +276,13 @@ function renderSideButtons() {
   show($('research-badge'), canResearch);
   show($('btn-trader'), traderHere() || suedHere());
   show($('btn-daily'), !!state.daily.pending);
+  // Städte (Schritt 4): sobald es eine zweite gibt oder das Siedlerschiff unterwegs ist
+  const cb = $('btn-cities');
+  if (cb) {
+    show(cb, state.cities.length > 1 || !!state.colonyShip);
+    const label = cb.querySelector && cb.querySelector('span');
+    if (label) label.textContent = state.colonyShip ? formatTime(state.colonyShip.left) : 'Städte';
+  }
   show($('btn-shop'), state.tutorial < 0);
   show($('btn-chest'), state.tutorial < 0 || Object.keys(state.finds).length > 0);
   const chest = chestBadge();
@@ -959,7 +966,51 @@ function harborHtml(i) {
     <p>${n ? `Geladen: ${costHtml(shipLoadCost(shipLoads))} – bringt zurück:` : 'Je Ladung bringt das Schiff zurück:'} ${formatAmounts(back)}</p>
     <div class="buttons"><button class="btn primary" ${problem ? 'disabled' : ''} onclick="doSendShip(${i})">⛵ Ablegen</button>
     ${n ? `<button class="btn" onclick="shipLoads={}; showBuildingWindow(${i})">Ausladen</button>` : ''}</div>
-    ${problem && n ? `<small class="bad">${esc(problem)}</small>` : ''}` : '<p>Alle Schiffe sind unterwegs.</p>'}</div>`;
+    ${problem && n ? `<small class="bad">${esc(problem)}</small>` : ''}` : '<p>Alle Schiffe sind unterwegs.</p>'}</div>${colonyHtml(i)}`;
+}
+
+// Siedlerschiff (Schritt 4): nach „Kolonien“ frei beladen, 20 Siedler ziehen mit
+let colonyCargo = {};
+function colonyHtml(i) {
+  const c = CONFIG.colony, cs = state.colonyShip;
+  if (cs) return `<div class="harbor"><h3>🚢 Siedlerschiff</h3><p>Unterwegs zur neuen Insel – Ankunft in ${formatTime(cs.left)}.</p></div>`;
+  if (!colonyReady()) return '';
+  const n = cargoCount(colonyCargo);
+  const wares = c.goods.filter(id => stageReached(RESOURCES[id].from || 'alt') && ((state.res[id] || 0) >= c.step || colonyCargo[id])).map(id => {
+    const full = n + c.step > c.maxCargo || (state.res[id] || 0) < (colonyCargo[id] || 0) + c.step;
+    return `<button class="btn" ${full ? 'disabled' : ''} onclick="colonyCargo['${id}']=(colonyCargo['${id}']||0)+${c.step}; showBuildingWindow(${i})">${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')} +${c.step}${colonyCargo[id] ? ` (${colonyCargo[id]})` : ''}</button>`;
+  }).join('');
+  const problem = colonyProblem(colonyCargo);
+  return `<div class="harbor"><h3>🚢 Siedlerschiff</h3>
+    <p>Gründe die zweite Stadt auf einer Insel! ${c.settlers} Einwohner ziehen um, dazu packst du bis zu ${c.maxCargo} Waren ein – damit fängt die neue Stadt an. Die Fahrt dauert ${formatTime(c.seconds)}.</p>
+    <p>Beladen: ${n} von ${c.maxCargo}</p><div class="buttons">${wares || '<small>Nicht genug Waren im Lager.</small>'}</div>
+    <div class="buttons"><button class="btn primary" ${problem ? 'disabled' : ''} onclick="doSendColony(${i})">🚢 Siedler losschicken</button>
+    ${n ? `<button class="btn" onclick="colonyCargo={}; showBuildingWindow(${i})">Ausladen</button>` : ''}</div>
+    ${problem ? `<small class="bad">${esc(problem)}</small>` : ''}</div>`;
+}
+function doSendColony(i) {
+  const problem = sendColonyShip(colonyCargo);
+  if (problem) { toast(problem); return; }
+  colonyCargo = {};
+  toast(`🚢 Das Siedlerschiff legt ab – in ${formatTime(CONFIG.colony.seconds)} entsteht die neue Stadt`);
+  playSound('muenze');
+  showBuildingWindow(i);
+}
+
+// Liste der Städte mit Wechseln (Knopf „Städte“)
+function citiesHtml() {
+  const rows = state.cities.map((c, i) => {
+    const here = i === state.city, pop = here ? state.pop : Math.floor((c.data && c.data.pop) || 0);
+    return `<li><b>${c.land === 'kueste' ? '🏝️' : '🏞️'} ${esc(c.name)}</b> · 👥 ${Math.floor(pop)}
+      ${here ? '<small>– hier bist du</small>' : `<button class="btn primary" onclick="goToCity(${i})">Hinfahren</button>`}</li>`;
+  }).join('');
+  const cs = state.colonyShip;
+  return `<ul class="lines">${rows}</ul>
+    ${cs ? `<p>🚢 Das Siedlerschiff ist unterwegs – Ankunft in ${formatTime(cs.left)}.</p>` : ''}
+    ${state.cities.length > 1 ? '<p><small>Die andere Stadt ruht: Ihre Werkstätten arbeiten weiter und verbrauchen Waren, es zieht aber niemand zu und es wird nichts gebaut.</small></p>' : ''}`;
+}
+function openCities() {
+  openDialog(`<h2>🏝️ Städte</h2>${citiesHtml()}<div class="buttons"><button class="btn" onclick="closeDialog()">Schließen</button></div>`);
 }
 function doSendShip(i) {
   const problem = sendShip(shipDest, shipLoads);
@@ -1049,6 +1100,7 @@ function techEffectText(id) {
   if (id === 'himmelsscheibe') out.push(`Sonnwendfest mitten im Sommer: Laune +${CONFIG.fest.happy}`);
   if (e.traderOffers) out.push('Der Händler bringt Bernstein und ein Angebot mehr');
   if (e.constructions) out.push(`🏗️ ${e.constructions === 1 ? 'Eine Baustelle' : e.constructions + ' Baustellen'} mehr gleichzeitig`);
+  if (e.colony) out.push('🚢 Siedlerschiff am Hafen: gründe die zweite Stadt auf einer Insel');
   if (e.ships) out.push(`⛵ ${e.ships === 1 ? 'Ein' : e.ships} Schiff${e.ships === 1 ? '' : 'e'} mehr am Hafen`);
   if (e.paved) out.push('🛣️ Alle Wege werden gepflastert, die Leute laufen schneller');
   if (e.buildFaster) out.push(`Bauzeiten −${Math.round(e.buildFaster * 100)} %`);

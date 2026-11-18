@@ -255,6 +255,7 @@ function loop(now) {
     if (ghost) renderActionBar();
     if (infoFor) positionInfo();
     tickResearchPage();
+    checkColonyArrival();
     checkStaffHint();
     checkStallHint();
     checkHerdHint();
@@ -318,6 +319,34 @@ on('suedCame', () => { if (gameRunning) { toast('🫏 Ein Händler aus dem Süde
 on('suedLeft', () => { if (gameRunning) { toast('🫏 Der Händler aus dem Süden zieht weiter.'); if (pageOpen === 'sued') closePage(); renderAll(); } });
 on('traderLeft', () => { if (gameRunning) { toast('🤝 Der Händler zieht weiter.'); if (pageOpen === 'trader') closePage(); renderAll(); } });
 on('shipBack', s => { if (gameRunning && !offlineRunning) { const t = CONFIG.ship.trips[s.dest]; toast(`⛵ Das Schiff ist zurück von ${t.icon} ${t.name}: +${formatAmounts(s.got)}`); playSound('muenze'); renderAll(); } });
+// Zweite Stadt (Schritt 4): Das Siedlerschiff ist angekommen → Stadt gründen (außerhalb von update, weil dabei kurz die
+// neue Karte erzeugt wird), Spiel neu betreten und fragen, ob man hinfahren will
+function checkColonyArrival() {
+  if (!state.colonyShip || state.colonyShip.left > 0 || offlineRunning) return;
+  const k = foundColony();
+  if (k < 0) return;
+  saveGame();
+  closeDialog();
+  enterGame();
+  playSound('fertig');
+  openDialog(`<h2>🏝️ Die Inselstadt ist gegründet!</h2><p>Das Siedlerschiff ist angekommen. Die Siedler wohnen schon in drei Ziegelhäusern am Forum, die Waren liegen im Lager.</p>
+    <p>Über den Knopf „Städte“ wechselst du jederzeit zwischen beiden Städten.</p>
+    <div class="buttons"><button class="btn primary" onclick="goToCity(${k})">Hinfahren</button><button class="btn" onclick="closeDialog()">Später</button></div>`);
+}
+// In eine andere Stadt wechseln: speichern, wechseln, Ruhezeit nachrechnen, neu betreten
+function goToCity(i) {
+  if (!state || i === state.city || !state.cities[i]) return;
+  closeDialog();
+  saveGame();
+  const r = goToCityState(i);
+  if (!r) { toast('Wechseln ging nicht'); return; }
+  saveGame();
+  enterGame();
+  const c = state.cities[state.city];
+  const plus = Object.fromEntries(Object.entries(r.gained).filter(([, n]) => n > 0).map(([id, n]) => [id, Math.floor(n)]));
+  toast(`${c.land === 'kueste' ? '🏝️' : '🏞️'} ${c.name}${Object.keys(plus).length ? ` – in der Zwischenzeit: +${formatAmounts(plus)}` : ''}`);
+}
+on('colonySent', () => { if (gameRunning) renderAll(); });
 on('placed', b => { (state.seen ||= {})[b.type] = true; });
 on('needStarted', id => {
   if (gameRunning && !offlineRunning) toast(`${RESOURCES[id].icon} Deine Leute brauchen jetzt ${RESOURCES[id].name} – ${CONFIG.needGift} gibt es geschenkt, ${Math.round(CONFIG.needGrace / 60)} Minuten Zeit`);

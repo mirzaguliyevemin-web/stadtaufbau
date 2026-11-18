@@ -426,6 +426,12 @@ function tripObjects(inView, t) {
       drawCreature(personImg('mensch-mann', 'leer'), p.x, p.y, 32, face, Math.abs(Math.sin(step)) * 1.2 * cam.zoom, '🧍', step);
       if (!back) return;
       const q = tileToScreen(p.x, p.y), z = cam.zoom;
+      const f = trip.kind !== 'erz' && FINDS[trip.find], pic = f && f.bild && images[f.bild];
+      if (pic && pic.width) {   // das gemalte Fundstück statt des Zeichens (Emin, 18.11.: Holzkohle-Stift war eine schwarze Kugel)
+        const w = 18 * z, h = w * pic.height / pic.width;
+        ctx.drawImage(pic, q.x - w / 2, q.y - 34 * z - h / 2 - 4 * z, w, h);
+        return;
+      }
       ctx.font = `${Math.round(13 * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = '#000';
       ctx.fillText(trip.kind === 'erz' ? '⛏️' : FINDS[trip.find] ? FINDS[trip.find].icon : '✨', q.x, q.y - 34 * z);
     } });

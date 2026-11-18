@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 233;
+const APP_VERSION = 234;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -1423,7 +1423,7 @@ const FIND_PAGES = [
 const FIND_LATER = 'Kommt in einem späteren Zeitalter';
 const FINDS = {
   roetel:      { name: 'Rötel', icon: '🔴', bild: 'fund-roetel', page: 'steinzeit', need: 5, spot: 'fels', hint: 'Glitzert an Felsen' },
-  holzkohle:   { name: 'Holzkohle-Stift', icon: '⚫', bild: 'fund-holzkohle', page: 'steinzeit', need: 2, hint: 'Glimmt nachts am Lagerfeuer' },
+  holzkohle:   { name: 'Holzkohle-Stift', icon: '✏️', bild: 'fund-holzkohle', page: 'steinzeit', need: 2, hint: 'Glimmt nachts am Lagerfeuer' },
   stosszahn:   { name: 'Mammut-Stoßzahn', icon: '🦣', bild: 'fund-stosszahn', page: 'steinzeit', spot: 'fels', spotExtinct: true, hint: 'Von der Mammutjagd, später alt im Fels' },
   feder:       { name: 'Adlerfeder', icon: '🪶', bild: 'fund-feder', page: 'steinzeit', spot: 'wald', hint: 'Glitzert im Wald, Jäger finden manchmal eine' },
   muschel:     { name: 'Flussmuschel', icon: '🐚', bild: 'fund-muschel', page: 'steinzeit', need: 2, spot: 'ufer', hint: 'Glitzert am Ufer, nach Hochwasser mehr' },
@@ -1466,7 +1466,7 @@ const SPOT_STYLE = {
   wald:  { name: 'Etwas glitzert im Wald', icon: '🌲', color: '#ffc400', glow: 'rgba(255,190,0,0.8)' },
   ufer:  { name: 'Etwas glitzert am Ufer', icon: '🌊', color: '#22d3ff', glow: 'rgba(30,200,255,0.8)' },
   erz:   { name: 'Eine Erzader glitzert', icon: '⛏️', color: '#ffb300', glow: 'rgba(255,170,0,0.9)', special: true },
-  glut:  { name: 'Glut am Lagerfeuer', icon: '⚫', color: '#ff6a00', glow: 'rgba(255,100,0,0.9)', special: true, instant: true },
+  glut:  { name: 'Glut am Lagerfeuer', icon: '🔥', color: '#ff6a00', glow: 'rgba(255,100,0,0.9)', special: true, instant: true },
   findling: { name: 'Ein Riesenfindling liegt bereit', icon: '🪨', color: '#d9e2ff', glow: 'rgba(190,205,255,0.85)', special: true },
   stern: { name: 'Eine Sternschnuppe ist gefallen', icon: '🌠', color: '#9db8ff', glow: 'rgba(130,160,255,0.9)', special: true, instant: true },
 };

@@ -475,6 +475,19 @@ function insideSpot(b, k) {
   return { tx: b.x + tu, ty: b.y + tv, sx: b.x + su, sy: b.y + sv };
 }
 
+// Pflanzerin hat an der nächsten Pflanzstelle fertig gegraben: Gebäude → Feld (nur fürs Bild, nicht im Spielstand)
+const plantedEarly = new WeakMap();
+function earlySaplings() {
+  const out = [];
+  for (const b of state.buildings) {
+    const i = plantedEarly.get(b);
+    if (i === undefined) continue;
+    if (state.saplings.some(sp => sp[0] === i) || terrain[i] !== TERRAIN.gras.id || occ[i]) { plantedEarly.delete(b); continue; }
+    out.push(i);
+  }
+  return out;
+}
+
 function workSpot(b, kind, far, k = 0) {
   const s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
   if (kind === 'self') {   // arbeitet in der Werkstatt auf der Platte; ohne festgelegten Platz direkt vor dem Haus
@@ -495,8 +508,16 @@ function workSpot(b, kind, far, k = 0) {
     if (!walkable(Math.floor(sx), Math.floor(sy))) return null;
     return { tx: cx, ty: cy, sx, sy };
   }
-  if (kind === 'sapling') {   // zum nächsten Setzling, sonst auf die Wiese daneben (gleich wird dort gepflanzt)
-    let best = null, bestD = Infinity;
+  if (kind === 'sapling') {
+    // V228 (Emin: nach dem Pflanzen war nichts zu sehen): zuerst dorthin, wo der nächste Setzling hinkommt (dieselbe Stelle,
+    // die updateTrees wählt) – nach getaner Arbeit steht dort sofort der Setzling (plantedEarly), bis der echte nachkommt
+    const next = typeof plantSpot === 'function' ? plantSpot(b, CONFIG.trees.plantRadius) : null;
+    if (next !== null && plantedEarly.get(b) !== next && (k === 0 || !state.saplings.length)) {   // die zweite gießt lieber
+      const x = next % N, y = Math.floor(next / N);
+      for (const [dx, dy] of [[1.15, 0.5], [0.5, 1.15], [-0.15, 0.5], [0.5, -0.15]])
+        if (walkable(Math.floor(x + dx), Math.floor(y + dy))) return { tx: x + 0.5, ty: y + 0.5, sx: x + dx, sy: y + dy, plantAt: next };
+    }
+    let best = null, bestD = Infinity;   // sonst zu einem Setzling (gießen, nachsehen)
     for (const [i] of state.saplings) {
       const x = i % N, y = Math.floor(i / N), d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + hash(x + k * 7, y) * 3;
       if (d < bestD && d < CONFIG.trees.plantRadius + 2 && walkable(x + 1, y)) { bestD = d; best = { tx: x + 0.5, ty: y + 0.5, sx: x + 1.15, sy: y + 0.5 }; }
@@ -612,7 +633,7 @@ function updateWorkers(dt) {
       const own = w.kind.target === 'self' ? state.buildings.indexOf(w.b) : -1;   // Werkstatt: über die eigene Platte gehen
       const route = walkRoute(w.x, w.y, spot.sx, spot.sy, own);
       if (!route) { w.t = 8; continue; }   // nur übers Wasser erreichbar: später nochmal (anderer Baum)
-      Object.assign(w, spot, { phase: 'go', route });
+      Object.assign(w, { plantAt: null }, spot, { phase: 'go', route });
     } else if (w.phase === 'go' || w.phase === 'back') {
       if (w.phase === 'go' && targetGone(w)) { w.phase = 'rest'; w.t = 0.5; w.route = null; continue; }   // Ziel verschwunden: neues suchen
       if (!w.route || !w.route.length) w.route = [w.phase === 'go' ? [w.sx, w.sy] : [w.home.x, w.home.y]];
@@ -641,7 +662,10 @@ function updateWorkers(dt) {
       }
       const sxd = w.tx - w.x - (w.ty - w.y);
       if (Math.abs(sxd) > 0.01) w.face = sxd > 0 ? -1 : 1;   // zum Baum/Felsen schauen
-      if (w.t <= 0) { w.phase = 'back'; w.route = walkRoute(w.x, w.y, w.home.x, w.home.y, state.buildings.indexOf(w.b)) || [[w.home.x, w.home.y]]; }
+      if (w.t <= 0) {
+        if (w.plantAt !== undefined && w.plantAt !== null) { plantedEarly.set(w.b, w.plantAt); w.plantAt = null; }
+        w.phase = 'back'; w.route = walkRoute(w.x, w.y, w.home.x, w.home.y, state.buildings.indexOf(w.b)) || [[w.home.x, w.home.y]];
+      }
     }
   }
 }

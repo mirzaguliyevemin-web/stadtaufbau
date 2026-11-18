@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 227;
+const APP_VERSION = 228;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -841,6 +841,10 @@ const TECHS = {
     population: 480, cost: { wissen: 500, holz: 500, stein: 400, nahrung: 500, eisen: 80, salz: 80, glas: 30 }, time: 300, effect: {},
   },
 };
+// Zeitalter-Forschung erst, wenn ALLES andere im Zeitalter erforscht ist (V228, Emin: Mittelsteinzeit ging ohne Mammutjagd)
+for (const [id, t] of Object.entries(TECHS))
+  if (t.transition) for (const [o, u] of Object.entries(TECHS))
+    if (o !== id && u.stage === t.stage && !u.transition && !t.requires.includes(o)) t.requires.push(o);
 
 // Forschung verlangt auch Gebäude (Emin, 02.11.): Wer weiterkommen will, muss weiterbauen.
 // Gezählt werden fertige Gebäude derselben Linie ab dieser Stufe (ein Fellzelt zählt also auch als Wohnhöhle).

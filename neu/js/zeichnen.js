@@ -2954,6 +2954,11 @@ function drawScene(dt) {
     if (x < range.x0 || x > range.x1 || y < range.y0 || y > range.y1) continue;
     objects.push({ d: x + y + 1, kind: 'leben', draw: () => drawSapling(x, y, age / CONFIG.trees.growSeconds) });
   }
+  if (typeof earlySaplings === 'function') for (const i of earlySaplings()) {   // eben gepflanzt, im Spiel zählt er gleich (V228)
+    const x = i % N, y = Math.floor(i / N);
+    if (x < range.x0 || x > range.x1 || y < range.y0 || y > range.y1) continue;
+    objects.push({ d: x + y + 1, kind: 'leben', draw: () => drawSapling(x, y, 0) });
+  }
   objects.push(...lifeObjects(range));
   // Figur knapp vor der rechten oder linken Vorderkante eines großen Gebäudes: Nach der Mitte sortiert kam sie zuerst
   // dran und das Gebäudebild verdeckte sie, obwohl sie davor steht. Steht links oder oben ein Gebäude, kommt sie danach.

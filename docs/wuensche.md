@@ -31,6 +31,9 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 ## Erledigt
 
+- 18.11., V228: Pflanzerin gräbt genau dort, wo der nächste Setzling hinkommt – danach steht er sofort da.
+- 18.11., V228: Zeitalter-Forschung (z. B. Mittelsteinzeit) erst, wenn alle anderen Forschungen des Zeitalters erforscht sind.
+
 - 17.11., V227: Tag und Jahreszeit laufen nicht mehr gleich – ein Tag dauert jetzt 25 statt 30 Minuten, jede Jahreszeit hat 1,2 Tage und beginnt jedes Jahr zu einer anderen Tageszeit.
 
 - 17.11., V225: Nur noch ein Ladefenster beim Start – der letzte Spielstand und seine Landschaft werden schon vor der Startseite geladen, „Weiterspielen“ geht sofort ins Spiel.

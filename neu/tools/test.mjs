@@ -1599,6 +1599,28 @@ test('Bäume: Holzsammler fällen sie nach und nach, Pflanzerin setzt Setzlinge,
   noErrors(g);
 });
 
+test('V228: Pflanzerin gräbt dort, wo der nächste Setzling hinkommt – danach ist er sofort zu sehen', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const sp = findFreeSpot('pflanzerin', 66 + O, 66 + O); placeBuilding('pflanzerin', sp.x, sp.y);
+    const k = state.buildings.length - 1, b = state.buildings[k]; finishBuilding(b); buildRoute(k);
+    b.plant = 0;
+    const next = plantSpot(b, CONFIG.trees.plantRadius);
+    let went = false, early = false;
+    for (let i = 0; i < 400 && !early; i++) {
+      update(0.1); updateWorkers(0.1);
+      if (life.workers.some(w => w.b === b && w.plantAt === next)) went = true;
+      if (earlySaplings().includes(next)) early = true;
+    }
+    for (let i = 0; i < 70; i++) update(1);   // jetzt pflanzt das Spiel selbst – an derselben Stelle
+    return [next !== null, went, early, state.saplings.some(s => s[0] === next), !earlySaplings().includes(next), !('plantedEarly' in b)];
+  })()`);
+  ok(r[0] && r[1], 'Pflanzerin geht nicht zur nächsten Pflanzstelle: ' + r);
+  ok(r[2], 'nach dem Graben kein Setzling zu sehen: ' + r);
+  ok(r[3] && r[4], 'echter Setzling nicht an derselben Stelle: ' + r);
+  noErrors(g);
+});
+
 test('Felsen: Steinsammler bauen sie nach und nach ab, das Gebirge nie; bleibt gespeichert, alte Stände laden', () => {
   const g = fresh();
   const r = g.run(`(() => {

@@ -97,6 +97,11 @@ Das ist ein großer Umbau, der in mehreren Sitzungen mit Emin entsteht.
   3. Mit der Forschung „Kolonien“ kann man das Siedlerschiff beladen. Es fährt los, und die zweite Stadt entsteht.
   4. Danach kommen die Schiffsrouten zwischen beiden Städten.
 - 💡 **Zwischen den Städten wechseln:** über einen Knopf „Städte“, oder indem man im Hafen das Schiff antippt.
+- **Entschieden 18.11.:**
+  - 🚢 **Siedlerschiff frei beladen:** Man packt selbst bis etwa 500 Waren aus der ersten Stadt (Holz, Stein, Ziegel, Nahrung, Werkzeug …). Gute Planung gibt einen guten Start.
+  - 👥 **20 Siedler ziehen aus der ersten Stadt um.** Sie fehlen dort, die erste Stadt wächst aber wieder nach.
+  - ⏸ **Die ruhende Stadt läuft vereinfacht weiter**, wie beim Offline-Fortschritt: Waren werden hergestellt und verbraucht. Es gibt dort keine Ereignisse, kein Wachstum und kein Bauen. Schiffsrouten liefern weiter.
+  - 🏛️ **Gebäude auf der Inselkarte:** alle Antike-Gebäude außer Minen und Bergbau. Nur dort gibt es Olivenhain, Weinberg, Salzgarten und Bootsanleger.
 - 💡 **Kein Wunderwerk auf der Inselkarte in der Antike.** Der Leuchtturm steht am Hafen der ersten Stadt. Die zweite Stadt bekommt ihr eigenes Wunderwerk erst in einem späteren Zeitalter.
 
 ## Gebaut: Spielstand für mehrere Städte (Version 185)

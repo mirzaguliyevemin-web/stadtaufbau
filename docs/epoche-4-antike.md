@@ -152,7 +152,7 @@ Schon im Wunderwerk-Plan vorgesehen. Ab der Antike sind Wunderwerke 5×5 groß.
 
 **Wusstest du?** Der Leuchtturm von Alexandria war über 100 Meter hoch, sein Feuer sah man 50 Kilometer weit.
 
-✅ Emin: der Leuchtturm, keine Bibliothek. Die Kapitel oben sind noch ein Entwurf.
+✅ Emin: der Leuchtturm, keine Bibliothek. ✅ 18.11.: Kapitel, Kosten und Belohnung so übernommen (Zahlen misst der Bot beim Bauen nach).
 
 ## Forschungsbaum
 
@@ -221,14 +221,36 @@ Jede Stufe endet mit einer Übergangs-Forschung, die bestimmte Gebäude verlangt
 
 💡 **Kosten:** wie in der Eisenzeit Wissen plus eine Ware, ab der Mittleren Antike oft **Münzen** (zum Beispiel 450 Wissen und 100 Münzen). Die genauen Zahlen kommen beim Messen.
 
+## Schiffsreise (entschieden 18.11.)
+
+Kommt mit der Forschung „Schiffbau“ und dem Hafen. Man tippt das Schiff am Hafen an, wählt ein Ziel und lädt Tauschware.
+
+| Ziel | Dauer | Bringt mit |
+|---|---|---|
+| 🏖️ Nahe Küste | 5 min | Fisch, Salz, Holz |
+| 🫒 Ölinseln | 10 min | Olivenöl, Wein |
+| 🌍 Ferne Länder | 20 min | Glas, Gewürze, oft ein Fundstück (Schriftrolle) |
+
+- **Tauschware:** Man gibt eigene Waren mit (z. B. Töpferwaren, Werkzeug, Münzen, Überschuss an Nahrung und Holz). Je mehr Ladung, desto mehr kommt zurück – so haben volle Lager einen Zweck.
+- **Schiffe:** erst eines, Forschungen schalten ein zweites und drittes frei (z. B. „Seehandel“ und „Schiffsrouten“).
+- **Sturm:** Das Schiff kommt nur später, es geht nichts verloren. Der Leuchtturm macht die Fahrten kürzer und bringt öfter Fundstücke.
+- Offen für später: genaue Tauschkurse, Mindestladung, welche Waren je Ziel angenommen werden (wird mit dem Bot gemessen).
+
 ## Aufträge, Ereignisse, Stimmung
 
-- **Aufträge:** 15 neue, je Stufe fünf. Dazu Wünsche der Bürger mit den neuen Waren.
+- **Aufträge:** 15 neue, je Stufe fünf. Dazu Wünsche der Bürger mit den neuen Waren. ✅ Emin 18.11.: Schwerpunkt **Seefahrt und Stadt**, gemischt wie seit V229 (höchstens ein Bau-Auftrag gleichzeitig, 🎲 Zusatzaufträge laufen weiter). Entwurf, Zahlen misst der Bot:
+
+  | Stufe | Aufträge |
+  |---|---|
+  | Frühe Antike | Stelle 200 Ziegel her · Sammle 300 Münzen · Erforsche die Schrift · Baue das Forum · Fälle 20 Bäume |
+  | Mittlere Antike | Schicke 3 Schiffsreisen los · Stelle 100 Amphoren her · Bringe 50 Olivenöl heim · Erforsche Kolonien · Gründe die zweite Stadt |
+  | Späte Antike | Sammle 1000 Münzen · Stelle 300 Marmor her · Ziehe 20 Felder Aquädukt · Feiere ein Theaterfest · Finde 3 Schriftrollen |
 - **Ereignisse:**
   - Händlerschiffe legen am Hafen an.
   - Ein Sturm auf dem Meer: Das Schiff kommt später, aber es geht nichts verloren.
   - Wagenrennen und Theaterfest als Feste.
   - Keine neuen Katastrophen.
+  - ✅ Emin 18.11.: alle vier Ereignisse (Händlerschiffe, Sturm, Wagenrennen, Theaterfest) kommen so.
 - **Stimmung:** Möwen, Segel, Marktrufe, Musik mit Lyra und Flöte, Menschen in Tunika und Toga.
 - **Schatzkiste:** Die Seite „Antike“ gibt es schon, ihre Stücke werden dann echt.
 

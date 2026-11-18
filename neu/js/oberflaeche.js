@@ -191,7 +191,7 @@ function goodEffects(id) {
 function resourceTip(id) {
   const r = RESOURCES[id], f = (stats.flows || {})[id] || { in: {}, out: {} };
   const count = type => state.buildings.filter(b => b.type === type && !b.build).length;
-  const who = k => (k === '__pop' ? `👥 ${Math.floor(state.pop)} Einwohner` : `${BUILDINGS[k].icon} ${esc(BUILDINGS[k].name)} ×${count(k)}`);
+  const who = k => (k === '__pop' ? `👥 ${Math.floor(state.pop)} Einwohner` : k === '__fuel' ? '🔥 Brennholz für die Feuer' : k === '__food' ? '🍖 Proviant für die Arbeiter' : `${BUILDINGS[k].icon} ${esc(BUILDINGS[k].name)} ×${count(k)}`);
   const rows = (obj, sign) => Object.entries(obj).filter(([, n]) => n > 0.005).sort((a, b) => b[1] - a[1])
     .map(([k, n]) => `<div><span>${who(k)}</span><b class="${sign === '+' ? 'good' : 'bad'}">${sign}${perMin(n)}</b></div>`).join('') || '<div><small>nichts</small></div>';
   const net = stats.rates[id] || 0, stock = state.res[id] || 0, cap = storageCap();
@@ -813,11 +813,20 @@ function showBuildingWindow(i) {
   if (def.produces && !b.build) {
     for (const [id, n] of Object.entries(outputPerMinute(i))) tile(`${perMin(n)} ${ware(id)}`, 'je Minute');
     for (const [id, n] of Object.entries(def.consumes || {})) tile(`−${perMin(n * outputFactor(i))} ${ware(id)}`, 'braucht je Min.', (state.res[id] || 0) < 0.5);
+    if (def.workers && !def.produces.nahrung && (stats.staff[i] || 0) > 0) {   // Proviant (V230)
+      const hungry = (state.res.nahrung || 0) < 0.5;
+      tile(`−${perMin((stats.staff[i] || 0) * CONFIG.provision.perWorker)} ${ware('nahrung')}`, 'Proviant je Min.', hungry);
+      if (hungry) lines.push('❗ Kein Proviant – die Arbeiter schaffen nur die Hälfte');
+    }
     for (const id of Object.keys(def.consumes || {})) if ((state.res[id] || 0) < 0.5) lines.push(`❗ Fehlt: ${RESOURCES[id].name} – darum steht es still${sourceText(id)}`);
     if (def.bonus) tile(`🌲 +${Math.round(terrainBonus(b) * 100)} %`, 'Gelände: ' + terrainNames(def.bonus.terrain));
     if (SEASON_FACTORS[b.type]) tile(`${season().icon} ${Math.round(SEASON_FACTORS[b.type][seasonIndex()] * 100)} %`, season().name);
   }
-  if (def.warmth) tile(`🔥 ${warmthRadius(def)}`, 'Felder Wärme');
+  if (def.warmth) tile(`🔥 ${fireOut(b) ? 0 : warmthRadius(def)}`, 'Felder Wärme', fireOut(b));
+  if (def.fuel && !b.build) {   // Brennholz (V230)
+    tile(`−${perMin(def.fuel * (seasonIndex() === 3 ? CONFIG.fuel.winter : 1))} ${ware('holz')}`, seasonIndex() === 3 ? 'Brennholz je Min. (Winter)' : 'Brennholz je Min.', fireOut(b));
+    if (fireOut(b)) lines.push('❗ Kein Brennholz – das Feuer ist aus und wärmt nicht');
+  }
   if (def.belief) tile(`🗿 ${def.belief}`, 'Felder Glaube');
   if (def.storage) tile(`📦 +${storageOf(b)}`, 'je Ware');
 
@@ -1322,6 +1331,24 @@ function wishHtml() {
     <button class="btn primary" ${can ? '' : 'disabled'} onclick="doWish()">🤲 Geben</button></div>`;
 }
 
+// Festmahl (V230): freiwillig viel Nahrung und Holz ausgeben – Laune und Zuzug
+function feastHtml() {
+  if (state.tutorial >= 0) return '';
+  const f = state.feast, c = CONFIG.feast;
+  const head = `<span class="q-medal"><span class="ic emoji big">🎉</span></span>`;
+  if (f.left > 0) return `<div class="wish-card">${head}<div class="q-main"><b>Festmahl!</b><span>Noch ${formatTime(f.left)}: Laune +${c.happy}, Zuzug ×${c.growth}.</span></div></div>`;
+  if (f.wait > 0) return `<div class="wish-card later">${head}<div class="q-main"><b>Festmahl</b><span>Das nächste Fest geht in ${formatTime(f.wait)}.</span></div></div>`;
+  return `<div class="wish-card">${head}<div class="q-main"><b>Festmahl</b><span>${Math.round(c.seconds / 60)} Minuten feiern: Laune +${c.happy}, doppelt so schnell ziehen Leute zu.</span>
+    <span class="q-reward">Kostet ${costHtml(feastCost())}</span></div>
+    <button class="btn primary" ${canFeast() ? '' : 'disabled'} onclick="doFeast()">🎉 Feiern</button></div>`;
+}
+
+function doFeast() {
+  if (holdFeast()) { toast('🎉 Das Festmahl beginnt!'); playSound('fertig'); }
+  if (pageOpen === 'quests') $('page-body').innerHTML = questsHtml();
+  renderAll();
+}
+
 function doWish() {
   const r = fulfillWish();
   if (r) { toast(`🤲 Der Stamm dankt dir! +${r.wissen} Wissen${r.faster ? ` · Forschung ${formatTime(r.faster)} kürzer` : ''}`); playSound('muenze'); }
@@ -1404,8 +1431,8 @@ function questsHtml() {
   const head = `<div class="quest-sum"><span>🏆 Erledigt <b>${doneCount}</b> von ${total}</span>
     <span class="q-bar thin"><i style="width:${Math.round(100 * doneCount / total)}%"></i></span></div>`;
   const list = activeQuests();
-  if (!list.length) return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${suedCardHtml()}${wandererCardHtml()}${wishHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit dem nächsten Zeitalter.</p></div>`;
-  return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${suedCardHtml()}${wandererCardHtml()}${wishHtml()}` + list.map(q => {
+  if (!list.length) return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${suedCardHtml()}${wandererCardHtml()}${wishHtml()}${feastHtml()}<p class="empty-note">Alle Aufträge erledigt – neue kommen mit dem nächsten Zeitalter.</p></div>`;
+  return `<div class="quests">${head}${wonderCardHtml()}${traderCardHtml()}${suedCardHtml()}${wandererCardHtml()}${wishHtml()}${feastHtml()}` + list.map(q => {
     const p = questProgress(q);
     const done = p.have >= p.need;
     const pct = Math.round(100 * p.have / p.need);

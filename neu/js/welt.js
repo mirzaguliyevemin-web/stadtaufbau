@@ -57,6 +57,7 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     questBase: {},           // Auftrag → Zählerstand, als er erschien (gezählt wird erst ab da)
     extra: null,             // zufälliger Zusatzauftrag { n, goal, reward } (V229)
     extraDone: 0,            // so viele Zusatzaufträge wurden abgeholt
+    feast: { left: 0, wait: 0 },   // Festmahl (V230): Sekunden, die es noch dauert bzw. bis man wieder feiern kann
     built: {},               // Typ → wie oft fertig gebaut (für Aufträge)
     seen: {},                // Typ → in der Bauleiste schon angesehen (sonst „Neu“)
     daily: { last: '', streak: 0, pending: 0 },   // pending = Tag (1–7), dessen Belohnung noch wartet

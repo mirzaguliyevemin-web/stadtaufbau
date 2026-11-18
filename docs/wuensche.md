@@ -31,6 +31,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 ## Erledigt
 
+- 18.11., V230: Mehr Ausgaben für Nahrung und Holz – Feuer verbrennen Brennholz (Winter doppelt, ohne Holz keine Wärme), Arbeiter essen Proviant (ohne nur halbe Arbeit), freiwilliges 🎉 Festmahl im Auftragsfenster.
 - 18.11., V229: Aufträge abwechslungsreicher – Herstellen, Forschen, Bäume fällen, Pflanzen, Fundstücke (31 neue), höchstens ein Bau-Auftrag gleichzeitig, zufällige Zusatzaufträge.
 
 - 18.11., V228: Pflanzerin gräbt genau dort, wo der nächste Setzling hinkommt – danach steht er sofort da.

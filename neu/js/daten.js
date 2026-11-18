@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 229;
+const APP_VERSION = 230;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -145,6 +145,10 @@ const CONFIG = {
   metalReserve: { kupfer: 30, bronze: 30, eisen: 30 },
   wine: { perPerson: 0.005, happy: 6 },   // Wein ist nur ein Bonus für die Laune (Emin, 03.11.), kein Bedürfnis
   thingplatz: { warmth: 1 },
+  // Mehr Ausgaben für Holz und Nahrung (V230, Emin 18.11.: „Nahrung und Holz zu hoch“, Ideen 1, 2 und 5)
+  fuel: { winter: 2 },    // Feuer verbrennen Holz (BUILDINGS[…].fuel je Minute), im Winter doppelt; ohne Holz wärmen sie nicht
+  provision: { perWorker: 0.6, without: 0.5 },   // Proviant: Nahrung je Arbeiter und Minute (nicht bei Nahrungs-Herstellern); ohne nur halbe Arbeit
+  feast: { nahrung: 80, holz: 40, stagePlus: 0.5, seconds: 600, wait: 1800, happy: 10, growth: 2 },   // Festmahl: Kosten (+50 % je Zeitalter), 10 min Laune +10 und doppelt so schnell Zuzug, dann 30 min Pause
   fest: { happy: 15, seconds: 300 },   // Sonnwendfest (nach der „Himmelsscheibe“): mitten im Sommer 5 Minuten Fest, Laune +15
   finds: {               // Fundstücke (docs/konzept-wunderwerke.md)
     firstSpot: 120,       // so lange dauert es nach dem Einstieg bis zur ersten Fundstelle (Sekunden)
@@ -363,7 +367,7 @@ const TERRAIN_BY_ID = Object.values(TERRAIN).sort((a, b) => a.id - b.id);
 const BUILDINGS = {
   lagerfeuer: {
     name: 'Lagerfeuer', icon: '🔥', size: 3, line: 'mitte', tier: 0, stage: 'alt', bild: '1-lagerfeuer', views: ['r2'],
-    color: '#c9733a', buildable: false, storage: CONFIG.baseStorage, warmth: 7,
+    color: '#c9733a', buildable: false, storage: CONFIG.baseStorage, warmth: 7, fuel: 1.5,
     info: 'Mittelpunkt des Lagers: Hier liegen alle Vorräte, das Feuer wärmt die Wohnungen im Umkreis.',
   },
   wohnhoehle: {
@@ -455,7 +459,7 @@ const BUILDINGS = {
   },
   feuerplatz: {
     name: 'Feuerplatz', icon: '🔥', size: 2, line: 'waerme', tier: 0, stage: 'alt', bild: '1-feuerplatz', views: ['r2'],
-    color: '#d0603a', cost: { holz: 15, stein: 10 }, time: 30, warmth: 5, upgradeTo: 'dorfbrunnen',
+    color: '#d0603a', cost: { holz: 15, stein: 10 }, time: 30, warmth: 5, fuel: 1, upgradeTo: 'dorfbrunnen',
     info: 'Wärme und Gemeinschaft für Wohnungen im Umkreis.',
   },
   fellmacherin: {

@@ -501,7 +501,7 @@ function activeNeeds() {
 
 // Anteil der Wohnplätze, die eine Quelle (Wärme oder Glaube) im Umkreis haben
 function areaCoverage(key) {
-  const sources = state.buildings.filter((b, i) => !b.build && BUILDINGS[b.type][key] && isConnected(i));
+  const sources = state.buildings.filter((b, i) => !b.build && BUILDINGS[b.type][key] && isConnected(i) && !(key === 'warmth' && fireOut(b)));
   let total = 0, covered = 0;
   for (const [i, h] of state.buildings.entries()) {
     const cap = h.build || !isConnected(i) ? 0 : housingOf(h.type);
@@ -549,7 +549,7 @@ function recalcStats() {
   s.hungry = (state.hunger || 0) > 30;   // eine halbe Minute ohne Nahrung: die Laune sinkt zusätzlich
   // Dorfbrunnen: ein Treffpunkt hebt die Laune (mehrere bringen nicht mehr)
   s.placeHappy = state.buildings.reduce((m, b, i) => Math.max(m, !b.build && BUILDINGS[b.type].happy && isConnected(i) ? BUILDINGS[b.type].happy : 0), 0);
-  s.happiness = Math.max(0, Math.min(100, s.needsHappy + s.weatherHappy + s.placeHappy + (festNow() ? CONFIG.fest.happy : 0) + ((state.res.wein || 0) > 0 ? CONFIG.wine.happy : 0) - (s.hungry ? CONFIG.hunger.unhappy : 0)));
+  s.happiness = Math.max(0, Math.min(100, s.needsHappy + s.weatherHappy + s.placeHappy + (festNow() ? CONFIG.fest.happy : 0) + (state.feast.left > 0 ? CONFIG.feast.happy : 0) + ((state.res.wein || 0) > 0 ? CONFIG.wine.happy : 0) - (s.hungry ? CONFIG.hunger.unhappy : 0)));
   stats = s;
   return s;
 }
@@ -965,6 +965,10 @@ function metalReserve(id) {
 
 let productionCap = null;   // während eines Produktionsschritts nur einmal ausrechnen (bei vielen Gebäuden spürbar)
 
+// Feuer ohne Brennholz (nur fürs Spiel gerade, nicht im Spielstand: beim nächsten Schritt wird es neu geprüft)
+const coldFires = new WeakSet();
+function fireOut(b) { return coldFires.has(b); }
+
 function updateProduction(dt) {
   productionCap = storageCap();
   try { updateProductionStep(dt); } finally { productionCap = null; }
@@ -982,6 +986,18 @@ function updateProductionStep(dt) {
     return Math.max(0, (state.res[id] || 0) - reserve[id]);
   };
   const inputShare = [];   // je Gebäude: welcher Anteil läuft trotz Rohstoffmangel (1 = alles da)
+  // Brennholz: Feuer verbrennen laufend Holz, im Winter doppelt – fehlt es, gehen sie aus und wärmen nicht (V230)
+  for (const b of state.buildings) {
+    const fuel = BUILDINGS[b.type].fuel;
+    if (!fuel || b.build) continue;
+    const perMin = fuel * (seasonIndex() === 3 ? CONFIG.fuel.winter : 1), need = perMin * dt / 60;
+    if ((state.res.holz || 0) >= need) {
+      state.res.holz -= need;
+      rates.holz = (rates.holz || 0) - perMin;
+      flow('holz', 'out', '__fuel', perMin);
+      coldFires.delete(b);
+    } else coldFires.add(b);
+  }
   const throttled = new Set();   // Waren, deren Herstellung wegen vollem Lager gebremst wurde
   const potential = {};          // je Ware: was alle Gebäude ohne Lagergrenze je Minute herstellen könnten
   state.buildings.forEach((b, i) => {
@@ -989,6 +1005,15 @@ function updateProductionStep(dt) {
     if (b.build || !def.produces) return;
     let f = outputFactor(i);
     if (f <= 0) return;
+    // Proviant: Wer nicht selbst Nahrung beschafft, isst bei der Arbeit (V230) – ohne Nahrung nur halbe Arbeit
+    if (def.workers && !def.produces.nahrung) {
+      const perMin = (stats.staff[i] || 0) * CONFIG.provision.perWorker, need = perMin * dt / 60;
+      if (need > 0 && (state.res.nahrung || 0) >= need) {
+        state.res.nahrung -= need;
+        rates.nahrung = (rates.nahrung || 0) - perMin;
+        flow('nahrung', 'out', '__food', perMin);
+      } else if (need > 0) f *= CONFIG.provision.without;
+    }
     // Lager voll: nur so viel herstellen, wie noch hineinpasst (sonst würden Rohstoffe und Bäume umsonst verbraucht).
     // Bei mehreren Waren (Jäger: Nahrung und Felle) wird weitergearbeitet, solange eine davon noch Platz hat.
     let room = 0;
@@ -1085,7 +1110,7 @@ function updatePopulation(dt) {
   // ganz leer (keiner da, nichts zu essen): ein paar Wanderer kommen trotzdem, sonst ginge es nie weiter
   const restart = state.pop < 3;
   if (room > 0 && (state.res.nahrung > 1 || restart) && (stats.happiness >= CONFIG.growthMinHappy || restart) && !effectGrowthStopped()) {
-    growthTimer += dt;
+    growthTimer += dt * (state.feast.left > 0 ? CONFIG.feast.growth : 1);   // beim Festmahl ziehen doppelt so schnell Leute zu
     while (growthTimer >= CONFIG.growthSeconds && state.pop < stats.housing) {
       growthTimer -= CONFIG.growthSeconds;
       state.pop++;
@@ -1670,6 +1695,31 @@ function update(dt) {
   updateWishes(dt);
   updateStockWatch(dt);
   updateQuests(dt);
+  updateFeast(dt);
+}
+
+// ---------------------------------------------------------------------
+// Festmahl (V230): kostet viel Nahrung und Holz, dafür 10 Minuten bessere Laune und schnellerer Zuzug
+// ---------------------------------------------------------------------
+function feastCost() {
+  const c = CONFIG.feast, k = 1 + c.stagePlus * stageIndex(), cap = storageCap() * 0.6;
+  const r = n => Math.max(10, Math.round(Math.min(n * k, cap) / 10) * 10);
+  return { nahrung: r(c.nahrung), holz: r(c.holz) };
+}
+function updateFeast(dt) {
+  const f = state.feast;
+  if (f.left > 0) f.left = Math.max(0, f.left - dt);
+  if (f.wait > 0) f.wait = Math.max(0, f.wait - dt);
+}
+function canFeast() { return state.feast.left <= 0 && state.feast.wait <= 0 && state.pop >= 5 && canAfford(feastCost()); }
+function holdFeast() {
+  if (!canFeast()) return false;
+  payCost(feastCost());
+  state.feast.left = CONFIG.feast.seconds;
+  state.feast.wait = CONFIG.feast.wait;
+  recalcStats();
+  emit('feast');
+  return true;
 }
 
 // Läuft die Zeit nach, in der das Spiel zu war. Gibt zurück, was dazugekommen ist.

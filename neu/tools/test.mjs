@@ -1599,6 +1599,41 @@ test('Bäume: Holzsammler fällen sie nach und nach, Pflanzerin setzt Setzlinge,
   noErrors(g);
 });
 
+test('V230: Feuer verbrennen Holz (ohne Holz keine Wärme), Arbeiter essen Proviant (ohne nur halbe Arbeit), Festmahl kostet und wirkt', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const out = {};
+    const fire = state.buildings.find(b => b.type === 'lagerfeuer');
+    state.yearTime = 0; state.res.holz = 100; recalcStats(); updateProduction(60);
+    out.burnt = 100 - state.res.holz >= BUILDINGS.lagerfeuer.fuel - 1e-6 && stats.flows.holz.out.__fuel > 0;
+    out.warmBefore = areaCoverage('warmth');
+    state.res.holz = 0; updateProduction(1); recalcStats();
+    out.cold = fireOut(fire) && areaCoverage('warmth') < out.warmBefore;
+    state.res.holz = 50; updateProduction(1); out.warmAgain = !fireOut(fire);
+    // Proviant: Holzsammler mit Arbeitern isst, ohne Nahrung halbe Arbeit
+    const sp = findFreeSpot('holzsammler', 64 + O, 64 + O); placeBuilding('holzsammler', sp.x, sp.y);
+    const k = state.buildings.length - 1; finishBuilding(state.buildings[k]); buildRoute(k);
+    state.pop = 30; state.res.holz = 0; state.res.nahrung = 100; recalcStats();
+    updateProduction(1); const withFood = stats.flows.holz.in.holzsammler;
+    out.ate = (stats.flows.nahrung || { out: {} }).out.__food > 0;
+    state.res.holz = 0; state.res.nahrung = 0; updateProduction(1); const without = stats.flows.holz.in.holzsammler;
+    out.half = without > 0 && Math.abs(without / withFood - CONFIG.provision.without) < 0.05;
+    // Festmahl
+    state.res.nahrung = 1000; state.res.holz = 1000; state.pop = 20; recalcStats();
+    const happy = stats.happiness, cost = feastCost();
+    out.feast = holdFeast() && state.res.nahrung === 1000 - cost.nahrung && !canFeast();
+    recalcStats(); out.happier = stats.happiness >= Math.min(100, happy + CONFIG.feast.happy) || stats.happiness === 100;
+    const saved = serialize(); loadFromText(saved); out.kept = state.feast.left > 0 && state.feast.wait > 0;
+    for (let i = 0; i < 700; i++) updateFeast(1); out.over = state.feast.left === 0 && state.feast.wait > 0;
+    return out;
+  })()`);
+  ok(r.burnt && r.cold && r.warmAgain, 'Brennholz: ' + JSON.stringify(r));
+  ok(r.ate && r.half, 'Proviant: ' + JSON.stringify(r));
+  ok(r.feast && r.happier && r.kept && r.over, 'Festmahl: ' + JSON.stringify(r));
+  ok(g.run('feastHtml()').includes('Festmahl'), 'Festmahl fehlt im Auftragsfenster');
+  noErrors(g);
+});
+
 test('V229: Neue Auftragsarten – Herstellen, Forschen, Natur; höchstens ein Bau-Auftrag; Zusatzauftrag rückt nach; Stand bleibt beim Laden', () => {
   const g = fresh();
   const r = g.run(`(() => {
@@ -2258,6 +2293,7 @@ await testAsync('Konto: Abmelden löscht nur die Sitzung; alter Spielstand des a
 
 test('Laufender Verbrauch: Holz und Stein je Einwohner wirken, kleine Stämme zahlen nichts, leeres Lager schadet nicht', () => {
   const g = fresh();
+  g.run(`for (const t in BUILDINGS) delete BUILDINGS[t].fuel; CONFIG.provision.perWorker = 0;`);   // Brennholz und Proviant prüft der V230-Test
   // großer Stamm: eine Minute Verbrauch, im Waren-Fenster als Einwohner verbucht
   const r = g.run(`(() => { state.pop = 86; state.res.holz = 100; state.res.stein = 100; state.res.nahrung = 150; recalcStats(); updateProduction(60);
     return [state.res.holz, state.res.stein, stats.flows.holz.out.__pop, stats.flows.stein.out.__pop, state.res.nahrung]; })()`);

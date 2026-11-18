@@ -257,6 +257,7 @@ function sanitizeState(data) {
   if (data.questBase && typeof data.questBase === 'object')
     for (const [id, n] of Object.entries(data.questBase)) if (Number.isFinite(n) && n >= 0) s.questBase[id] = n;
   s.extraDone = Math.floor(pos(data.extraDone));
+  if (data.feast && typeof data.feast === 'object') s.feast = { left: pos(data.feast.left), wait: pos(data.feast.wait) };
   if (data.extra && typeof data.extra === 'object' && validQuestGoal(data.extra.goal) && data.extra.reward && typeof data.extra.reward === 'object') {
     const reward = {};
     for (const [id, n] of Object.entries(data.extra.reward)) if (RESOURCES[id] && Number.isFinite(n) && n > 0) reward[id] = Math.round(n);

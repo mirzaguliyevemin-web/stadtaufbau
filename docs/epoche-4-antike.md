@@ -48,6 +48,20 @@ Bisher gibt es Geld nur als Gold aus dem Shop. In der Antike kommt Geld ins Spie
   - Forschung und Aufbruch ins Mittelalter brauchen Münzen.
 - Gold und Münzen bleiben getrennt. Gold kann man nicht in Münzen tauschen und umgekehrt, sonst würde der Shop das Spiel kaufbar machen.
 
+### Währung über die Zeitalter (Emin, 18.11.)
+
+✅ **Eine wachsende Währung:** immer dieselbe Ware `muenzen` im Lager (ID bleibt, Spielstände bleiben heil), je Zeitalter neuer Name und neues Bild, dazu neue Einnahmen und Ausgaben. Nie umtauschen. Das Shop-Gold bleibt immer getrennt.
+
+| Zeitalter | Geld | Neu zum Verdienen und Ausgeben |
+|---|---|---|
+| Antike | 🪙 Denar (Silbermünze) | Steuer, Markt, Schiffsreise, Bauen |
+| Mittelalter | 🪙 Pfennig, dazu ⚜️ Gulden aus Gold | Zoll am Stadttor, Zünfte, Besucher zahlen |
+| Frühe Neuzeit | 💰 Taler | Bank mit Zinsen, Wechsel für die Entdeckerfahrt |
+| Jüngere Neuzeit | 💵 Mark (Papiergeld) | Löhne der Fabriken, Börse |
+| Zeitgeschichte | 💳 Euro (Karte) | Strom und Raketenbau |
+
+Zahlen der Frühen Antike (V231): Emin spielt erst selbst bis dorthin, dann wird nachgestellt.
+
 ## Gebäude: Weiterentwicklungen
 
 Jede Linie bekommt die nächste Stufe, wie gehabt: gleiche Größe, mehr Leistung, neues Bild. Die Ausbau-Stufen der Antike sind 10 bis 12, die Extra-Ware für Stufe 12 ist **Ziegel**.

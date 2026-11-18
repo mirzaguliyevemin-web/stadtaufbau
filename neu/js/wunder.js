@@ -54,7 +54,7 @@ function updateWonders(dt) {
     w.left -= dt;
     if (w.left > 0) continue;
     w.left = 0;
-    for (const [fid, n] of Object.entries(WONDERS[id].steps[w.step].gives || {})) addFind(fid, n);
+    for (const [fid, n] of Object.entries(WONDERS[id].steps[w.step].gives || {})) addFind(fid, n, true);
     w.step++;
     const done = wonderDone(id);
     if (done) {

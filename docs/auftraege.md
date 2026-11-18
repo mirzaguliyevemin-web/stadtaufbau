@@ -4,6 +4,17 @@ Stand: Version 141 (07.11.2026, nach der Prüfung der Spiellogik). Die Tabellen 
 Insgesamt **104 Aufträge**: Altsteinzeit 24, Mittelsteinzeit 12, Jungsteinzeit 14, Kupferzeit 12, Frühe Bronzezeit 11, Späte Bronzezeit 11, Frühe Eisenzeit 8, Mittlere Eisenzeit 6, Späte Eisenzeit 6.
 Nach dem letzten Eisenzeit-Auftrag ist die Liste leer, bis die Antike kommt.
 
+## Neu seit V229 (18.11., Emin: „zu monoton, immer nur bauen“)
+
+- **Neue Arten:** 🍖 *Herstellen* („Sammle 200 Nahrung“, „Stelle 20 Felle her“ – zählt die Arbeit ab dem Erscheinen des Auftrags,
+  auch bei vollem Lager), 📜 *Forschen* („Erforsche die Mammutjagd“ – erscheint, sobald man die Forschung anfangen kann),
+  🪓/🌱/💎 *Natur* („Fälle 10 Bäume“, „Pflanze 5 Setzlinge“, „Finde ein Fundstück“ – gekaufte Fundstücke zählen nicht).
+  31 neue feste Aufträge, verteilt auf alle Zeitalter.
+- **Gemischt:** Höchstens **ein** offener Bau-Auftrag gleichzeitig (Bauen und Habe), dazu wie bisher höchstens ein Wunsch- und ein Stufen-Auftrag.
+- **🎲 Zusatzauftrag:** Ist sonst nichts zu tun, rückt ein zufälliger kleiner Auftrag nach (Herstellen ≈ 4 Minuten Arbeit, Bäume fällen
+  oder pflanzen) – nur mit dem, was das Dorf gerade kann. Belohnung Wissen + Holz/Stein/Nahrung (steigt je Zeitalter) und 5 Gold.
+  Abgeholt → gleich der nächste.
+
 ## So funktioniert die Liste
 
 - **Höchstens 3 Aufträge** sind gleichzeitig zu sehen (Knopf „Aufträge“ links).

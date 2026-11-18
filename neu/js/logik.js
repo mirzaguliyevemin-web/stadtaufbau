@@ -865,6 +865,7 @@ function chopTrees(b, wood) {
     const t = nearestTree(b, c.treeRadius);
     if (!t) { b.chop = 0; return; }   // kein Baum mehr: nur noch Äste und Fallholz
     clearTile(t[0], t[1], true);
+    state.tally.felled++;
     emit('treeFelled', { x: t[0], y: t[1] });
   }
 }
@@ -906,7 +907,7 @@ function updateTrees(dt) {
     if (b.plant < every) return;
     b.plant -= every;
     const spot = plantSpot(b, c.plantRadius);
-    if (spot !== null) { state.saplings.push([spot, 0]); emit('planted', spot); }
+    if (spot !== null) { state.saplings.push([spot, 0]); state.tally.planted++; emit('planted', spot); }
     else b.plant = 0;
   });
   // Setzlinge wachsen; der Winter hält sie auf
@@ -1003,6 +1004,8 @@ function updateProductionStep(dt) {
       if (need > 0) fIn = Math.min(fIn, fIn * available(id) / need);
     }
     for (const [id, n] of Object.entries(def.produces)) { potential[id] = (potential[id] || 0) + n * fIn; if (room < fIn) throttled.add(id); }   // könnte mehr – Lager ist voll
+    // „Stelle … her“ zählt die Arbeit, auch bei vollem Lager (sonst hing „Sammle 200 Nahrung“ bei 200 im Lager fest)
+    for (const [id, n] of Object.entries(def.produces)) state.tally.made[id] = (state.tally.made[id] || 0) + n * fIn * dt / 60;
     f = Math.min(f, room);
     if (f <= 0) return;
     if (def.consumes) {
@@ -1403,8 +1406,24 @@ function questProgress(q) {
   if (g.hunts) return { have: Math.min(state.huntsDone, g.hunts), need: g.hunts };
   if (g.trades) return { have: Math.min(state.tradesDone, g.trades), need: g.trades };
   if (g.level) return { have: Math.min(state.buildings.filter(b => !b.build && levelOf(b) >= g.level).length, g.count), need: g.count };   // Stufen (seit Version 140)
+  if (g.learn) return { have: state.techs[g.learn] ? 1 : 0, need: 1 };
+  const c = questCounter(g);
+  if (c !== null) {
+    const base = state.questBase[q.id];
+    return { have: base === undefined ? 0 : Math.min(Math.floor(c - base + 1e-6), questNeed(g)), need: questNeed(g) };
+  }
   return { have: 0, need: 1 };
 }
+
+// Zähl-Aufträge (V229, Emin: „zu monoton“): gezählt wird ab dem Erscheinen des Auftrags
+function questCounter(g) {
+  if (g.made) return state.tally.made[g.made] || 0;
+  if (g.felled) return state.tally.felled;
+  if (g.planted) return state.tally.planted;
+  if (g.finds) return state.tally.finds;
+  return null;
+}
+function questNeed(g) { return g.made ? g.count : g.felled || g.planted || g.finds; }
 
 // Gebäude dieser Art und ihre Weiterentwicklungen. mixed: große Wohnhäuser zählen bei den kleinen mit („Habe 8 Wohnungen“).
 function questLineCount(type, mixed) {
@@ -1432,6 +1451,11 @@ function questBlocked(q) {
   if (g.build) return !isUnlocked(g.build);
   if (g.resource) return !hasMaker(g.resource);
   if (g.line) return !isUnlocked(g.type);
+  if (g.learn) return !state.techs[g.learn] && !TECHS[g.learn].requires.every(r => state.techs[r]);   // erst, wenn man sie anfangen kann
+  if (g.made) return !hasMaker(g.made);
+  if (g.felled) return !hasWorking(def => def.fellsTrees);
+  if (g.planted) return !hasWorking(def => def.plants);
+  if (g.finds) return !Object.keys(FINDS).some(id => findAvailable(id));
   // die Stufe gibt es erst in einem späteren Zeitalter, oder ihre Extra-Ware (Werkzeug, Bronze) kann noch niemand herstellen
   if (g.level) return maxLevel() < g.level || Object.keys(levelGoods(g.level)).some(id => !hasMaker(id));
   return false;
@@ -1445,15 +1469,25 @@ function activeQuests() {
   const done = open.filter(questDone);
   const now = open.filter(q => !done.includes(q) && !questBlocked(q));
   const later = open.filter(q => !done.includes(q) && !now.includes(q));
-  // höchstens ein offener Wunsch- und ein offener Stufen-Auftrag auf einmal (sonst belegten sie alle 3 Plätze)
+  // höchstens ein offener Wunsch-, Stufen- und Bau-Auftrag auf einmal (V229, Emin: „Standardmäßig etwas bauen“ war zu monoton)
   const seen = {};
-  return [...done, ...now.filter(q => !q.goal.level), ...now.filter(q => q.goal.level), ...later].filter(q => {
-    const kind = q.goal.wishes ? 'wish' : q.goal.level ? 'level' : null;
+  const fixed = [...done, ...now.filter(q => !q.goal.level), ...now.filter(q => q.goal.level)].filter(q => {
+    const kind = q.goal.wishes ? 'wish' : q.goal.level ? 'level' : q.goal.build || q.goal.line ? 'build' : null;
     if (!kind || done.includes(q)) return true;
     if (seen[kind]) return false;
     seen[kind] = true;
     return true;
-  }).slice(0, 3);
+  });
+  // ist sonst nichts zu tun, rückt ein zufälliger kleiner Auftrag nach – vor gesperrten Aufträgen und Fernzielen
+  const x = extraQuest();
+  const list = x && (fixed.length < 3 || questDone(x)) ? [...fixed.slice(0, 2), x, ...fixed.slice(2)] : fixed;
+  return [...list, ...later.filter(q => {
+    if (!(q.goal.wishes || q.goal.level)) return true;
+    const kind = q.goal.wishes ? 'wish' : 'level';
+    if (seen[kind]) return false;
+    seen[kind] = true;
+    return true;
+  })].slice(0, 3);
 }
 
 // ---------------------------------------------------------------------
@@ -1499,12 +1533,69 @@ function fulfillWish() {
   return { ...wish, faster };
 }
 
+// Läuft ein Gebäude dieser Art schon (fertig gebaut)?
+function hasWorking(test) { return state.buildings.some(b => !b.build && test(BUILDINGS[b.type])); }
+
+// Gültiges Auftragsziel für Zusatzaufträge aus dem Spielstand
+function validQuestGoal(g) {
+  if (!g || typeof g !== 'object') return false;
+  const n = v => Number.isFinite(v) && v > 0;
+  if (g.made) return !!RESOURCES[g.made] && n(g.count);
+  return n(g.felled) || n(g.planted) || n(g.finds);
+}
+
+// Zufälliger Zusatzauftrag als Auftrag (oder null)
+function extraQuest() {
+  const e = state.extra;
+  if (!e) return null;
+  const g = e.goal, r = g.made ? RESOURCES[g.made] : null;
+  const text = r ? (['nahrung', 'holz', 'stein'].includes(g.made) ? `Sammle ${g.count} ${r.name}` : `Stelle ${g.count} ${r.name} her`)
+    : g.felled ? `Fälle ${g.felled} Bäume` : g.planted ? `Pflanze ${g.planted} Setzlinge` : `Finde ${g.finds} Fundstück${g.finds > 1 ? 'e' : ''}`;
+  return { id: 'x' + e.n, text: '🎲 ' + text, goal: g, reward: e.reward, stage: state.stage, extra: true };
+}
+
+// Neuen Zusatzauftrag auswürfeln: nur, was das Dorf gerade kann; Menge ≈ 4 Minuten Arbeit
+function makeExtra() {
+  const n = state.extraDone, si = stageIndex(), pick = (list, k) => list[Math.floor(hash(n * 31 + k, (state.seed % 9973) + 5) * list.length) % list.length];
+  const perMin = {};
+  for (const b of state.buildings) if (!b.build && !b.paused) for (const [id, v] of Object.entries(BUILDINGS[b.type].produces || {})) if (!RESOURCES[id].knowledge) perMin[id] = (perMin[id] || 0) + v;
+  const options = Object.keys(perMin).map(id => ({ made: id, count: Math.max(10, Math.round(perMin[id] * 4 / 5) * 5) }));
+  if (hasWorking(def => def.fellsTrees)) options.push({ felled: 5 + 2 * si });
+  if (hasWorking(def => def.plants)) options.push({ planted: 3 + si });
+  if (!options.length) return null;
+  const base = pick(['holz', 'stein', 'nahrung'], 2);
+  return { n, goal: pick(options, 1), reward: { wissen: Math.round(10 * (1 + 0.25 * si) / 5) * 5, [base]: Math.round(30 * (1 + 0.5 * si) / 5) * 5 } };
+}
+
+// Jede Sekunde: Zähler-Start für neu sichtbare Aufträge merken, Zusatzauftrag bereithalten
+let questTimer = 0;
+function updateQuests(dt) {
+  questTimer += dt;
+  if (questTimer < 1) return;
+  questTimer = 0;
+  if (!state.extra && state.tutorial < 0) state.extra = makeExtra();
+  for (const q of activeQuests()) {
+    const c = questCounter(q.goal);
+    if (c !== null && state.questBase[q.id] === undefined) state.questBase[q.id] = c;
+  }
+}
+
 function questDone(q) {
   const p = questProgress(q);
   return p.have >= p.need;
 }
 
 function claimQuest(id) {
+  const x = extraQuest();
+  if (x && x.id === id) {   // Zusatzauftrag: Belohnung, dann gleich der nächste
+    if (!activeQuests().some(q => q.id === id) || !questDone(x)) return false;
+    addReward(x.reward);
+    delete state.questBase[id];
+    state.extraDone++;
+    state.extra = makeExtra();
+    emit('questClaimed', x);
+    return true;
+  }
   const q = QUESTS.find(x => x.id === id);
   if (!q || state.quests[id] || !activeQuests().includes(q) || !questDone(q)) return false;
   state.quests[id] = true;
@@ -1578,6 +1669,7 @@ function update(dt) {
   updateDisaster(dt);
   updateWishes(dt);
   updateStockWatch(dt);
+  updateQuests(dt);
 }
 
 // Läuft die Zeit nach, in der das Spiel zu war. Gibt zurück, was dazugekommen ist.

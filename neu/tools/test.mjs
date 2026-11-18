@@ -1599,6 +1599,42 @@ test('Bäume: Holzsammler fällen sie nach und nach, Pflanzerin setzt Setzlinge,
   noErrors(g);
 });
 
+test('V229: Neue Auftragsarten – Herstellen, Forschen, Natur; höchstens ein Bau-Auftrag; Zusatzauftrag rückt nach; Stand bleibt beim Laden', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const out = {};
+    out.oneBuild = activeQuests().filter(q => !questDone(q) && (q.goal.build || q.goal.line)).length <= 1;
+    // Herstellen zählt erst ab dem Erscheinen
+    const q = QUESTS.find(q => q.id === 'q_h_nahrung200');
+    state.tally.made.nahrung = 500; delete state.questBase[q.id];
+    out.before = questProgress(q).have;
+    state.questBase[q.id] = 500; state.tally.made.nahrung = 620;
+    out.mid = questProgress(q).have;
+    // Forschen: erst sichtbar, wenn man anfangen kann
+    const f = QUESTS.find(q => q.id === 'q_f_mammut');
+    out.lockedEarly = questBlocked(f);
+    state.techs.faustkeil = true; state.techs.speerspitzen = true;
+    out.openLater = !questBlocked(f);
+    // alle festen Aufträge erledigt: Zusatzauftrag erscheint, lässt sich abholen, der nächste kommt
+    const sp = findFreeSpot('sammlerin', 64 + O, 64 + O); placeBuilding('sammlerin', sp.x, sp.y); finishBuilding(state.buildings[state.buildings.length - 1]);
+    for (const q of QUESTS) state.quests[q.id] = true;
+    for (let i = 0; i < 3; i++) update(1);
+    const x = activeQuests().find(q => q.extra);
+    out.extra = !!x;
+    if (x) { state.questBase[x.id] = 0; const g = x.goal; if (g.made) state.tally.made[g.made] = 1e6; state.tally.felled = state.tally.planted = state.tally.finds = 1e6; }
+    const n = state.extraDone;
+    out.claimed = !!x && claimQuest(x.id) && state.extraDone === n + 1 && !!state.extra;
+    const food = state.tally.made.nahrung, saved = serialize(); loadFromText(saved);
+    out.kept = state.extraDone === n + 1 && !!state.extra && state.tally.made.nahrung === food;
+    return out;
+  })()`);
+  ok(r.oneBuild, 'mehr als ein Bau-Auftrag: ' + JSON.stringify(r));
+  ok(r.before === 0 && r.mid === 120, 'Herstellen zählt falsch: ' + JSON.stringify(r));
+  ok(r.lockedEarly && r.openLater, 'Forschungs-Auftrag falsch gesperrt: ' + JSON.stringify(r));
+  ok(r.extra && r.claimed && r.kept, 'Zusatzauftrag: ' + JSON.stringify(r));
+  noErrors(g);
+});
+
 test('V228: Pflanzerin gräbt dort, wo der nächste Setzling hinkommt – danach ist er sofort zu sehen', () => {
   const g = fresh();
   const r = g.run(`(() => {

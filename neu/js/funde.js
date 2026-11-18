@@ -27,8 +27,9 @@ function findAvailable(id) {
   return !f.stage || stageReached(f.stage);
 }
 
-function addFind(id, n = 1) {
+function addFind(id, n = 1, bought = false) {
   state.finds[id] = findCount(id) + n;
+  if (!bought) state.tally.finds += n;   // für „Finde … Fundstücke“ (gekaufte und geschenkte zählen nicht)
   state.fund.ever[id] = (state.fund.ever[id] || 0) + n;
   emit('findGained', id);
 }

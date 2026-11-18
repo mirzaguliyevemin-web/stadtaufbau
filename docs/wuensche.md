@@ -31,6 +31,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 ## Erledigt
 
+- 18.11., V229: Aufträge abwechslungsreicher – Herstellen, Forschen, Bäume fällen, Pflanzen, Fundstücke (31 neue), höchstens ein Bau-Auftrag gleichzeitig, zufällige Zusatzaufträge.
+
 - 18.11., V228: Pflanzerin gräbt genau dort, wo der nächste Setzling hinkommt – danach steht er sofort da.
 - 18.11., V228: Zeitalter-Forschung (z. B. Mittelsteinzeit) erst, wenn alle anderen Forschungen des Zeitalters erforscht sind.
 

@@ -1298,6 +1298,11 @@ function questIcon(q) {
   if (g.hunts) return '<span class="ic emoji big">🦣</span>';
   if (g.trades) return '<span class="ic emoji big">🤝</span>';
   if (g.level) return '<span class="ic emoji big">⭐</span>';
+  if (g.learn) return iconHtml(TECHS[g.learn].bild, TECHS[g.learn].icon, 'big');
+  if (g.made) return iconHtml(RESOURCES[g.made].bild, RESOURCES[g.made].icon, 'big');
+  if (g.felled) return '<span class="ic emoji big">🪓</span>';
+  if (g.planted) return '<span class="ic emoji big">🌱</span>';
+  if (g.finds) return '<span class="ic emoji big">💎</span>';
   return '<span class="ic emoji big">📜</span>';
 }
 
@@ -1484,7 +1489,8 @@ function openQuests() {
 }
 
 function doClaim(id) {
-  if (claimQuest(id)) { toast('🎁 ' + formatAmounts(QUESTS.find(q => q.id === id).reward)); playSound('muenze'); }
+  const q = QUESTS.find(q => q.id === id) || extraQuest();
+  if (claimQuest(id)) { toast('🎁 ' + formatAmounts(q.reward)); playSound('muenze'); }
   if (pageOpen === 'quests') $('page-body').innerHTML = questsHtml();
   renderAll();
 }

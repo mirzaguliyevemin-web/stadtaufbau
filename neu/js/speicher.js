@@ -247,6 +247,21 @@ function sanitizeState(data) {
     for (const key of ['used', 'ever']) if (f[key] && typeof f[key] === 'object') for (const [id, n] of Object.entries(f[key])) if (FINDS[id] && Number.isFinite(n) && n > 0) s.fund[key][id] = Math.floor(n);
   }
   if (data.quests && typeof data.quests === 'object') s.quests = { ...data.quests };
+  // Auftrags-Zähler (seit V229): kaputte Werte fallen weg
+  const pos = v => (Number.isFinite(v) && v >= 0 ? v : 0);
+  if (data.tally && typeof data.tally === 'object') {
+    for (const k of ['felled', 'planted', 'finds']) s.tally[k] = pos(data.tally[k]);
+    if (data.tally.made && typeof data.tally.made === 'object')
+      for (const [id, n] of Object.entries(data.tally.made)) if (RESOURCES[id]) s.tally.made[id] = pos(n);
+  }
+  if (data.questBase && typeof data.questBase === 'object')
+    for (const [id, n] of Object.entries(data.questBase)) if (Number.isFinite(n) && n >= 0) s.questBase[id] = n;
+  s.extraDone = Math.floor(pos(data.extraDone));
+  if (data.extra && typeof data.extra === 'object' && validQuestGoal(data.extra.goal) && data.extra.reward && typeof data.extra.reward === 'object') {
+    const reward = {};
+    for (const [id, n] of Object.entries(data.extra.reward)) if (RESOURCES[id] && Number.isFinite(n) && n > 0) reward[id] = Math.round(n);
+    s.extra = { n: Math.floor(pos(data.extra.n)), goal: { ...data.extra.goal }, reward };
+  }
   if (data.built && typeof data.built === 'object') s.built = { ...data.built };
   if (data.seen && typeof data.seen === 'object') s.seen = { ...data.seen };
   const dayNum = v => Math.max(0, Math.min(DAILY_REWARDS.length, Math.floor(Number(v)) || 0));   // Tag 0–7 (sonst Absturz beim Abholen)

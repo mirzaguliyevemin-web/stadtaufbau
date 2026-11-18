@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 228;
+const APP_VERSION = 229;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -1015,6 +1015,11 @@ const QUESTS = [
   { id: 'q_sammlerin2', text: 'Baue 2 Sammlerinnen',     goal: { build: 'sammlerin', count: 2 }, reward: { holz: 20 } },
   { id: 'q_pop10',      text: 'Erreiche 10 Einwohner',   goal: { population: 10 }, reward: { nahrung: 30 } },
   { id: 'q_forschung1', text: 'Schließe eine Forschung ab', goal: { techs: 1 }, reward: { wissen: 10 } },
+  { id: 'q_h_nahrung200', text: 'Sammle 200 Nahrung',     goal: { made: 'nahrung', count: 200 }, reward: { holz: 30 } },   // Herstellen, Forschen, Natur (V229, Emin 18.11.)
+  { id: 'q_n_baeume10',  text: 'Fälle 10 Bäume',         goal: { felled: 10 }, reward: { stein: 25 } },
+  { id: 'q_f_mammut',    text: 'Erforsche die Mammutjagd', goal: { learn: 'mammutjagd' }, reward: { nahrung: 50 } },
+  { id: 'q_n_setzlinge5', text: 'Pflanze 5 Setzlinge',   goal: { planted: 5 }, reward: { holz: 30 } },
+  { id: 'q_h_felle20',   text: 'Stelle 20 Felle her',    goal: { made: 'felle', count: 20 }, reward: { nahrung: 40 } },
   { id: 'q_holz100',    text: 'Habe 100 Holz im Lager',  goal: { resource: 'holz', count: 100 }, reward: { stein: 30 } },
   { id: 'q_jaeger',     text: 'Baue ein Jägerlager',     goal: { build: 'jaegerlager', count: 1 }, reward: { nahrung: 40 } },
   { id: 'q_holzsammler2', text: 'Baue 2 Holzsammler',    goal: { build: 'holzsammler', count: 2 }, reward: { stein: 15 } },
@@ -1038,6 +1043,11 @@ const QUESTS = [
   { id: 'q_mittel',     text: 'Erreiche die Mittelsteinzeit', goal: { tech: 'mittelsteinzeit' }, reward: { holz: 60, stein: 60 } },
   // Mittelsteinzeit
   { id: 'q_pop30',      text: 'Erreiche 30 Einwohner',   goal: { population: 30 }, reward: { werkzeug: 10 } },
+  { id: 'q_f_bogen',     text: 'Erforsche Pfeil und Bogen', goal: { learn: 'pfeil_bogen' }, reward: { holz: 50 } },
+  { id: 'q_h_kleidung30', text: 'Stelle 30 Kleidung her', goal: { made: 'kleidung', count: 30 }, reward: { felle: 10 } },
+  { id: 'q_n_setzlinge10', text: 'Pflanze 10 Setzlinge', goal: { planted: 10 }, reward: { holz: 50 } },
+  { id: 'q_n_fund1',     text: 'Finde ein Fundstück',    goal: { finds: 1 }, reward: { wissen: 20 } },
+  { id: 'q_h_werkzeug30', text: 'Stelle 30 Werkzeug her', goal: { made: 'werkzeug', count: 30 }, reward: { stein: 40 } },
   { id: 'q_land3',      text: 'Kaufe 3 neue Landstücke', goal: { plots: 3 }, reward: { holz: 60 } },
   { id: 'q_jaeger4',    text: 'Baue 4 Jägerlager',       goal: { line: 'jagen', type: 'jaegerlager', count: 4 }, reward: { nahrung: 60, felle: 10 } },
   { id: 'q_fischer',    text: 'Baue einen Fischerplatz', goal: { build: 'fischerplatz', count: 1 }, reward: { nahrung: 60 } },
@@ -1051,6 +1061,10 @@ const QUESTS = [
   { id: 'q_jung',       text: 'Erreiche die Jungsteinzeit', goal: { tech: 'jungsteinzeit' }, reward: { holz: 100, stein: 80 } },
   // Jungsteinzeit
   { id: 'q_acker2',     text: 'Baue 2 Äcker',            goal: { build: 'acker', count: 2 }, reward: { werkzeug: 10 } },
+  { id: 'q_f_toepfern',  text: 'Erforsche das Töpfern',  goal: { learn: 'toepfern' }, reward: { wissen: 30 } },
+  { id: 'q_h_nahrung1000', text: 'Sammle 1000 Nahrung',  goal: { made: 'nahrung', count: 1000 }, reward: { holz: 80 } },
+  { id: 'q_n_baeume30',  text: 'Fälle 30 Bäume',         goal: { felled: 30 }, reward: { stein: 60 } },
+  { id: 'q_h_toepfer40', text: 'Stelle 40 Töpferwaren her', goal: { made: 'toepferwaren', count: 40 }, reward: { nahrung: 100 } },
   { id: 'q_pop60',      text: 'Erreiche 60 Einwohner',   goal: { population: 60 }, reward: { toepferwaren: 10 } },
   { id: 'q_ziegen',     text: 'Baue ein Ziegengehege',   goal: { build: 'ziegengehege', count: 1 }, reward: { felle: 15 } },
   { id: 'q_langhaus3',  text: 'Baue 3 Langhäuser',       goal: { build: 'langhaus', count: 3 }, reward: { holz: 80 } },
@@ -1066,6 +1080,9 @@ const QUESTS = [
   { id: 'q_b_aufbruch', text: 'Brich in die Bronzezeit auf', goal: { tech: 'aufbruch_bronzezeit' }, reward: { holz: 100, stein: 100 } },
   // Kupferzeit
   { id: 'q_b_mine',     text: 'Baue eine Kupfermine',    goal: { build: 'kupfermine', count: 1 }, reward: { holz: 60, stein: 40 } },
+  { id: 'q_f_schmelze',  text: 'Erforsche die Kupferschmelze', goal: { learn: 'kupferschmelze' }, reward: { holz: 80 } },
+  { id: 'q_h_kupfer50',  text: 'Stelle 50 Kupfer her',   goal: { made: 'kupfer', count: 50 }, reward: { wissen: 40 } },
+  { id: 'q_n_fund2',     text: 'Finde 2 Fundstücke',     goal: { finds: 2 }, reward: { kupfer: 15 } },
   { id: 'q_b_kupfer20', text: 'Habe 60 Kupfer im Lager', goal: { resource: 'kupfer', count: 60 }, reward: { wissen: 40 } },
   { id: 'q_b_garten3',  text: 'Habe 6 Gemüsegärten',     goal: { line: 'sammeln', type: 'gemuesegarten', count: 6 }, reward: { nahrung: 80 } },
   { id: 'q_b_pop140',   text: 'Erreiche 140 Einwohner',  goal: { population: 140 }, reward: { holzkohle: 20 } },
@@ -1079,6 +1096,9 @@ const QUESTS = [
   { id: 'q_b_frueh',    text: 'Erreiche die Frühe Bronzezeit', goal: { tech: 'fruehe_bronzezeit' }, reward: { holz: 100, kupfer: 20 } },
   // Frühe Bronzezeit
   { id: 'q_b_handel',   text: 'Baue einen Handelsplatz', goal: { build: 'handelsplatz', count: 1 }, reward: { toepferwaren: 15 } },
+  { id: 'q_f_bronzeguss', text: 'Erforsche den Bronzeguss', goal: { learn: 'bronzeguss' }, reward: { zinn: 10 } },
+  { id: 'q_h_bronze40',  text: 'Stelle 40 Bronze her',   goal: { made: 'bronze', count: 40 }, reward: { wissen: 60 } },
+  { id: 'q_h_wolle60',   text: 'Stelle 60 Wolle her',    goal: { made: 'wolle', count: 60 }, reward: { kleidung: 20 } },
   { id: 'q_b_tausch3',  text: 'Tausche 3-mal mit dem Händler', goal: { trades: 3 }, requires: 'tauschhandel', reward: { zinn: 10 } },
   { id: 'q_b_bronze20', text: 'Habe 20 Bronze im Lager', goal: { resource: 'bronze', count: 20 }, reward: { wissen: 60 } },
   { id: 'q_b_viehhof2', text: 'Habe 4 Viehhöfe',         goal: { line: 'tiere', type: 'viehhof', count: 4 }, reward: { nahrung: 100 } },
@@ -1091,6 +1111,9 @@ const QUESTS = [
   { id: 'q_b_spaet',    text: 'Erreiche die Späte Bronzezeit', goal: { tech: 'spaete_bronzezeit' }, reward: { bronze: 20 } },
   // Späte Bronzezeit
   { id: 'q_b_schmuck20', text: 'Habe 20 Schmuck im Lager', goal: { resource: 'schmuck', count: 20 }, reward: { wissen: 80 } },
+  { id: 'q_f_himmel',    text: 'Erforsche die Himmelsscheibe', goal: { learn: 'himmelsscheibe' }, reward: { wissen: 60 } },
+  { id: 'q_h_schmuck30', text: 'Stelle 30 Schmuck her',  goal: { made: 'schmuck', count: 30 }, reward: { bronze: 15 } },
+  { id: 'q_n_setzlinge20', text: 'Pflanze 20 Setzlinge', goal: { planted: 20 }, reward: { holz: 120 } },
   { id: 'q_b_pop230',   text: 'Erreiche 230 Einwohner',  goal: { population: 230 }, reward: { holz: 150, stein: 100 } },
   { id: 'q_b_stufe6',   text: 'Baue ein Gebäude auf Stufe 6 aus', goal: { level: 6, count: 1 }, reward: { bronze: 20 } },
   { id: 'q_b_hallen3',  text: 'Habe 10 Hallenhäuser',   goal: { line: 'grosswohnen', type: 'hallenhaus', count: 10 }, reward: { holz: 120 } },
@@ -1103,6 +1126,9 @@ const QUESTS = [
   { id: 'q_b_pop280',   text: 'Erreiche 280 Einwohner – bereit für den Aufbruch', goal: { population: 280 }, reward: { holz: 200, nahrung: 200 } },
   // Eisenzeit
   { id: 'q_e_mine',     text: 'Baue eine Eisenmine',     goal: { build: 'eisenmine', count: 1 }, reward: { holz: 200, stein: 100 } },
+  { id: 'q_f_rennofen',  text: 'Erforsche den Rennofen', goal: { learn: 'rennofen' }, reward: { holzkohle: 30 } },
+  { id: 'q_h_eisen80',   text: 'Stelle 80 Eisen her',    goal: { made: 'eisen', count: 80 }, reward: { wissen: 100 } },
+  { id: 'q_n_baeume60',  text: 'Fälle 60 Bäume',         goal: { felled: 60 }, reward: { stein: 120 } },
   { id: 'q_e_ofen',     text: 'Baue einen Rennofen',     goal: { build: 'rennofen', count: 1 }, reward: { holzkohle: 40 } },
   { id: 'q_e_eisen20',  text: 'Habe 60 Eisen im Lager',  goal: { resource: 'eisen', count: 60 }, reward: { wissen: 100 } },
   { id: 'q_e_gehoeft5', text: 'Baue 5 Gehöfte',          goal: { build: 'gehoeft', count: 5 }, reward: { holz: 200 } },
@@ -1111,12 +1137,16 @@ const QUESTS = [
   { id: 'q_e_stein6',   text: 'Habe 15 Steinhäuser',    goal: { line: 'wohnen', type: 'steinhaus', count: 15 }, reward: { stein: 120 } },
   { id: 'q_e_mittel',   text: 'Erreiche die Mittlere Eisenzeit', goal: { tech: 'mittlere_eisenzeit' }, reward: { eisen: 20, nahrung: 200 } },
   { id: 'q_e_salz',     text: 'Baue eine Salzsiederei',  goal: { build: 'salzsiederei', count: 1 }, reward: { holz: 200 } },
+  { id: 'q_f_druiden',   text: 'Erforsche die Druiden',  goal: { learn: 'druiden' }, reward: { wissen: 80 } },
+  { id: 'q_h_salz100',   text: 'Stelle 100 Salz her',    goal: { made: 'salz', count: 100 }, reward: { eisen: 20 } },
   { id: 'q_e_salz30',   text: 'Habe 80 Salz im Lager',   goal: { resource: 'salz', count: 80 }, reward: { wissen: 120 } },
   { id: 'q_e_druide',   text: 'Habe 12 Druiden',          goal: { line: 'wissen', type: 'druide', count: 12 }, reward: { kleidung: 30 } },
   { id: 'q_e_pop380',   text: 'Erreiche 380 Einwohner',  goal: { population: 380 }, reward: { eisen: 30 } },
   { id: 'q_e_wunsch25', text: 'Erfülle 25 Wünsche des Stammes', goal: { wishes: 25 }, reward: { wissen: 120 } },
   { id: 'q_e_spaet',    text: 'Erreiche die Späte Eisenzeit', goal: { tech: 'spaete_eisenzeit' }, reward: { salz: 40 } },
   { id: 'q_e_glas',     text: 'Baue eine Glasmacherin',  goal: { build: 'glasmacherin', count: 1 }, reward: { holzkohle: 60 } },
+  { id: 'q_f_schrift',   text: 'Erforsche die Keltenschrift', goal: { learn: 'keltenschrift' }, reward: { wissen: 120 } },
+  { id: 'q_h_glas30',    text: 'Stelle 30 Glas her',     goal: { made: 'glas', count: 30 }, reward: { eisen: 20 } },
   { id: 'q_e_stadt4',   text: 'Baue 4 Stadthäuser',      goal: { build: 'stadthaus', count: 4 }, reward: { stein: 200 } },
   { id: 'q_e_ringwall', text: 'Baue den Ringwall',       goal: { build: 'ringwall', count: 1 }, reward: { eisen: 40, nahrung: 300 } },
   { id: 'q_e_stufe9',   text: 'Baue ein Gebäude auf Stufe 9 aus', goal: { level: 9, count: 1 }, reward: { eisen: 30, nahrung: 200 } },

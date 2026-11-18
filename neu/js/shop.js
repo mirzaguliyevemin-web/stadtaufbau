@@ -83,7 +83,7 @@ function findPrice(id) { return CONFIG.shop.findPrices[id] || CONFIG.shop.findPr
 function buyFind(id) {
   if (!shopFinds().includes(id)) return 'Das brauchst du gerade nicht';
   if (!spendGold(findPrice(id))) return 'Nicht genug Gold';
-  addFind(id);
+  addFind(id, 1, true);
   return null;
 }
 

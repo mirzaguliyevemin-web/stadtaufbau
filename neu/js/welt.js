@@ -53,6 +53,10 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     yearTime: 0,
     playTime: 0,
     quests: {},              // id → true, wenn abgeholt
+    tally: { made: {}, felled: 0, planted: 0, finds: 0 },   // Zähler für Aufträge (V229): hergestellt je Ware, gefällt, gepflanzt, gefunden
+    questBase: {},           // Auftrag → Zählerstand, als er erschien (gezählt wird erst ab da)
+    extra: null,             // zufälliger Zusatzauftrag { n, goal, reward } (V229)
+    extraDone: 0,            // so viele Zusatzaufträge wurden abgeholt
     built: {},               // Typ → wie oft fertig gebaut (für Aufträge)
     seen: {},                // Typ → in der Bauleiste schon angesehen (sonst „Neu“)
     daily: { last: '', streak: 0, pending: 0 },   // pending = Tag (1–7), dessen Belohnung noch wartet

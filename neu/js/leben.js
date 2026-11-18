@@ -74,7 +74,7 @@ function updateWalkers(dt) {
 
 // Welche Tiere im Gehege laufen. Bis es eigene Bilder gibt (schaf, rind), wird das Ziegenbild eingefärbt:
 // hell und wollig für Schafe, braun und etwas größer für Rinder.
-const PEN_LOOK = { ziegengehege: null, viehhof: 'schaf', rindergut: 'rind' };
+const PEN_LOOK = { ziegengehege: null, viehhof: 'schaf', rindergut: 'rind', schafgut: 'schaf' };
 const PEN_TINT = { schaf: { color: '#f6f2e6', alpha: 0.62, size: 1.05 }, rind: { color: '#5a3218', alpha: 0.6, size: 1.45 } };
 const penSprites = {};   // eingefärbte Ziegenbilder (Leinwände; werden mit resetCanvasCaches geleert)
 function penAnimalImage(look) {
@@ -458,6 +458,9 @@ Object.assign(WORK, {
   ziegelei:       { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#c0603a', swing: 'tend', anim: 'stochern' },   // schürt den Brennofen
   silbermine:     { ...WORK.eisenmine, chips: '#c8ccd2' },
   muenzpraegerei: { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#d8dce2', swing: 'knap', anim: 'schmieden' },  // schlägt die Münzen
+  // Mittlere Antike (V233): Bewegung der Vorstufe
+  weingarten: WORK.obstgarten, wildgehege: WORK.jagdhof, fischmarkt: WORK.fischerei, schafgut: WORK.rindergut, saegewerk: WORK.holzhof,
+  baumschule: WORK.forstmeisterin, amphorenwerkstatt: WORK.drehscheibe, walkerei: WORK.tuchmacherin,
 });
 
 // Arbeitsplatz IN der Werkstatt (auf der Platte, vordere Hälfte, passend zum Bild): [Standplatz u, v, Werkstück u, v]

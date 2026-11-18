@@ -317,6 +317,7 @@ on('traderCame', () => { if (gameRunning) { toast('🤝 Der Händler ist da! Tip
 on('suedCame', () => { if (gameRunning) { toast('🫏 Ein Händler aus dem Süden ist da – er bringt Wein und Glas!'); playSound('muenze'); renderAll(); } });
 on('suedLeft', () => { if (gameRunning) { toast('🫏 Der Händler aus dem Süden zieht weiter.'); if (pageOpen === 'sued') closePage(); renderAll(); } });
 on('traderLeft', () => { if (gameRunning) { toast('🤝 Der Händler zieht weiter.'); if (pageOpen === 'trader') closePage(); renderAll(); } });
+on('shipBack', s => { if (gameRunning && !offlineRunning) { const t = CONFIG.ship.trips[s.dest]; toast(`⛵ Das Schiff ist zurück von ${t.icon} ${t.name}: +${formatAmounts(s.got)}`); playSound('muenze'); renderAll(); } });
 on('placed', b => { (state.seen ||= {})[b.type] = true; });
 on('needStarted', id => {
   if (gameRunning && !offlineRunning) toast(`${RESOURCES[id].icon} Deine Leute brauchen jetzt ${RESOURCES[id].name} – ${CONFIG.needGift} gibt es geschenkt, ${Math.round(CONFIG.needGrace / 60)} Minuten Zeit`);

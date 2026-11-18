@@ -880,6 +880,7 @@ function showBuildingWindow(i) {
     ${tiles.length ? `<div class="vtiles">${tiles.join('')}</div>` : ''}
     ${lines.length ? `<ul class="lines notes">${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>` : ''}
     ${b.build > 0 ? shopSpeedButton() : buildingDetailsHtml(i)}
+    ${def.harbor && !b.build ? harborHtml(i) : ''}
     ${upgrade}
     <div class="buttons">
       ${def.storage && !b.build ? '<button class="btn primary" onclick="closeDialog(); openLager()">📦 Lager öffnen</button>' : ''}
@@ -934,6 +935,39 @@ function buildingDetailsHtml(i) {
   if (OUTDOOR_WORK.includes(b.type)) row('🌦️ Arbeitet draußen', '', 'Wetter wirkt stark (Gewitter, Hagel, Sturm …) – Details beim Wetter oben rechts');
   if (!rows.length) return '';
   return `<details class="more"><summary>ℹ️ Was bewirkt das genau?</summary><div class="info-list">${rows.join('')}</div></details>`;
+}
+
+// Hafen (Mittlere Antike): Schiffe unterwegs, Ziel wählen, Tauschware laden (CONFIG.ship)
+let shipLoads = {}, shipDest = 'kueste';
+function harborHtml(i) {
+  const c = CONFIG.ship, n = shipLoadCount(shipLoads);
+  const away = state.ships.map(s => {
+    const t = c.trips[s.dest];
+    return `<li>${t.icon} ${esc(t.name)}: zurück in ${formatTime(s.left)}${s.storm ? ' (⛈️ Sturm, kommt später)' : ''}</li>`;
+  }).join('');
+  const free = shipsFree();
+  const dests = Object.entries(c.trips).map(([id, t]) =>
+    `<button class="btn ${id === shipDest ? 'primary' : ''}" onclick="shipDest='${id}'; showBuildingWindow(${i})">${t.icon} ${esc(t.name)} · ${formatTime(t.seconds)}</button>`).join('');
+  const wares = Object.keys(c.value).filter(id => stageReached(RESOURCES[id].from || 'alt') && (state.res[id] || 0) >= shipLoadSize(id) * ((shipLoads[id] || 0) + 1) || shipLoads[id]).map(id =>
+    `<button class="btn" ${n >= c.maxLoads || (state.res[id] || 0) < shipLoadSize(id) * ((shipLoads[id] || 0) + 1) ? 'disabled' : ''} onclick="shipLoads['${id}']=(shipLoads['${id}']||0)+1; showBuildingWindow(${i})">${iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'mini')} ${shipLoadSize(id)}${shipLoads[id] ? ` ×${shipLoads[id]}` : ''}</button>`).join('');
+  const back = n ? shipReturn(shipDest, n) : c.trips[shipDest].brings;
+  const problem = shipProblem(shipDest, shipLoads);
+  return `<div class="harbor"><h3>⛵ Schiffe: ${free} von ${shipCount()} im Hafen</h3>
+    ${away ? `<ul class="lines notes">${away}</ul>` : ''}
+    ${free ? `<p>Ziel:</p><div class="buttons">${dests}</div>
+    <p>Tauschware laden (je Antippen eine Ladung, höchstens ${c.maxLoads}):</p><div class="buttons">${wares || '<small>Nicht genug Waren im Lager.</small>'}</div>
+    <p>${n ? `Geladen: ${costHtml(shipLoadCost(shipLoads))} – bringt zurück:` : 'Je Ladung bringt das Schiff zurück:'} ${formatAmounts(back)}</p>
+    <div class="buttons"><button class="btn primary" ${problem ? 'disabled' : ''} onclick="doSendShip(${i})">⛵ Ablegen</button>
+    ${n ? `<button class="btn" onclick="shipLoads={}; showBuildingWindow(${i})">Ausladen</button>` : ''}</div>
+    ${problem && n ? `<small class="bad">${esc(problem)}</small>` : ''}` : '<p>Alle Schiffe sind unterwegs.</p>'}</div>`;
+}
+function doSendShip(i) {
+  const problem = sendShip(shipDest, shipLoads);
+  if (problem) { toast(problem); return; }
+  const t = CONFIG.ship.trips[shipDest];
+  shipLoads = {};
+  toast(`⛵ Das Schiff legt ab: ${t.icon} ${t.name}`);
+  showBuildingWindow(i);
 }
 
 function doTogglePause(i) {
@@ -1015,6 +1049,7 @@ function techEffectText(id) {
   if (id === 'himmelsscheibe') out.push(`Sonnwendfest mitten im Sommer: Laune +${CONFIG.fest.happy}`);
   if (e.traderOffers) out.push('Der Händler bringt Bernstein und ein Angebot mehr');
   if (e.constructions) out.push(`🏗️ ${e.constructions === 1 ? 'Eine Baustelle' : e.constructions + ' Baustellen'} mehr gleichzeitig`);
+  if (e.ships) out.push(`⛵ ${e.ships === 1 ? 'Ein' : e.ships} Schiff${e.ships === 1 ? '' : 'e'} mehr am Hafen`);
   if (e.paved) out.push('🛣️ Alle Wege werden gepflastert, die Leute laufen schneller');
   if (e.buildFaster) out.push(`Bauzeiten −${Math.round(e.buildFaster * 100)} %`);
   if (e.traderFaster) out.push(`Händler kommt alle ${Math.round((CONFIG.trader.every - e.traderFaster) / 60)} statt ${Math.round(CONFIG.trader.every / 60)} Minuten`);
@@ -1312,6 +1347,7 @@ function questIcon(q) {
   if (g.made) return iconHtml(RESOURCES[g.made].bild, RESOURCES[g.made].icon, 'big');
   if (g.felled) return '<span class="ic emoji big">🪓</span>';
   if (g.planted) return '<span class="ic emoji big">🌱</span>';
+  if (g.voyages) return '<span class="ic emoji big">⛵</span>';
   if (g.finds) return '<span class="ic emoji big">💎</span>';
   return '<span class="ic emoji big">📜</span>';
 }
@@ -1621,7 +1657,7 @@ function openMenu() {
 }
 function refreshMenu() { if (pageOpen === 'menu') $('page-body').innerHTML = menuHtml(); }
 
-const SLOT_PICTURES = { alt: '1-lagerfeuer', mittel: '1-grubenhaus', jung: '1-langhaus', kupfer: '1-langhaus', eisen1: '1-langhaus', eisen2: '1-langhaus', eisen3: '1-langhaus', antike1: '1-langhaus' };
+const SLOT_PICTURES = { alt: '1-lagerfeuer', mittel: '1-grubenhaus', jung: '1-langhaus', kupfer: '1-langhaus', eisen1: '1-langhaus', eisen2: '1-langhaus', eisen3: '1-langhaus', antike1: '1-langhaus', antike2: '1-langhaus' };
 
 function slotsHtml(inGame) {
   return '<div class="slots">' + SLOTS.map(slot => {

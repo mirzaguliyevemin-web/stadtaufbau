@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 232;
+const APP_VERSION = 233;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -45,7 +45,7 @@ const CONFIG = {
   // Kurze Leiste, Warnung „bald leer“ und Verlustmeldung (docs/plan-lager.md); Zeiten in Minuten bzw. Sekunden sind Startwerte
   stockWatch: { topGoods: ['nahrung', 'wissen'], soonIn: 5, soonOut: 10, minShow: 30, maxChips: 4, lossRate: 0.5, lossStock: 5, lossWithin: 60, lossHold: 60, lossPause: 1200, lossGap: 300 },
   baseStorage: 200,       // Lagerplatz je Ware am Lagerfeuer (seit Version 24: 200, damit der lange Winter zu überstehen ist)
-  stageStorage: { alt: 0, mittel: 100, jung: 200, kupfer: 200, frueh: 300, spaet: 400, eisen1: 550, eisen2: 700, eisen3: 850, antike1: 1000 },   // so viel mehr fasst das Lager je Zeitalter (Emin, 03.11.)
+  stageStorage: { alt: 0, mittel: 100, jung: 200, kupfer: 200, frueh: 300, spaet: 400, eisen1: 550, eisen2: 700, eisen3: 850, antike1: 1000, antike2: 1150 },   // so viel mehr fasst das Lager je Zeitalter (Emin, 03.11.)
   bonusRadius: 3,         // Umkreis für Geländebonus (Wald, Felsen)
   maxOfflineHours: 2,     // so lange läuft das Spiel offline weiter (Emin: höchstens 2 Stunden)
   refundShare: 0.5,       // beim Abreißen gibt es die Hälfte zurück
@@ -123,6 +123,9 @@ const CONFIG = {
       { id: 'markt_holz',    give: { muenzen: 30 },  get: { holz: 150 },   requires: 'markt' },
       { id: 'markt_nahrung', give: { nahrung: 150 }, get: { muenzen: 25 }, requires: 'markt' },
       { id: 'markt_felle',   give: { felle: 40 },    get: { muenzen: 20 }, requires: 'markt' },
+      // Seehandel (Mittlere Antike): Händlerschiffe bringen Öl und Marmor (Wein nur beim Südhändler, Schiff und Weingarten)
+      { id: 'see_oel',       give: { muenzen: 40 },  get: { olivenoel: 30 }, requires: 'seehandel' },
+      { id: 'see_marmor',    give: { amphoren: 20 }, get: { marmor: 15 },    requires: 'seehandel' },
       { id: 'ton_kohle',    give: { ton: 30 },          get: { holzkohle: 10 } },
       { id: 'nahrung_wolle', give: { nahrung: 40 },     get: { wolle: 8 } },
       { id: 'felle_wolle',  give: { felle: 20 },        get: { wolle: 10 } },
@@ -153,7 +156,19 @@ const CONFIG = {
   wine: { perPerson: 0.005, happy: 6 },   // Wein ist nur ein Bonus für die Laune (Emin, 03.11.), kein Bedürfnis
   thingplatz: { warmth: 1 },
   forum: { storage: 150, warmth: 1 },   // Antike (V231): Der Thingplatz wird zum Forum – mehr Lager, Umkreis +1
-  tax: { perHead: 0.02 },  // Steuer nach der Forschung „Münzen“: Münzen je Einwohner und Minute, mal Zufriedenheit
+  tax: { perHead: 0.02 },
+  // Schiffsreise (Mittlere Antike, docs/epoche-4-antike.md, Emin 18.11.): Ziel wählen, Tauschware laden, später kommt mehr zurück.
+  // Eine Ladung = so viel von einer Ware, dass sie „points“ Punkte wert ist (value je Stück). Rückfracht je Ladung = brings.
+  // Sturm: Mit stormChance dauert die Fahrt stormLonger länger, verloren geht nichts. Schiffe: 1 + Forschungen (effect.ships).
+  ship: {
+    points: 100, maxLoads: 3, stormChance: 0.15, stormLonger: 0.5,
+    value: { nahrung: 1, holz: 1, stein: 1, felle: 2, kleidung: 4, toepferwaren: 4, werkzeug: 6, ziegel: 3, muenzen: 4, amphoren: 6 },
+    trips: {
+      kueste:    { name: 'Nahe Küste',   icon: '🏖️', seconds: 300,  brings: { nahrung: 80, salz: 12, holz: 50 } },
+      oelinseln: { name: 'Ölinseln',     icon: '🫒', seconds: 600,  brings: { olivenoel: 35, wein: 12 } },
+      ferne:     { name: 'Ferne Länder', icon: '🌍', seconds: 1200, brings: { glas: 10, marmor: 25, olivenoel: 20 } },
+    },
+  },  // Steuer nach der Forschung „Münzen“: Münzen je Einwohner und Minute, mal Zufriedenheit
   // Mehr Ausgaben für Holz und Nahrung (V230, Emin 18.11.: „Nahrung und Holz zu hoch“, Ideen 1, 2 und 5)
   fuel: { winter: 2 },    // Feuer verbrennen Holz (BUILDINGS[…].fuel je Minute), im Winter doppelt; ohne Holz wärmen sie nicht
   provision: { perWorker: 0.6, without: 0.5 },   // Proviant: Nahrung je Arbeiter und Minute (nicht bei Nahrungs-Herstellern); ohne nur halbe Arbeit
@@ -211,6 +226,7 @@ const CONFIG = {
       eisen2: { price: 100, goods: { eisen: 30, salz: 30, werkzeug: 20 } },
       eisen3: { price: 110, goods: { eisen: 40, salz: 40, glas: 15 } },
       antike1: { price: 120, goods: { ziegel: 40, silber: 20, muenzen: 60 } },
+      antike2: { price: 130, goods: { ziegel: 50, olivenoel: 40, amphoren: 20 } },
     },
     slotPrice: 300,
     // Beschleunigungssteine (Wunsch Emin, 08.11.2026): ⚡ am Gebäude, jeder Stein spart 5 Minuten Bau- oder Ausbauzeit.
@@ -270,13 +286,16 @@ const RESOURCES = {
   ziegel:       { name: 'Ziegel',      icon: '🧱', bild: 'ware-ziegel', from: 'antike1' },
   silber:       { name: 'Silber',      icon: '🥈', bild: 'ware-silber', from: 'antike1' },
   muenzen:      { name: 'Münzen',      icon: '🪙', bild: 'ware-muenzen', from: 'antike1' },   // silbern, getrennt vom Gold aus dem Shop
+  olivenoel:    { name: 'Olivenöl',    icon: '🫒', bild: 'ware-olivenoel', from: 'antike2' },   // kommt nur übers Wasser (Schiff, Händler)
+  amphoren:     { name: 'Amphoren',    icon: '🏺', bild: 'ware-amphoren', from: 'antike2' },
+  marmor:       { name: 'Marmor',      icon: '⬜', bild: 'ware-marmor', from: 'antike2' },
 };
 
 // Bereiche im Lagerfenster: Jede Ware muss genau einmal vorkommen (Test „Lager“)
 const LAGER_GROUPS = [
-  { id: 'versorgung', name: 'Nahrung und Versorgung', icon: '🍖', goods: ['nahrung', 'kleidung', 'toepferwaren', 'salz', 'wein'] },
-  { id: 'rohstoffe',  name: 'Rohstoffe',              icon: '🪵', goods: ['holz', 'stein', 'felle', 'ton', 'wolle', 'kupfererz', 'eisenerz', 'zinn', 'holzkohle', 'bernstein', 'silber'] },
-  { id: 'werkstoffe', name: 'Werkstoffe und Waren',   icon: '🔨', goods: ['werkzeug', 'kupfer', 'bronze', 'eisen', 'glas', 'schmuck', 'ziegel', 'muenzen'] },
+  { id: 'versorgung', name: 'Nahrung und Versorgung', icon: '🍖', goods: ['nahrung', 'kleidung', 'toepferwaren', 'salz', 'wein', 'olivenoel'] },
+  { id: 'rohstoffe',  name: 'Rohstoffe',              icon: '🪵', goods: ['holz', 'stein', 'felle', 'ton', 'wolle', 'kupfererz', 'eisenerz', 'zinn', 'holzkohle', 'bernstein', 'silber', 'marmor'] },
+  { id: 'werkstoffe', name: 'Werkstoffe und Waren',   icon: '🔨', goods: ['werkzeug', 'kupfer', 'bronze', 'eisen', 'glas', 'schmuck', 'ziegel', 'muenzen', 'amphoren'] },
   { id: 'wissen',     name: 'Wissen',                 icon: '💡', goods: ['wissen'] },
 ];
 
@@ -292,6 +311,7 @@ const STAGES = [
   { id: 'eisen2', name: 'Mittlere Eisenzeit', epoch: 'Eisenzeit', zeit: 'eisen' },
   { id: 'eisen3', name: 'Späte Eisenzeit',   epoch: 'Eisenzeit', zeit: 'eisen' },
   { id: 'antike1', name: 'Frühe Antike',     epoch: 'Antike', zeit: 'antike' },   // docs/epoche-4-antike.md, Bilder folgen
+  { id: 'antike2', name: 'Mittlere Antike',  epoch: 'Antike', zeit: 'antike' },
 ];
 
 // Bedürfnisse der Einwohner. kind: 'stock' = Ware im Lager, 'area' = Gebäude im Umkreis der Wohnung
@@ -304,6 +324,7 @@ const NEEDS = [
   { id: 'werkzeug',     name: 'Werkzeug',             icon: '🗡️', from: 'frueh',  kind: 'stock', perPerson: 0.01 },   // perPerson: je Einwohner und Minute, sonst CONFIG.goodsPerPerson
   { id: 'schmuck',      name: 'Schmuck',              icon: '💍', from: 'spaet',  kind: 'stock', perPerson: 0.003 },   // Bernstein gibt es nur beim Händler: darf nicht mehr verlangen, als er bringt
   { id: 'salz',         name: 'Salz',                 icon: '🧂', from: 'eisen2', kind: 'stock', perPerson: 0.02 },
+  { id: 'olivenoel',    name: 'Olivenöl',             icon: '🫒', from: 'antike2', kind: 'stock', perPerson: 0.02 },   // erst mit dem Hafen („Schiffbau“), siehe needProviders
 ];
 
 const SEASONS = [
@@ -529,7 +550,7 @@ const BUILDINGS = {
   eisenfeld: { name: 'Eisenpflug-Feld', icon: '🌾', size: 3, line: 'feld', tier: 2, stage: 'eisen1', bild: '2-feld', color: '#b7a14a', cost: { holz: 100, eisen: 5 }, time: 120, workers: 4, produces: { nahrung: 65 }, requires: 'eisenpflug', info: 'Der Eisenpflug zieht tiefe Furchen: viel Getreide, im Winter nichts.' },
   rindergut: { name: 'Rindergut', icon: '🐄', size: 3, line: 'tiere', tier: 2, stage: 'eisen2', bild: '2-viehhof', color: '#9a7a4a', cost: { holz: 170, stein: 60, eisen: 5 }, time: 160, workers: 3, produces: { nahrung: 20, wolle: 6, felle: 2 }, requires: 'rinderzucht', info: 'Große Herden: Nahrung, Wolle und Felle.' },
   holzhof: { name: 'Holzhof', icon: '🪵', size: 2, line: 'holz', tier: 2, stage: 'eisen1', bild: '2-holzfaeller', color: '#8a6a3a', cost: { holz: 40, stein: 30, eisen: 3 }, time: 80, workers: 2, produces: { holz: 16 }, requires: 'eisenaxt', info: 'Die Eisenaxt fällt Bäume schneller.' },
-  forstmeisterin: { name: 'Forstmeisterin', icon: '🌲', size: 2, line: 'pflanzen', tier: 2, stage: 'eisen2', bild: '2-baumgaertnerin', color: '#5a8a4a', cost: { holz: 50, stein: 30 }, time: 70, workers: 1, requires: 'forstwirtschaft', info: 'Pflanzt noch schneller neue Bäume.' },
+  forstmeisterin: { name: 'Forstmeisterin', icon: '🌲', size: 2, line: 'pflanzen', tier: 2, stage: 'eisen2', bild: '2-baumgaertnerin', color: '#5a8a4a', cost: { holz: 50, stein: 30 }, time: 70, workers: 1, plants: true, plantSeconds: 30, requires: 'forstwirtschaft', info: 'Pflanzt noch schneller neue Bäume.' },
   grosser_steinbruch: { name: 'Großer Steinbruch', icon: '⛏️', size: 2, line: 'stein', tier: 2, stage: 'eisen1', bild: '2-steinbruch', color: '#8a8a80', cost: { holz: 60, eisen: 3 }, time: 80, workers: 2, produces: { stein: 13 }, requires: 'eisenkeile', needsMountain: true, bonus: { terrain: ['fels', 'berg'], perTile: 0.06, max: 0.6 }, info: 'Eisenkeile spalten große Blöcke. Muss am Gebirge stehen.' },
   druide: { name: 'Druide', icon: '🧙', size: 2, line: 'wissen', tier: 3, stage: 'eisen2', bild: '2-sternkundiger', color: '#4a6a5a', cost: { holz: 40, stein: 40, eisen: 3 }, time: 90, workers: 1, produces: { wissen: 13 }, requires: 'druiden', info: 'Druiden bewahren das Wissen des Stammes.' },
   badehaus: { name: 'Badehaus', icon: '♨️', size: 2, line: 'waerme', tier: 2, stage: 'eisen2', bild: '2-dorfbrunnen', color: '#a06a4a', cost: { holz: 80, stein: 80, eisen: 3 }, time: 100, warmth: 7, happy: 6, requires: 'badehaus', info: 'Warmes Wasser und Geselligkeit: Wärme und bessere Laune im Umkreis.' },
@@ -558,6 +579,18 @@ const BUILDINGS = {
   ziegelei: { name: 'Ziegelei', icon: '🧱', size: 2, line: 'ziegel', tier: 0, stage: 'antike1', color: '#b5583a', cost: { holz: 120, stein: 60, eisen: 20 }, time: 140, workers: 2, consumes: { ton: 2, holz: 1 }, produces: { ziegel: 2 }, requires: 'ziegelbrennen', info: 'Brennt aus 2 Ton und 1 Holz 2 Ziegel.' },
   silbermine: { name: 'Silbermine', icon: '⛏️', size: 3, line: 'silber', tier: 0, stage: 'antike1', color: '#a8adb4', cost: { holz: 150, stein: 100, eisen: 20 }, time: 160, workers: 3, produces: { silber: 2 }, needsMountain: true, requires: 'silberbergbau', bonus: { terrain: 'berg', perTile: 0.05, max: 0.5 }, info: 'Holt Silbererz aus dem Berg. Muss am Gebirge stehen (darf bis 2 Felder hinein), bis +50 %.' },
   muenzpraegerei: { name: 'Münzprägerei', icon: '🪙', size: 2, line: 'muenzen', tier: 0, stage: 'antike1', color: '#9aa0a8', cost: { stein: 100, ziegel: 40, eisen: 20 }, time: 140, workers: 2, consumes: { silber: 1 }, produces: { muenzen: 10 }, requires: 'muenzen', info: 'Prägt aus 1 Silber 10 Münzen.' },
+  // ----- Mittlere Antike (docs/epoche-4-antike.md). Bilder der Vorstufe, bis eigene kommen.
+  weingarten: { name: 'Weingarten', icon: '🍇', size: 2, line: 'sammeln', tier: 3, stage: 'antike2', bild: '2-gemuesegarten', color: '#7a4a7a', cost: { holz: 80, ziegel: 15 }, time: 110, workers: 2, produces: { nahrung: 18, wein: 2 }, requires: 'weinbau', info: 'Reben und Obstbäume: Nahrung und etwas Wein.' },
+  wildgehege: { name: 'Wildgehege', icon: '🦌', size: 3, line: 'jagen', tier: 4, stage: 'antike2', bild: '2-jagdhuette', color: '#7a6a3a', cost: { holz: 160, ziegel: 25 }, time: 170, workers: 4, produces: { nahrung: 36, felle: 5 }, requires: 'wildgehege', info: 'Wild wird im Gehege gehalten: mehr Nahrung und Felle.' },
+  fischmarkt: { name: 'Fischmarkt', icon: '🐟', size: 2, line: 'fischen', tier: 3, stage: 'antike2', bild: '1-fischerhuette', color: '#3f6a8a', cost: { holz: 110, ziegel: 15 }, time: 120, workers: 2, produces: { nahrung: 34 }, needsWater: true, stilts: true, requires: 'fischmaerkte', info: 'Boote fahren weit hinaus, der Fang wird gleich verkauft.' },
+  schafgut: { name: 'Schafgut', icon: '🐑', size: 3, line: 'tiere', tier: 3, stage: 'antike2', bild: '2-viehhof', color: '#b0a080', cost: { holz: 190, ziegel: 25 }, time: 180, workers: 3, produces: { nahrung: 18, wolle: 10, felle: 2 }, requires: 'schafzucht', info: 'Große Schafherden: viel Wolle.' },
+  hafenhaus: { name: 'Hafenhaus', icon: '🏠', size: 3, line: 'wasserwohnen', tier: 3, stage: 'antike2', bild: '2-fischerhaus', views: ['r1', 'r2'], color: '#9a6a4a', cost: { holz: 200, ziegel: 60, stein: 80 }, time: 260, housing: 28, needsWater: true, requires: 'hafenhaeuser', manualUpgrade: true, info: 'Ziegelhäuser am Kai, Platz für 28 Menschen. Braucht Ziegel: darum nur per Knopf umbauen.' },
+  lagerhalle: { name: 'Lagerhalle', icon: '🏛️', size: 3, line: 'lager', tier: 3, stage: 'antike2', bild: '2-kornspeicher', color: '#b07a5a', cost: { holz: 200, stein: 160, ziegel: 40 }, time: 200, storage: 550, requires: 'lagerhallen', info: 'Ein Horreum aus Ziegeln: noch mehr Lagerplatz.' },
+  saegewerk: { name: 'Sägewerk', icon: '🪚', size: 2, line: 'holz', tier: 3, stage: 'antike2', bild: '2-holzfaeller', color: '#8a6a3a', cost: { holz: 60, stein: 40, ziegel: 10 }, time: 100, workers: 2, produces: { holz: 20 }, requires: 'wassersaege', info: 'Ein Wasserrad treibt die Säge: mehr Holz.' },
+  baumschule: { name: 'Baumschule', icon: '🌳', size: 2, line: 'pflanzen', tier: 3, stage: 'antike2', bild: '2-baumgaertnerin', color: '#4a8a4a', cost: { holz: 60, ziegel: 10 }, time: 80, workers: 1, plants: true, plantSeconds: 20, requires: 'baumschulen', info: 'Zieht junge Bäume in Reihen: pflanzt am schnellsten.' },
+  amphorenwerkstatt: { name: 'Amphorenwerkstatt', icon: '🏺', size: 2, line: 'toepfern', tier: 3, stage: 'antike2', bild: '2-toepferwerkstatt', color: '#c0784a', cost: { holz: 70, stein: 50, ziegel: 15 }, time: 110, workers: 3, consumes: { ton: 4, holzkohle: 1 }, produces: { toepferwaren: 3, amphoren: 2 }, requires: 'amphoren', info: 'Große Krüge für Öl und Wein: Töpferwaren und Amphoren für den Hafen.' },
+  walkerei: { name: 'Walkerei', icon: '🧺', size: 2, line: 'kleidung', tier: 3, stage: 'antike2', bild: '2-weberin', color: '#a0705a', cost: { holz: 80, stein: 40, ziegel: 15 }, time: 110, workers: 2, consumes: { wolle: 7 }, produces: { kleidung: 8 }, requires: 'walkerei', info: 'Stoffe werden gewalkt und dicht: mehr Kleidung aus Wolle.' },
+  hafen: { name: 'Hafen', icon: '⚓', size: 4, line: 'hafen', tier: 0, stage: 'antike2', bild: '2-fischerhaus', color: '#6a5a4a', cost: { holz: 300, stein: 150, ziegel: 60 }, time: 300, needsWater: true, harbor: true, shipGoods: ['olivenoel', 'wein', 'marmor', 'glas'], requires: 'schiffbau', info: 'Schiffe fahren von hier zur Küste, zu den Ölinseln und in ferne Länder. Antippen, Ziel wählen, Tauschware laden.' },
   salzberg: { name: 'Salzberg', icon: '⛰️', size: 4, line: 'wunder_eisen', tier: 0, stage: 'eisen2', wonder: 'salzberg', needsRock: true, color: '#bdbdb0', cost: {}, time: 1, produces: { salz: 4 }, requires: 'salzbergbau', info: 'Wunderwerk der Eisenzeit: Tippe es an, um Abschnitt für Abschnitt weiterzubauen. Muss an Felsen oder am Gebirge stehen.' },
   // ----- Bronzezeit, Stufe Kupferzeit. Bilder folgen ab 27.11.: Weiterentwicklungen zeigen so lange das Bild der Vorstufe,
   // neue Gebäude ein Platzhalter-Feld.
@@ -745,6 +778,8 @@ const BRIDGE_ERAS = [
 for (const [from, to] of [['hallenhaus', 'gehoeft'], ['gehoeft', 'stadthaus'], ['fischerhaus', 'seehof'], ['gemuesegarten', 'obstgarten'], ['jagdhuette', 'jagdhof'], ['fischerhuette', 'fischerei'], ['feld', 'eisenfeld'], ['viehhof', 'rindergut'], ['holzfaeller', 'holzhof'], ['baumgaertnerin', 'forstmeisterin'], ['steinbruch', 'grosser_steinbruch'], ['sternkundiger', 'druide'], ['dorfbrunnen', 'badehaus'], ['weberin', 'tuchmacherin'], ['bronzeschmied', 'eisenschmied'], ['heiliger_hain', 'druidenhain'], ['lehmgrube', 'grosse_lehmgrube'], ['toepferwerkstatt', 'drehscheibe'], ['kornspeicher', 'vorratshof'], ['handelsplatz', 'handelshof']]) BUILDINGS[from].upgradeTo = to;
 // Frühe Antike: Weiterentwicklungen der Eisenzeit-Gebäude
 for (const [from, to] of [['steinhaus', 'ziegelhaus'], ['stadthaus', 'villa'], ['eisenfeld', 'gutshof'], ['grosser_steinbruch', 'marmorbruch'], ['druide', 'schreibstube'], ['eisenschmied', 'werkstatt'], ['grosse_lehmgrube', 'tonwerk'], ['handelshof', 'markt']]) BUILDINGS[from].upgradeTo = to;
+// Mittlere Antike
+for (const [from, to] of [['obstgarten', 'weingarten'], ['jagdhof', 'wildgehege'], ['fischerei', 'fischmarkt'], ['rindergut', 'schafgut'], ['seehof', 'hafenhaus'], ['vorratshof', 'lagerhalle'], ['holzhof', 'saegewerk'], ['forstmeisterin', 'baumschule'], ['drehscheibe', 'amphorenwerkstatt'], ['tuchmacherin', 'walkerei']]) BUILDINGS[from].upgradeTo = to;
 
 
 // Forschungsbaum. col/row = Platz im Baum (Spalte von links, Reihe: 0–1 Nahrung, 2 Wohnen, 3 Handwerk, 4 Wissen)
@@ -886,8 +921,25 @@ const TECHS = {
   roemerstrassen: { name: 'Römerstraßen', icon: '🛣️', stage: 'antike1', col: 40, row: 1, requires: ['ziegelbrennen'], population: 500, cost: { wissen: 500, stein: 300 }, time: 1200, effect: { paved: 1, buildFaster: 0.1, traderFaster: 120 } },   // V232: Pflaster, schneller laufen, bauen und handeln
   markt:         { name: 'Markt',         icon: '🏪', stage: 'antike1', col: 41, row: 4, requires: ['muenzen'], population: 515, cost: { wissen: 520, muenzen: 60 }, time: 1260, effect: {} },
   mittlere_antike: {
-    name: 'Mittlere Antike', icon: '⚓', stage: 'antike1', col: 42, row: 2, transition: true, soon: true, requires: ['gutshoefe', 'villen', 'marmor', 'markt', 'roemerstrassen'],
-    population: 540, cost: { wissen: 560, ziegel: 80, muenzen: 100 }, time: 1800, effect: {},   // Stufe 'antike2' kommt mit dem nächsten Bauschritt
+    name: 'Mittlere Antike', icon: '⚓', stage: 'antike1', col: 42, row: 2, transition: true, requires: ['gutshoefe', 'villen', 'marmor', 'markt', 'roemerstrassen'],
+    population: 540, cost: { wissen: 560, ziegel: 80, muenzen: 100 }, time: 1800, effect: { stage: 'antike2', gift: { olivenoel: 80 } },
+  },
+  // ----- Mittlere Antike (V233). Kolonien und Schiffsrouten kommen mit der zweiten Stadt (Schritt 4).
+  weinbau:      { name: 'Weinbau',      icon: '🍇', stage: 'antike2', col: 43, row: 0, requires: ['mittlere_antike'], population: 550, cost: { wissen: 570, nahrung: 400 }, time: 1260, effect: {} },
+  wildgehege:   { name: 'Wildgehege',   icon: '🦌', stage: 'antike2', col: 44, row: 0, requires: ['weinbau'], population: 560, cost: { wissen: 580, holz: 300 }, time: 1320, effect: {} },
+  fischmaerkte: { name: 'Fischmärkte',  icon: '🐟', stage: 'antike2', col: 44, row: 1, requires: ['weinbau'], population: 560, cost: { wissen: 580, muenzen: 60 }, time: 1320, effect: {} },
+  schafzucht2:  { name: 'Schafzucht',   icon: '🐑', stage: 'antike2', col: 45, row: 0, requires: ['wildgehege'], population: 575, cost: { wissen: 600, wolle: 100 }, time: 1380, effect: {} },
+  hafenhaeuser: { name: 'Hafenhäuser',  icon: '🏠', stage: 'antike2', col: 43, row: 2, requires: ['mittlere_antike'], population: 550, cost: { wissen: 570, ziegel: 80 }, time: 1260, effect: {} },
+  lagerhallen:  { name: 'Lagerhallen',  icon: '🏛️', stage: 'antike2', col: 44, row: 2, requires: ['hafenhaeuser'], population: 565, cost: { wissen: 590, ziegel: 100 }, time: 1320, effect: { storage: 0.25 } },
+  schiffbau:    { name: 'Schiffbau',    icon: '⛵', stage: 'antike2', col: 43, row: 3, requires: ['mittlere_antike'], population: 550, cost: { wissen: 570, holz: 400 }, time: 1260, effect: { ships: 1 } },
+  wassersaege:  { name: 'Wassersäge',   icon: '🪚', stage: 'antike2', col: 44, row: 3, requires: ['schiffbau'], population: 560, cost: { wissen: 580, eisen: 40 }, time: 1320, effect: {} },
+  baumschulen:  { name: 'Baumschulen',  icon: '🌳', stage: 'antike2', col: 45, row: 3, requires: ['wassersaege'], population: 575, cost: { wissen: 600, holz: 300 }, time: 1380, effect: {} },
+  amphoren:     { name: 'Amphoren',     icon: '🏺', stage: 'antike2', col: 44, row: 4, requires: ['schiffbau'], population: 560, cost: { wissen: 580, ton: 200 }, time: 1320, effect: {} },
+  walkerei:     { name: 'Walkerei',     icon: '🧺', stage: 'antike2', col: 45, row: 4, requires: ['amphoren'], population: 575, cost: { wissen: 600, kleidung: 80 }, time: 1380, effect: {} },
+  seehandel:    { name: 'Seehandel',    icon: '🚢', stage: 'antike2', col: 45, row: 2, requires: ['schiffbau', 'markt', 'amphoren'], population: 580, cost: { wissen: 610, amphoren: 40, muenzen: 80 }, time: 1440, effect: { ships: 1 } },
+  spaete_antike: {
+    name: 'Späte Antike', icon: '🏛️', stage: 'antike2', col: 46, row: 2, transition: true, soon: true, requires: ['seehandel'],
+    population: 620, cost: { wissen: 650, ziegel: 120, muenzen: 150, olivenoel: 60 }, time: 1800, effect: {},   // Stufe 'antike3' kommt mit Schritt 5, vorher die zweite Stadt (Schritt 4)
   },
 };
 // Zeitalter-Forschung erst, wenn ALLES andere im Zeitalter erforscht ist (V228, Emin: Mittelsteinzeit ging ohne Mammutjagd)
@@ -964,6 +1016,14 @@ const TECH_NEEDS = {
   keltenschrift:   { ringwall: 1, druidenhain: 1 },
   aufbruch_antike: { ringwall: 1, salzberg: 1, stadthaus: 8, eisenschmied: 2, rennofen: 3, salzsiederei: 3, glasmacherin: 1 },
   mittlere_antike: { ziegelhaus: 6, muenzpraegerei: 2, markt: 1, ziegelei: 2 },
+  wildgehege:      { weingarten: 2 },
+  schafzucht2:     { wildgehege: 1 },
+  lagerhallen:     { hafenhaus: 2 },
+  wassersaege:     { hafen: 1 },
+  baumschulen:     { saegewerk: 1 },
+  walkerei:        { amphorenwerkstatt: 1 },
+  seehandel:       { hafen: 1, amphorenwerkstatt: 1 },
+  spaete_antike:   { hafen: 1, amphorenwerkstatt: 2, saegewerk: 2, hafenhaus: 2, villa: 2 },
 };
 
 // Ganz rechts im Baum: Aufbruch in die nächste Epoche (Bronzezeit wird in einem späteren Schritt gebaut)
@@ -982,7 +1042,7 @@ const TECH_NEEDS = {
     if (tech.cost && tech.cost.wissen) tech.cost.wissen = Math.round(tech.cost.wissen * t.knowledgeCost);
     for (const id of Object.keys(tech.cost || {}))
       if (id !== 'wissen') {
-        const stages = ['kupfer', 'frueh', 'spaet', 'eisen1', 'eisen2', 'eisen3', 'antike1'];   // ab der Kupferzeit fasst der Dorfplatz mehr
+        const stages = ['kupfer', 'frueh', 'spaet', 'eisen1', 'eisen2', 'eisen3', 'antike1', 'antike2'];   // ab der Kupferzeit fasst der Dorfplatz mehr
         const room = CONFIG.baseStorage + CONFIG.stageStorage[tech.stage || 'alt'] + (stages.includes(tech.stage) ? CONFIG.dorfplatz.storage : 0);
         tech.cost[id] = Math.min(room, Math.round(tech.cost[id] * t.researchGoods / 5) * 5);
       }
@@ -1001,7 +1061,7 @@ const NEXT_EPOCH = { name: 'Mittlere Antike', icon: '⚓', text: 'Hafen, Schiffs
   for (const d of Object.values(DISASTERS)) copy(d.buildings);
   copy(SEASON_FACTORS);
   // Forschungs-Boni gelten für die ganze Reihe bis in die Eisenzeit (Emin, 15.11.: je Forschung +15 %, kein Knick beim Weiterentwickeln)
-  const iron = { obstgarten: 'sammlerin', jagdhof: 'mammutjaegerlager', holzhof: 'holzsammler', grosser_steinbruch: 'steinsammler', druide: 'hoehlenmaler', eisenfeld: 'acker', gutshof: 'acker', marmorbruch: 'steinsammler', schreibstube: 'hoehlenmaler' };
+  const iron = { obstgarten: 'sammlerin', jagdhof: 'mammutjaegerlager', holzhof: 'holzsammler', grosser_steinbruch: 'steinsammler', druide: 'hoehlenmaler', eisenfeld: 'acker', gutshof: 'acker', marmorbruch: 'steinsammler', schreibstube: 'hoehlenmaler', weingarten: 'sammlerin', wildgehege: 'mammutjaegerlager', saegewerk: 'holzsammler' };
   for (const t of Object.values(TECHS)) {
     copy(t.effect && t.effect.bonus);
     const m = t.effect && t.effect.bonus;
@@ -1015,7 +1075,9 @@ const NEXT_EPOCH = { name: 'Mittlere Antike', icon: '⚓', text: 'Hafen, Schiffs
   const later = { obstgarten: 'gemuesegarten', jagdhof: 'jagdhuette', fischerei: 'fischerhuette', eisenfeld: 'feld', rindergut: 'viehhof',
     holzhof: 'holzfaeller', forstmeisterin: 'baumgaertnerin', grosser_steinbruch: 'steinbruch', druide: 'sternkundiger', tuchmacherin: 'weberin',
     eisenschmied: 'bronzeschmied', grosse_lehmgrube: 'lehmgrube', drehscheibe: 'toepferwerkstatt',
-    gutshof: 'eisenfeld', marmorbruch: 'grosser_steinbruch', schreibstube: 'druide', werkstatt: 'eisenschmied', tonwerk: 'grosse_lehmgrube' };   // Frühe Antike (V231)
+    gutshof: 'eisenfeld', marmorbruch: 'grosser_steinbruch', schreibstube: 'druide', werkstatt: 'eisenschmied', tonwerk: 'grosse_lehmgrube',   // Frühe Antike (V231)
+    weingarten: 'obstgarten', wildgehege: 'jagdhof', fischmarkt: 'fischerei', schafgut: 'rindergut', saegewerk: 'holzhof', baumschule: 'forstmeisterin',
+    walkerei: 'tuchmacherin', amphorenwerkstatt: 'drehscheibe' };   // Mittlere Antike (V233)
   const copyLater = map => { if (map) for (const [to, from] of Object.entries(later)) if (map[from] !== undefined && map[to] === undefined) map[to] = map[from]; };
   for (const w of Object.values(WEATHERS)) copyLater(w.effect.buildings);
   for (const d of Object.values(DISASTERS)) copyLater(d.buildings);
@@ -1053,7 +1115,7 @@ const BAR_CATEGORIES = [
   { id: 'wohnen',    name: 'Wohnen',    icon: '🏠', lines: ['wohnen', 'grosswohnen', 'wasserwohnen'] },
   { id: 'nahrung',   name: 'Nahrung',   icon: '🍖', lines: ['sammeln', 'jagen', 'fischen', 'feld', 'tiere'] },
   { id: 'rohstoffe', name: 'Rohstoffe', icon: '🪵', lines: ['holz', 'pflanzen', 'stein', 'ton', 'erz', 'eisenerz', 'kohle', 'zinn', 'silber'] },
-  { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'bronze', 'eisen', 'kleidung', 'werkzeug', 'toepfern', 'schmuck', 'glas', 'salz', 'wagner', 'ziegel', 'muenzen', 'lager', 'handel'] },
+  { id: 'handwerk',  name: 'Handwerk',  icon: '🔨', lines: ['schmelzen', 'bronze', 'eisen', 'kleidung', 'werkzeug', 'toepfern', 'schmuck', 'glas', 'salz', 'wagner', 'ziegel', 'muenzen', 'lager', 'handel', 'hafen'] },
   { id: 'leben',     name: 'Feuer & Glaube', icon: '🔥', lines: ['wunder', 'wunder_bronze', 'wunder_eisen', 'waerme', 'glaube', 'wissen', 'wahrzeichen'] },
   { id: 'wege',      name: 'Wege',      icon: '🛤️', lines: ['weg', 'bruecke'] },
   { id: 'deko',      name: 'Deko',      icon: '🌷', lines: Object.keys(DEKO) },   // nur, was man gekauft und noch nicht aufgestellt hat
@@ -1209,13 +1271,19 @@ const QUESTS = [
   { id: 'q_a_schrift',  text: 'Erforsche die Schrift',    goal: { learn: 'schrift' }, reward: { wissen: 150 } },
   { id: 'q_a_muenzen300', text: 'Präge 300 Münzen',       goal: { made: 'muenzen', count: 300 }, reward: { ziegel: 40 } },
   { id: 'q_a_baeume20', text: 'Fälle 20 Bäume',           goal: { felled: 20 }, reward: { muenzen: 30 } },
+  // Mittlere Antike (V233): Seefahrt
+  { id: 'q_m_hafen',    text: 'Baue einen Hafen',         goal: { build: 'hafen', count: 1 }, reward: { ziegel: 60 } },
+  { id: 'q_m_reisen3',  text: 'Schicke 3 Schiffe auf Reisen', goal: { voyages: 3 }, reward: { muenzen: 60 } },
+  { id: 'q_m_amphoren100', text: 'Stelle 100 Amphoren her', goal: { made: 'amphoren', count: 100 }, reward: { ton: 150 } },
+  { id: 'q_m_oel50',    text: 'Bringe 50 Olivenöl heim',  goal: { made: 'olivenoel', count: 50 }, reward: { muenzen: 50 } },
+  { id: 'q_m_seehandel', text: 'Erforsche den Seehandel', goal: { learn: 'seehandel' }, reward: { wissen: 180 } },
 ];
 // Zeitalter je Auftrag: Ein Auftrag erscheint erst in seinem Abschnitt (Prüfung 07.11.: Einwohner-Aufträge der Eisenzeit
 // waren schon in der Steinzeit erfüllt). Der Abschnitt beginnt beim genannten Auftrag und gilt bis zum nächsten.
 (function questStages(first) {
   let stage = 'alt';
   for (const q of QUESTS) { if (first[q.id]) stage = first[q.id]; if (!q.stage) q.stage = stage; }
-})({ q_pop30: 'mittel', q_acker2: 'jung', q_b_mine: 'kupfer', q_b_handel: 'frueh', q_b_schmuck20: 'spaet', q_e_mine: 'eisen1', q_e_salz: 'eisen2', q_e_glas: 'eisen3', q_a_ziegelei: 'antike1' });
+})({ q_pop30: 'mittel', q_acker2: 'jung', q_b_mine: 'kupfer', q_b_handel: 'frueh', q_b_schmuck20: 'spaet', q_e_mine: 'eisen1', q_e_salz: 'eisen2', q_e_glas: 'eisen3', q_a_ziegelei: 'antike1', q_m_hafen: 'antike2' });
 
 // Tägliche Belohnung: Tag 1–7 hintereinander (Tag 7 ist die große Truhe)
 const DAILY_REWARDS = [
@@ -1229,8 +1297,8 @@ const DAILY_REWARDS = [
 ];
 // Die Belohnung wächst mit dem Zeitalter (Emin, 03.11.): Grundmenge × Faktor, an Tag 3, 5 und 7 dazu Waren der Zeit (Tag 7 doppelt)
 const DAILY_GROWTH = {
-  factor: { alt: 1, mittel: 1.5, jung: 2, kupfer: 3, frueh: 4, spaet: 5, eisen1: 6, eisen2: 7, eisen3: 8, antike1: 9 },
-  extra: { kupfer: { kupfer: 10 }, frueh: { kupfer: 10, bronze: 5 }, spaet: { bronze: 10, schmuck: 3 }, eisen1: { bronze: 10, eisen: 5 }, eisen2: { eisen: 10, salz: 5 }, eisen3: { eisen: 10, salz: 10, glas: 3 }, antike1: { ziegel: 10, muenzen: 20 } },
+  factor: { alt: 1, mittel: 1.5, jung: 2, kupfer: 3, frueh: 4, spaet: 5, eisen1: 6, eisen2: 7, eisen3: 8, antike1: 9, antike2: 10 },
+  extra: { kupfer: { kupfer: 10 }, frueh: { kupfer: 10, bronze: 5 }, spaet: { bronze: 10, schmuck: 3 }, eisen1: { bronze: 10, eisen: 5 }, eisen2: { eisen: 10, salz: 5 }, eisen3: { eisen: 10, salz: 10, glas: 3 }, antike1: { ziegel: 10, muenzen: 20 }, antike2: { ziegel: 10, muenzen: 30, olivenoel: 5 } },
 };
 
 // Wunderwerke: jeder Abschnitt ist ein Kapitel (Zahlen und Texte aus docs/konzept-wunderwerke.md).

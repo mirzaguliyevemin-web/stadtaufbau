@@ -100,7 +100,7 @@ function levelPaidField(b) {
 const CITY_FIRST_NAME = 'Erste Stadt';
 const CITY_LANDS = ['fluss', 'kueste'];
 const CITY_KEYS = ['seed', 'res', 'buildings', 'plots', 'cleared', 'planted', 'saplings', 'hunt', 'disaster', 'disasterCalm', 'disasterNext',
-  'herdWait', 'needSince', 'hunger', 'wishWait', 'trader', 'suedhaendler', 'wanderer', 'wonders', 'spots', 'trips', 'pop',
+  'herdWait', 'needSince', 'hunger', 'wishWait', 'trader', 'suedhaendler', 'wanderer', 'wonders', 'spots', 'trips', 'ships', 'pop',
   'mapSize', 'mapCore', 'torches', 'mapGen', 'foothill'];
 const CITY_SHARED_RES = ['wissen'];   // Waren, die allen Städten gemeinsam gehören
 // Gebirgsausläufer im Stand (seit Version 197): zwei Felder oder „übersprungen“
@@ -250,13 +250,17 @@ function sanitizeState(data) {
   // Auftrags-Zähler (seit V229): kaputte Werte fallen weg
   const pos = v => (Number.isFinite(v) && v >= 0 ? v : 0);
   if (data.tally && typeof data.tally === 'object') {
-    for (const k of ['felled', 'planted', 'finds']) s.tally[k] = pos(data.tally[k]);
+    for (const k of ['felled', 'planted', 'finds', 'voyages']) s.tally[k] = pos(data.tally[k]);
     if (data.tally.made && typeof data.tally.made === 'object')
       for (const [id, n] of Object.entries(data.tally.made)) if (RESOURCES[id]) s.tally.made[id] = pos(n);
   }
   if (data.questBase && typeof data.questBase === 'object')
     for (const [id, n] of Object.entries(data.questBase)) if (Number.isFinite(n) && n >= 0) s.questBase[id] = n;
   s.extraDone = Math.floor(pos(data.extraDone));
+  // Schiffe unterwegs (V233): kaputte Einträge fallen weg
+  if (Array.isArray(data.ships)) s.ships = data.ships.filter(k => k && CONFIG.ship.trips[k.dest] && Number.isFinite(k.left) && k.left >= 0 && k.total > 0
+    && k.loads && typeof k.loads === 'object' && Object.entries(k.loads).every(([id, n]) => CONFIG.ship.value[id] && Number.isInteger(n) && n > 0))
+    .map(k => ({ dest: k.dest, left: k.left, total: k.total, loads: { ...k.loads }, storm: k.storm ? 1 : 0 }));
   if (data.feast && typeof data.feast === 'object') s.feast = { left: pos(data.feast.left), wait: pos(data.feast.wait) };
   if (data.extra && typeof data.extra === 'object' && validQuestGoal(data.extra.goal) && data.extra.reward && typeof data.extra.reward === 'object') {
     const reward = {};

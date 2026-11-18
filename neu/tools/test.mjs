@@ -827,7 +827,7 @@ test('Späte Bronzezeit: Übergang, Schmuck-Bedürfnis, Weiterentwicklung, Ziel 
   ok(g.run(`isUnlocked('fuerstenhuegel')`) === false, 'Fürstenhügel zu früh');
   g.run(`for (const id in TECHS) if (TECHS[id].stage === 'spaet' && !TECHS[id].transition) state.techs[id] = true;`);
   ok(!g.run(`researchProblem('aufbruch_eisenzeit')`).includes('nächsten Ausbau'), 'Eisenzeit noch gesperrt');
-  ok(g.run(`(state.techs.keltenschrift = true, researchProblem('mittlere_antike'))`).includes('nächsten Ausbau'), 'Mittlere Antike startbar, obwohl noch nicht gebaut');
+  ok(g.run(`(state.techs.keltenschrift = true, researchProblem('spaete_antike'))`).includes('nächsten Ausbau'), 'Späte Antike startbar, obwohl noch nicht gebaut');
   g.run(`delete state.techs.keltenschrift;`);
   // Oberfläche
   g.run(`openResearch(); showResearchStage('spaet'); researchListHtml(); selectTech('eisenfund'); techDetailHtml(); selectTech('himmelsscheibe'); techDetailHtml(); researchTopHtml(); showResearchStage('__next'); researchListHtml(); closePage(); renderAll(); drawScene(0.05);`);
@@ -1610,7 +1610,7 @@ test('V231: Frühe Antike – Aufbruch, alle Forschungen erreichbar, Gebäude ba
     const put = t => { const sp = findFreeSpot(t, N, N); if (!sp) return false; const k = state.buildings.length;
       state.buildings.push({ type: t, x: sp.x, y: sp.y, rot: 0, build: 0 }); setOccupied(state.buildings[k], k + 1); return true; };
     const out = { problems: {}, noSpot: [], stages: [], order: [] };
-    const queue = ['aufbruch_antike', ...Object.keys(TECHS).filter(id => TECHS[id].stage === 'antike1' && !TECHS[id].soon)];
+    const queue = ['aufbruch_antike', ...Object.keys(TECHS).filter(id => TECHS[id].stage === 'antike1' && !TECHS[id].transition)];
     for (let round = 0; round < 40 && queue.length; round++) {
       const id = queue.find(t => techStatus(t) === 'available');
       if (!id) break;
@@ -1648,7 +1648,7 @@ test('V231: Frühe Antike – Aufbruch, alle Forschungen erreichbar, Gebäude ba
   ok(!r.noSpot.length, 'Kein Platz für: ' + r.noSpot);
   ok(r.stages.join() === 'antike1', 'Stufe falsch: ' + r.stages);
   ok(r.forum === 'Forum', 'Thingplatz heißt nicht Forum: ' + r.forum);
-  ok(String(r.next).includes('nächsten Ausbau'), 'Mittlere Antike nicht gesperrt: ' + r.next);
+  ok(!String(r.next).includes('nächsten Ausbau'), 'Mittlere Antike noch gesperrt: ' + r.next);
   ok(!r.fehler.length, r.fehler.join('; '));
   ok(r.bar, 'Neue Gebäude fehlen in der Bauleiste');
   // Ketten: Ton + Holz → Ziegel, Silber → Münzen, dazu Steuer
@@ -1672,6 +1672,83 @@ test('V231: Frühe Antike – Aufbruch, alle Forschungen erreichbar, Gebäude ba
   ok(g.run(`loadFromText(serialize()) && state.stage === 'antike1' && state.techs.markt === true`), 'Laden');
   // Römerstraßen (V232): Wege gepflastert, Bauen schneller, Wirkung steht im Forschungsfenster
   ok(g.run(`techSum('paved') > 0 && techSum('buildFaster') >= 0.25 && techEffectText('roemerstrassen').includes('gepflastert')`), 'Römerstraßen wirken nicht');
+  noErrors(g);
+});
+
+test('V233: Mittlere Antike – Forschungen, Gebäude, Hafen mit Schiffsreise, Olivenöl als Bedürfnis, Laden', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const N = Math.floor(CONFIG.mapSize / 2);
+    isConnected = () => true;
+    for (const id in TECHS) if (TECHS[id].stage !== 'antike2' && id !== 'mittlere_antike') state.techs[id] = true;
+    state.stage = 'antike1';
+    const fill = () => { for (const k in RESOURCES) state.res[k] = 5000; state.pop = 900; };
+    const put = t => { const sp = findFreeSpot(t, N, N); if (!sp) return false; const k = state.buildings.length;
+      state.buildings.push({ type: t, x: sp.x, y: sp.y, rot: 0, build: 0 }); setOccupied(state.buildings[k], k + 1); return true; };
+    const out = { problems: {}, noSpot: [], stages: [] };
+    const queue = ['mittlere_antike', ...Object.keys(TECHS).filter(id => TECHS[id].stage === 'antike2' && !TECHS[id].transition)];
+    for (let round = 0; round < 40 && queue.length; round++) {
+      const id = queue.find(t => techStatus(t) === 'available');
+      if (!id) break;
+      queue.splice(queue.indexOf(id), 1);
+      fill();
+      for (const gap of techBuildGaps(id)) for (let n = gap.have; n < gap.need; n++) if (!put(gap.type)) out.noSpot.push(gap.type);
+      rebuildOccupancy(); recalcStats();
+      const problem = startResearch(id);
+      if (problem) { out.problems[id] = problem; continue; }
+      state.research.left = 0.5; update(1);
+      if (!state.techs[id]) out.problems[id] = 'nicht fertig geworden';
+      if (TECHS[id].transition) out.stages.push(state.stage);
+    }
+    out.rest = queue;
+    out.next = researchProblem('spaete_antike');
+    out.fehler = [];
+    for (const [id, d] of Object.entries(BUILDINGS)) {
+      if (d.stage !== 'antike2') continue;
+      if (!d.requires || !TECHS[d.requires]) out.fehler.push(id + ': keine Forschung');
+      if (!findFreeSpot(id, N, N)) out.fehler.push(id + ': kein Platz');
+      if (!WORK[id] && d.workers) out.fehler.push(id + ': keine Bewegung');
+      if (!barEntries().some(e => e.type === id) && !Object.values(BUILDINGS).some(o => o.upgradeTo === id)) out.fehler.push(id + ': nicht in der Bauleiste');
+    }
+    out.oel = activeNeeds().some(n => n.id === 'olivenoel');
+    out.ships = shipCount();
+    return out;
+  })()`);
+  ok(!Object.keys(r.problems).length, 'Forschung hängt: ' + JSON.stringify(r.problems));
+  ok(!r.rest.length, 'Nicht erreichbar: ' + r.rest);
+  ok(!r.noSpot.length, 'Kein Platz für: ' + r.noSpot);
+  ok(r.stages.join() === 'antike2', 'Stufe falsch: ' + r.stages);
+  ok(String(r.next).includes('nächsten Ausbau'), 'Späte Antike nicht gesperrt: ' + r.next);
+  ok(!r.fehler.length, r.fehler.join('; '));
+  ok(r.oel, 'Olivenöl ist kein Bedürfnis');
+  ok(r.ships === 2, 'Schiffe: ' + r.ships);
+  // Schiffsreise: Ladung bezahlen, Sturm höchstens verzögern, Rückfracht ins Lager und in die Auftrags-Zähler
+  const s = g.run(`(() => {
+    const out = {};
+    for (const k in RESOURCES) state.res[k] = 100;
+    state.res.nahrung = 500;
+    out.ohne = shipProblem('oelinseln', {});
+    out.zuviel = shipProblem('oelinseln', { nahrung: 9 });
+    const before = state.res.nahrung, oel = state.res.olivenoel;
+    out.send = sendShip('oelinseln', { nahrung: 2 });
+    out.paid = before - state.res.nahrung;
+    out.unterwegs = state.ships.length;
+    out.saved = loadFromText(serialize()) && state.ships.length === 1 && state.ships[0].loads.nahrung === 2;
+    for (let i = 0; i < 1000 && state.ships.length; i++) { state.res.nahrung = 500; update(1); }
+    out.zurueck = state.ships.length === 0;
+    out.oel = state.res.olivenoel - oel;
+    out.voyages = state.tally.voyages;
+    out.made = state.tally.made.olivenoel || 0;
+    out.harbor = harborHtml(state.buildings.findIndex(b => b.type === 'hafen')).includes('Ablegen');
+    return out;
+  })()`);
+  ok(s.ohne && s.zuviel, 'Schiff legt ohne/mit zu viel Ladung ab: ' + JSON.stringify(s));
+  ok(s.send === null && s.paid === 200 && s.unterwegs === 1, 'Ablegen: ' + JSON.stringify(s));
+  ok(s.saved, 'Schiff übersteht Speichern nicht');
+  ok(s.zurueck && s.voyages === 1 && s.made >= 70, 'Rückfahrt: ' + JSON.stringify(s));
+  ok(s.harbor, 'Hafenfenster ohne Ablegen-Knopf');
+  // kaputte Schiffe im Spielstand fallen weg
+  ok(g.run(`(() => { const d = JSON.parse(serialize()); d.ships = [{ dest: 'mond', left: 5, total: 9, loads: { nahrung: 1 } }, { dest: 'kueste', left: 5, total: 9, loads: { gold: 1 } }, null]; return loadFromText(JSON.stringify(d)) && state.ships.length === 0; })()`), 'Kaputte Schiffe geladen');
   noErrors(g);
 });
 
@@ -3326,11 +3403,11 @@ test('Eisenzeit: Alle Forschungen führen bis zur Späten Eisenzeit, jedes Gebä
   ok(w.steps.every(p => p === null), 'Salzberg hängt: ' + JSON.stringify(w.steps));
   ok(w.salz > 0, 'Salzberg gibt kein Salz: ' + JSON.stringify(w));
   // Der gesperrte Aufbruch sagt ehrlich, dass er noch nicht kommt
-  g.run(`for (const id in TECHS) if (TECHS[id].stage === 'antike1' && !TECHS[id].transition) state.techs[id] = true;`);
+  g.run(`for (const id in TECHS) if (TECHS[id].stage.startsWith('antike') && !TECHS[id].soon) state.techs[id] = true; state.stage = 'antike2';`);
   ok(g.run(`researchTopHtml()`).includes('nächsten Ausbau') && !g.run(`researchTopHtml()`).includes('Alles bereit'), 'Zielzeile falsch');
-  ok(g.run(`researchHint('mittlere_antike').label`).includes('nächsten Ausbau'), 'Knopf falsch');
+  ok(g.run(`researchHint('spaete_antike').label`).includes('nächsten Ausbau'), 'Knopf falsch');
   // Spielstand: Antike bleibt nach dem Laden erhalten
-  ok(g.run(`loadFromText(serialize()) && state.stage === 'antike1' && state.techs.keltenschrift === true`), 'Laden');
+  ok(g.run(`loadFromText(serialize()) && state.stage === 'antike2' && state.techs.keltenschrift === true`), 'Laden');
   noErrors(g);
 });
 

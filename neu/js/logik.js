@@ -492,7 +492,7 @@ function housingTotal() {
 function needProviders(n) {
   return Object.keys(BUILDINGS).filter(t => {
     const d = BUILDINGS[t];
-    return n.kind === 'stock' ? !!(d.produces && d.produces[n.id]) : n.id === 'waerme' ? !!d.warmth : !!d.belief;
+    return n.kind === 'stock' ? !!((d.produces && d.produces[n.id]) || (d.shipGoods && d.shipGoods.includes(n.id))) : n.id === 'waerme' ? !!d.warmth : !!d.belief;   // Öl kommt mit dem Hafen
   });
 }
 
@@ -1454,9 +1454,10 @@ function questCounter(g) {
   if (g.felled) return state.tally.felled;
   if (g.planted) return state.tally.planted;
   if (g.finds) return state.tally.finds;
+  if (g.voyages) return state.tally.voyages;
   return null;
 }
-function questNeed(g) { return g.made ? g.count : g.felled || g.planted || g.finds; }
+function questNeed(g) { return g.made ? g.count : g.felled || g.planted || g.finds || g.voyages; }
 
 // Gebäude dieser Art und ihre Weiterentwicklungen. mixed: große Wohnhäuser zählen bei den kleinen mit („Habe 8 Wohnungen“).
 function questLineCount(type, mixed) {
@@ -1488,6 +1489,7 @@ function questBlocked(q) {
   if (g.made) return !hasMaker(g.made);
   if (g.felled) return !hasWorking(def => def.fellsTrees);
   if (g.planted) return !hasWorking(def => def.plants);
+  if (g.voyages) return !hasWorking(def => def.harbor);
   if (g.finds) return !Object.keys(FINDS).some(id => findAvailable(id));
   // die Stufe gibt es erst in einem späteren Zeitalter, oder ihre Extra-Ware (Werkzeug, Bronze) kann noch niemand herstellen
   if (g.level) return maxLevel() < g.level || Object.keys(levelGoods(g.level)).some(id => !hasMaker(id));
@@ -1529,7 +1531,7 @@ function activeQuests() {
 
 // Kann der Stamm diese Ware schon herstellen?
 function hasMaker(id) {
-  return Object.keys(BUILDINGS).some(type => BUILDINGS[type].produces && BUILDINGS[type].produces[id] && isUnlocked(type));
+  return Object.keys(BUILDINGS).some(type => ((BUILDINGS[type].produces && BUILDINGS[type].produces[id]) || (BUILDINGS[type].shipGoods && BUILDINGS[type].shipGoods.includes(id))) && isUnlocked(type));
 }
 
 function updateWishes(dt) {
@@ -1704,6 +1706,7 @@ function update(dt) {
   updateStockWatch(dt);
   updateQuests(dt);
   updateFeast(dt);
+  updateShips(dt);
 }
 
 // ---------------------------------------------------------------------
@@ -1730,10 +1733,73 @@ function holdFeast() {
   return true;
 }
 
+// ---------------------------------------------------------------------
+// Schiffsreise (Mittlere Antike, CONFIG.ship): am Hafen Ziel wählen und Tauschware laden.
+// state.ships = Schiffe unterwegs: { dest, left, total, loads: { ware: Ladungen }, storm }
+// ---------------------------------------------------------------------
+function harbors() { return state.buildings.map((b, i) => i).filter(i => BUILDINGS[state.buildings[i].type].harbor && !state.buildings[i].build && isConnected(i)); }
+function shipCount() { return techSum('ships'); }
+function shipsFree() { return harbors().length ? Math.max(0, shipCount() - state.ships.length) : 0; }
+// Menge einer Ware für eine Ladung (so viel, dass sie CONFIG.ship.points wert ist)
+function shipLoadSize(id) { const c = CONFIG.ship; return Math.ceil(c.points / c.value[id]); }
+function shipLoadCost(loads) {
+  const cost = {};
+  for (const [id, n] of Object.entries(loads)) if (n > 0) cost[id] = (cost[id] || 0) + n * shipLoadSize(id);
+  return cost;
+}
+function shipLoadCount(loads) { return Object.values(loads).reduce((a, n) => a + n, 0); }
+// Was kommt zurück? Je Ladung einmal die Rückfracht des Ziels
+function shipReturn(dest, count) {
+  const out = {};
+  for (const [id, n] of Object.entries(CONFIG.ship.trips[dest].brings)) out[id] = n * count;
+  return out;
+}
+// Grund, warum das Schiff nicht ablegen kann (oder null)
+function shipProblem(dest, loads) {
+  const c = CONFIG.ship, n = shipLoadCount(loads);
+  if (!c.trips[dest]) return 'Unbekanntes Ziel';
+  if (!harbors().length) return 'Erst einen Hafen bauen';
+  if (shipsFree() <= 0) return 'Alle Schiffe sind unterwegs';
+  if (n < 1) return 'Erst Tauschware laden';
+  if (n > c.maxLoads) return `Höchstens ${c.maxLoads} Ladungen`;
+  if (Object.keys(loads).some(id => !c.value[id])) return 'Diese Ware nimmt das Schiff nicht';
+  if (!canAfford(shipLoadCost(loads))) return 'Nicht genug Tauschware im Lager';
+  return null;
+}
+function sendShip(dest, loads) {
+  const problem = shipProblem(dest, loads);
+  if (problem) return problem;
+  const c = CONFIG.ship;
+  payCost(shipLoadCost(loads));
+  // Sturm: gewürfelt aus Spielstand und Zahl der Reisen, damit Neuladen nichts ändert
+  const storm = hash(state.tally.voyages * 31 + dest.length, state.seed % 9973) < c.stormChance;
+  const total = Math.round(c.trips[dest].seconds * (storm ? 1 + c.stormLonger : 1));
+  const clean = {};
+  for (const [id, n] of Object.entries(loads)) if (n > 0) clean[id] = n;
+  state.ships.push({ dest, left: total, total, loads: clean, storm: storm ? 1 : 0 });
+  state.tally.voyages++;
+  emit('shipSent', dest);
+  return null;
+}
+function updateShips(dt) {
+  for (let i = state.ships.length - 1; i >= 0; i--) {
+    const s = state.ships[i];
+    s.left = Math.max(0, s.left - dt);
+    if (s.left > 0) continue;
+    state.ships.splice(i, 1);
+    const got = shipReturn(s.dest, shipLoadCount(s.loads));
+    const before = { ...state.res };
+    addResources(got);
+    for (const id of Object.keys(got)) state.tally.made[id] = (state.tally.made[id] || 0) + Math.max(0, (state.res[id] || 0) - (before[id] || 0));
+    emit('shipBack', { dest: s.dest, got, storm: s.storm });
+  }
+}
+
 // Läuft die Zeit nach, in der das Spiel zu war. Gibt zurück, was dazugekommen ist.
 // Während offline nachgerechnet wird: keine Fenster öffnen, sondern Wichtiges für „Willkommen zurück“ sammeln
 let offlineRunning = false, offlineEvents = [], offlineStarved = 0;
 on('starved', () => { if (offlineRunning) offlineStarved++; });
+on('shipBack', s => { if (offlineRunning) offlineEvents.push(`⛵ Schiff zurück von ${CONFIG.ship.trips[s.dest].name}: +${formatAmounts(s.got)}`); });
 on('disaster', id => { if (offlineRunning) offlineEvents.push(`${DISASTERS[id].icon} ${DISASTERS[id].name}: ${DISASTERS[id].text}`); });
 on('researchStarted', id => { if (offlineRunning) offlineEvents.push(`📌 Von selbst gestartet: ${TECHS[id].name}`); });
 on('researchDone', id => { if (offlineRunning) offlineEvents.push(`📜 Erforscht: ${TECHS[id].name}${TECHS[id].effect && TECHS[id].effect.stage ? ' – ein neues Zeitalter beginnt!' : ''}`); });

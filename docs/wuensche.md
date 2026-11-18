@@ -27,6 +27,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 ## Erledigt
 
+- 18.11., V233: Antike Schritt 2 – Mittlere Antike frei: Hafen mit Schiffsreise (Nahe Küste, Ölinseln, Ferne Länder; Tauschware laden, Sturm verzögert nur), Olivenöl als Bedürfnis ab Schiffbau, Amphoren, Marmor, 10 Weiterentwicklungen, 12 Forschungen, 5 Aufträge. Fehler behoben: Forstmeisterin pflanzte keine Bäume. Bilder vorläufig.
 - 18.11., V232: Römerstraßen – Forschung pflastert alle Wege (graues Pflaster), Leute laufen schneller, Bauen +10 %, Händler kommen 2 min früher.
 - 18.11., V231: Antike Schritt 1 – Aufbruch in die Antike frei, Frühe Antike mit Ziegel, Silber, Münzen, Steuer, Forum, Markt (Kaufen mit Münzen), 8 Weiterentwicklungen, 3 neue Gebäude, 10 Forschungen (Römerstraßen folgt), 5 Aufträge. Bilder vorläufig.
 - 18.11., V230: Mehr Ausgaben für Nahrung und Holz – Feuer verbrennen Brennholz (Winter doppelt, ohne Holz keine Wärme), Arbeiter essen Proviant (ohne nur halbe Arbeit), freiwilliges 🎉 Festmahl im Auftragsfenster.

@@ -44,7 +44,8 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     wonders: {},             // Wunderwerk → { step: fertige Abschnitte, left: Restzeit des laufenden Abschnitts }
     finds: {},               // Fundstück → Anzahl
     spots: [],               // Fundstellen auf der Karte: { kind, x, y, find }
-    trips: [],               // unterwegs zu einer Fundstelle: { id, left, total, cx, cy, x, y, kind, find }
+    trips: [],
+    ships: [],               // Schiffe unterwegs (Mittlere Antike): { dest, left, total, loads, storm }               // unterwegs zu einer Fundstelle: { id, left, total, cx, cy, x, y, kind, find }
     basket: [],              // Fundkorb: Fundstücke aus der Zeit, in der das Spiel zu war
     fund: { rng: 0, spotWait: CONFIG.finds.firstSpot, oreWait: CONFIG.finds.oreEvery / 4, luck: {}, luckTick: 0, glutNight: -1, sternNight: -1, ores: 0, tripId: 0, used: {}, ever: {}, boulderWait: 30 },
     disasterNext: null,      // angekündigte Katastrophe (Steinkreis warnt): { id, left }
@@ -53,7 +54,7 @@ function newState(seed = Math.floor(Math.random() * 1e9)) {
     yearTime: 0,
     playTime: 0,
     quests: {},              // id → true, wenn abgeholt
-    tally: { made: {}, felled: 0, planted: 0, finds: 0 },   // Zähler für Aufträge (V229): hergestellt je Ware, gefällt, gepflanzt, gefunden
+    tally: { made: {}, felled: 0, planted: 0, finds: 0, voyages: 0 },   // Zähler für Aufträge (V229): hergestellt je Ware, gefällt, gepflanzt, gefunden
     questBase: {},           // Auftrag → Zählerstand, als er erschien (gezählt wird erst ab da)
     extra: null,             // zufälliger Zusatzauftrag { n, goal, reward } (V229)
     extraDone: 0,            // so viele Zusatzaufträge wurden abgeholt

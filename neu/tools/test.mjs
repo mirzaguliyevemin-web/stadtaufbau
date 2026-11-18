@@ -270,7 +270,7 @@ test('Weiterentwickeln: Wohnhöhle → Fellzelt; größeres Langhaus braucht Pla
   ok(g.run('housingOf("fellzelt")') === 5 && g.run('stats.housing') === 8, 'Wohnplätze falsch: ' + g.run('stats.housing'));
   // Zwei Wohn-Reihen (Emin, 07.11.): das kleine Haus bleibt 2×2 und wird feiner, das Langhaus ist eine eigene Reihe
   const reihe = g.run(`(() => { const r = []; let t = 'wohnhoehle'; while (t) { r.push(t + ':' + BUILDINGS[t].size); t = BUILDINGS[t].upgradeTo; } return r.join(' '); })()`);
-  ok(reihe === 'wohnhoehle:2 fellzelt:2 grubenhaus:2 flechtwerkhaus:2 steinhaus:2', 'Kleine Häuser falsch: ' + reihe);
+  ok(reihe === 'wohnhoehle:2 fellzelt:2 grubenhaus:2 flechtwerkhaus:2 steinhaus:2 ziegelhaus:2', 'Kleine Häuser falsch: ' + reihe);
   ok(g.run(`BUILDINGS.langhaus.line !== BUILDINGS.grubenhaus.line && !BUILDINGS.langhaus.upgradeOnly`), 'Langhaus nicht eigene Reihe');
   ok(g.run(`BAR_CATEGORIES.find(c => c.id === 'wohnen').lines.includes(BUILDINGS.langhaus.line)`), 'Langhaus fehlt in der Bauleiste');
   // Große Häuser zählen weiter als Wohnungen (Aufträge, Forschungen)
@@ -687,7 +687,7 @@ test('Metall-Kette läuft wirklich: Erz + Kohle → Kupfer, Kupfer + Zinn → Br
 
 test('Händler: kommt nur mit Handelsplatz, bleibt, tauscht einmal je Angebot, kommt nicht offline', () => {
   const g = fresh();
-  g.run(`for (const id in TECHS) if (!['frueh', 'spaet'].includes(TECHS[id].stage) && !TECHS[id].stage.startsWith('eisen') || id === 'tauschhandel') state.techs[id] = true;
+  g.run(`for (const id in TECHS) if (!['frueh', 'spaet'].includes(TECHS[id].stage) && !TECHS[id].stage.startsWith('eisen') && !TECHS[id].stage.startsWith('antike') || id === 'tauschhandel') state.techs[id] = true;
     state.stage = 'frueh'; state.pop = 20;
     for (const id in RESOURCES) state.res[id] = 200;`);
   g.run(`for (let i = 0; i < 300; i++) { update(1); state.res.nahrung = 200; }`);
@@ -808,7 +808,7 @@ test('Rad und Wagen: Bauen geht schneller; alte Stände ohne Händler laden', ()
 test('Späte Bronzezeit: Übergang, Schmuck-Bedürfnis, Weiterentwicklung, Ziel noch gesperrt', () => {
   const g = fresh();
   g.run(`for (const id of Object.keys(TECH_NEEDS)) delete TECH_NEEDS[id];
-    for (const id in TECHS) if (TECHS[id].stage !== 'spaet' && !TECHS[id].stage.startsWith('eisen') && id !== 'spaete_bronzezeit') state.techs[id] = true;
+    for (const id in TECHS) if (TECHS[id].stage !== 'spaet' && !TECHS[id].stage.startsWith('eisen') && !TECHS[id].stage.startsWith('antike') && id !== 'spaete_bronzezeit') state.techs[id] = true;
     state.stage = 'frueh'; state.pop = 210; state.res.wissen = 999; state.res.bronze = 100; state.res.kleidung = 100; state.res.nahrung = 500;
     const m = Math.floor(N / 2) + 12;
     state.buildings.push({ type: 'lehmhaus', x: m, y: m, rot: 0, build: 0 }, { type: 'ahnenplatz', x: m + 4, y: m, rot: 0, build: 0 }, { type: 'vorratsspeicher', x: m + 8, y: m, rot: 0, build: 0 }, { type: 'felsritzer', x: m + 12, y: m, rot: 0, build: 0 });
@@ -827,7 +827,7 @@ test('Späte Bronzezeit: Übergang, Schmuck-Bedürfnis, Weiterentwicklung, Ziel 
   ok(g.run(`isUnlocked('fuerstenhuegel')`) === false, 'Fürstenhügel zu früh');
   g.run(`for (const id in TECHS) if (TECHS[id].stage === 'spaet' && !TECHS[id].transition) state.techs[id] = true;`);
   ok(!g.run(`researchProblem('aufbruch_eisenzeit')`).includes('nächsten Ausbau'), 'Eisenzeit noch gesperrt');
-  ok(g.run(`(state.techs.keltenschrift = true, researchProblem('aufbruch_antike'))`).includes('nächsten Ausbau'), 'Antike startbar, obwohl noch nicht gebaut');
+  ok(g.run(`(state.techs.keltenschrift = true, researchProblem('mittlere_antike'))`).includes('nächsten Ausbau'), 'Mittlere Antike startbar, obwohl noch nicht gebaut');
   g.run(`delete state.techs.keltenschrift;`);
   // Oberfläche
   g.run(`openResearch(); showResearchStage('spaet'); researchListHtml(); selectTech('eisenfund'); techDetailHtml(); selectTech('himmelsscheibe'); techDetailHtml(); researchTopHtml(); showResearchStage('__next'); researchListHtml(); closePage(); renderAll(); drawScene(0.05);`);
@@ -1596,6 +1596,80 @@ test('Bäume: Holzsammler fällen sie nach und nach, Pflanzerin setzt Setzlinge,
   ok(r[2] === r[1], 'Setzlinge nicht gespeichert: ' + r);
   ok(r[3] >= 3, 'Setzlinge werden keine Bäume: ' + r);
   ok(r[4], 'gewachsene Bäume nach dem Laden weg: ' + r);
+  noErrors(g);
+});
+
+test('V231: Frühe Antike – Aufbruch, alle Forschungen erreichbar, Gebäude baubar, Ziegel- und Münzkette, Steuer, Forum, Markt', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const N = Math.floor(CONFIG.mapSize / 2);
+    isConnected = () => true;
+    for (const id in TECHS) if (!TECHS[id].stage.startsWith('antike') && id !== 'aufbruch_antike') state.techs[id] = true;
+    state.stage = 'eisen3';
+    const fill = () => { for (const k in RESOURCES) state.res[k] = 5000; state.pop = 800; };
+    const put = t => { const sp = findFreeSpot(t, N, N); if (!sp) return false; const k = state.buildings.length;
+      state.buildings.push({ type: t, x: sp.x, y: sp.y, rot: 0, build: 0 }); setOccupied(state.buildings[k], k + 1); return true; };
+    const out = { problems: {}, noSpot: [], stages: [], order: [] };
+    const queue = ['aufbruch_antike', ...Object.keys(TECHS).filter(id => TECHS[id].stage === 'antike1' && !TECHS[id].soon)];
+    for (let round = 0; round < 40 && queue.length; round++) {
+      const id = queue.find(t => techStatus(t) === 'available');
+      if (!id) break;
+      queue.splice(queue.indexOf(id), 1);
+      fill();
+      for (const gap of techBuildGaps(id)) {
+        if (BUILDINGS[gap.type].wonder) { state.buildings.push({ type: gap.type, x: 5 + round, y: 5, rot: 0, build: 0 }); state.wonders[gap.type] = { step: 9, done: true }; continue; }
+        for (let n = gap.have; n < gap.need; n++) if (!put(gap.type)) out.noSpot.push(gap.type);
+      }
+      rebuildOccupancy(); recalcStats();
+      const problem = startResearch(id);
+      if (problem) { out.problems[id] = problem; continue; }
+      state.research.left = 0.5; update(1);
+      if (!state.techs[id]) out.problems[id] = 'nicht fertig geworden';
+      out.order.push(id);
+      if (TECHS[id].transition) out.stages.push(state.stage);
+    }
+    out.rest = queue;
+    applyEpochTheme();
+    out.forum = BUILDINGS.lagerfeuer.name;
+    out.next = researchProblem('mittlere_antike');
+    // jedes Antike-Gebäude: Forschung, Platz, Bild der Vorstufe oder Platzhalter
+    out.fehler = [];
+    for (const [id, d] of Object.entries(BUILDINGS)) {
+      if (d.stage !== 'antike1') continue;
+      if (!d.requires || !TECHS[d.requires]) out.fehler.push(id + ': keine Forschung');
+      if (!findFreeSpot(id, N, N)) out.fehler.push(id + ': kein Platz');
+      if (!WORK[id] && d.workers) out.fehler.push(id + ': keine Bewegung');
+    }
+    out.bar = ['ziegelei', 'silbermine', 'muenzpraegerei'].every(t => barEntries().some(e => e.type === t && !e.locked));
+    return out;
+  })()`);
+  ok(!Object.keys(r.problems).length, 'Forschung hängt: ' + JSON.stringify(r.problems));
+  ok(!r.rest.length, 'Nicht erreichbar: ' + r.rest);
+  ok(!r.noSpot.length, 'Kein Platz für: ' + r.noSpot);
+  ok(r.stages.join() === 'antike1', 'Stufe falsch: ' + r.stages);
+  ok(r.forum === 'Forum', 'Thingplatz heißt nicht Forum: ' + r.forum);
+  ok(String(r.next).includes('nächsten Ausbau'), 'Mittlere Antike nicht gesperrt: ' + r.next);
+  ok(!r.fehler.length, r.fehler.join('; '));
+  ok(r.bar, 'Neue Gebäude fehlen in der Bauleiste');
+  // Ketten: Ton + Holz → Ziegel, Silber → Münzen, dazu Steuer
+  const c = g.run(`(() => {
+    const N = Math.floor(CONFIG.mapSize / 2);
+    state.buildings = state.buildings.filter(b => BUILDINGS[b.type].housing || b.type === 'lagerfeuer'); rebuildOccupancy();
+    for (const t of ['tonwerk', 'ziegelei', 'silbermine', 'muenzpraegerei']) {
+      const sp = findFreeSpot(t, N, N), k = state.buildings.length;
+      state.buildings.push({ type: t, x: sp.x, y: sp.y, rot: 0, build: 0 }); setOccupied(state.buildings[k], k + 1);
+    }
+    for (const k in RESOURCES) state.res[k] = 0;
+    Object.assign(state.res, { nahrung: 900, holz: 900, stein: 900, kleidung: 200, toepferwaren: 200, werkzeug: 50, salz: 100, wolle: 100, felle: 100 });
+    state.pop = 60; recalcStats();
+    for (let i = 0; i < 180; i++) { state.pop = 60; state.res.nahrung = 900; state.res.holz = 900; update(1); }
+    return { ziegel: state.res.ziegel, silber: state.res.silber, muenzen: state.res.muenzen, steuer: (stats.flows.muenzen || { in: {} }).in.__tax || 0 };
+  })()`);
+  ok(c.ziegel > 0 && c.muenzen > 0, 'Ketten liefern nicht: ' + JSON.stringify(c));
+  ok(c.steuer > 0, 'Keine Steuer: ' + JSON.stringify(c));
+  // Markt: Händler nimmt Münzen, und der Stand lädt in der Antike
+  ok(g.run(`CONFIG.trader.offers.some(o => o.requires === 'markt' && o.give.muenzen)`), 'Markt-Angebote fehlen');
+  ok(g.run(`loadFromText(serialize()) && state.stage === 'antike1' && state.techs.markt === true`), 'Laden');
   noErrors(g);
 });
 
@@ -3014,7 +3088,7 @@ test('Design: jede Stufe hat eine Farbwelt, Lager zeigt Füllstand und knappe Wa
   const g = fresh();
   const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
   const welten = g.run(`[...new Set(STAGES.map(s => s.zeit))].join()`).split(',');
-  ok(g.run(`STAGES.every(s => s.zeit)`) && welten.length === 4, 'Farbwelten falsch: ' + welten);
+  ok(g.run(`STAGES.every(s => s.zeit)`) && welten.length === 5, 'Farbwelten falsch: ' + welten);
   for (const z of welten) ok(z === 'stein' || css.includes(`html[data-zeit=${z}]`), 'Farbwelt fehlt in style.css: ' + z);
   ok(g.run(`state.res.holz = 100; state.res.stein = 0; stats.rates.holz = -100; stockWatch.warned = {}; const h = lagerHtml(); h.includes('lager-fill') && h.indexOf('Wird knapp') < h.indexOf('Rohstoffe')`), 'Knappe Ware steht nicht oben');
   ok(g.run(`const h2 = lagerHtml(); (h2.match(/resourceTip\\('holz'\\)/g) || []).length === 1`), 'Knappe Ware steht doppelt');
@@ -3153,7 +3227,7 @@ test('Eisenzeit: Alle Forschungen führen bis zur Späten Eisenzeit, jedes Gebä
     const N = Math.floor(CONFIG.mapSize / 2);
     isConnected = () => true;
     const eisen = t => t.stage && t.stage.startsWith('eisen');
-    for (const id in TECHS) if (!eisen(TECHS[id]) && !TECHS[id].soon && id !== 'aufbruch_eisenzeit') state.techs[id] = true;
+    for (const id in TECHS) if (!eisen(TECHS[id]) && !TECHS[id].stage.startsWith('antike') && !TECHS[id].soon && id !== 'aufbruch_eisenzeit' && id !== 'aufbruch_antike') state.techs[id] = true;
     state.stage = 'spaet';
     const fill = () => { for (const k in RESOURCES) state.res[k] = 5000; state.pop = 700; };
     const put = t => {
@@ -3189,8 +3263,7 @@ test('Eisenzeit: Alle Forschungen führen bis zur Späten Eisenzeit, jedes Gebä
   ok(!Object.keys(r.problems).length, 'Forschung hängt: ' + JSON.stringify(r.problems));
   ok(!r.rest.length, 'Nicht erreichbar: ' + r.rest);
   ok(!r.noSpot.length, 'Kein Platz für: ' + r.noSpot);
-  ok(r.stages.join() === 'eisen1,eisen2,eisen3', 'Stufen falsch: ' + r.stages);
-  ok(g.run(`researchProblem('aufbruch_antike')`).includes('nächsten Ausbau'), 'Antike nicht gesperrt');
+  ok(r.stages.join() === 'eisen1,eisen2,eisen3,antike1', 'Stufen falsch: ' + r.stages);
   // Jedes neue Gebäude: hat eine Forschung, findet einen Platz, steht in der Bauleiste oder entsteht als Ausbau
   const b = g.run(`(() => {
     const N = Math.floor(CONFIG.mapSize / 2), fehler = [];
@@ -3251,10 +3324,11 @@ test('Eisenzeit: Alle Forschungen führen bis zur Späten Eisenzeit, jedes Gebä
   ok(w.steps.every(p => p === null), 'Salzberg hängt: ' + JSON.stringify(w.steps));
   ok(w.salz > 0, 'Salzberg gibt kein Salz: ' + JSON.stringify(w));
   // Der gesperrte Aufbruch sagt ehrlich, dass er noch nicht kommt
+  g.run(`for (const id in TECHS) if (TECHS[id].stage === 'antike1' && !TECHS[id].transition) state.techs[id] = true;`);
   ok(g.run(`researchTopHtml()`).includes('nächsten Ausbau') && !g.run(`researchTopHtml()`).includes('Alles bereit'), 'Zielzeile falsch');
-  ok(g.run(`researchHint('aufbruch_antike').label`).includes('nächsten Ausbau'), 'Knopf falsch');
-  // Spielstand: Eisenzeit bleibt nach dem Laden erhalten
-  ok(g.run(`loadFromText(serialize()) && state.stage === 'eisen3' && state.techs.keltenschrift === true`), 'Laden');
+  ok(g.run(`researchHint('mittlere_antike').label`).includes('nächsten Ausbau'), 'Knopf falsch');
+  // Spielstand: Antike bleibt nach dem Laden erhalten
+  ok(g.run(`loadFromText(serialize()) && state.stage === 'antike1' && state.techs.keltenschrift === true`), 'Laden');
   noErrors(g);
 });
 

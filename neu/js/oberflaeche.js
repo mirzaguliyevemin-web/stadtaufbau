@@ -140,7 +140,7 @@ function setCssVar(name, value) {
 // Farbwelt des Zeitalters: <html data-zeit="stein|kupfer|bronze|eisen">, die Farben stehen in style.css
 function applyEpochTheme() {
   const st = STAGES[stageIndex()];
-  BUILDINGS.lagerfeuer.name = stageReached('eisen1') ? 'Thingplatz' : stageReached('kupfer') ? 'Dorfplatz' : 'Lagerfeuer';
+  BUILDINGS.lagerfeuer.name = stageReached('antike1') ? 'Forum' : stageReached('eisen1') ? 'Thingplatz' : stageReached('kupfer') ? 'Dorfplatz' : 'Lagerfeuer';
   // Ab der Kupferzeit zeigt der Dorfplatz sein eigenes Bild (sobald es geladen ist, bis dahin das Lagerfeuer)
   BUILDINGS.lagerfeuer.bild = stageReached('kupfer') && typeof images !== 'undefined' && images['2-dorfplatz'] ? '2-dorfplatz' : '1-lagerfeuer';
   if (typeof document !== 'undefined' && document.documentElement && document.documentElement.dataset) document.documentElement.dataset.zeit = st.zeit;
@@ -191,7 +191,7 @@ function goodEffects(id) {
 function resourceTip(id) {
   const r = RESOURCES[id], f = (stats.flows || {})[id] || { in: {}, out: {} };
   const count = type => state.buildings.filter(b => b.type === type && !b.build).length;
-  const who = k => (k === '__pop' ? `👥 ${Math.floor(state.pop)} Einwohner` : k === '__fuel' ? '🔥 Brennholz für die Feuer' : k === '__food' ? '🍖 Proviant für die Arbeiter' : `${BUILDINGS[k].icon} ${esc(BUILDINGS[k].name)} ×${count(k)}`);
+  const who = k => (k === '__pop' ? `👥 ${Math.floor(state.pop)} Einwohner` : k === '__fuel' ? '🔥 Brennholz für die Feuer' : k === '__tax' ? '🏠 Steuer der Häuser' : k === '__food' ? '🍖 Proviant für die Arbeiter' : `${BUILDINGS[k].icon} ${esc(BUILDINGS[k].name)} ×${count(k)}`);
   const rows = (obj, sign) => Object.entries(obj).filter(([, n]) => n > 0.005).sort((a, b) => b[1] - a[1])
     .map(([k, n]) => `<div><span>${who(k)}</span><b class="${sign === '+' ? 'good' : 'bad'}">${sign}${perMin(n)}</b></div>`).join('') || '<div><small>nichts</small></div>';
   const net = stats.rates[id] || 0, stock = state.res[id] || 0, cap = storageCap();
@@ -1620,7 +1620,7 @@ function openMenu() {
 }
 function refreshMenu() { if (pageOpen === 'menu') $('page-body').innerHTML = menuHtml(); }
 
-const SLOT_PICTURES = { alt: '1-lagerfeuer', mittel: '1-grubenhaus', jung: '1-langhaus', kupfer: '1-langhaus', eisen1: '1-langhaus', eisen2: '1-langhaus', eisen3: '1-langhaus' };
+const SLOT_PICTURES = { alt: '1-lagerfeuer', mittel: '1-grubenhaus', jung: '1-langhaus', kupfer: '1-langhaus', eisen1: '1-langhaus', eisen2: '1-langhaus', eisen3: '1-langhaus', antike1: '1-langhaus' };
 
 function slotsHtml(inGame) {
   return '<div class="slots">' + SLOTS.map(slot => {

@@ -452,6 +452,13 @@ Object.assign(WORK, {
   wagner:       { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#a8743f', swing: 'knap', anim: 'schmieden' },   // beschlägt das Rad
   zinnwaescherin: { target: 'wasser', tool: null,    carry: null, img: 'mensch-frau', chips: '#cfe9f7', swing: 'pan', anim: 'waschen' },    // schwenkt die Pfanne am Ufer
 });
+// Frühe Antike: bis zu eigenen Bildern die Bewegung der Vorstufe bzw. die passendste vorhandene
+Object.assign(WORK, {
+  gutshof: WORK.eisenfeld, marmorbruch: WORK.grosser_steinbruch, schreibstube: WORK.druide, werkstatt: WORK.eisenschmied, tonwerk: WORK.grosse_lehmgrube,
+  ziegelei:       { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#c0603a', swing: 'tend', anim: 'stochern' },   // schürt den Brennofen
+  silbermine:     { ...WORK.eisenmine, chips: '#c8ccd2' },
+  muenzpraegerei: { target: 'self', tool: null,    carry: null, img: 'mensch-mann', chips: '#d8dce2', swing: 'knap', anim: 'schmieden' },  // schlägt die Münzen
+});
 
 // Arbeitsplatz IN der Werkstatt (auf der Platte, vordere Hälfte, passend zum Bild): [Standplatz u, v, Werkstück u, v]
 // u läuft zur rechten, v zur linken Ecke der Raute (0 … Größe). Gespiegelte Ansicht: u und v tauschen.

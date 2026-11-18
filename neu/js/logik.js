@@ -15,6 +15,7 @@ function storageCap() {
   let cap = 0;
   state.buildings.forEach((b, i) => { if (!b.build && BUILDINGS[b.type].storage && isConnected(i)) cap += storageOf(b); });
   if (stageReached('kupfer')) cap += CONFIG.dorfplatz.storage;   // das Lagerfeuer ist jetzt der Dorfplatz
+  if (stageReached('antike1')) cap += CONFIG.forum.storage;      // … und in der Antike das Forum
   cap += CONFIG.stageStorage[state.stage] || 0;                  // jedes Zeitalter fasst mehr (die Forschungen kosten auch mehr)
   return Math.round(Math.max(cap, CONFIG.baseStorage) * (1 + techSum('storage')));
 }
@@ -104,7 +105,7 @@ function housingOf(type) {
 
 function warmthRadius(def) {
   if (!def.warmth) return 0;
-  return def.warmth + techSum('warmth') + (def === BUILDINGS.lagerfeuer && stageReached('kupfer') ? CONFIG.dorfplatz.warmth + (stageReached('eisen1') ? CONFIG.thingplatz.warmth : 0) : 0);
+  return def.warmth + techSum('warmth') + (def === BUILDINGS.lagerfeuer && stageReached('kupfer') ? CONFIG.dorfplatz.warmth + (stageReached('eisen1') ? CONFIG.thingplatz.warmth : 0) + (stageReached('antike1') ? CONFIG.forum.warmth : 0) : 0);
 }
 
 // ---------------------------------------------------------------------
@@ -1065,6 +1066,13 @@ function updateProductionStep(dt) {
     rates[n.id] = (rates[n.id] || 0) - use;
     flow(n.id, 'out', '__pop', use);
   }
+  // Steuer (Antike, Forschung „Münzen“): Die Häuser zahlen Münzen, zufriedene mehr
+  if (techSum('tax') > 0 && state.pop > 0) {
+    const tax = state.pop * CONFIG.tax.perHead * (stats.happiness || 0) / 100;
+    addResources({ muenzen: tax * dt / 60 });
+    rates.muenzen = (rates.muenzen || 0) + tax;
+    flow('muenzen', 'in', '__tax', tax);
+  }
   // Feuerholz, Ausbessern, Verschleiß: nur was da ist – ein leeres Lager bestraft niemanden
   for (const id of ['holz', 'stein', 'werkzeug']) {
     const have = state.res[id] || 0;
@@ -1359,7 +1367,7 @@ function traderOffers() {
   const open = c.offers.filter(o => (!o.requires || state.techs[o.requires]) && (!o.getFind || findCount(o.getFind) < findNeed(o.getFind)) && Object.keys(o.give).every(hasMaker)).map(o => [mix(o), o]).sort((a, b) => a[0] - b[0]).map(a => a[1]);
   const zinn = open.find(o => o.get.zinn);
   const fest = [...(zinn ? [zinn] : []), ...open.filter(o => o.get.bernstein || o.getFind)];   // immer dabei: Zinn, Bernstein und das Fundstück für die Halle
-  return [...fest, ...open.filter(o => !fest.includes(o))].slice(0, c.count + techSum('traderOffers') + (state.buildings.some((b, i) => (b.type === 'wagner' || b.type === 'handelshof') && !b.build && !b.paused && isConnected(i) && (!BUILDINGS[b.type].workers || (stats.staff[i] || 0) > 0)) ? 1 : 0));
+  return [...fest, ...open.filter(o => !fest.includes(o))].slice(0, c.count + techSum('traderOffers') + (state.buildings.some((b, i) => (b.type === 'wagner' || b.type === 'handelshof' || b.type === 'markt') && !b.build && !b.paused && isConnected(i) && (!BUILDINGS[b.type].workers || (stats.staff[i] || 0) > 0)) ? 1 : 0));
 }
 
 // Händler aus dem Süden (CONFIG.suedhaendler): wie der normale Händler, aber seltener, länger und mit festen Angeboten

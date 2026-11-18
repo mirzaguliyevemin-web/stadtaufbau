@@ -237,3 +237,28 @@ Die Figuren sind im Spiel nur 30–45 Pixel hoch: Es zählt der klare Umriss von
 
 **Kosten:** Bei etwa 740 Bildern und Nachbesserungen reicht der Starter-Plan nicht. Mit einem eigenen trainierten
 Epochia-Stilmodell (Pro-Plan) werden die Bilder einheitlicher, man braucht weniger Versuche je Bild.
+
+---
+
+## 8 · Gesamtrechnung für Scenario Pro (18.11.2026, Stand V231)
+
+Grundlage: Verbrauch der letzten 31 Tage, 1480 CU für 134 Bilder (GPT Image ≈ 13 CU je Versuch). Mit Fehlversuchen, Winter- und
+Rückansichten-Nacharbeit gerechnet: **≈ 20 CU je fertiges Bild**. Schon fertig im neuen Stil: Gelände, Hügel, Steinzeit-Gebäude, Fischerhütte.
+
+| Bereich | Bilder | CU |
+|---|---|---|
+| A · Spiel bis Eisenzeit: Bronze-Gebäude 130, Eisen-Gebäude 120, Fischerplatz 4, Baustellen 8, Deko 28, Figuren/Tiere 194, Forschung 87, Waren 22, Fundstücke 17, Brücken 21, Oberfläche 33 | 664 | 13 300 |
+| B · Antike mit zweiter Karte (siehe `epoche-4-antike.md`) | 235 | 4 700 |
+| C · Wunderwerke Mittelalter–Zeitgeschichte + 20 Fundstücke | 60 | 1 200 |
+| D · 4 spätere Zeitalter (je ≈ 200) + Gotteshäuser der Religionen (≈ 60) | 860 | 17 200 |
+| **Bilder zusammen** | **≈ 1 820** | **≈ 36 400** |
+| Zeitalter-Videos: 8 Stück (7 Aufbrüche + Start) à 2 Clips, mit Fehlversuchen ≈ 375 CU je Clip | 16 Clips | 6 000 |
+| Bewegte Gebäude: ≈ 40 kurze Schleifen (Schmieden, Öfen, Wasserfall, Mühlen, Wunderwerke …), ≈ 150 CU je Stück | 40 | 6 000 |
+| Eigenes Epochia-Stilmodell trainieren | – | ≈ 500 |
+| **Alles** | | **≈ 49 000** |
+
+Pro = 5 000 CU im Monat (verfallen am Monatsende) → **etwa 10 Pro-Monate**, aber nicht am Stück:
+bis einschließlich Antike (A + B + 3 Videos + ≈ 15 Schleifen) ≈ 22 000 CU = **4–5 Monate**; die späteren Zeitalter erst, wenn sie gebaut werden.
+
+Bewegte Gebäude im Spiel: nicht als Video abspielen (durchsichtiges Video geht am iPhone nicht, viele Videos zugleich machen das Handy heiß),
+sondern aus dem Video 6–8 Einzelbilder schneiden, wie die Arbeiterbewegungen.

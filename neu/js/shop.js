@@ -155,6 +155,22 @@ function buyHelper(id) {
   return null;
 }
 
+// Schmuck: Stadtfahne (einmal kaufen, Farbe frei) und Feuerwerk (läuft nur auf dem Bildschirm, wird nicht gespeichert)
+function buyFlag() {
+  if (state.shop.flag) return 'Hast du schon';
+  if (!spendGold(CONFIG.shop.flag.price)) return 'Nicht genug Gold';
+  state.shop.flag = CONFIG.shop.flag.colors[0].id;
+  return null;
+}
+function setFlagColor(id) { if (state.shop.flag && CONFIG.shop.flag.colors.some(c => c.id === id)) { state.shop.flag = id; refreshShop(); renderAll(); } }
+let fireworkLeft = 0;
+function buyFireworks() {
+  if (fireworkLeft > 0) return 'Das Feuerwerk läuft schon';
+  if (!spendGold(CONFIG.shop.fireworks.price)) return 'Nicht genug Gold';
+  fireworkLeft = CONFIG.shop.fireworks.seconds;
+  return null;
+}
+
 // Deko: gekauft liegt sie bereit, aufgestellt wird sie über die Bauleiste (Reiter „Deko“)
 function dekoOwned(type) { return (state.shop.deko || {})[type] || 0; }
 function dekoList() { return Object.keys(DEKO).filter(id => stageReached(DEKO[id].stage)); }
@@ -272,7 +288,13 @@ function shopDekoHtml() {
     return shopRow(iconHtml(BUILDINGS[id].bild, d.icon, 'big'), d.name, sub, d.deko, `doBuyDeko('${id}')`);
   }).join('');
   const later = Object.keys(DEKO).length - dekoList().length;
-  return `<p class="empty-note">Deko sieht nur schön aus und ändert nichts am Spiel. Gekauftes stellst du unten in der Bauleiste unter „🌷 Deko“ auf. Abreißen legt es dorthin zurück.</p>
+  const f = CONFIG.shop.flag, fl = state.shop.flag;
+  const flag = fl ? `<div class="quest-card shop-row"><div class="q-medal"><span class="ic emoji big">🚩</span></div><div class="q-main"><b>Stadtfahne</b><small>Sie weht über deinem Dorfplatz. Farbe wählen (kostenlos):</small>
+      <div class="buttons">${f.colors.map(c => `<button class="btn small${c.id === fl ? ' primary' : ''}" onclick="setFlagColor('${c.id}')"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${c.c};border:2px solid ${c.e};vertical-align:middle"></span> ${esc(c.name)}</button>`).join('')}</div></div></div>`
+    : shopRow('<span class="ic emoji big">🚩</span>', 'Stadtfahne', 'Eine Fahne mit Wappen weht über deinem Dorfplatz. Die Farbe kannst du danach jederzeit wechseln.', f.price, 'doBuyFlag()');
+  const fw = shopRow('<span class="ic emoji big">🎆</span>', 'Feuerwerk', fireworkLeft > 0 ? `<b>Läuft gerade – noch ${Math.ceil(fireworkLeft)} s</b>` : `${CONFIG.shop.fireworks.seconds} Sekunden Raketen über deinem Dorf.`, CONFIG.shop.fireworks.price, 'doBuyFireworks()', fireworkLeft <= 0);
+  return `<h3 class="find-page">Schmuck für die Stadt</h3><div class="quests">${flag}${fw}</div>
+    <h3 class="find-page">Deko zum Aufstellen</h3><p class="empty-note">Deko sieht nur schön aus und ändert nichts am Spiel. Gekauftes stellst du unten in der Bauleiste unter „🌷 Deko“ auf. Abreißen legt es dorthin zurück.</p>
     <div class="quests">${rows}</div>${later ? `<p class="empty-note">🔒 ${later} weitere Stücke kommen in späteren Zeitaltern.</p>` : ''}`;
 }
 
@@ -326,6 +348,15 @@ function doBuyDeko(id) {
 }
 function doBuySingle(id) { shopDone(buySingle(id), `${RESOURCES[id].icon} ${RESOURCES[id].name} geliefert`); }
 function doBuyHelper(id) { shopDone(buyHelper(id), { haendler: '🐪 Der Händler ist unterwegs', lager: '📦 Das Lager ist jetzt größer', fleiss: '💪 Alle arbeiten fleißiger' }[id]); }
+function doBuyFlag() { shopDone(buyFlag(), '🚩 Die Stadtfahne weht – wähle eine Farbe'); }
+function doBuyFireworks() {
+  const err = buyFireworks();
+  if (err) { toast(err); return; }
+  playSound('muenze');
+  closePage();
+  if (typeof centerOnCamp === 'function') centerOnCamp();
+  toast('🎆 Feuerwerk!');
+}
 function doBuySlot() { shopDone(buySlot(), '🏗️ Eine Baustelle mehr'); }
 
 // Knopf für Fenster: zum Shop

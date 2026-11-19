@@ -3015,6 +3015,7 @@ function drawScene(dt) {
       else if (b.build > 0) drawConstruction(b);
       else {
         drawBuildingSprite(b.type, b.x, b.y, b.rot);
+        if (b.type === 'lagerfeuer' && state.shop.flag) drawCityFlag(b);
         if (b.up > 0) { const s = BUILDINGS[b.type].size; drawProgress(b, s, s * TW * cam.zoom * 0.45, b.up, levelTime(b.type, levelOf(b) + 1)); }
         if (levelOf(b) > 1 || b.up > 0) drawLevelBadge(b);
       }
@@ -3035,6 +3036,7 @@ function drawScene(dt) {
   }
   drawWeather(dt);
   drawDayNight();
+  drawFireworks(dt);   // nach der Nacht: Raketen leuchten auch im Dunkeln
   // Blasen und das geplante Gebäude bleiben auch nachts und im Regen gut zu sehen
   for (const o of objects) if (o.kind === 'b') drawBubble(o.i);
   flushProgress();
@@ -3042,6 +3044,76 @@ function drawScene(dt) {
   if (state.tutorial >= 0) drawGuide(dt);   // Einstieg: Stammesältester, Vorschau und Pfeile (nur solange er läuft)
   if (bridgeMode) drawBridgePlan(bridgeMode);
   if (ghost) drawGhost(ghost);
+}
+
+// Stadtfahne aus dem Shop (V238): Mast an der hinteren Ecke des Dorfplatzes, das Tuch weht im Wind
+function drawCityFlag(b) {
+  const col = CONFIG.shop.flag.colors.find(c => c.id === state.shop.flag);
+  if (!col) return;
+  const s = BUILDINGS[b.type].size, p = tileToScreen(b.x + s - 0.3, b.y + 0.3), z = cam.zoom;
+  const h = 110 * z, w = 44 * z, top = p.y - h, wind = 0.6 + (typeof windStrength === 'function' ? windStrength() : 0.5);
+  ctx.save();
+  ctx.strokeStyle = '#5a4030'; ctx.lineWidth = Math.max(1.5, 3 * z); ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, top - 4 * z); ctx.stroke();
+  ctx.fillStyle = '#d8b040'; ctx.beginPath(); ctx.arc(p.x, top - 5 * z, 3 * z, 0, 7); ctx.fill();
+  // Tuch: obere und untere Kante als Welle
+  const fh = 28 * z, n = 6, wave = k => Math.sin(frameTime * 4 * wind - k * 3) * 3 * z * k;
+  ctx.beginPath(); ctx.moveTo(p.x, top);
+  for (let i = 1; i <= n; i++) { const k = i / n; ctx.lineTo(p.x + w * k, top + wave(k)); }
+  for (let i = n; i >= 0; i--) { const k = i / n; ctx.lineTo(p.x + w * k, top + fh + wave(k)); }
+  ctx.closePath();
+  ctx.fillStyle = col.c; ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1; ctx.stroke();
+  // Wappen: Kreis mit Stern
+  const cx = p.x + w * 0.5, cy = top + fh / 2 + wave(0.5), r = 8.5 * z;
+  ctx.fillStyle = col.e; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill();
+  ctx.fillStyle = col.c; ctx.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.38 : r * 0.82; ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// Feuerwerk aus dem Shop: Raketen steigen über dem Dorfplatz auf und zerplatzen in Funken (nur Bild, kein Spielstand)
+const fireworks = { rockets: [], sparks: [], next: 0 };
+function drawFireworks(dt) {
+  if (typeof fireworkLeft === 'undefined') return;
+  if (fireworkLeft <= 0 && !fireworks.rockets.length && !fireworks.sparks.length) return;
+  dt = Math.min(0.1, Math.max(0, dt || 0));
+  const fire = state.buildings.find(b => b.type === 'lagerfeuer');
+  const base = fire ? tileToScreen(fire.x + 1.5, fire.y + 1.5) : { x: viewW / 2, y: viewH * 0.7 }, z = Math.max(0.5, cam.zoom);
+  if (fireworkLeft > 0) {
+    fireworkLeft = Math.max(0, fireworkLeft - dt);
+    fireworks.next -= dt;
+    if (fireworks.next <= 0) {
+      fireworks.next = 0.35 + Math.random() * 0.6;
+      const hue = Math.floor(Math.random() * 360);
+      fireworks.rockets.push({ x: base.x + (Math.random() - 0.5) * 160 * z, y: base.y, vx: (Math.random() - 0.5) * 30 * z, vy: -(260 + Math.random() * 120) * z, t: 0.9 + Math.random() * 0.5, hue });
+    }
+  }
+  // Himmel etwas abdunkeln, damit man die Funken auch am Tag sieht (sanft ein- und ausblenden)
+  const total = CONFIG.shop.fireworks.seconds, dim = fireworkLeft > 0 ? Math.min(1, (total - fireworkLeft) / 2, fireworkLeft / 2 + 0.3) : 0.3 * Math.min(1, fireworks.sparks.length / 40);
+  if (dim > 0) { ctx.fillStyle = `rgba(15,20,45,${0.38 * dim})`; ctx.fillRect(0, 0, viewW, viewH); }
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = fireworks.rockets.length - 1; i >= 0; i--) {
+    const r = fireworks.rockets[i];
+    r.x += r.vx * dt; r.y += r.vy * dt; r.vy += 120 * z * dt; r.t -= dt;
+    ctx.fillStyle = `hsla(${r.hue},90%,85%,1)`; ctx.fillRect(r.x - 2, r.y - 2, 4, 9);
+    if (r.t <= 0) {
+      fireworks.rockets.splice(i, 1);
+      const n = 60 + Math.floor(Math.random() * 40);
+      for (let k = 0; k < n; k++) { const a = Math.random() * 7, v = (60 + Math.random() * 110) * z; fireworks.sparks.push({ x: r.x, y: r.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 1 + Math.random() * 0.8, hue: r.hue + (Math.random() - 0.5) * 40 }); }
+      if (typeof playSound === 'function') playSound('knall');
+    }
+  }
+  for (let i = fireworks.sparks.length - 1; i >= 0; i--) {
+    const s = fireworks.sparks[i];
+    s.x += s.vx * dt; s.y += s.vy * dt; s.vx *= 1 - 1.2 * dt; s.vy = s.vy * (1 - 1.2 * dt) + 60 * z * dt; s.t -= dt;
+    if (s.t <= 0) { fireworks.sparks.splice(i, 1); continue; }
+    ctx.fillStyle = `hsla(${s.hue},95%,65%,${Math.min(1, s.t)})`;
+    ctx.beginPath(); ctx.arc(s.x, s.y, 3 * Math.min(1.5, z), 0, 7); ctx.fill();
+  }
+  ctx.restore();
 }
 
 function resizeCanvas() {

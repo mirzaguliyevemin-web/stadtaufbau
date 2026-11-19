@@ -140,6 +140,8 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 
 // Die Geräusche. t = Startzeit
 const SOUNDS = {
+  // Feuerwerk: dumpfer Knall, danach Knistern
+  knall: t => { noise(t, { dur: 0.35, type: 'lowpass', f: 400, vol: 0.35 }); for (let i = 0; i < 12; i++) noise(t + 0.1 + rnd(0, 0.7), { dur: 0.025, type: 'highpass', f: rnd(2500, 5000), vol: rnd(0.05, 0.15) }); },
   // Feuer knistert, dazu ein leises Fauchen
   feuer: t => { noise(t, { dur: 0.9, type: 'lowpass', f: 600, vol: 0.12, attack: 0.15 }); for (let i = 0; i < 9; i++) noise(t + rnd(0, 0.8), { dur: 0.03, type: 'highpass', f: rnd(1500, 4000), vol: rnd(0.1, 0.3) }); },
   // Höhle: hohles Brummen und ein Tropfen mit Echo

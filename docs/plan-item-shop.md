@@ -118,4 +118,5 @@ Das Spiel läuft heute im Browser, der Spielstand liegt auf dem Handy und lässt
 
 - **V237 – Einzelne Waren** (Reiter 📦): Holz, Stein, Nahrung und die Waren des Zeitalter-Pakets einzeln, je 15 Gold (`CONFIG.shop.single`, Startwerte). Für das Gold gibt es etwas weniger als im Paket.
 - **V237 – Spielhilfen** (Reiter ⚡): Händler rufen (15), Großes Lager 1 Std. doppelt (25), Fleißige Hände 30 min +50 % (30). Nochmal kaufen verlängert (`CONFIG.shop.helpers`, `state.shop.boosts`).
-- **Als Nächstes:** mehr Deko für Eisenzeit und Antike (Bilder mit Scenario), danach Schmuck für die Stadt (Fahne/Wappen, Wegfarbe, Feuerwerk).
+- **V238 – Schmuck** (Reiter 🌷): Stadtfahne mit Wappen am Dorfplatz (40 Gold, 6 Farben frei wechselbar, `state.shop.flag`), Feuerwerk 25 s (20 Gold, nur Bild). Wegfarbe offen.
+- **Als Nächstes (ab 21.11., Scenario Pro):** 16 Deko-Stücke, mit Emin abgestimmt – Eisenzeit: Brunnen, Holzpferd, Keltenkreuz, Kräuterbeet, Pferdekoppel, Laterne; Antike: Marmorsäule, Springbrunnen, Mosaikplatz, Rosenbogen, Götterstatue, Amphorenstapel, Zypresse, Steinbank, Taubenschlag, Sonnenuhr.

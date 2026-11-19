@@ -242,6 +242,7 @@ function sanitizeState(data) {
   s.shop.boosts = {};
   if (data.shop && data.shop.boosts && typeof data.shop.boosts === 'object')
     for (const [id, t] of Object.entries(data.shop.boosts)) if (CONFIG.shop.helpers[id] && CONFIG.shop.helpers[id].seconds && Number.isFinite(t) && t > 0) s.shop.boosts[id] = t;
+  if (data.shop && CONFIG.shop.flag.colors.some(c => c.id === data.shop.flag)) s.shop.flag = data.shop.flag;   // Stadtfahne (V238)
   s.shop.deko = {};
   if (data.shop && data.shop.deko && typeof data.shop.deko === 'object')
     for (const [id, n] of Object.entries(data.shop.deko)) if (DEKO[id] && Number.isFinite(n) && n > 0) s.shop.deko[id] = Math.floor(n);

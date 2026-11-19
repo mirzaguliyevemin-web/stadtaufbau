@@ -1752,6 +1752,35 @@ test('V233: Mittlere Antike – Forschungen, Gebäude, Hafen mit Schiffsreise, O
   noErrors(g);
 });
 
+test('V238: Shop-Schmuck – Stadtfahne kaufen und Farbe wechseln, Feuerwerk, beides zeichnet ohne Fehler', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const out = {};
+    state.shop.gold = 100;
+    out.deko = (shopTab = 'deko', shopHtml()).includes('Stadtfahne');
+    out.kauf = buyFlag(); out.flag = state.shop.flag; out.gold = state.shop.gold;
+    out.nochmal = buyFlag();
+    setFlagColor('blau'); out.blau = state.shop.flag;
+    setFlagColor('unsinn'); out.bleibt = state.shop.flag;
+    out.farben = shopHtml().includes('Purpur');
+    out.fw = buyFireworks(); out.fw2 = buyFireworks();
+    drawCityFlag(state.buildings.find(b => b.type === 'lagerfeuer'));
+    for (let i = 0; i < 40; i++) drawFireworks(0.1);
+    out.funken = fireworks.sparks.length + fireworks.rockets.length > 0;
+    for (let i = 0; i < 400; i++) drawFireworks(0.1);
+    out.ende = fireworkLeft === 0 && !fireworks.sparks.length && !fireworks.rockets.length;
+    out.saved = loadFromText(serialize()) && state.shop.flag === 'blau';
+    const d = JSON.parse(serialize()); d.shop.flag = '<b>';
+    out.kaputt = loadFromText(JSON.stringify(d)) && state.shop.flag === null;
+    return out;
+  })()`);
+  ok(r.deko && r.kauf === null && r.flag === 'rot' && r.gold === 60 && r.nochmal, 'Fahne kaufen: ' + JSON.stringify(r));
+  ok(r.blau === 'blau' && r.bleibt === 'blau' && r.farben, 'Farbe wechseln: ' + JSON.stringify(r));
+  ok(r.fw === null && r.fw2 && r.funken && r.ende, 'Feuerwerk: ' + JSON.stringify(r));
+  ok(r.saved && r.kaputt, 'Fahne speichern: ' + JSON.stringify(r));
+  noErrors(g);
+});
+
 test('V237: Shop – einzelne Waren kaufen, Spielhilfen Händler rufen, großes Lager, fleißige Hände', () => {
   const g = fresh();
   const r = g.run(`(() => {

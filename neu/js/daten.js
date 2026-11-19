@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 237;
+const APP_VERSION = 238;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -251,6 +251,13 @@ const CONFIG = {
       lager:    { price: 25, seconds: 3600, factor: 2 },
       fleiss:   { price: 30, seconds: 1800, factor: 1.5 },
     },
+    // Schmuck für die Stadt (Emin, 19.11.): ändert nichts am Spiel. Stadtfahne einmal kaufen, Farbe danach frei wechseln.
+    flag: { price: 40, colors: [
+      { id: 'rot', name: 'Rot', c: '#c8362e', e: '#f2d27a' }, { id: 'blau', name: 'Blau', c: '#2f5fa8', e: '#f0f0f0' },
+      { id: 'gruen', name: 'Grün', c: '#2f8a4a', e: '#f2d27a' }, { id: 'gold', name: 'Gold', c: '#d8a829', e: '#7a2a1a' },
+      { id: 'lila', name: 'Purpur', c: '#7a3a8a', e: '#f2d27a' }, { id: 'weiss', name: 'Weiß', c: '#eeeae0', e: '#c8362e' },
+    ] },
+    fireworks: { price: 20, seconds: 25 },
     // Beschleunigungssteine (Wunsch Emin, 08.11.2026): ⚡ am Gebäude, jeder Stein spart 5 Minuten Bau- oder Ausbauzeit.
     // Zum Start gibt es ein paar zum Ausprobieren, weitere im Shop (später gegen echtes Geld)
     stone: { seconds: 300, start: 3, packs: [{ n: 5, price: 20 }, { n: 15, price: 50 }] },

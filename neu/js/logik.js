@@ -17,7 +17,7 @@ function storageCap() {
   if (stageReached('kupfer')) cap += CONFIG.dorfplatz.storage;   // das Lagerfeuer ist jetzt der Dorfplatz
   if (stageReached('antike1')) cap += CONFIG.forum.storage;      // … und in der Antike das Forum
   cap += CONFIG.stageStorage[state.stage] || 0;                  // jedes Zeitalter fasst mehr (die Forschungen kosten auch mehr)
-  return Math.round(Math.max(cap, CONFIG.baseStorage) * (1 + techSum('storage')));
+  return Math.round(Math.max(cap, CONFIG.baseStorage) * (1 + techSum('storage')) * (helperActive('lager') ? CONFIG.shop.helpers.lager.factor : 1));
 }
 
 function canAfford(cost) {
@@ -1005,7 +1005,7 @@ function updateProductionStep(dt) {
   state.buildings.forEach((b, i) => {
     const def = BUILDINGS[b.type];
     if (b.build || !def.produces) return;
-    let f = outputFactor(i);
+    let f = outputFactor(i) * (helperActive('fleiss') ? CONFIG.shop.helpers.fleiss.factor : 1);   // Shop: fleißige Hände
     if (f <= 0) return;
     // Proviant: Wer nicht selbst Nahrung beschafft, isst bei der Arbeit (V230) – ohne Nahrung nur halbe Arbeit
     if (def.workers && !def.produces.nahrung) {

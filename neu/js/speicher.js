@@ -238,6 +238,10 @@ function sanitizeState(data) {
   if (data.disasterNext && DISASTERS[data.disasterNext.id] && Number.isFinite(data.disasterNext.left)) s.disasterNext = { id: data.disasterNext.id, left: Math.max(0, data.disasterNext.left) };
   if (data.shop && typeof data.shop === 'object') for (const key of ['gold', 'spent', 'slots', 'stones']) if (Number.isFinite(data.shop[key]) && data.shop[key] >= 0) s.shop[key] = Math.floor(data.shop[key]);
   // seit Version 160: gekaufte, noch nicht aufgestellte Deko
+  // Spielhilfen aus dem Shop (V237): bis zu welcher Spielzeit sie wirken
+  s.shop.boosts = {};
+  if (data.shop && data.shop.boosts && typeof data.shop.boosts === 'object')
+    for (const [id, t] of Object.entries(data.shop.boosts)) if (CONFIG.shop.helpers[id] && CONFIG.shop.helpers[id].seconds && Number.isFinite(t) && t > 0) s.shop.boosts[id] = t;
   s.shop.deko = {};
   if (data.shop && data.shop.deko && typeof data.shop.deko === 'object')
     for (const [id, n] of Object.entries(data.shop.deko)) if (DEKO[id] && Number.isFinite(n) && n > 0) s.shop.deko[id] = Math.floor(n);

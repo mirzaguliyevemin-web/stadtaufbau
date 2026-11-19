@@ -27,6 +27,8 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 ## Erledigt
 
+- 19.11.2026, V237: Shop Teil 1 – einzelne wichtige Waren kaufen, Spielhilfen (Händler rufen, großes Lager, fleißige Hände). Deko und Schmuck folgen.
+
 - 18.11.2026, V236: Kolonien Teil 2 – Schiffsrouten zwischen den Städten, Inselgebäude Olivenhain, Weinberg, Salzgarten, Bootsanleger.
 
 - 18.11., V235: Antike Schritt 4, Teil 1 – Forschung „Kolonien“, Siedlerschiff am Hafen gründet die Inselstadt (eigene Inselkarte), Knopf „Städte“ zum Wechseln, die ruhende Stadt rechnet beim Wechseln nach.

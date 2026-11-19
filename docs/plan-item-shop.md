@@ -113,3 +113,9 @@ Das Spiel läuft heute im Browser, der Spielstand liegt auf dem Handy und lässt
 - **Gold-Pakete** als große Karten, das größte als „Bester Wert“.
 - **Deko** (`DEKO` in `daten.js`): 14 Stücke in vier Arten, nämlich Pflanzen, Figuren und Steine, Tiere sowie Wege und Plätze. Jedes Zeitalter bringt neue dazu. Gekauft wird im Shop, aufgestellt über die Bauleiste im Reiter „Deko“. Deko braucht keinen Weg und ändert nichts am Spiel. Beim Abreißen kommt das Stück zurück in die Bauleiste. Was gekauft, aber noch nicht aufgestellt ist, steht in `state.shop.deko`.
 - **Bilder aus Canva (12.11.2026, V171):** alle 14 Deko-Bilder, die drei Gold-Pakete und die zusätzliche Baustelle sind fertig.
+
+## 9 · Weiter am 19.11.2026 (Emin: „zu wenig Sachen zum Kaufen“)
+
+- **V237 – Einzelne Waren** (Reiter 📦): Holz, Stein, Nahrung und die Waren des Zeitalter-Pakets einzeln, je 15 Gold (`CONFIG.shop.single`, Startwerte). Für das Gold gibt es etwas weniger als im Paket.
+- **V237 – Spielhilfen** (Reiter ⚡): Händler rufen (15), Großes Lager 1 Std. doppelt (25), Fleißige Hände 30 min +50 % (30). Nochmal kaufen verlängert (`CONFIG.shop.helpers`, `state.shop.boosts`).
+- **Als Nächstes:** mehr Deko für Eisenzeit und Antike (Bilder mit Scenario), danach Schmuck für die Stadt (Fahne/Wappen, Wegfarbe, Feuerwerk).

@@ -113,6 +113,48 @@ function buySlot() {
   return null;
 }
 
+// Einzelne Waren (CONFIG.shop.single): Grundwaren wachsen mit dem Zeitalter wie die Warenpakete, die übrigen kommen aus dem Zeitalter-Paket
+function singleGoods() {
+  const c = CONFIG.shop.single, f = DAILY_GROWTH.factor[state.stage] || 1, out = {};
+  for (const [id, n] of Object.entries(c.base)) out[id] = Math.max(5, Math.round(n * f / 5) * 5);
+  const ep = epochPack();
+  if (ep) {
+    const k = Object.keys(ep.goods).length;
+    for (const [id, n] of Object.entries(ep.goods)) if (!out[id]) out[id] = Math.max(5, Math.round(n * k * c.price / ep.price * c.share / 5) * 5);
+  }
+  return out;
+}
+function buySingle(id) {
+  const n = singleGoods()[id];
+  if (!n) return 'Gibt es gerade nicht';
+  if (!spendGold(CONFIG.shop.single.price)) return 'Nicht genug Gold';
+  addReward({ [id]: n });
+  return null;
+}
+
+// Spielhilfen (CONFIG.shop.helpers): state.shop.boosts[id] = Spielzeit, bis zu der sie wirkt
+function helperActive(id) { return !!(state && state.shop && state.shop.boosts && state.shop.boosts[id] > state.playTime); }
+function helperLeft(id) { return helperActive(id) ? state.shop.boosts[id] - state.playTime : 0; }
+function helperProblem(id) {
+  const h = CONFIG.shop.helpers[id];
+  if (!h) return 'Gibt es nicht';
+  if (id === 'haendler') {
+    if (!tradePosts().length) return 'Erst einen Handelsplatz bauen';
+    if (state.trader.left > 0 || state.suedhaendler.left > 0) return 'Ein Händler ist schon da';
+  }
+  if (state.shop.gold < h.price) return 'Nicht genug Gold';
+  return null;
+}
+function buyHelper(id) {
+  const problem = helperProblem(id);
+  if (problem) return problem;
+  const h = CONFIG.shop.helpers[id];
+  spendGold(h.price);
+  if (id === 'haendler') state.trader.wait = 0;   // kommt beim nächsten Spielschritt
+  else { (state.shop.boosts ||= {})[id] = Math.max(state.playTime, state.shop.boosts[id] || 0) + h.seconds; recalcStats(); }   // nochmal kaufen verlängert
+  return null;
+}
+
 // Deko: gekauft liegt sie bereit, aufgestellt wird sie über die Bauleiste (Reiter „Deko“)
 function dekoOwned(type) { return (state.shop.deko || {})[type] || 0; }
 function dekoList() { return Object.keys(DEKO).filter(id => stageReached(DEKO[id].stage)); }
@@ -196,7 +238,16 @@ function shopTempoHtml() {
     : shopRow(iconHtml('shop-baustelle', '🏗️', 'big'), 'Eine Baustelle mehr', `Dauerhaft ${constructionLimit() + 1} statt ${constructionLimit()} gleichzeitig`, c.slotPrice, 'doBuySlot()');
   return `<h3 class="find-page">Gerade im Bau</h3><div class="quests">${shopSpeedHtml()}</div>
     <h3 class="find-page">Beschleunigungssteine</h3><div class="quests">${stoneShopHtml()}</div>
+    <h3 class="find-page">Spielhilfen</h3><div class="quests">${helpersHtml()}</div>
     <h3 class="find-page">Dauerhaft</h3><div class="quests">${slot}</div>`;
+}
+
+function helpersHtml() {
+  const h = CONFIG.shop.helpers, left = id => helperActive(id) ? `<br><b>Wirkt noch ${formatTime(helperLeft(id))} – nochmal kaufen verlängert</b>` : '';
+  const trader = helperProblem('haendler');
+  return shopRow('<span class="ic emoji big">🐪</span>', 'Händler rufen', 'Der Händler kommt sofort an deinen Handelsplatz.' + (trader && trader !== 'Nicht genug Gold' ? `<br><b>${esc(trader)}</b>` : ''), h.haendler.price, "doBuyHelper('haendler')", !trader || trader === 'Nicht genug Gold')
+    + shopRow('<span class="ic emoji big">📦</span>', 'Großes Lager', `${formatTime(h.lager.seconds)} lang passt ${h.lager.factor}-mal so viel ins Lager.` + left('lager'), h.lager.price, "doBuyHelper('lager')")
+    + shopRow('<span class="ic emoji big">💪</span>', 'Fleißige Hände', `${formatTime(h.fleiss.seconds)} lang stellen alle Gebäude ${Math.round((h.fleiss.factor - 1) * 100)} % mehr her.` + left('fleiss'), h.fleiss.price, "doBuyHelper('fleiss')");
 }
 
 function shopWarenHtml() {
@@ -208,7 +259,9 @@ function shopWarenHtml() {
       return shopRow(iconHtml(RESOURCES.holz.bild, '📦', 'big'), c.goods[k].name, amountsHtml(p.goods), p.price, `doBuyGoods('${k}')`);
     }).join('');
   const finds = shopFinds().map(id => shopRow(iconHtml(FINDS[id].bild, FINDS[id].icon, 'big'), FINDS[id].name, `Hast du ${findCount(id)}, gebraucht werden ${findNeed(id)}`, findPrice(id), `doBuyFind('${id}')`)).join('');
+  const single = Object.entries(singleGoods()).map(([id, n]) => shopRow(iconHtml(RESOURCES[id].bild, RESOURCES[id].icon, 'big'), `${n} ${RESOURCES[id].name}`, `Hast du ${Math.floor(state.res[id] || 0)}`, c.single.price, `doBuySingle('${id}')`)).join('');
   return `<h3 class="find-page">Warenpakete</h3><div class="quests">${goods}</div>
+    <h3 class="find-page">Einzelne Waren</h3><div class="quests">${single}</div>
     ${finds ? `<h3 class="find-page">Fehlende Fundstücke</h3><div class="quests">${finds}</div>` : ''}`;
 }
 
@@ -271,6 +324,8 @@ function doBuyDeko(id) {
   beginBuild(id);
   toast(`${DEKO[id].icon} ${DEKO[id].name} gekauft – wähle einen Platz`);
 }
+function doBuySingle(id) { shopDone(buySingle(id), `${RESOURCES[id].icon} ${RESOURCES[id].name} geliefert`); }
+function doBuyHelper(id) { shopDone(buyHelper(id), { haendler: '🐪 Der Händler ist unterwegs', lager: '📦 Das Lager ist jetzt größer', fleiss: '💪 Alle arbeiten fleißiger' }[id]); }
 function doBuySlot() { shopDone(buySlot(), '🏗️ Eine Baustelle mehr'); }
 
 // Knopf für Fenster: zum Shop

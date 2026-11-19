@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 236;
+const APP_VERSION = 237;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -242,6 +242,15 @@ const CONFIG = {
       antike2: { price: 130, goods: { ziegel: 50, olivenoel: 40, amphoren: 20 } },
     },
     slotPrice: 300,
+    // Einzelne Waren (Emin, 19.11.): Holz, Stein, Nahrung und die wichtigen Waren des Zeitalters (aus dem Zeitalter-Paket).
+    // Für den Preis gibt es etwas weniger als im Paket (share), damit das Paket günstiger bleibt. Startwerte, mit Emin abstimmen.
+    single: { price: 15, share: 0.8, base: { holz: 100, stein: 60, nahrung: 100 } },
+    // Spielhilfen (Emin, 19.11.): Händler sofort rufen, Lager eine Zeit lang doppelt so groß, Werkstätten eine Zeit lang fleißiger
+    helpers: {
+      haendler: { price: 15 },
+      lager:    { price: 25, seconds: 3600, factor: 2 },
+      fleiss:   { price: 30, seconds: 1800, factor: 1.5 },
+    },
     // Beschleunigungssteine (Wunsch Emin, 08.11.2026): ⚡ am Gebäude, jeder Stein spart 5 Minuten Bau- oder Ausbauzeit.
     // Zum Start gibt es ein paar zum Ausprobieren, weitere im Shop (später gegen echtes Geld)
     stone: { seconds: 300, start: 3, packs: [{ n: 5, price: 20 }, { n: 15, price: 50 }] },

@@ -1752,6 +1752,49 @@ test('V233: Mittlere Antike – Forschungen, Gebäude, Hafen mit Schiffsreise, O
   noErrors(g);
 });
 
+test('V237: Shop – einzelne Waren kaufen, Spielhilfen Händler rufen, großes Lager, fleißige Hände', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const out = {};
+    isConnected = () => true;
+    state.shop.gold = 1000;
+    out.alt = Object.keys(singleGoods());
+    state.stage = 'antike2';
+    const sg = singleGoods(); out.antike = sg;
+    out.fenster = (shopTab = 'waren', shopHtml()).includes('Einzelne Waren');
+    const z = state.res.ziegel || 0;
+    out.kauf = buySingle('ziegel'); out.ziegel = (state.res.ziegel || 0) - z; out.gold = state.shop.gold;
+    out.fremd = buySingle('gold');
+    out.ohnePlatz = helperProblem('haendler');
+    const cap = storageCap();
+    out.lager = buyHelper('lager'); out.cap2 = storageCap() / cap;
+    buyHelper('lager'); out.lang = helperLeft('lager');
+    out.tempo = (shopTab = 'tempo', shopHtml()).includes('Spielhilfen');
+    state.playTime += 7300; out.capEnde = storageCap() === cap;
+    // fleißige Hände: Sammlerin stellt mehr her
+    state.stage = 'alt'; state.pop = 10;
+    { const f = state.buildings[0], sp = findFreeSpot('sammlerin', f.x, f.y), j = state.buildings.length; state.buildings.push({ type: 'sammlerin', x: sp.x, y: sp.y, rot: 0, build: 0 }); setOccupied(state.buildings[j], j + 1); }
+    recalcStats(); updateProduction(60); updateProduction(60);
+    const made = () => { state.res.nahrung = 50; const m = state.tally.made.nahrung || 0; recalcStats(); updateProduction(60); return (state.tally.made.nahrung || 0) - m; };
+    const ohne = made();
+    out.fleiss = buyHelper('fleiss');
+    out.faktor = made() / ohne;
+    out.saved = loadFromText(serialize()) && helperActive('fleiss') && !helperActive('lager');
+    const d = JSON.parse(serialize()); d.shop.boosts = { fleiss: 'x', unsinn: 5, haendler: 9 };
+    out.kaputt = loadFromText(JSON.stringify(d)) && Object.keys(state.shop.boosts).length === 0;
+    return out;
+  })()`);
+  ok(r.alt.includes('holz') && r.alt.includes('stein') && r.alt.includes('nahrung'), 'Grundwaren: ' + JSON.stringify(r.alt));
+  ok(r.antike.ziegel > 0 && r.antike.olivenoel > 0 && r.antike.amphoren > 0 && !r.antike.wein, 'Antike-Waren: ' + JSON.stringify(r.antike));
+  ok(r.fenster && r.tempo, 'Shop zeigt Einzelwaren oder Spielhilfen nicht');
+  ok(r.kauf === null && r.ziegel === r.antike.ziegel && r.gold === 1000 - 15 && r.fremd, 'Einzelkauf: ' + JSON.stringify(r));
+  ok(String(r.ohnePlatz).includes('Handelsplatz'), 'Händler ohne Handelsplatz: ' + r.ohnePlatz);
+  ok(r.lager === null && Math.abs(r.cap2 - 2) < 0.01 && r.lang > 7000 && r.capEnde, 'Großes Lager: ' + JSON.stringify(r));
+  ok(r.fleiss === null && Math.abs(r.faktor - 1.5) < 0.05, 'Fleißige Hände: ' + r.faktor);
+  ok(r.saved && r.kaputt, 'Speichern der Spielhilfen');
+  noErrors(g);
+});
+
 test('V236: Schiffsrouten und Inselgebäude – nur auf der Insel bauen, Route bringt Waren auch aus der ruhenden Stadt', () => {
   const g = fresh();
   const r = g.run(`(() => {

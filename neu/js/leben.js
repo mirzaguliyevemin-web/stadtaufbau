@@ -1200,20 +1200,20 @@ function drawSitting(v, t) {
 
 // Arbeitshaltungen je Werkzeug: [Bild, Höhe in Bildpunkten bei Zoom 1, Versatz nach links (Anteil der Breite)]
 const TOOL_POSES = {
-  axt:   [['mensch-axt-oben', 38, -0.145], ['mensch-axt-mitte', 33, 0.144], ['mensch-axt-unten', 34, 0.175]],
-  hacke: [['mensch-hacke-oben', 38, -0.126], ['mensch-hacke-mitte', 33, 0.195], ['mensch-hacke-unten', 34, 0.154]],
-  speer: [['fischer-speer-oben', 40, 0.05], ['fischer-speer-mitte', 29, 0.1], ['fischer-speer-unten', 34, 0.12]],
-  grabstock: [['mensch-frau-grabstock-oben', 36, 0.117], ['mensch-frau-grabstock-unten', 33, 0.103], ['mensch-frau-grabstock-tief', 31, 0.082]],
+  axt:   [['mensch-axt-oben', 38, 0.058], ['mensch-axt-mitte', 33.8, 0.132], ['mensch-axt-unten', 29.5, 0.155]],   // Scenario (V243)
+  hacke: [['mensch-hacke-oben', 38, -0.058], ['mensch-hacke-mitte', 34.6, 0.175], ['mensch-hacke-unten', 30.8, 0.18]],
+  speer: [['fischer-speer-oben', 40, 0.156], ['fischer-speer-mitte', 28, 0.206], ['fischer-speer-unten', 34.3, 0.174]],
+  grabstock: [['mensch-frau-grabstock-oben', 36, 0.047], ['mensch-frau-grabstock-unten', 34.2, 0.049], ['mensch-frau-grabstock-tief', 33.7, 0.039]],
 };
 
 // Eigene Bewegungen je Beruf (je Bild: Name, Höhe, Versatz). Nur eintragen, was es als Bild gibt, sonst würde es umsonst geladen.
 const ANIM_POSES = {
-  bogen: [['mensch-jaeger-bogen-1', 34, 0.076], ['mensch-jaeger-bogen-2', 35, 0.12], ['mensch-jaeger-bogen-3', 36, 0.099]],
-  speerwurf: [['mensch-mammutjaeger-1', 47, -0.136], ['mensch-mammutjaeger-2', 34, -0.02], ['mensch-mammutjaeger-3', 31, 0.142]],
-  malen: [['mensch-maler-1', 33, 0.054], ['mensch-maler-2', 33, 0.184], ['mensch-maler-3', 38, 0.175]],
-  schaben: [['mensch-fellmacherin-1', 29.4, 0.033], ['mensch-fellmacherin-2', 27.2, 0.033], ['mensch-fellmacherin-3', 22.6, -0.014]],
-  steinschlag: [['mensch-steinschlaeger-1', 24.7, 0.006], ['mensch-steinschlaeger-2', 24.7, 0.006], ['mensch-steinschlaeger-3', 23.6, 0.006]],
-  hirte: [['mensch-hirte-1', 32.6, 0.18], ['mensch-hirte-2', 34.2, 0.201], ['mensch-hirte-3', 44, 0.085]],
+  bogen: [['mensch-jaeger-bogen-1', 34, 0.08], ['mensch-jaeger-bogen-2', 35.2, 0.105], ['mensch-jaeger-bogen-3', 35, 0.086]],
+  speerwurf: [['mensch-mammutjaeger-1', 39.3, -0.126], ['mensch-mammutjaeger-2', 34, 0.038], ['mensch-mammutjaeger-3', 35.6, 0.089]],
+  malen: [['mensch-maler-1', 33, 0.006], ['mensch-maler-2', 33, 0.162], ['mensch-maler-3', 33.3, 0.072]],
+  schaben: [['mensch-fellmacherin-1', 29.4, 0], ['mensch-fellmacherin-2', 27.4, -0.004], ['mensch-fellmacherin-3', 22.2, -0.003]],
+  steinschlag: [['mensch-steinschlaeger-1', 24.7, 0], ['mensch-steinschlaeger-2', 24.7, 0], ['mensch-steinschlaeger-3', 23.6, -0.016]],
+  hirte: [['mensch-hirte-1', 32.6, 0.019], ['mensch-hirte-2', 33.4, 0.186], ['mensch-hirte-3', 41.8, 0.077]],
   bergbau: [['mensch-bergmann-1', 37.8, 0], ['mensch-bergmann-2', 32.4, 0.181], ['mensch-bergmann-3', 28.6, 0.164]],   // Bronzezeit: Bergmann in Wolltunika
   blasebalg: [['mensch-schmelzer-1', 37.9, 0.04], ['mensch-schmelzer-2', 39.2, 0.048], ['mensch-schmelzer-3', 37.5, 0.033]],   // Schmelzofen: tritt den Blasebalg
   giessen: [['mensch-giesser-1', 35.6, 0.197], ['mensch-giesser-2', 35.5, 0.198], ['mensch-giesser-3', 36.2, 0.232]],   // Bronzegießer: Tiegel kippen und gießen
@@ -1228,9 +1228,9 @@ const ANIM_POSES = {
   weben: [['mensch-weberin-1', 34.5, 0.204], ['mensch-weberin-2', 34.5, 0.208], ['mensch-weberin-3', 34.5, 0.191]],   // Weberin am Gewichtswebstuhl
   sterne: [['mensch-sternkundiger-1', 36.4, 0.006], ['mensch-sternkundiger-2', 43.4, 0.155], ['mensch-sternkundiger-3', 47, -0.089]],   // Sternkundiger: schaut und peilt mit dem Stab
   schmieden: [['mensch-schmied-1', 39.5, 0.228], ['mensch-schmied-2', 34.5, 0.229], ['mensch-schmied-3', 35.1, 0.204]],   // Schmied am Amboss
-  toepfern: [['mensch-toepferin-1', 29.0, -0.007], ['mensch-toepferin-2', 29.4, -0.004], ['mensch-toepferin-3', 30.4, -0.004]],
-  pfluecken: [['mensch-frau-pflueckt-greift', 30, 0.118], ['mensch-frau-pflueckt', 30, 0.1], ['mensch-frau-pflueckt-korb', 33.6, -0.164]],
-  pflanzen: [['mensch-frau-pflanzt-graben', 30.5, 0.156], ['mensch-frau-pflanzt', 30, 0.1], ['mensch-frau-pflanzt-fertig', 30.7, 0.054]],
+  toepfern: [['mensch-toepferin-1', 29.0, -0.019], ['mensch-toepferin-2', 29.0, -0.019], ['mensch-toepferin-3', 29.1, -0.041]],
+  pfluecken: [['mensch-frau-pflueckt-greift', 30, 0.173], ['mensch-frau-pflueckt', 30, 0.154], ['mensch-frau-pflueckt-korb', 37, 0]],
+  pflanzen: [['mensch-frau-pflanzt-graben', 30.5, 0.235], ['mensch-frau-pflanzt', 30.6, 0.205], ['mensch-frau-pflanzt-fertig', 34.3, 0.166]],
 };
 // Eigener Ablauf einer Bewegung: speed = Durchläufe je Sekunde, keys = [Bild, Beginn im Durchlauf]. Ohne Angabe wie die Werkzeuge.
 const ANIM_TIMING = {
@@ -1273,7 +1273,7 @@ function poseMix(n, cyc, own) {
 }
 
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
-const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, 'mensch-mann-leer': 0.62, 'mensch-frau-leer': 0.62, 'mensch-jaeger': 0.62, 'mensch-jaeger-bogen-1': 0.62, 'mensch-jaeger-beute': 0.66, 'mensch-tongrube-korb': 0.66, 'mensch-bergmann-korb': 0.64, 'mensch-mann-stein': 0.62, 'mensch-hirte': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };
+const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, 'mensch-mann-leer': 0.62, 'mensch-frau-leer': 0.62, 'mensch-jaeger': 0.62, 'mensch-jaeger-bogen-1': 0.7, 'mensch-jaeger-beute': 0.66, 'mensch-tongrube-korb': 0.66, 'mensch-bergmann-korb': 0.64, 'mensch-mann-stein': 0.62, 'mensch-hirte': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };
 
 // Figur mit Schatten zeichnen. Bilder schauen nach links; face = -1 spiegelt nach rechts.
 // step = Laufphase (Bogenmaß) oder null im Stehen: Dann schwingen vordere und hintere Beine gegeneinander.

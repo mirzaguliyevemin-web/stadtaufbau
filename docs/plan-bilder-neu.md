@@ -227,6 +227,9 @@ Die Figuren sind im Spiel nur 30–45 Pixel hoch: Es zählt der klare Umriss von
 
 ## 7 · Vorschlag für die Reihenfolge
 
+**Wichtig (Emin, 20.11.2026): Gebäude ohne Sockel.** Kein Erdblock, keine erhöhte Grasplatte – das Gebäude steht direkt auf dem
+Spielboden. Die Steinzeit-Probebilder vom 16.11. haben alle einen Sockel und werden neu gemacht.
+
 1. **Eisenzeit-Gebäude ohne Bild** (Eisenmine, Rennofen, Salzsiederei, Wagner, Glasmacherin, Ringwall, Salzberg): Das sieht
    man heute als Kasten, da lohnt es sich am meisten.
 2. **Steinzeit-Gebäude** im neuen Stil: Die sieht jeder Spieler zuerst. Der Stil wird hier festgelegt.

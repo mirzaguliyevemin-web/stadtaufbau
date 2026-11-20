@@ -25,8 +25,9 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 ## Erledigt
 
+- 20.11.2026, V247: Letzte alte Figuren im neuen Stil – Fischer im Einbaum (zwei Paddelbilder, leeres Boot), Bergmann mit Erzkorb (schaut jetzt wie alle nach links), Händler und Südhändler.
 - 20.11.2026, V246: Tiere im neuen Stil – Hirsch, Mammut, Ziege, Esel mit Amphoren neu; Schaf und Rind mit eigenen Bildern statt eingefärbter Ziege.
-- 20.11.2026, V245: Bronzezeit-Arbeiter im neuen Stil – 14 Berufe mit je drei Bewegungsbildern in Wolltunika bzw. Leinenkleid, Gürtelfarbe je Beruf (offen nur der Bergmann mit Korb beim Tragen).
+- 20.11.2026, V245: Bronzezeit-Arbeiter im neuen Stil – 14 Berufe mit je drei Bewegungsbildern in Wolltunika bzw. Leinenkleid, Gürtelfarbe je Beruf.
 - 20.11.2026, V242: Steinkreis-Bauphasen (Bauplatz und halb fertig) ohne Sockel im neuen Stil, mit Winterbildern.
 - 20.11.2026, V241: Tongrube mit neuem Bild ohne Sockel (drei Ansichten plus Winter), die Wasserseite in der Farbe des Flusses.
 - 20.11.2026, V240: Neue Steinzeit-Bilder aus Scenario ohne Sockel (22 Gebäude, Vorder- und Rückansicht, Sommer und Winter mit Sommerfarben und Schnee); 12 Arbeitsplätze mit Zaun und Tor, das Tor dreht sich beim Bauen zum Weg. Tongrube behält vorerst ihr altes Bild (steht halb im Wasser, neues Bild mit Wasser folgt).

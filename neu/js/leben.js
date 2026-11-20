@@ -899,7 +899,7 @@ function drawBoat(w, t) {
     ctx.translate(p.x, p.y + rock * 0.4);
     if (w.face < 0) ctx.scale(-1, 1);
     ctx.rotate(Math.sin(t * 1.8 + w.ph) * 0.02);
-    ctx.drawImage(pic, -bw / 2, -bh * 0.82, bw, bh);
+    ctx.drawImage(pic, -bw / 2, -bh * (pull ? 0.894 : 0.825), bw, bh);   // Wasserlinie am Rumpf (V247: Paddel ragt beim Vorderbild unter das Boot)
     ctx.restore();
     const q = pull ? (cyc - 0.5) / 0.5 : cyc / 0.5;
     if (q < 0.25) splash(p.x + (pull ? 0.28 : -0.33) * bw * w.face, p.y + 1 * z, z, 0.8);
@@ -1272,7 +1272,7 @@ function poseMix(n, cyc, own) {
 }
 
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
-const LEGS = { 'mensch-mann': 0.65, 'mensch-frau': 0.64, 'mensch-mann-leer': 0.65, 'mensch-frau-leer': 0.64, 'mensch-jaeger': 0.66, 'mensch-jaeger-bogen-1': 0.7, 'mensch-jaeger-beute': 0.66, 'mensch-tongrube-korb': 0.65, 'mensch-bergmann-korb': 0.64, 'mensch-mann-stein': 0.65, 'mensch-hirte': 0.7, hirsch: 0.7, ziege: 0.69, schaf: 0.7, rind: 0.66, mammut: 0.76 };   // Steinzeit-Menschen: Scenario (V244), Saum des Fellkleids
+const LEGS = { 'mensch-mann': 0.65, 'mensch-frau': 0.64, 'mensch-mann-leer': 0.65, 'mensch-frau-leer': 0.64, 'mensch-jaeger': 0.66, 'mensch-jaeger-bogen-1': 0.7, 'mensch-jaeger-beute': 0.66, 'mensch-tongrube-korb': 0.65, 'mensch-bergmann-korb': 0.67, 'mensch-mann-stein': 0.65, 'mensch-hirte': 0.7, hirsch: 0.7, ziege: 0.69, schaf: 0.7, rind: 0.66, mammut: 0.76 };   // Steinzeit-Menschen: Scenario (V244), Saum des Fellkleids
 
 // Figur mit Schatten zeichnen. Bilder schauen nach links; face = -1 spiegelt nach rechts.
 // step = Laufphase (Bogenmaß) oder null im Stehen: Dann schwingen vordere und hintere Beine gegeneinander.

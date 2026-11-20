@@ -53,7 +53,7 @@ const images = {};
 const NO_PLATE = /^(f-|ware-|fund-|mensch-|fischer-|einbaum|hirsch|mammut|ziege|esel|baum-|berg-|fels-|huegel-|blumen|busch|wiese|schneewiese|sand|wasser|pfad|setzling)/;
 // Scenario-Bilder ohne Sockel (V240, Wunsch Emin 20.11.2026): keine Grasplatte im Bild, das Gebäude steht direkt auf dem
 // Boden. Die Unterkante (Zaun, Steine) gibt die Raute vor – nichts abschneiden, keine Plattendicke.
-const FLAT_IMAGES = /^1-(acker|ahnenplatz|fellmacherin|fellzelt|feuerplatz|grubenhaus|hoehlenmaler|holzsammler|jaegerlager|lagerfeuer|langhaus|mammutjaegerlager|pfahlbau|pflanzerin|sammlerin|steinkreis|steinsammler|steinschlaeger|toepferei|vorratsspeicher|wohnhoehle|ziegengehege)(-r[12])?(-winter)?$/;
+const FLAT_IMAGES = /^1-(acker|ahnenplatz|fellmacherin|fellzelt|feuerplatz|grubenhaus|hoehlenmaler|holzsammler|jaegerlager|lagerfeuer|langhaus|mammutjaegerlager|pfahlbau|pflanzerin|sammlerin|steinkreis|steinsammler|steinschlaeger|toepferei|tongrube|vorratsspeicher|wohnhoehle|ziegengehege)(-r[12])?(-winter)?$/;
 function plateFor(name, img) {
   if (NO_PLATE.test(name)) return null;
   if (FLAT_IMAGES.test(name)) return flatPlate(img);

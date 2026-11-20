@@ -23,6 +23,22 @@ RAUCH = {
 }
 # Winterbilder sind wie das Sommerbild aufgebaut: derselbe Kasten
 
+# Gebäude halb im Wasser: gemaltes Wasser in der Farbe des Flusses im Spiel (zeichnen.js blendet es zum Rand weich aus)
+WASSER = {'tongrube'}
+FLUSS = (97, 154, 158)
+
+def wasser_angleichen(im):
+    px = im.load(); w, h = im.size; wasser = []
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a and b > r + 20 and b > 90: wasser.append((x, y))
+    if not wasser: return
+    mittel = [sum(px[x, y][i] for x, y in wasser) / len(wasser) for i in range(3)]
+    for x, y in wasser:
+        r, g, b, a = px[x, y]
+        px[x, y] = tuple(max(0, min(255, round(FLUSS[i] + ((r, g, b)[i] - mittel[i]) * 0.5))) for i in range(3)) + (a,)
+
 def hell_grau(r, g, b):
     mx, mn = max(r, g, b), min(r, g, b)
     return mx > 150 and (mx - mn) / max(mx, 1) < 0.3
@@ -56,6 +72,7 @@ def bearbeiten(im, name, box=None):
     im = im.crop(box)
     if im.width > 640:
         im = im.resize((640, round(im.height * 640 / im.width)), Image.LANCZOS)
+    if name.split('-')[0] in WASSER: wasser_angleichen(im)
     im.box = box
     return im, schleier
 

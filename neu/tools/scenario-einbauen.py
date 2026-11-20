@@ -52,9 +52,10 @@ def schleier_anteil(im):
             if 0 < a < 250 and hell_grau(r, g, b): halb += 1
     return halb / max(1, deckend)
 
-def bearbeiten(im, name, box=None):
+def bearbeiten(im, name, box=None, umriss=None):
     im = im.convert('RGBA'); w, h = im.size; px = im.load()
-    schleier = schleier_anteil(im) > 0.12
+    # Schnee ist hell und kaum farbig wie Dunst: bei Winterbildern (sie entstehen aus dem bereinigten Sommerbild) nicht filtern
+    schleier = not name.endswith('-winter') and schleier_anteil(im) > 0.12
     kasten = RAUCH.get(name) or RAUCH.get(name.replace('-winter', ''))
     mask = Image.new('L', (w, h)); m = mask.load()
     for y in range(h):
@@ -65,7 +66,11 @@ def bearbeiten(im, name, box=None):
             if not weg and kasten and kasten[0] * w <= x <= kasten[1] * w and kasten[2] * h <= y <= kasten[3] * h and hell_grau(r, g, b): weg = True
             m[x, y] = 0 if weg else a
     weich = mask.filter(ImageFilter.GaussianBlur(0.8)).point(lambda v: min(255, v + 30))
-    im.putalpha(ImageChops.darker(mask, weich))
+    alpha = ImageChops.darker(mask, weich)
+    if umriss is not None and umriss.size == alpha.size:   # Winterbild: nur innerhalb des (etwas erweiterten) Sommer-Umrisses
+        alpha = ImageChops.darker(alpha, umriss.filter(ImageFilter.MaxFilter(7)).filter(ImageFilter.GaussianBlur(1)))
+    im.putalpha(alpha)
+    umriss_voll = alpha
     if box is None:   # sonst (Winterbild) derselbe Ausschnitt wie im Sommer, damit Feuer und Rauch (EFFECTS) passen
         b = im.getchannel('A').point(lambda v: 255 if v > 16 else 0).getbbox()
         box = (max(0, b[0] - 4), max(0, b[1] - 4), min(w, b[2] + 4), min(h, b[3] + 4))
@@ -74,21 +79,23 @@ def bearbeiten(im, name, box=None):
         im = im.resize((640, round(im.height * 640 / im.width)), Image.LANCZOS)
     if name.split('-')[0] in WASSER: wasser_angleichen(im)
     im.box = box
+    im.umriss = umriss_voll
     return im, schleier
 
 def main():
     ordner, nur = sys.argv[1], set(sys.argv[2:])
     for datei in sorted(os.listdir(ordner)):
-        mt = re.fullmatch(r'([a-z]+)((?:-r[12])?(?:-winter)?)\.png', datei)
+        mt = re.fullmatch(r'([a-z]+)((?:-bau|-halb)?(?:-r[12])?(?:-winter)?)\.png', datei)
         if not mt: continue
         basis, rest = mt.groups()
         if nur and basis not in nur and basis + rest not in nur: continue
         name = f'1-{basis}{rest}'
-        box = None
+        box = umriss = None
         sommer = os.path.join(ordner, basis + rest.replace('-winter', '') + '.png')
         if rest.endswith('-winter') and os.path.exists(sommer):
-            box = bearbeiten(Image.open(sommer), basis + rest.replace('-winter', ''))[0].box
-        im, schleier = bearbeiten(Image.open(os.path.join(ordner, datei)), basis + rest, box)
+            s_im = bearbeiten(Image.open(sommer), basis + rest.replace('-winter', ''))[0]
+            box, umriss = s_im.box, s_im.umriss
+        im, schleier = bearbeiten(Image.open(os.path.join(ordner, datei)), basis + rest, box, umriss)
         os.makedirs(os.path.join(OUT, basis), exist_ok=True)
         os.makedirs(os.path.join(SRC, basis), exist_ok=True)
         im.save(os.path.join(OUT, basis, name + '.webp'), quality=82, method=6)

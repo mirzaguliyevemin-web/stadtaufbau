@@ -230,6 +230,11 @@ Die Figuren sind im Spiel nur 30–45 Pixel hoch: Es zählt der klare Umriss von
 **Wichtig (Emin, 20.11.2026): Gebäude ohne Sockel.** Kein Erdblock, keine erhöhte Grasplatte – das Gebäude steht direkt auf dem
 Spielboden. Die Steinzeit-Probebilder vom 16.11. haben alle einen Sockel und werden neu gemacht.
 
+**Zaun mit Tor (Emin, 20.11.2026):** Alle Arbeitsplätze bekommen einen niedrigen Zaun passend zur Zeit, mit kleinem Tor vorne links
+(Ansicht r0). Wohnhäuser, Lagerfeuer, Kultplätze, Lager und Höhlen ohne Zaun. Im Spiel dreht sich das Gebäude beim Bauen so,
+dass das Tor zur Straße zeigt (von Hand drehen geht weiter), und die Leute gehen durch das Tor hinein und hinaus.
+Probebild: Sammlerin, 10 CU (GPT Image 2.6, Referenz = altes Bild, medium, 1024², transparent).
+
 1. **Eisenzeit-Gebäude ohne Bild** (Eisenmine, Rennofen, Salzsiederei, Wagner, Glasmacherin, Ringwall, Salzberg): Das sieht
    man heute als Kasten, da lohnt es sich am meisten.
 2. **Steinzeit-Gebäude** im neuen Stil: Die sieht jeder Spieler zuerst. Der Stil wird hier festgelegt.

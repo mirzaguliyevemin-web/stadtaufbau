@@ -1752,6 +1752,33 @@ test('V233: Mittlere Antike – Forschungen, Gebäude, Hafen mit Schiffsreise, O
   noErrors(g);
 });
 
+test('V239: Zaun mit Tor – Torfeld je Drehung, Gebäude dreht sich mit dem Tor zum Weg, Arbeiter gehen durchs Tor', () => {
+  const g = fresh();
+  const r = g.run(`(() => {
+    const out = {};
+    BUILDINGS.sammlerin.gate = true;
+    const c = state.buildings.find(b => b.type === 'lagerfeuer');
+    const p = findFreeSpot('sammlerin', c.x + 8, c.y + 8), s = BUILDINGS.sammlerin.size;
+    out.tore = [0, 1, 2, 3].map(r => gateTileAt('sammlerin', p.x, p.y, r));
+    // jedes Torfeld liegt direkt außen am Grundriss
+    out.aussen = out.tore.every(([x, y]) => !(x >= p.x && x < p.x + s && y >= p.y && y < p.y + s)
+      && perimeter(p.x, p.y, s).some(([a, b]) => a === x && b === y));
+    out.verschieden = new Set(out.tore.map(t => t.join())).size === 4;
+    const [gx, gy] = out.tore[2];
+    addBuilding('pfad', gx, gy, 0, true); rebuildOccupancy(); networkDirty = true;
+    out.dreh = gateRotation('sammlerin', p.x, p.y, 0);
+    out.ohneTor = gateTileAt('fellzelt', p.x, p.y, 0);
+    const b = addBuilding('sammlerin', p.x, p.y, 2, true); rebuildOccupancy();
+    const f = frontSpot(b);
+    out.weg = f && Math.floor(f.x) === gx && Math.floor(f.y) === gy;
+    return out;
+  })()`);
+  ok(r.aussen && r.verschieden, 'Torfelder: ' + JSON.stringify(r));
+  ok(r.dreh === 2 && r.ohneTor === null, 'Drehung zum Weg: ' + JSON.stringify(r));
+  ok(r.weg, 'Arbeiter am Tor: ' + JSON.stringify(r));
+  noErrors(g);
+});
+
 test('V238: Shop-Schmuck – Stadtfahne kaufen und Farbe wechseln, Feuerwerk, beides zeichnet ohne Fehler', () => {
   const g = fresh();
   const r = g.run(`(() => {

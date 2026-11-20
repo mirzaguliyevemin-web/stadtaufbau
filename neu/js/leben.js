@@ -399,6 +399,8 @@ function frontSpot(b, k = 0) {
   for (let d = 0; d < s; d++) out.push([b.x + d, b.y - 1, 0, -1]);
   const mid = Math.floor(s / 2);   // in der Mitte der Seite anfangen
   const order = out.map((c, i) => [c, Math.floor(i / s) * 10 + Math.abs((i % s) - mid)]).sort((a, c) => a[1] - c[1]).map(a => a[0]);
+  const gate = gateTile(b);   // mit Zaun: zuerst durchs Tor
+  if (gate) { const i = order.findIndex(([x, y]) => x === gate[0] && y === gate[1]); if (i > 0) order.unshift(order.splice(i, 1)[0]); }
   const free = order.filter(([x, y]) => walkable(x, y));
   if (!free.length) return null;
   const [x, y, dx, dy] = free[k % free.length];

@@ -1850,7 +1850,7 @@ function drawPlaceholder(def, x, y, s, lift) {
 // linke, rechte und vordere Ecke der Raute gelegt (schräg verzerrt), alle in derselben Sockelhöhe – so passt
 // jedes Bild ans Raster und alle Gebäude stehen gleich hoch. Den Sockel darunter schneiden wir auf diese Höhe
 // zu bzw. ergänzen ihn in seiner Farbe, wenn er im Bild dünner ist.
-const SOCKEL_HOEHE = 0.05;   // Anteil der Grundstücksbreite
+const SOCKEL_HOEHE = 0;   // Anteil der Grundstücksbreite – seit V239 ohne Sockel: Emin will die Gebäude nicht erhöht (20.11.2026)
 
 // Erd-Textur für die Sockel, wandert mit der Karte mit
 let earthCache = { key: '', p: null };   // nur einmal je Bild bzw. Kameraposition anlegen (nicht je Gebäude)
@@ -1929,7 +1929,7 @@ function buildingImageHit(b, sx, sy) {
 function drawImageOnTiles(img, x, y, s, rot, lift = 0, flat = false) {
   const iw = img.width, ih = img.height, p = img.sockel;
   const { bl, br, bf, left, right, front, m } = imagePlacement(img, x, y, s, rot, lift, flat);
-  if (!flat) {
+  if (!flat && SOCKEL_HOEHE > 0) {
   // Einheitlicher Erdsockel für alle Gebäude (der gezeichnete Sockel im Bild wird an der Graskante abgeschnitten)
   const earth = earthPattern();
   ctx.fillStyle = earth || p.farbe;

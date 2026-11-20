@@ -52,10 +52,21 @@ function stiltRotation(type, x, y) {
   return left > right ? 1 : 0;
 }
 
+// Gebäude mit Zaun drehen sich so, dass das Tor an einem Weg liegt (erst die Vorderansichten, dann die Rückseiten)
+function gateRotation(type, x, y, current) {
+  updateNetwork();
+  const steps = BUILDINGS[type].views ? 4 : 2;
+  const onWay = ([gx, gy]) => inMap(gx, gy) && (isPathAt(gx, gy) || isFireAt(gx, gy));
+  for (let r = 0; r < steps; r++) if (onWay(gateTileAt(type, x, y, r))) return r;
+  const keep = (Number(current) || 0) & 3;
+  return keep < steps ? keep : 0;
+}
+
 // Wasser-Gebäude drehen sich beim Platzieren von selbst zum Fluss – bis man selbst ↻ drückt
 function autoOrient() {
   const def = BUILDINGS[ghost.type];
   if (ghost && !ghost.manualRot && def.stilts) { ghost.rot = stiltRotation(ghost.type, ghost.x, ghost.y); return; }
+  if (ghost && !ghost.manualRot && def.gate) { ghost.rot = gateRotation(ghost.type, ghost.x, ghost.y, ghost.rot); return; }
   if (!ghost || ghost.manualRot || !def.needsWater || !def.views || !def.views.includes('r1')) return;
   // zuerst eine Drehung, bei der die Wasserseite im Fluss steht; sonst die mit dem meisten Wasser daneben
   const fit = bestWaterRot(ghost.type, ghost.x, ghost.y, ghost.from);

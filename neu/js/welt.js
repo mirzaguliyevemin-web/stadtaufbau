@@ -1097,6 +1097,19 @@ function perimeter(x, y, s) {
   return out.filter(([px, py]) => inMap(px, py));
 }
 
+// Tor im Zaun (Gebäude mit gate: true): Feld direkt vor dem Tor bei Drehung rot.
+// Bild r0 hat das Tor vorne links in der Mitte (Seite y + s), r1 ist das Spiegelbild (Seite x + s),
+// r2 die Rückansicht (Tor hinten rechts, Seite y − 1), r3 deren Spiegelbild (Seite x − 1).
+function gateTileAt(type, x, y, rot) {
+  const def = BUILDINGS[type];
+  if (!def || !def.gate) return null;
+  const s = def.size, m = Math.floor(s / 2), n = s - 1 - m, r = (Number(rot) || 0) & 3;
+  // Gebäude mit eigener Seitenansicht r1 (Tongrube): dort ist das Tor wieder vorne links, r3 ist deren Spiegelbild
+  if (def.views && def.views.includes('r1')) return r === 0 || r === 1 ? [x + m, y + s] : r === 2 ? [x + n, y - 1] : [x + s, y + m];
+  return r === 0 ? [x + m, y + s] : r === 1 ? [x + s, y + m] : r === 2 ? [x + n, y - 1] : [x - 1, y + n];
+}
+function gateTile(b) { return gateTileAt(b.type, b.x, b.y, b.rot); }
+
 // Liegt ein Bauplatz am Wegenetz (Pfad mit Verbindung oder direkt am Lagerfeuer)?
 function touchesNetwork(x, y, s) {
   updateNetwork();

@@ -27,6 +27,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 ## Erledigt
 
+- 20.11.2026, V240: Neue Steinzeit-Bilder aus Scenario ohne Sockel (22 Gebäude, Vorder- und Rückansicht, Sommer und Winter mit Sommerfarben und Schnee); 12 Arbeitsplätze mit Zaun und Tor, das Tor dreht sich beim Bauen zum Weg. Tongrube behält vorerst ihr altes Bild (steht halb im Wasser, neues Bild mit Wasser folgt).
 - 20.11.2026, V239: Gebäude ohne Erdsockel – liegen flach auf dem Boden. Tor-Logik vorbereitet (Gebäude mit Zaun drehen das Tor zum Weg, Arbeiter gehen durchs Tor); neue Scenario-Bilder mit Zaun folgen.
 - 19.11.2026, V238: Shop Teil 2 – Stadtfahne mit Wappen (6 Farben) und Feuerwerk. 16 neue Deko-Stücke folgen ab 21.11. (Scenario-Credits).
 

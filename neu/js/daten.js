@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 239;
+const APP_VERSION = 240;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -462,20 +462,20 @@ const BUILDINGS = {
     info: 'Häuser auf Pfählen am Wasser – Platz für 12 Menschen, dazu etwas Fisch.',
   },
   sammlerin: {
-    name: 'Sammlerin', icon: '🫐', size: 2, line: 'sammeln', tier: 0, stage: 'alt', bild: '1-sammlerin', views: ['r2'],
+    name: 'Sammlerin', icon: '🫐', size: 2, line: 'sammeln', tier: 0, stage: 'alt', bild: '1-sammlerin', views: ['r2'], gate: true,
     color: '#9c5ab8', cost: { holz: 10 }, time: 30, workers: 2, produces: { nahrung: 8 }, upgradeTo: 'gemuesegarten',
     bonus: { terrain: 'wald', perTile: 0.04, max: 0.5 },
     info: 'Sammelt Beeren, Pilze und Wurzeln. Am Wald mehr, im Winter wenig.',
   },
   // Jägerlager und Mammutjägerlager seit Version 74 20 % weniger Nahrung (Emin, 03.11.: Lager sind zu oft voll; vorher 10 und 20)
   jaegerlager: {
-    name: 'Jägerlager', icon: '🏹', size: 3, line: 'jagen', tier: 0, stage: 'alt', bild: '1-jaegerlager', views: ['r2'],
+    name: 'Jägerlager', icon: '🏹', size: 3, line: 'jagen', tier: 0, stage: 'alt', bild: '1-jaegerlager', views: ['r2'], gate: true,
     color: '#8a6a3a', cost: { holz: 20, stein: 10 }, time: 60, workers: 3, produces: { nahrung: 8, felle: 1 },
     bonus: { terrain: 'wald', perTile: 0.03, max: 0.5 }, upgradeTo: 'mammutjaegerlager',
     info: 'Jäger bringen Fleisch und ein paar Felle. Am Wald mehr.',
   },
   mammutjaegerlager: {
-    name: 'Mammutjägerlager', icon: '🦣', size: 3, line: 'jagen', tier: 1, stage: 'alt', bild: '1-mammutjaegerlager', views: ['r2'],
+    name: 'Mammutjägerlager', icon: '🦣', size: 3, line: 'jagen', tier: 1, stage: 'alt', bild: '1-mammutjaegerlager', views: ['r2'], gate: true,
     color: '#6f5030', cost: { holz: 60, stein: 40 }, time: 120, workers: 4, produces: { nahrung: 16, felle: 2 },
     bonus: { terrain: 'wald', perTile: 0.03, max: 0.5 }, requires: 'mammutjagd', upgradeOnly: true, upgradeTo: 'jagdhuette',
     info: 'Doppelt so viel Nahrung und Felle wie das Jägerlager.',
@@ -486,28 +486,28 @@ const BUILDINGS = {
     requires: 'einbaum', info: 'Fischerhütte auf Säulen, unten liegt das Boot – viel Nahrung. Steht mit den Säulen im Fluss, ein Stück auch an Land.',
   },
   acker: {
-    name: 'Acker', icon: '🌾', size: 3, line: 'feld', tier: 0, stage: 'jung', bild: '1-acker', views: ['r2'],
+    name: 'Acker', icon: '🌾', size: 3, line: 'feld', tier: 0, stage: 'jung', bild: '1-acker', views: ['r2'], gate: true,
     color: '#d8b44a', cost: { holz: 40, werkzeug: 5 }, time: 90, workers: 4, produces: { nahrung: 30 }, upgradeTo: 'feld',
     requires: 'ackerbau', info: 'Sehr viel Nahrung – im Sommer am meisten, im Winter nichts.',
   },
   ziegengehege: {
-    name: 'Ziegengehege', icon: '🐐', size: 3, line: 'tiere', tier: 0, stage: 'jung', bild: '1-ziegengehege', views: ['r2'],
+    name: 'Ziegengehege', icon: '🐐', size: 3, line: 'tiere', tier: 0, stage: 'jung', bild: '1-ziegengehege', views: ['r2'], gate: true,
     color: '#c8b48a', cost: { holz: 60, werkzeug: 5 }, time: 120, workers: 3, produces: { nahrung: 10, felle: 2 }, upgradeTo: 'viehhof',
     requires: 'viehzucht', info: 'Ziegen geben Milch, Fleisch und Felle – das ganze Jahr.',
   },
   holzsammler: {
-    name: 'Holzsammler', icon: '🪓', size: 2, line: 'holz', tier: 0, stage: 'alt', bild: '1-holzsammler', views: ['r2'],
+    name: 'Holzsammler', icon: '🪓', size: 2, line: 'holz', tier: 0, stage: 'alt', bild: '1-holzsammler', views: ['r2'], gate: true,
     color: '#7a5230', cost: { stein: 5 }, time: 30, workers: 2, produces: { holz: 8 }, upgradeTo: 'holzfaeller',
     bonus: { terrain: 'wald', perTile: 0.04, max: 0.6 }, fellsTrees: true,
     info: 'Fällt Bäume und sammelt Holz. Am Wald viel mehr – aber die Bäume werden weniger. Eine Pflanzerin setzt neue.',
   },
   pflanzerin: {
-    name: 'Pflanzerin', icon: '🌱', size: 2, line: 'pflanzen', tier: 0, stage: 'alt', bild: '1-pflanzerin', views: ['r2'],
+    name: 'Pflanzerin', icon: '🌱', size: 2, line: 'pflanzen', tier: 0, stage: 'alt', bild: '1-pflanzerin', views: ['r2'], gate: true,
     color: '#6a9a3a', cost: { holz: 20, stein: 5 }, time: 40, workers: 1, plants: true, upgradeTo: 'baumgaertnerin',
     info: 'Sammelt Samen und pflanzt Setzlinge im Umkreis. Nach 10 Minuten ist daraus ein Baum gewachsen.',
   },
   steinsammler: {
-    name: 'Steinsammler', icon: '⛏️', size: 2, line: 'stein', tier: 0, stage: 'alt', bild: '1-steinsammler', views: ['r2'],
+    name: 'Steinsammler', icon: '⛏️', size: 2, line: 'stein', tier: 0, stage: 'alt', bild: '1-steinsammler', views: ['r2'], gate: true,
     color: '#8a8a8a', cost: { holz: 15 }, time: 30, workers: 2, produces: { stein: 6 }, upgradeTo: 'steinbruch',
     bonus: { terrain: ['fels', 'berg'], perTile: 0.06, max: 0.6 }, minesRocks: true,
     info: 'Sammelt Steine. An Felsen und am Gebirge viel mehr. Felsen in der Nähe werden nach und nach abgebaut – am Gebirge gibt es Stein ohne Ende.',
@@ -518,7 +518,7 @@ const BUILDINGS = {
     info: 'Wunderwerk: Tippe es an, um Abschnitt für Abschnitt weiterzubauen. Muss an Felsen stehen.',
   },
   hoehlenmaler: {
-    name: 'Höhlenmaler', icon: '🎨', size: 2, line: 'wissen', tier: 0, stage: 'alt', bild: '1-hoehlenmaler', views: ['r2'],
+    name: 'Höhlenmaler', icon: '🎨', size: 2, line: 'wissen', tier: 0, stage: 'alt', bild: '1-hoehlenmaler', views: ['r2'], gate: true,
     color: '#c05a3a', cost: { holz: 15, stein: 15 }, time: 45, workers: 1, produces: { wissen: 4 }, upgradeTo: 'felsritzer',
     bonus: { terrain: 'fels', perTile: 0.05, max: 0.5 }, info: 'Malt Geschichten an Felswände – bringt Wissen für die Forschung.',
   },
@@ -528,12 +528,12 @@ const BUILDINGS = {
     info: 'Wärme und Gemeinschaft für Wohnungen im Umkreis.',
   },
   fellmacherin: {
-    name: 'Fellmacherin', icon: '🧥', size: 2, line: 'kleidung', tier: 0, stage: 'mittel', bild: '1-fellmacherin', views: ['r2'],
+    name: 'Fellmacherin', icon: '🧥', size: 2, line: 'kleidung', tier: 0, stage: 'mittel', bild: '1-fellmacherin', views: ['r2'], gate: true,
     color: '#a8784a', cost: { holz: 40, stein: 20 }, time: 90, workers: 2, consumes: { felle: 4 }, produces: { kleidung: 2.5 }, upgradeTo: 'weberin',
     requires: 'fellbearbeitung', info: 'Näht aus Fellen Kleidung: aus 8 Fellen werden 5 Kleidung.',
   },
   steinschlaeger: {
-    name: 'Steinschläger', icon: '🗡️', size: 2, line: 'werkzeug', tier: 0, stage: 'mittel', bild: '1-steinschlaeger', views: ['r2'],
+    name: 'Steinschläger', icon: '🗡️', size: 2, line: 'werkzeug', tier: 0, stage: 'mittel', bild: '1-steinschlaeger', views: ['r2'], gate: true,
     color: '#707880', cost: { holz: 30, stein: 40 }, time: 90, workers: 2, consumes: { stein: 2, holz: 1 }, produces: { werkzeug: 1 }, upgradeTo: 'kupferschmied',
     requires: 'feine_klingen', info: 'Schlägt aus 2 Stein und 1 Holz 1 Werkzeug.',
   },
@@ -548,7 +548,7 @@ const BUILDINGS = {
     requires: 'toepfern', info: 'Gräbt Ton am Ufer. Muss am Wasser stehen.',
   },
   toepferei: {
-    name: 'Töpferei', icon: '🏺', size: 2, line: 'toepfern', tier: 0, stage: 'jung', bild: '1-toepferei', views: ['r2'],
+    name: 'Töpferei', icon: '🏺', size: 2, line: 'toepfern', tier: 0, stage: 'jung', bild: '1-toepferei', views: ['r2'], gate: true,
     color: '#b8643a', cost: { holz: 50, stein: 40 }, time: 120, workers: 3, consumes: { ton: 2, holz: 1 }, produces: { toepferwaren: 1.25 }, upgradeTo: 'toepferwerkstatt',
     requires: 'toepfern', info: 'Formt und brennt aus Ton und Holz Töpferwaren: aus 8 Ton und 4 Holz werden 5 Töpferwaren.',
   },

@@ -51,11 +51,36 @@ const images = {};
 // Sockel vermessen (getImageData über das ganze Bild) braucht nur, was auf Feldern steht. Figuren, Waren, Symbole und
 // Gelände nie – das kostete beim Start Sekunden (V209). Das Winterbild hat denselben Sockel wie das Sommerbild.
 const NO_PLATE = /^(f-|ware-|fund-|mensch-|fischer-|einbaum|hirsch|mammut|ziege|esel|baum-|berg-|fels-|huegel-|blumen|busch|wiese|schneewiese|sand|wasser|pfad|setzling)/;
+// Scenario-Bilder ohne Sockel (V240, Wunsch Emin 20.11.2026): keine Grasplatte im Bild, das Gebäude steht direkt auf dem
+// Boden. Die Unterkante (Zaun, Steine) gibt die Raute vor – nichts abschneiden, keine Plattendicke.
+const FLAT_IMAGES = /^1-(acker|ahnenplatz|fellmacherin|fellzelt|feuerplatz|grubenhaus|hoehlenmaler|holzsammler|jaegerlager|lagerfeuer|langhaus|mammutjaegerlager|pfahlbau|pflanzerin|sammlerin|steinkreis|steinsammler|steinschlaeger|toepferei|vorratsspeicher|wohnhoehle|ziegengehege)(-r[12])?(-winter)?$/;
 function plateFor(name, img) {
   if (NO_PLATE.test(name)) return null;
+  if (FLAT_IMAGES.test(name)) return flatPlate(img);
   const summer = /-winter$/.test(name) && images[name.replace(/-winter$/, '')];
   if (summer && summer.sockel && summer.width === img.width && summer.height === img.height) return summer.sockel;
   return measurePlate(img);
+}
+
+// Raute eines Bildes ohne Sockel: linke und rechte Ecke am äußersten sichtbaren Punkt, vordere Ecke ganz unten in der
+// Mitte, Neigung wie die Spielfelder (Scenario malt die Zäune fast genau so steil). Die Unterkante nachzumessen wie bei
+// den Platten klappt hier nicht: Beete, Holzstapel und Töpfe ragen unregelmäßig heraus.
+function flatPlate(img) {
+  try {
+    const w = Math.min(256, img.width), h = Math.round(img.height * w / img.width);
+    const c = newCanvas(); c.width = w; c.height = h;
+    const g = c.getContext('2d'); g.drawImage(img, 0, 0, w, h);
+    const data = g.getImageData(0, 0, w, h).data;
+    let x0 = w, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (data[(y * w + x) * 4 + 3] > 128) {
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y > y1) y1 = y;
+    }
+    if (x1 <= x0) throw new Error('leer');
+    const side = (y1 + 1 - (x1 + 1 - x0) * TH / TW / 2) / h;
+    return { lx: x0 / w, ly: side, rx: (x1 + 1) / w, ry: side, fx: (x0 + x1 + 1) / 2 / w, fy: (y1 + 1) / h, dicke: 0, farbe: '#7a6a3a', noClip: true };
+  } catch (e) {
+    return { lx: 0, ly: 1 - 0.5 * TH / TW * img.width / img.height, rx: 1, ry: 1 - 0.5 * TH / TW * img.width / img.height, fx: 0.5, fy: 1, dicke: 0, farbe: '#7a6a3a', noClip: true };
+  }
 }
 
 function loadImage(name) {
@@ -1976,18 +2001,18 @@ let lastImagePoint = null;
 // Wo auf den Gebäudebildern brennt ein Feuer (u, v = Anteil von Bildbreite und -höhe) und wo steigt Rauch auf?
 // feuer = Größe des Flackerns, rauch = Stärke des Rauchs (0 = keiner)
 const EFFECTS = {
-  '1-lagerfeuer':        [{ u: 0.50, v: 0.50, feuer: 1.5, rauch: 1.2, rv: 0.38 }],
+  '1-lagerfeuer':        [{ u: 0.53, v: 0.56, feuer: 1.5, rauch: 1.2, rv: 0.47 }],
   '2-dorfplatz':         [{ u: 0.465, v: 0.55, feuer: 1.1, rauch: 1.0, rv: 0.47 }],
-  '1-feuerplatz':        [{ u: 0.47, v: 0.47, feuer: 1.0, rauch: 0.9, rv: 0.32 }],
-  '1-wohnhoehle':        [{ u: 0.45, v: 0.47, feuer: 0.6, rauch: 0 }],
-  '1-jaegerlager':       [{ u: 0.50, v: 0.54, feuer: 0.9, rauch: 0.8, rv: 0.49 }],
-  '1-fellzelt':          [{ u: 0.33, v: 0.66, feuer: 0.7, rauch: 0.6, rv: 0.62 }],
-  '1-mammutjaegerlager': [{ u: 0.43, v: 0.68, feuer: 0.9, rauch: 0.8, rv: 0.63 }],
-  '1-ahnenplatz':        [{ u: 0.50, v: 0.51, feuer: 0.7, rauch: 0.6, rv: 0.47 }],
-  '1-hoehlenmaler':      [{ u: 0.47, v: 0.53, feuer: 0.7, rauch: 0 }],
-  '1-steinkreis':        [{ u: 0.51, v: 0.38, feuer: 0.9, rauch: 0.7, rv: 0.34 }],
-  '1-langhaus':          [{ u: 0.76, v: 0.25, feuer: 0, rauch: 1.0 }],
-  '1-toepferei':         [{ u: 0.75, v: 0.45, feuer: 0.6, rauch: 0 }, { u: 0.78, v: 0.23, feuer: 0, rauch: 1.1 }],
+  '1-feuerplatz':        [{ u: 0.50, v: 0.53, feuer: 1.0, rauch: 0.9, rv: 0.36 }],
+  '1-wohnhoehle':        [{ u: 0.41, v: 0.53, feuer: 0.6, rauch: 0 }],
+  '1-jaegerlager':       [{ u: 0.51, v: 0.55, feuer: 0.9, rauch: 0.8, rv: 0.46 }],
+  '1-fellzelt':          [{ u: 0.29, v: 0.73, feuer: 0.7, rauch: 0.6, rv: 0.66 }],
+  '1-mammutjaegerlager': [{ u: 0.49, v: 0.72, feuer: 0.9, rauch: 0.8, rv: 0.66 }],
+  '1-ahnenplatz':        [{ u: 0.52, v: 0.55, feuer: 0.7, rauch: 0.6, rv: 0.48 }],
+  '1-hoehlenmaler':      [{ u: 0.48, v: 0.54, feuer: 0.7, rauch: 0 }],
+  '1-steinkreis':        [{ u: 0.51, v: 0.43, feuer: 0.9, rauch: 0.7, rv: 0.38 }],
+  '1-langhaus':          [{ u: 0.74, v: 0.13, feuer: 0, rauch: 1.0 }],
+  '1-toepferei':         [{ u: 0.73, v: 0.45, feuer: 0.6, rauch: 0 }, { u: 0.75, v: 0.25, feuer: 0, rauch: 1.1 }],
   // Bronzezeit: gemalter, starrer Rauch entfernt (neu/tools/rauch-weg.py, Wunsch Emin 08.11.2026), hier steigt er bewegt auf
   '2-feld':             [{ u: 0.249, v: 0.30, feuer: 0, rauch: 0.9 }],
   '2-felsritzer':       [{ u: 0.246, v: 0.37, feuer: 0, rauch: 0.9 }],
@@ -1995,16 +2020,16 @@ const EFFECTS = {
   '2-koehler':          [{ u: 0.259, v: 0.39, feuer: 0, rauch: 1.1 }],
   '2-kupferschmied':    [{ u: 0.255, v: 0.33, feuer: 0, rauch: 0.9 }],
   '2-toepferwerkstatt': [{ u: 0.218, v: 0.375, feuer: 0, rauch: 1.0 }],
-  // Rückansichten (r2): Feuer und Rauch an den Stellen im jeweiligen Bild
-  '1-lagerfeuer-r2':        [{ u: 0.49, v: 0.36, feuer: 1.5, rauch: 1.2, rv: 0.24 }],
-  '1-feuerplatz-r2':        [{ u: 0.475, v: 0.63, feuer: 1.0, rauch: 0.9, rv: 0.5 }],
-  '1-jaegerlager-r2':       [{ u: 0.50, v: 0.36, feuer: 0.9, rauch: 0.8, rv: 0.31 }],
-  '1-fellzelt-r2':          [{ u: 0.80, v: 0.46, feuer: 0.7, rauch: 0.6, rv: 0.40 }],
-  '1-mammutjaegerlager-r2': [{ u: 0.56, v: 0.20, feuer: 0.7, rauch: 0.6, rv: 0.15 }],
-  '1-ahnenplatz-r2':        [{ u: 0.50, v: 0.33, feuer: 0.7, rauch: 0.6, rv: 0.27 }],
-  '1-steinkreis-r2':        [{ u: 0.50, v: 0.38, feuer: 0.9, rauch: 0.7, rv: 0.33 }],
-  '1-langhaus-r2':          [{ u: 0.60, v: 0.13, feuer: 0, rauch: 1.0 }],
-  '1-toepferei-r2':         [{ u: 0.29, v: 0.44, feuer: 0, rauch: 1.1 }],
+  // Rückansichten (r2): Feuer und Rauch an den Stellen im jeweiligen Bild (Steinzeit seit V240: Scenario-Bilder ohne Sockel)
+  '1-lagerfeuer-r2':        [{ u: 0.46, v: 0.20, feuer: 1.5, rauch: 1.2, rv: 0.11 }],
+  '1-feuerplatz-r2':        [{ u: 0.49, v: 0.65, feuer: 1.0, rauch: 0.9, rv: 0.50 }],
+  '1-jaegerlager-r2':       [{ u: 0.51, v: 0.30, feuer: 0.9, rauch: 0.8, rv: 0.22 }],
+  '1-fellzelt-r2':          [{ u: 0.79, v: 0.35, feuer: 0.7, rauch: 0.6, rv: 0.30 }],
+  '1-mammutjaegerlager-r2': [{ u: 0.55, v: 0.21, feuer: 0.7, rauch: 0.6, rv: 0.16 }],
+  '1-ahnenplatz-r2':        [{ u: 0.51, v: 0.29, feuer: 0.7, rauch: 0.6, rv: 0.24 }],
+  '1-steinkreis-r2':        [{ u: 0.51, v: 0.48, feuer: 0.9, rauch: 0.7, rv: 0.43 }],
+  '1-langhaus-r2':          [{ u: 0.26, v: 0.15, feuer: 0, rauch: 1.0 }],
+  '1-toepferei-r2':         [{ u: 0.19, v: 0.27, feuer: 0, rauch: 1.1 }],
 };
 
 let smokeQueue = [];   // Rauch wird zuletzt gezeichnet, damit er über allem liegt

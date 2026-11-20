@@ -1213,20 +1213,20 @@ const ANIM_POSES = {
   schaben: [['mensch-fellmacherin-1', 29.4, 0], ['mensch-fellmacherin-2', 27.4, -0.004], ['mensch-fellmacherin-3', 22.2, -0.003]],
   steinschlag: [['mensch-steinschlaeger-1', 24.7, 0], ['mensch-steinschlaeger-2', 24.7, 0], ['mensch-steinschlaeger-3', 23.6, -0.016]],
   hirte: [['mensch-hirte-1', 32.6, 0.019], ['mensch-hirte-2', 33.4, 0.186], ['mensch-hirte-3', 41.8, 0.077]],
-  bergbau: [['mensch-bergmann-1', 37.8, 0], ['mensch-bergmann-2', 32.4, 0.181], ['mensch-bergmann-3', 28.6, 0.164]],   // Bronzezeit: Bergmann in Wolltunika
-  blasebalg: [['mensch-schmelzer-1', 37.9, 0.04], ['mensch-schmelzer-2', 39.2, 0.048], ['mensch-schmelzer-3', 37.5, 0.033]],   // Schmelzofen: tritt den Blasebalg
-  giessen: [['mensch-giesser-1', 35.6, 0.197], ['mensch-giesser-2', 35.5, 0.198], ['mensch-giesser-3', 36.2, 0.232]],   // Bronzegießer: Tiegel kippen und gießen
-  stochern: [['mensch-koehler-1', 38.2, 0.151], ['mensch-koehler-2', 35.5, 0.218], ['mensch-koehler-3', 32.6, 0.2]],   // Köhler stochert mit der Stange im Meiler
-  waschen: [['mensch-zinnwaescherin-1', 32.3, 0.091], ['mensch-zinnwaescherin-2', 32.7, 0.088], ['mensch-zinnwaescherin-3', 29.4, 0.151]],   // Zinnwäscherin im Bach
-  schmuck: [['mensch-schmuck-1', 32.1, 0.144], ['mensch-schmuck-2', 32.3, 0.144], ['mensch-schmuck-3', 32.5, 0.144]],   // Schmuckmacherin klopft den Armreif
-  netz: [['mensch-fischer-netz-1', 35, 0.144], ['mensch-fischer-netz-2', 35.5, 0.182], ['mensch-fischer-netz-3', 35.5, 0.246]],   // Fischerhütte: Netz auswerfen
-  ritzen: [['mensch-felsritzer-1', 39, 0.075], ['mensch-felsritzer-mitte', 34, 0.095], ['mensch-felsritzer-2', 34, 0.095]],   // Felsritzer: Hammer auf den Meißel
-  drehscheibe: [['mensch-drehscheibe-1', 31, 0], ['mensch-drehscheibe-2', 31, 0], ['mensch-drehscheibe-3', 31, 0]],   // Töpferwerkstatt (Bronzezeit)
-  sichel: [['mensch-sichel-1', 33, 0.088], ['mensch-sichel-2', 33, 0.08], ['mensch-sichel-3', 35, -0.01]],   // Feld: Korn schneiden
-  scheren: [['mensch-scherer-1', 28, 0.267], ['mensch-scherer-2', 28, 0.267], ['mensch-scherer-3', 28.2, 0.265]],   // Viehhof: Schaf scheren (Schaf im Bild)
-  weben: [['mensch-weberin-1', 34.5, 0.204], ['mensch-weberin-2', 34.5, 0.208], ['mensch-weberin-3', 34.5, 0.191]],   // Weberin am Gewichtswebstuhl
-  sterne: [['mensch-sternkundiger-1', 36.4, 0.006], ['mensch-sternkundiger-2', 43.4, 0.155], ['mensch-sternkundiger-3', 47, -0.089]],   // Sternkundiger: schaut und peilt mit dem Stab
-  schmieden: [['mensch-schmied-1', 39.5, 0.228], ['mensch-schmied-2', 34.5, 0.229], ['mensch-schmied-3', 35.1, 0.204]],   // Schmied am Amboss
+  bergbau: [['mensch-bergmann-1', 37.8, -0.004], ['mensch-bergmann-2', 32, 0.144], ['mensch-bergmann-3', 31, 0.021]],   // Bronzezeit: Bergmann in Wolltunika
+  blasebalg: [['mensch-schmelzer-1', 37.9, -0.082], ['mensch-schmelzer-2', 37.1, -0.032], ['mensch-schmelzer-3', 33.5, -0.08]],   // Schmelzofen: tritt den Blasebalg
+  giessen: [['mensch-giesser-1', 35.6, 0.176], ['mensch-giesser-2', 35.6, 0.18], ['mensch-giesser-3', 35.6, 0.179]],   // Bronzegießer: Tiegel kippen und gießen
+  stochern: [['mensch-koehler-1', 38.2, 0.062], ['mensch-koehler-2', 35.7, 0.165], ['mensch-koehler-3', 31, -0.002]],   // Köhler stochert mit der Stange im Meiler
+  waschen: [['mensch-zinnwaescherin-1', 32.3, 0.084], ['mensch-zinnwaescherin-2', 32.1, 0.086], ['mensch-zinnwaescherin-3', 28, 0.19]],   // Zinnwäscherin im Bach
+  schmuck: [['mensch-schmuck-1', 28, -0.147], ['mensch-schmuck-2', 28, -0.147], ['mensch-schmuck-3', 28, -0.149]],   // Schmuckmacherin klopft den Armreif
+  netz: [['mensch-fischer-netz-1', 35, 0.101], ['mensch-fischer-netz-2', 32.2, 0.157], ['mensch-fischer-netz-3', 30.1, 0.195]],   // Fischerhütte: Netz auswerfen
+  ritzen: [['mensch-felsritzer-1', 39, 0.013], ['mensch-felsritzer-mitte', 35.7, 0.033], ['mensch-felsritzer-2', 35.7, 0.057]],   // Felsritzer: Hammer auf den Meißel
+  drehscheibe: [['mensch-drehscheibe-1', 27, -0.11], ['mensch-drehscheibe-2', 27, -0.109], ['mensch-drehscheibe-3', 27, -0.11]],   // Töpferwerkstatt (Bronzezeit)
+  sichel: [['mensch-sichel-1', 33, 0.099], ['mensch-sichel-2', 32.9, 0.095], ['mensch-sichel-3', 32.8, -0.005]],   // Feld: Korn schneiden
+  scheren: [['mensch-scherer-1', 25.5, -0.118], ['mensch-scherer-2', 25.5, -0.12], ['mensch-scherer-3', 25.5, -0.118]],   // Viehhof: Schaf scheren (Schaf im Bild)
+  weben: [['mensch-weberin-1', 34.5, -0.028], ['mensch-weberin-2', 34.5, -0.032], ['mensch-weberin-3', 34.5, -0.032]],   // Weberin am Gewichtswebstuhl
+  sterne: [['mensch-sternkundiger-1', 36.4, -0.114], ['mensch-sternkundiger-2', 39, 0.08], ['mensch-sternkundiger-3', 41.5, -0.111]],   // Sternkundiger: schaut und peilt mit dem Stab
+  schmieden: [['mensch-schmied-1', 39.5, -0.003], ['mensch-schmied-2', 36.7, -0.003], ['mensch-schmied-3', 36.6, -0.003]],   // Schmied am Amboss
   toepfern: [['mensch-toepferin-1', 29.0, -0.019], ['mensch-toepferin-2', 29.0, -0.019], ['mensch-toepferin-3', 29.1, -0.041]],
   pfluecken: [['mensch-frau-pflueckt-greift', 30, 0.173], ['mensch-frau-pflueckt', 30, 0.154], ['mensch-frau-pflueckt-korb', 37, 0]],
   pflanzen: [['mensch-frau-pflanzt-graben', 30.5, 0.235], ['mensch-frau-pflanzt', 30.6, 0.205], ['mensch-frau-pflanzt-fertig', 34.3, 0.166]],

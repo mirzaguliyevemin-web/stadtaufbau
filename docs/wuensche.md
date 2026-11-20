@@ -11,8 +11,6 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 ## Wünsche
 
 <!-- Hier Veränderungswünsche eintragen -->
-- Bronzezeit (Emin, 02.11.): alle drei Stufen gebaut, Bilder eingebaut (Version 153/158). Offen nach Scenario Pro: Arbeiterbilder in Bronzezeit-Kleidung. Plan: `docs/epoche-2-bronzezeit.md`.
-
 - Wunderwerke je Zeitalter (Emin, 01.11.): Steinzeit und Bronzezeit gebaut (Fundstücke, Schatzkiste, Höhle der Geschichten, Steinkreis, Halle der Himmelsscheibe). Eisenzeit-Wunderwerk (Salzberg) gebaut, alle Fundstück-Bilder bis zur Eisenzeit da (Stand 16.11.). Offen: spätere Zeitalter mit deren Bau. Plan: `docs/konzept-wunderwerke.md`, Plan ab der Antike (17.11., von Emin entschieden): `docs/plan-wunderwerke-spaeter.md` – roter Faden „Blick zum Himmel“, gebaut mit dem jeweiligen Zeitalter.
 
 - Arbeitsbewegungen (Emin, 03.11.): 74 Bilder mit je 3 Stufen, Plan `docs/plan-arbeitsbewegungen.md`. Item-Shop: Plan `docs/plan-item-shop.md`; Emin probiert Schritt 1 ohne Geld aus, Preise danach anpassen.
@@ -27,6 +25,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 ## Erledigt
 
+- 20.11.2026, V245: Bronzezeit-Arbeiter im neuen Stil – 14 Berufe mit je drei Bewegungsbildern in Wolltunika bzw. Leinenkleid, Gürtelfarbe je Beruf (offen nur der Bergmann mit Korb beim Tragen).
 - 20.11.2026, V242: Steinkreis-Bauphasen (Bauplatz und halb fertig) ohne Sockel im neuen Stil, mit Winterbildern.
 - 20.11.2026, V241: Tongrube mit neuem Bild ohne Sockel (drei Ansichten plus Winter), die Wasserseite in der Farbe des Flusses.
 - 20.11.2026, V240: Neue Steinzeit-Bilder aus Scenario ohne Sockel (22 Gebäude, Vorder- und Rückansicht, Sommer und Winter mit Sommerfarben und Schnee); 12 Arbeitsplätze mit Zaun und Tor, das Tor dreht sich beim Bauen zum Weg. Tongrube behält vorerst ihr altes Bild (steht halb im Wasser, neues Bild mit Wasser folgt).

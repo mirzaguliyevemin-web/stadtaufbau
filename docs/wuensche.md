@@ -25,6 +25,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 ## Erledigt
 
+- 20.11.2026, V246: Tiere im neuen Stil – Hirsch, Mammut, Ziege, Esel mit Amphoren neu; Schaf und Rind mit eigenen Bildern statt eingefärbter Ziege.
 - 20.11.2026, V245: Bronzezeit-Arbeiter im neuen Stil – 14 Berufe mit je drei Bewegungsbildern in Wolltunika bzw. Leinenkleid, Gürtelfarbe je Beruf (offen nur der Bergmann mit Korb beim Tragen).
 - 20.11.2026, V242: Steinkreis-Bauphasen (Bauplatz und halb fertig) ohne Sockel im neuen Stil, mit Winterbildern.
 - 20.11.2026, V241: Tongrube mit neuem Bild ohne Sockel (drei Ansichten plus Winter), die Wasserseite in der Farbe des Flusses.

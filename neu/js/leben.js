@@ -3,7 +3,7 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-bergmann-korb', 'mensch-hacke-mitte', 'mensch-axt-mitte', 'mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-frau-grabstock-tief', 'mensch-hirte', 'mensch-suedhaendler', 'esel-amphoren', 'mensch-haendler', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-mitte', 'fischer-speer-unten'];
+const LIFE_NAMES = ['mensch-bergmann-korb', 'mensch-hacke-mitte', 'mensch-axt-mitte', 'mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-frau-grabstock-tief', 'mensch-hirte', 'mensch-suedhaendler', 'esel-amphoren', 'mensch-haendler', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'schaf', 'rind', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-mitte', 'fischer-speer-unten'];
 
 const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
 
@@ -72,7 +72,7 @@ function updateWalkers(dt) {
 // Tiere: Hirsche, Mammutherde, Ziegen am Gehege
 // ---------------------------------------------------------------------
 
-// Welche Tiere im Gehege laufen. Bis es eigene Bilder gibt (schaf, rind), wird das Ziegenbild eingefärbt:
+// Welche Tiere im Gehege laufen. Schaf und Rind haben eigene Bilder (V246); fehlt eins, wird das Ziegenbild eingefärbt:
 // hell und wollig für Schafe, braun und etwas größer für Rinder.
 const PEN_LOOK = { ziegengehege: null, viehhof: 'schaf', rindergut: 'rind', schafgut: 'schaf' };
 const PEN_TINT = { schaf: { color: '#f6f2e6', alpha: 0.62, size: 1.05 }, rind: { color: '#5a3218', alpha: 0.6, size: 1.45 } };
@@ -1272,7 +1272,7 @@ function poseMix(n, cyc, own) {
 }
 
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
-const LEGS = { 'mensch-mann': 0.65, 'mensch-frau': 0.64, 'mensch-mann-leer': 0.65, 'mensch-frau-leer': 0.64, 'mensch-jaeger': 0.66, 'mensch-jaeger-bogen-1': 0.7, 'mensch-jaeger-beute': 0.66, 'mensch-tongrube-korb': 0.65, 'mensch-bergmann-korb': 0.64, 'mensch-mann-stein': 0.65, 'mensch-hirte': 0.7, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };   // Steinzeit-Menschen: Scenario (V244), Saum des Fellkleids
+const LEGS = { 'mensch-mann': 0.65, 'mensch-frau': 0.64, 'mensch-mann-leer': 0.65, 'mensch-frau-leer': 0.64, 'mensch-jaeger': 0.66, 'mensch-jaeger-bogen-1': 0.7, 'mensch-jaeger-beute': 0.66, 'mensch-tongrube-korb': 0.65, 'mensch-bergmann-korb': 0.64, 'mensch-mann-stein': 0.65, 'mensch-hirte': 0.7, hirsch: 0.7, ziege: 0.69, schaf: 0.7, rind: 0.66, mammut: 0.76 };   // Steinzeit-Menschen: Scenario (V244), Saum des Fellkleids
 
 // Figur mit Schatten zeichnen. Bilder schauen nach links; face = -1 spiegelt nach rechts.
 // step = Laufphase (Bogenmaß) oder null im Stehen: Dann schwingen vordere und hintere Beine gegeneinander.

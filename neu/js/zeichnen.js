@@ -41,7 +41,7 @@ function imageFolder(name) {
   if (name.startsWith('ware-')) return 'waren';
   if (name.startsWith('fund-')) return 'fundstuecke';
   if (name.startsWith('deko-')) return 'deko';
-  if (/^(mensch-|fischer-|einbaum|hirsch|mammut|ziege|esel)/.test(name)) return 'figuren';
+  if (/^(mensch-|fischer-|einbaum|hirsch|mammut|ziege|esel|schaf$|rind$)/.test(name)) return 'figuren';
   if (/^(baum-|berg-|fels-|huegel-|blumen|busch|wiese|schneewiese|sand|wasser|pfad|bruecke|erdsockel|setzling)/.test(name)) return 'gelaende';
   return 'oberflaeche';
 }

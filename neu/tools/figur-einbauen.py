@@ -1,5 +1,5 @@
 # Epochia: Scenario-Figurenbilder ins Spiel bringen (20.11.2026).
-#   python3 neu/tools/figur-einbauen.py [--spiegeln] ORDNER name [name ...]
+#   python3 neu/tools/figur-einbauen.py [--spiegeln] [--schleier] ORDNER name [name ...]
 # Die Arbeitsbilder im Spiel schauen nach links (leben.js spiegelt sie bei Blick nach rechts): nach rechts schauende Bilder mit --spiegeln.
 # ORDNER enthält NAME.png (1024 × 1024 von Scenario, durchsichtiger Hintergrund).
 # Je Bild: leichten Dunst um die Figur entfernen, auf den Inhalt zuschneiden, auf 200 Punkte Höhe verkleinern,
@@ -29,9 +29,20 @@ def fussmitte(im):
     # Speerspitzen u. Ä. lassen sich nicht sicher erkennen: Ergebnis im Prüfbild (Fußmarke) ansehen und bei Bedarf von Hand setzen
     return (fuesse[0][0] + fuesse[-1][1]) / 2 / w - 0.5
 
-def bearbeiten(im, spiegeln=False):
+def schleier_weg(im):
+    # Heller Schimmer um die Figur (malt Scenario manchmal trotz durchsichtigem Hintergrund): halb durchsichtige,
+    # helle, kaum farbige Punkte weg. Das weiße Fell ist voll deckend und bleibt.
+    px = im.load(); w, h = im.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            mx, mn = max(r, g, b), min(r, g, b)
+            if 0 < a < 250 and mx > 150 and (mx - mn) / mx < 0.3: px[x, y] = (r, g, b, 0)
+
+def bearbeiten(im, spiegeln=False, schleier=False):
     im = im.convert('RGBA')
     if spiegeln: im = im.transpose(Image.FLIP_LEFT_RIGHT)
+    if schleier: schleier_weg(im)
     # Dunst: kaum deckende Punkte weg, der Rand bleibt weich
     alpha = im.getchannel('A').point(lambda v: 0 if v < 60 else min(255, round((v - 60) * 255 / 140)))
     alpha = alpha.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.6))
@@ -44,12 +55,13 @@ def bearbeiten(im, spiegeln=False):
     return im, roh
 
 def main():
-    args = sys.argv[1:]; spiegeln = '--spiegeln' in args; args = [a for a in args if a != '--spiegeln']
+    args = sys.argv[1:]; spiegeln = '--spiegeln' in args; schleier = '--schleier' in args
+    args = [a for a in args if a not in ('--spiegeln', '--schleier')]
     ordner, namen = args[0], args[1:]
     os.makedirs(SRC, exist_ok=True)
     for name in namen:
         quelle = os.path.join(ordner, name + '.png')
-        im, roh = bearbeiten(Image.open(quelle), spiegeln)
+        im, roh = bearbeiten(Image.open(quelle), spiegeln, schleier)
         im.save(os.path.join(OUT, name + '.webp'), quality=85, method=6)
         shutil.copyfile(quelle, os.path.join(SRC, name + '.png'))
         print(f'{name}: {im.size}, Rohhöhe {roh}, Fußmitte {fussmitte(im):+.3f}')

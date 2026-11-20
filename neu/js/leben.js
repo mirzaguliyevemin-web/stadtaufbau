@@ -1178,7 +1178,7 @@ function drawVisitor(v, t) {
   ctx.globalAlpha = 1;
 }
 
-// Am Feuer sitzen: eigenes Bild (mensch-mann-sitzend / mensch-frau-sitzend aus Canva);
+// Am Feuer sitzen: eigenes Bild (mensch-mann-sitzend / mensch-frau-sitzend, Scenario V244);
 // fehlt es noch, nur der Oberkörper der stehenden Figur, ohne Fleck darunter
 function drawSitting(v, t) {
   const p = tileToScreen(v.x, v.y), z = cam.zoom;
@@ -1186,8 +1186,7 @@ function drawSitting(v, t) {
   if (!img) { drawCreature(v.img, v.x, v.y, 26, v.face, 0, '🧍'); return; }
   ctx.fillStyle = 'rgba(0,0,0,0.12)';
   ctx.beginPath(); ctx.ellipse(p.x, p.y, 9 * z, 3 * z, 0, 0, 7); ctx.fill();
-  const facesRight = sit && v.img === 'mensch-mann';   // das Canva-Bild des sitzenden Mannes schaut nach rechts
-  ctx.save(); ctx.translate(p.x, p.y + Math.sin(t * 1.5 + v.ph) * 0.6 * z); if ((v.face < 0) !== facesRight) ctx.scale(-1, 1);
+  ctx.save(); ctx.translate(p.x, p.y + Math.sin(t * 1.5 + v.ph) * 0.6 * z); if (v.face < 0) ctx.scale(-1, 1);   // beide Bilder schauen nach links (V244)
   if (sit) {
     const h = 22 * z, w = h * img.width / img.height;
     ctx.drawImage(img, -w / 2, -h, w, h);
@@ -1273,7 +1272,7 @@ function poseMix(n, cyc, own) {
 }
 
 // Wo beginnen die Beine (Anteil der Bildhöhe von oben)? Für die Laufbewegung.
-const LEGS = { 'mensch-mann': 0.6, 'mensch-frau': 0.62, 'mensch-mann-leer': 0.62, 'mensch-frau-leer': 0.62, 'mensch-jaeger': 0.62, 'mensch-jaeger-bogen-1': 0.7, 'mensch-jaeger-beute': 0.66, 'mensch-tongrube-korb': 0.66, 'mensch-bergmann-korb': 0.64, 'mensch-mann-stein': 0.62, 'mensch-hirte': 0.62, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };
+const LEGS = { 'mensch-mann': 0.65, 'mensch-frau': 0.64, 'mensch-mann-leer': 0.65, 'mensch-frau-leer': 0.64, 'mensch-jaeger': 0.66, 'mensch-jaeger-bogen-1': 0.7, 'mensch-jaeger-beute': 0.66, 'mensch-tongrube-korb': 0.65, 'mensch-bergmann-korb': 0.64, 'mensch-mann-stein': 0.65, 'mensch-hirte': 0.7, hirsch: 0.58, ziege: 0.6, mammut: 0.7 };   // Steinzeit-Menschen: Scenario (V244), Saum des Fellkleids
 
 // Figur mit Schatten zeichnen. Bilder schauen nach links; face = -1 spiegelt nach rechts.
 // step = Laufphase (Bogenmaß) oder null im Stehen: Dann schwingen vordere und hintere Beine gegeneinander.

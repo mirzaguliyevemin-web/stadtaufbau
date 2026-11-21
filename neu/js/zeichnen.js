@@ -41,7 +41,7 @@ function imageFolder(name) {
   if (name.startsWith('ware-')) return 'waren';
   if (name.startsWith('fund-')) return 'fundstuecke';
   if (name.startsWith('deko-')) return 'deko';
-  if (/^(mensch-|fischer-|einbaum|hirsch|mammut|ziege|esel|schaf$|rind$)/.test(name)) return 'figuren';
+  if (/^(mensch-|fischer-|fisch-|wal-|einbaum|hirsch|mammut|ziege|esel|schaf(-lauf-\d)?$|rind(-lauf-\d)?$)/.test(name)) return 'figuren';
   if (/^(baum-|berg-|fels-|huegel-|blumen|busch|wiese|schneewiese|sand|wasser|pfad|bruecke|erdsockel|setzling)/.test(name)) return 'gelaende';
   return 'oberflaeche';
 }
@@ -50,7 +50,7 @@ const images = {};
 
 // Sockel vermessen (getImageData über das ganze Bild) braucht nur, was auf Feldern steht. Figuren, Waren, Symbole und
 // Gelände nie – das kostete beim Start Sekunden (V209). Das Winterbild hat denselben Sockel wie das Sommerbild.
-const NO_PLATE = /^(f-|ware-|fund-|mensch-|fischer-|einbaum|hirsch|mammut|ziege|esel|baum-|berg-|fels-|huegel-|blumen|busch|wiese|schneewiese|sand|wasser|pfad|setzling)/;
+const NO_PLATE = /^(f-|ware-|fund-|mensch-|fischer-|fisch-|wal-|einbaum|hirsch|mammut|ziege|esel|schaf|rind|baum-|berg-|fels-|huegel-|blumen|busch|wiese|schneewiese|sand|wasser|pfad|setzling)/;
 // Scenario-Bilder ohne Sockel (V240, Wunsch Emin 20.11.2026): keine Grasplatte im Bild, das Gebäude steht direkt auf dem
 // Boden. Die Unterkante (Zaun, Steine) gibt die Raute vor – nichts abschneiden, keine Plattendicke.
 const FLAT_IMAGES = /^1-(acker|ahnenplatz|baustelle-[234]|fellmacherin|fellzelt|feuerplatz|grubenhaus|hoehle(?:-bau|-halb)?|hoehlenmaler|holzsammler|jaegerlager|lagerfeuer|langhaus|mammutjaegerlager|pfahlbau|pflanzerin|sammlerin|steinkreis(?:-bau|-halb)?|steinsammler|steinschlaeger|toepferei|tongrube|vorratsspeicher|wohnhoehle|ziegengehege)(-r[12])?(-winter)?$/;

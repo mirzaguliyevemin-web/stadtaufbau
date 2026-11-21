@@ -1,5 +1,6 @@
 # Epochia: Laufbilder aus Scenario-Blättern ins Spiel bringen (21.11.2026, V250).
 #   python3 neu/tools/lauf-einbauen.py ORDNER name [name ...]
+#   python3 neu/tools/lauf-einbauen.py --tier ORDNER hirsch mammut …   (Tiere: ohne „mensch-“ davor, V251)
 # ORDNER enthält NAME-blatt.png: vier Laufbilder nebeneinander (1536 × 640, durchsichtiger Hintergrund, Blick nach links),
 # z. B. mann-leer-blatt.png für die Figur mensch-mann-leer.
 # Je Blatt: Dunst entfernen, die vier Figuren trennen, alle mit derselben Höhe (oberster Kopf bis unterste Fußsohle) und
@@ -37,7 +38,14 @@ def figuren(im):
         if not leer and start is not None: luecken.append((start, x)); start = None
     if start is not None: luecken.append((start, w))
     innen = sorted([l for l in luecken if l[0] > 0 and l[1] < w], key=lambda l: l[1] - l[0], reverse=True)[:3]
-    schnitte = [0] + sorted((l[0] + l[1]) // 2 for l in innen) + [w]
+    schnitte = sorted((l[0] + l[1]) // 2 for l in innen)
+    # Berühren sich zwei Bilder (Geweih, Huf): an der Spalte mit den wenigsten deckenden Punkten nahe dem Viertel schneiden
+    for k in (1, 2, 3):
+        soll = k * w // 4
+        if any(abs(c - soll) < w // 8 for c in schnitte): continue
+        menge = lambda x: sum(1 for y in range(0, h, 2) if a[x, y] > 40)
+        schnitte.append(min(range(soll - w // 10, soll + w // 10), key=menge))
+    schnitte = [0] + sorted(schnitte) + [w]
     return [(schnitte[i], schnitte[i + 1]) for i in range(4)]
 
 def rumpf_mitte(im, x0, x1, top, bot):
@@ -48,8 +56,36 @@ def rumpf_mitte(im, x0, x1, top, bot):
             if a[x, y] > 128: sx += x; n += 1
     return sx / n if n else (x0 + x1) / 2
 
+def nur_hauptteil(im):
+    # Splitter vom Nachbarbild (Geweihspitze, Huf am Schnittrand) entfernen: nur zusammenhängende Teile mit mindestens
+    # 3 % der Fläche des größten Teils bleiben
+    a = im.getchannel('A'); w, h = im.size; px = a.load()
+    marke = [[0] * w for _ in range(h)]; teile = []
+    for y0 in range(h):
+        for x0 in range(w):
+            if px[x0, y0] <= 20 or marke[y0][x0]: continue
+            n = len(teile) + 1; stapel = [(x0, y0)]; marke[y0][x0] = n; punkte = []
+            while stapel:
+                x, y = stapel.pop(); punkte.append((x, y))
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < w and 0 <= ny < h and not marke[ny][nx] and px[nx, ny] > 20:
+                        marke[ny][nx] = n; stapel.append((nx, ny))
+            teile.append(punkte)
+    if not teile: return im
+    gross = max(len(t) for t in teile)
+    for t in teile:
+        if len(t) < gross * 0.03:
+            for x, y in t: px[x, y] = 0
+    im.putalpha(a)
+    return im
+
 def main():
-    ordner, namen = sys.argv[1], sys.argv[2:]
+    args = sys.argv[1:]
+    tier = args[0] == '--tier'
+    if tier: args = args[1:]
+    ordner, namen = args[0], args[1:]
+    vor = '' if tier else 'mensch-'
     os.makedirs(SRC, exist_ok=True)
     for name in namen:
         quelle = os.path.join(ordner, name + '-blatt.png')
@@ -64,9 +100,10 @@ def main():
             teil = im.crop((x0, top, x1, bot))
             stueck.alpha_composite(teil, (round(x0 - (m - halb)), 0))
             stueck = stueck.resize((round(stueck.width * HOEHE / stueck.height), HOEHE), Image.LANCZOS)
-            stueck.save(os.path.join(OUT, f'mensch-{name}-lauf-{i + 1}.webp'), quality=85, method=6)
-        shutil.copyfile(quelle, os.path.join(SRC, f'mensch-{name}-lauf.png'))
-        print(f'mensch-{name}: 4 Laufbilder, {round(2 * halb * HOEHE / (bot - top))} × {HOEHE}')
+            stueck = nur_hauptteil(stueck)
+            stueck.save(os.path.join(OUT, f'{vor}{name}-lauf-{i + 1}.webp'), quality=85, method=6)
+        shutil.copyfile(quelle, os.path.join(SRC, f'{vor}{name}-lauf.png'))
+        print(f'{vor}{name}: 4 Laufbilder, {round(2 * halb * HOEHE / (bot - top))} × {HOEHE}')
 
 if __name__ == '__main__':
     main()

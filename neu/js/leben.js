@@ -3,9 +3,10 @@
 // Reine Darstellung: nichts davon wird gespeichert. Nur die Mammutherde lässt sich antippen und jagen
 // (die Jagd selbst steht in logik.js, hier laufen nur die Jäger und Mammuts).
 
-const LIFE_NAMES = ['mensch-bergmann-korb', 'mensch-hacke-mitte', 'mensch-axt-mitte', 'mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-frau-grabstock-tief', 'mensch-hirte', 'mensch-suedhaendler', 'esel-amphoren', 'mensch-haendler', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'schaf', 'rind', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-mitte', 'fischer-speer-unten'];
+const LIFE_NAMES = ['mensch-bergmann-korb', 'mensch-hacke-mitte', 'mensch-axt-mitte', 'mensch-tongrube-korb', 'mensch-mann', 'mensch-frau', 'mensch-mann-sitzend', 'mensch-frau-sitzend', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-beute', 'mensch-mann-stein', 'mensch-mann-betend', 'mensch-frau-betend', 'mensch-axt-oben', 'mensch-axt-unten', 'mensch-hacke-oben', 'mensch-hacke-unten', 'mensch-frau-pflueckt', 'mensch-frau-grabstock-oben', 'mensch-frau-grabstock-unten', 'mensch-frau-grabstock-tief', 'mensch-hirte', 'mensch-suedhaendler', 'esel-amphoren', 'mensch-haendler', 'mensch-frau-pflanzt', 'mammut', 'hirsch', 'ziege', 'schaf', 'rind', 'einbaum', 'fischer-boot-vorne', 'fischer-boot-hinten', 'fischer-speer-oben', 'fischer-speer-mitte', 'fischer-speer-unten',
+  'fisch-sprung-1', 'fisch-sprung-2', 'fisch-sprung-3', 'wal-ruecken', 'wal-blas', 'wal-flosse'];   // V251: Fisch und Wal von Scenario
 
-const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], birdTimer: 4, fishTimer: 1, herdTimer: 0 };
+const life = { walkers: [], animals: [], birds: [], jumps: [], butterflies: [], felled: [], whales: [], birdTimer: 4, fishTimer: 1, whaleTimer: 20, herdTimer: 0 };
 
 function lifeRandom() { return Math.random(); }
 
@@ -13,7 +14,8 @@ function lifeRandom() { return Math.random(); }
 // Beerenkorb – darum gehen Spaziergänger und Leute auf dem Weg zur Arbeit mit leeren Händen (…-leer),
 // und nur wer wirklich Holz bzw. Beeren heimbringt, trägt sie. Fehlt ein Bild noch, nimmt man das Grundbild.
 // Laufbilder (V250, Emin: „Laufbewegung nicht natürlich“): je Figur vier echte Schrittbilder aus Scenario statt geschwungener Beine
-const WALK_FRAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-bogen-1', 'mensch-jaeger-beute', 'mensch-tongrube-korb', 'mensch-bergmann-korb', 'mensch-mann-stein', 'mensch-hirte'];
+const WALK_FRAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-bogen-1', 'mensch-jaeger-beute', 'mensch-tongrube-korb', 'mensch-bergmann-korb', 'mensch-mann-stein', 'mensch-hirte',
+  'hirsch', 'mammut', 'ziege', 'schaf', 'rind', 'esel-amphoren'];   // V251 (Emin: „Tiere laufen steif“): Tiere genauso
 LIFE_NAMES.push(...WALK_FRAMES.flatMap(n => [1, 2, 3, 4].map(i => `${n}-lauf-${i}`)));
 // Welches Laufbild gerade? step läuft je Doppelschritt um 2π weiter: Aufsetzen links – Durchschwingen – rechts – Durchschwingen
 function walkFrame(name, step) {
@@ -136,7 +138,7 @@ function updateAnimals(dt) {
   if (herdPresent() && !life.animals.some(a => a.kind === 'mammut') && life.herdTimer <= 0) {
     // nur dort, wo die Jäger zu Fuß hinkommen (nicht auf der anderen Flussseite ohne Brücke)
     let p = null;
-    for (let i = 0; i < 6 && !p; i++) { const q = randomFreeTile(cx, cy, 26, i < 3 ? 14 : 9); if (q && isOwned(q[0] + 1, q[1]) && isOwned(q[0], q[1] + 1) && walkRoute(cx, cy, q[0] + 0.5, q[1] + 0.5)) p = q; }
+    for (let i = 0; i < 6 && !p; i++) { const q = randomFreeTile(cx, cy, 26, i < 3 ? 14 : 9); if (q && isOwned(q[0] + 1, q[1]) && isOwned(q[0], q[1] + 1) && walkRoute(cx, cy, q[0] + 0.5, q[1] + 0.5, -1, 8, false)) p = q; }
     if (p) for (let i = 0; i < 3; i++) spawnAnimal('mammut', p[0] + (i % 2), p[1] + Math.floor(i / 2), { home: p, herd: i });
     life.herdTimer = 20;
   }
@@ -201,7 +203,7 @@ function huntPhase() {
 function huntRoute(h) {
   const id = `${h.cx},${h.cy},${h.x},${h.y}`;
   if (life.huntRoute && life.huntRoute.id === id) return life.huntRoute;
-  const pts = [[h.cx, h.cy], ...(walkRoute(h.cx, h.cy, h.x, h.y) || [[h.x, h.y]])];
+  const pts = [[h.cx, h.cy], ...(walkRoute(h.cx, h.cy, h.x, h.y, -1, 8, false) || [[h.x, h.y]])];
   const len = [0];
   for (let i = 1; i < pts.length; i++) len.push(len[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
   life.huntRoute = { id, pts, len };
@@ -394,6 +396,8 @@ const WORK = {
 };
 // Gebückte/kniende Arbeitshaltungen (Canva) je Bewegung
 const BEND_POSES = { pick: 'mensch-frau-pflueckt', plant: 'mensch-frau-pflanzt' };
+// Jäger und Sammler (auch ihre späteren Stufen, die dieselben WORK-Einträge nutzen) gehen querfeldein statt über die Straße
+const FIELD_WALKERS = new Set([WORK.holzsammler, WORK.steinsammler, WORK.sammlerin, WORK.jaegerlager, WORK.mammutjaegerlager]);
 const WORK_SECONDS = 7, WORK_WALK = 0.75;   // so lange wird gearbeitet, so schnell gelaufen (Felder je Sekunde)
 
 life.workers = [];
@@ -578,27 +582,41 @@ function walkable(x, y) {
 
 // own = Index eines Gebäudes, über dessen Fläche man gehen darf (Platz am Feuer); sonst nur das, in dem man startet
 // pad = wie weit der Weg neben der geraden Strecke suchen darf (Umweg über eine Brücke)
-function walkRoute(fx, fy, tx, ty, own = -1, pad = 8) {
+// Emin (21.11.): Arbeiter sollen die Straßen benutzen, nicht quer über die Wiese. Darum kostet ein Schritt neben dem Weg
+// OFFROAD-mal so viel wie auf Pfad oder Brücke: Man geht so weit es geht auf der Straße und erst am Ende die paar Schritte
+// zum Baum oder Felsen über die Wiese. Gibt es keinen Pfad in der Nähe, bleibt es der kürzeste Fußweg wie bisher.
+// Ausnahme (Emin): Jäger und Sammler laufen quer übers Feld (roads = false, FIELD_WALKERS).
+const OFFROAD = 6;
+function walkRoute(fx, fy, tx, ty, own = -1, pad = 8, roads = true) {
   const ax = Math.floor(fx), ay = Math.floor(fy), bx = Math.floor(tx), by = Math.floor(ty);
+  if (roads) pad = Math.max(pad, 14);   // Platz für den Umweg über die Straße
   const x0 = Math.min(ax, bx) - pad, y0 = Math.min(ay, by) - pad, W = Math.max(ax, bx) + pad + 1 - x0, H = Math.max(ay, by) + pad + 1 - y0;
-  const prev = new Int32Array(W * H).fill(-1), key = (x, y) => (y - y0) * W + (x - x0);
+  const prev = new Int32Array(W * H).fill(-1), cost = new Float64Array(W * H).fill(Infinity), key = (x, y) => (y - y0) * W + (x - x0);
   const start = key(ax, ay), goal = key(bx, by);
   const home = inMap(ax, ay) ? buildingAt(ax, ay) : -1;   // aus dem eigenen Gebäude darf man hinausgehen
   const ok = (x, y) => walkable(x, y) || (inMap(x, y) && ((home >= 0 && buildingAt(x, y) === home) || (own >= 0 && buildingAt(x, y) === own)));
-  prev[start] = start;
-  const queue = [start];
-  for (let qi = 0; qi < queue.length && prev[goal] < 0; qi++) {
-    const k = queue[qi], x = k % W + x0, y = Math.floor(k / W) + y0;
+  const road = (x, y) => inMap(x, y) && (isPathAt(x, y) || (typeof isBridgeAt === 'function' && isBridgeAt(x, y)));
+  // kleiner Haufen (Dijkstra): [Kosten, Feld]. Kosten als Float64: mit Float32 rundet 1,42 anders als beim Vergleich,
+  // dann wird jedes Feld immer wieder neu besucht (284 000 statt 900 Schritte, Test hing)
+  const heap = [];
+  const push = (c, k) => { heap.push([c, k]); let i = heap.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break; [heap[p], heap[i]] = [heap[i], heap[p]]; i = p; } };
+  const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; i = m; } } return top; };
+  prev[start] = start; cost[start] = 0; push(0, start);
+  while (heap.length) {
+    const [c, k] = pop();
+    if (c > cost[k]) continue;
+    if (k === goal) break;
+    const x = k % W + x0, y = Math.floor(k / W) + y0;
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
       const nx = x + dx, ny = y + dy;
       if (nx < x0 || ny < y0 || nx >= x0 + W || ny >= y0 + H) continue;
       const nk = key(nx, ny);
-      if (prev[nk] >= 0) continue;
       const isGoal = nk === goal;
       if (!isGoal && !ok(nx, ny)) continue;
       if (dx && dy && (!ok(x + dx, y) || !ok(x, y + dy))) continue;   // nicht über Wasserecken springen
-      prev[nk] = k;
-      queue.push(nk);
+      const nc = c + (dx && dy ? 1.42 : 1) * (!roads || road(nx, ny) || isGoal ? 1 : OFFROAD);
+      if (nc >= cost[nk]) continue;
+      cost[nk] = nc; prev[nk] = k; push(nc, nk);
     }
   }
   if (prev[goal] < 0) return null;
@@ -655,7 +673,7 @@ function updateWorkers(dt) {
         }
       }
       const own = w.kind.target === 'self' ? state.buildings.indexOf(w.b) : -1;   // Werkstatt: über die eigene Platte gehen
-      const route = walkRoute(w.x, w.y, spot.sx, spot.sy, own);
+      const route = walkRoute(w.x, w.y, spot.sx, spot.sy, own, 8, !FIELD_WALKERS.has(w.kind));
       if (!route) { w.t = 8; continue; }   // nur übers Wasser erreichbar: später nochmal (anderer Baum)
       Object.assign(w, { plantAt: null }, spot, { phase: 'go', route });
     } else if (w.phase === 'go' || w.phase === 'back') {
@@ -681,14 +699,14 @@ function updateWorkers(dt) {
         const bx = w.tx + ox, by = w.ty + oy;
         w.face = Math.cos(w.bt * 0.35 + w.ph) * 0.35 + Math.sin(w.bt * 0.27 + w.ph) * 0.27 > 0 ? -1 : 1;   // in Fahrtrichtung schauen
         w.x = w.sx + (bx - w.sx) * r; w.y = w.sy + (by - w.sy) * r;
-        if (w.t <= 0) { w.bt = 0; w.x = w.sx; w.y = w.sy; w.phase = 'back'; w.route = walkRoute(w.x, w.y, w.home.x, w.home.y); }   // am Ufer wieder aussteigen
+        if (w.t <= 0) { w.bt = 0; w.x = w.sx; w.y = w.sy; w.phase = 'back'; w.route = walkRoute(w.x, w.y, w.home.x, w.home.y, -1, 8, !FIELD_WALKERS.has(w.kind)); }   // am Ufer wieder aussteigen
         continue;
       }
       const sxd = w.tx - w.x - (w.ty - w.y);
       if (Math.abs(sxd) > 0.01) w.face = sxd > 0 ? -1 : 1;   // zum Baum/Felsen schauen
       if (w.t <= 0) {
         if (w.plantAt !== undefined && w.plantAt !== null) { plantedEarly.set(w.b, w.plantAt); w.plantAt = null; }
-        w.phase = 'back'; w.route = walkRoute(w.x, w.y, w.home.x, w.home.y, state.buildings.indexOf(w.b)) || [[w.home.x, w.home.y]];
+        w.phase = 'back'; w.route = walkRoute(w.x, w.y, w.home.x, w.home.y, state.buildings.indexOf(w.b), 8, !FIELD_WALKERS.has(w.kind)) || [[w.home.x, w.home.y]];
       }
     }
   }
@@ -1381,6 +1399,7 @@ function lifeObjects(range) {
 
 function updateSky(dt, range) {
   const z = cam.zoom;
+  updateWhales(dt, range);   // Wale draußen im Meer – das liegt meist außerhalb des eigenen Lands
   range = clipToLand(range);   // Fische und Schmetterlinge nur über eigenem Land
   // Vögel: ab und zu fliegt ein kleiner Schwarm quer über das Bild
   // nicht nachts und nicht bei Gewitter, Hagel oder Sturm (Prüfung Wetter, 16.11.)
@@ -1428,12 +1447,84 @@ function updateSky(dt, range) {
   return z;
 }
 
+// Wale (Emin, 21.11.): ab und zu taucht draußen im offenen Meer einer auf – der Rücken gleitet langsam dahin, zweimal
+// bläst er eine Fontäne aus dem Blasloch, dann taucht er ab und zeigt zum Schluss die Schwanzflosse. Bilder von Scenario.
+const WHALE_TIME = 16;
+function updateWhales(dt, range) {
+  for (const w of life.whales) w.k += dt;
+  life.whales = life.whales.filter(w => w.k < WHALE_TIME);
+  life.whaleTimer -= dt;
+  if (life.whaleTimer > 0 || life.whales.length || !mapFeatures.sea || !mapFeatures.sea.open) return;
+  life.whaleTimer = 35 + lifeRandom() * 50;
+  for (let i = 0; i < 30; i++) {
+    const x = range.x0 + Math.floor(lifeRandom() * (range.x1 - range.x0 + 1)), y = range.y0 + Math.floor(lifeRandom() * (range.y1 - range.y0 + 1));
+    if (!inMap(x, y) || !inMap(x, y + 4) || !inMap(x + 4, y)) continue;
+    const sea = (a, b) => terrain[b * N + a] === TERRAIN.wasser.id && mapFeatures.sea.open[b * N + a] && buildingAt(a, b) < 0;
+    const face = lifeRandom() < 0.5 ? 1 : -1;   // 1: schwimmt im Bild nach links unten, -1: nach rechts unten
+    if (sea(x, y) && sea(x + (face < 0 ? 4 : 0), y + (face > 0 ? 4 : 0)) && sea(x - 2, y - 2)) { life.whales.push({ x: x + 0.5, y: y + 0.5, face, k: 0 }); break; }
+  }
+}
+
+function drawWhale(w, z) {
+  const back = images['wal-ruecken'], blow = images['wal-blas'], fluke = images['wal-flosse'];
+  if (!back || !blow || !fluke) return;
+  const k = w.k, go = Math.min(k, 9) * 0.28;   // gleitet in 9 Sekunden gut zwei Felder weit
+  const p = tileToScreen(w.x + (w.face < 0 ? go : 0), w.y + (w.face > 0 ? go : 0));
+  const bw = 130 * z, bh = bw * back.height / back.width;
+  const ease = v => Math.max(0, Math.min(1, v));
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  if (w.face < 0) ctx.scale(-1, 1);
+  if (k < 9.5) {   // Rücken: taucht auf (1,5 s), gleitet, sinkt wieder (ab 8 s)
+    const up = ease(k / 1.5) * (1 - ease((k - 8) / 1.5));
+    ctx.globalAlpha = up;
+    ctx.drawImage(back, -bw / 2, -bh / 2 + (1 - up) * 10 * z, bw, bh);
+    for (const t0 of [2.2, 5.6]) {   // Fontäne aus dem Blasloch (vorne am Kopf, links unten im Bild)
+      const q = (k - t0) / 2.2;
+      if (q < 0 || q > 1) continue;
+      const rise = ease(q / 0.25), fade = 1 - ease((q - 0.35) / 0.65);
+      const fw = 50 * z * (0.6 + 0.4 * rise + q * 0.25), fh = fw * blow.height / blow.width * rise;
+      const hx = -bw * 0.2, hy = bh * 0.18;
+      ctx.globalAlpha = 0.9 * fade;
+      ctx.drawImage(blow, hx - fw / 2, hy - fh - q * 6 * z, fw, fh);
+    }
+  } else if (k < WHALE_TIME) {   // abtauchen: die Schwanzflosse hebt sich und versinkt
+    const q = (k - 9.5) / (WHALE_TIME - 9.5);
+    const up = Math.sin(Math.min(1, q * 1.4) * Math.PI);
+    const fw = 66 * z, fh = fw * fluke.height / fluke.width;
+    ctx.globalAlpha = ease(up * 2);
+    ctx.beginPath(); ctx.rect(-fw, -fh * 2, fw * 2, fh * 2 + 4 * z); ctx.clip();   // unter der Wasserlinie verschwinden
+    ctx.drawImage(fluke, bw * 0.25 - fw / 2, 4 * z - fh * up, fw, fh);
+  }
+  ctx.restore();
+  // Ring auf dem Wasser beim Auftauchen und Abtauchen
+  for (const t0 of [0, 9.5]) {
+    const q = (k - t0) / 2;
+    if (q < 0 || q > 1) continue;
+    const c = t0 ? tileToScreen(w.x + (w.face < 0 ? go : 0), w.y + (w.face > 0 ? go : 0)) : p;
+    ctx.strokeStyle = `rgba(255,255,255,${0.5 * (1 - q)})`;
+    ctx.lineWidth = Math.max(1, 1.5 * z);
+    ctx.beginPath(); ctx.ellipse(c.x + (t0 ? bw * 0.25 * w.face : 0), c.y, (20 + q * 40) * z, (8 + q * 16) * z, 0, 0, 7); ctx.stroke();
+  }
+}
+
 function drawSky() {
   const z = cam.zoom, t = frameTime;
-  // springende Fische mit Wasserring
+  for (const w of life.whales) drawWhale(w, z);
+  // springende Fische mit Wasserring – Bilder von Scenario (steigen, oben, abtauchen), sonst gezeichnet
+  const fishImgs = ['fisch-sprung-1', 'fisch-sprung-2', 'fisch-sprung-3'].map(n => images[n]);
   for (const j of life.jumps) {
     const p = tileToScreen(j.x, j.y);
-    if (j.k < 1) {
+    if (j.k < 1 && fishImgs.every(Boolean)) {
+      const h = Math.sin(j.k * Math.PI) * 16 * z;
+      const fx = p.x + (j.k - 0.5) * 14 * z * j.face;
+      const img = fishImgs[Math.min(2, Math.floor(j.k * 3))], fw = img.width / 120 * 20 * z, fh = fw * img.height / img.width;
+      ctx.save();
+      ctx.translate(fx, p.y - h);
+      if (j.face > 0) ctx.scale(-1, 1);   // die Bilder schauen nach links
+      ctx.drawImage(img, -fw / 2, -fh / 2, fw, fh);
+      ctx.restore();
+    } else if (j.k < 1) {
       const h = Math.sin(j.k * Math.PI) * 16 * z;
       const fx = p.x + (j.k - 0.5) * 14 * z * j.face;
       ctx.save();
@@ -1493,7 +1584,7 @@ function updateLife(dt, range) {
 
 // Neues Spiel oder anderer Spielstand: alles Lebendige neu verteilen
 function resetLife() {
-  life.walkers = []; life.workers = []; life.animals = []; life.birds = []; life.jumps = []; life.butterflies = []; life.felled = []; life.visitors = []; life.carriers = []; carryDue = new WeakMap();
+  life.walkers = []; life.workers = []; life.animals = []; life.birds = []; life.jumps = []; life.whales = []; life.butterflies = []; life.felled = []; life.visitors = []; life.carriers = []; carryDue = new WeakMap();
 }
 
 // Holzsammler hat genug Holz für einen Baum beisammen: der Baum kippt sichtbar um

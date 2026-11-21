@@ -85,7 +85,7 @@ def bearbeiten(im, name, box=None, umriss=None):
 def main():
     ordner, nur = sys.argv[1], set(sys.argv[2:])
     for datei in sorted(os.listdir(ordner)):
-        mt = re.fullmatch(r'([a-z]+)((?:-bau|-halb)?(?:-r[12])?(?:-winter)?)\.png', datei)
+        mt = re.fullmatch(r'([a-z]+)((?:-[234])?(?:-bau|-halb)?(?:-r[12])?(?:-winter)?)\.png', datei)
         if not mt: continue
         basis, rest = mt.groups()
         if nur and basis not in nur and basis + rest not in nur: continue

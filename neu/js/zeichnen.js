@@ -53,13 +53,22 @@ const images = {};
 const NO_PLATE = /^(f-|ware-|fund-|mensch-|fischer-|einbaum|hirsch|mammut|ziege|esel|baum-|berg-|fels-|huegel-|blumen|busch|wiese|schneewiese|sand|wasser|pfad|setzling)/;
 // Scenario-Bilder ohne Sockel (V240, Wunsch Emin 20.11.2026): keine Grasplatte im Bild, das Gebäude steht direkt auf dem
 // Boden. Die Unterkante (Zaun, Steine) gibt die Raute vor – nichts abschneiden, keine Plattendicke.
-const FLAT_IMAGES = /^1-(acker|ahnenplatz|fellmacherin|fellzelt|feuerplatz|grubenhaus|hoehlenmaler|holzsammler|jaegerlager|lagerfeuer|langhaus|mammutjaegerlager|pfahlbau|pflanzerin|sammlerin|steinkreis(?:-bau|-halb)?|steinsammler|steinschlaeger|toepferei|tongrube|vorratsspeicher|wohnhoehle|ziegengehege)(-r[12])?(-winter)?$/;
+const FLAT_IMAGES = /^1-(acker|ahnenplatz|baustelle-[234]|fellmacherin|fellzelt|feuerplatz|grubenhaus|hoehle(?:-bau|-halb)?|hoehlenmaler|holzsammler|jaegerlager|lagerfeuer|langhaus|mammutjaegerlager|pfahlbau|pflanzerin|sammlerin|steinkreis(?:-bau|-halb)?|steinsammler|steinschlaeger|toepferei|tongrube|vorratsspeicher|wohnhoehle|ziegengehege)(-r[12])?(-winter)?$/;
+// Steinzeit-Deko im neuen Stil (V248): ohne Grasplatte, die Raute ist so breit wie das ganze Bild (schmale Stücke wie
+// Birke und Holzfigur haben seitlich und unten durchsichtigen Rand, damit sie nicht feldbreit aufgeblasen werden)
+const FLAT_DEKO = /^deko-(beerenbusch|birke|blumenbeet|flechtzaun|holzbank|holzfigur|huehnerhof|hundehuette|menhir)$/;
 function plateFor(name, img) {
   if (NO_PLATE.test(name)) return null;
   if (FLAT_IMAGES.test(name)) return flatPlate(img);
+  if (FLAT_DEKO.test(name)) return widePlate(img);
   const summer = /-winter$/.test(name) && images[name.replace(/-winter$/, '')];
   if (summer && summer.sockel && summer.width === img.width && summer.height === img.height) return summer.sockel;
   return measurePlate(img);
+}
+
+function widePlate(img) {
+  const side = 1 - 0.5 * TH / TW * img.width / img.height;
+  return { lx: 0, ly: side, rx: 1, ry: side, fx: 0.5, fy: 1, dicke: 0, farbe: '#7a6a3a', noClip: true };
 }
 
 // Raute eines Bildes ohne Sockel: linke und rechte Ecke am äußersten sichtbaren Punkt, vordere Ecke ganz unten in der

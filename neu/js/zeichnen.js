@@ -285,6 +285,7 @@ function imageNames() {
     'fels-gross', 'fels-klein', 'wasserfall', 'busch', 'blumen', 'erdsockel', 'axt', 'hacke', 'setzling', 'truhe', 'band', 'logo-rund', ...Object.values(MOUNTAIN_IMAGES).flat(),
     'leiste-holz-steinzeit', 'bruecke-senkrecht', 'bruecke-senkrecht-winter', 'bruecke-steg', 'bruecke-waagerecht', 'bruecke-waagerecht-winter', 'bruecke-pflock', 'bruecke-geruest',   // schräge Brücken
     ...BRIDGE_IMAGE_ERAS.flatMap(e => ['bruecke', 'bruecke-waagerecht', 'bruecke-steg'].flatMap(n => [n + e, n + e + '-winter'])),   // Brücken der späteren Zeitalter   // Holzmuster der Brücken (drawBridge), seit dem hellen Design versehentlich nicht mehr geladen
+    'pfad-fackel', 'pfad-laterne', ...PATH_TUFTS,   // Wegrand und Fackeln im Scenario-Stil (V250)
     'symbol-forschung', 'symbol-auftraege', 'symbol-haendler', 'symbol-schaetze', 'symbol-shop', 'symbol-grundriss', 'symbol-menue',
     'gold-1', 'gold-2', 'gold-3', 'shop-baustelle',   // Shop: Gold-Pakete und zusätzliche Baustelle
     ...Object.values(TREE_SEASONS).flat().filter(Boolean), ...GROUND_TEXTURES, 'schneewiese', 'huegel-gross', 'huegel-klein', ...LIFE_NAMES]);
@@ -827,6 +828,43 @@ function fallDownstream(f) {
   return p;
 }
 
+// Bewegtes Wasser (V250): kurzes Video aus Scenario, nahtlose Schleife; nur das Wasser bewegt sich, Felsen wie im Bild.
+// Es hat dieselbe Größe und Lage wie wasserfall.webp; dessen Durchsichtigkeit schneidet die Ränder zu (eigene Leinwand).
+// Spielt nur, solange der Wasserfall zu sehen ist. Ohne Video (offline, alter Browser) bleibt das Bild mit gezeichneten Strähnen.
+const waterfallVideo = { el: null, canvas: null, failed: false };
+function waterfallVideoFrame(img) {
+  const v = waterfallVideo;
+  if (v.failed || typeof document === 'undefined' || !document.createElement) return null;
+  if (!v.el) {
+    const el = document.createElement('video');
+    if (!el || typeof el.play !== 'function') { v.failed = true; return null; }
+    el.muted = true; el.loop = true; el.playsInline = true; el.preload = 'auto';
+    el.setAttribute('muted', ''); el.setAttribute('playsinline', '');
+    el.addEventListener('error', () => { v.failed = true; });
+    el.addEventListener('playing', () => { v.playing = true; });
+    el.addEventListener('pause', () => { v.playing = false; });
+    // Manche App-Ansichten starten Videos erst nach einer Berührung: dann beim nächsten Tippen anwerfen
+    if (document.addEventListener) document.addEventListener('pointerdown', () => { if (v.el && v.el.paused && v.wanted) { const pr = v.el.play(); if (pr && pr.catch) pr.catch(() => {}); } });
+    el.src = IMAGE_DIR + 'gelaende/wasserfall.mp4';
+    v.el = el;
+  }
+  const el = v.el;
+  v.wanted = true;
+  if (el.paused && !v.tried) { v.tried = true; const pr = el.play(); if (pr && pr.catch) pr.catch(() => {}); setTimeout(() => { v.tried = false; }, 3000); }
+  if (!v.playing || el.readyState < 2 || !el.videoWidth) return null;   // steht das Video, bleiben Bild und gezeichnete Strähnen
+  if (!v.canvas || v.canvas.width !== img.width || v.canvas.height !== img.height) {
+    v.canvas = newCanvas(); v.canvas.width = img.width; v.canvas.height = img.height;
+  }
+  const c = v.canvas.getContext('2d');
+  c.globalCompositeOperation = 'copy';
+  c.drawImage(el, 0, 0, img.width, img.height);
+  c.globalCompositeOperation = 'destination-in';
+  c.drawImage(img, 0, 0);
+  c.globalCompositeOperation = 'source-over';
+  return v.canvas;
+}
+function pauseWaterfallVideo() { waterfallVideo.wanted = false; if (waterfallVideo.el && !waterfallVideo.el.paused) waterfallVideo.el.pause(); }
+
 function drawWaterfallImage(img, a, b, span, z, t) {
   const W = WATERFALL_IMG, w = span / (W.x1 - W.x0), h = w * img.height / img.width;
   const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
@@ -846,9 +884,11 @@ function drawWaterfallImage(img, a, b, span, z, t) {
   ctx.save();
   ctx.translate(mx, my); ctx.transform(1, 0, shear, 1, 0, 0); ctx.rotate(ang);
   const left = -w * (W.x0 + W.x1) / 2, top = -h * W.lip;
-  ctx.drawImage(img, left, top, w, h);
-  // Bewegung: helle Strähnen gleiten über den Vorhang, Gischt steigt am Fuß auf
+  const moving = waterfallVideoFrame(img);
+  ctx.drawImage(moving || img, left, top, w, h);
+  // Bewegung: helle Strähnen gleiten über den Vorhang, Gischt steigt am Fuß auf (nur ohne Video)
   const x0 = left + w * W.x0, x1 = left + w * W.x1, fall = h * (W.foot - W.lip);
+  if (!moving) {
   ctx.lineCap = 'round';
   const n = Math.max(8, Math.round((x1 - x0) / (9 * z)));
   for (let i = 0; i < n; i++) {
@@ -865,6 +905,7 @@ function drawWaterfallImage(img, a, b, span, z, t) {
     ctx.fillStyle = `rgba(255,255,255,${0.22 * (1 - v)})`;
     ctx.beginPath(); ctx.arc(x + Math.sin(t + i) * 5 * z, fall - v * fall * 0.4, (8 + v * 18) * z, 0, 7); ctx.fill();
   }
+  }
   ctx.restore();
   // Schaum treibt vom Becken flussab; oberhalb ziehen feine Linien zur Kante
   const foot = { x: mx + shear * h * (W.foot - W.lip), y: my + h * (W.foot - W.lip) + 6 * z };
@@ -877,7 +918,7 @@ function drawWaterfallImage(img, a, b, span, z, t) {
 // V215 (Emin: „sieht nicht wie ein Wasserfall aus“): viel höher, Felswand dahinter, helle Kante oben, schneller werdende Strähnen, Dunstwolke unten.
 function drawWaterfall(range) {
   const f = mapFeatures.fall;
-  if (!f || !landMask[Math.floor(f.y) * N + Math.floor(f.x)] || f.x < range.x0 - 12 || f.x > range.x1 + 12 || f.y < range.y0 - 12 || f.y > range.y1 + 12) return;
+  if (!f || !landMask[Math.floor(f.y) * N + Math.floor(f.x)] || f.x < range.x0 - 12 || f.x > range.x1 + 12 || f.y < range.y0 - 12 || f.y > range.y1 + 12) { pauseWaterfallVideo(); return; }
   const z = cam.zoom, t = frameTime;
   const px = f.uy, py = -f.ux;
   const a = tileToScreen(f.x - px * f.w, f.y - py * f.w), b = tileToScreen(f.x + px * f.w, f.y + py * f.w);
@@ -2575,9 +2616,14 @@ function drawPaths(range) {
   const paved = techSum('paved') > 0;
   // Rand: etwas dunklere, festgetretene Erde am Grasrand (Pflaster: Bordsteine)
   shape();
-  ctx.strokeStyle = paved ? 'rgba(78, 72, 64, 0.7)' : 'rgba(92, 64, 30, 0.55)';
-  ctx.lineWidth = PATH_WIDTH + 0.14;
-  ctx.stroke();
+  if (paved) {
+    ctx.strokeStyle = 'rgba(78, 72, 64, 0.7)';
+    ctx.lineWidth = PATH_WIDTH + 0.14;
+    ctx.stroke();
+  } else {   // Trampelpfad (V250): weicher Übergang statt harter Kante – zwei breite, schwache Ränder
+    ctx.strokeStyle = 'rgba(96, 70, 36, 0.16)'; ctx.lineWidth = PATH_WIDTH + 0.2; ctx.stroke();
+    ctx.strokeStyle = 'rgba(96, 70, 36, 0.22)'; ctx.lineWidth = PATH_WIDTH + 0.08; ctx.stroke();
+  }
   // Fläche mit der Weg-Textur
   const img = paved ? pavingTexture() : images.pfad;
   let fill = paved ? '#a39c90' : '#b8915a';
@@ -2599,6 +2645,7 @@ function drawPaths(range) {
   for (const b of bridges) if (diag.get(b) && !diagImg(diag.get(b))) drawBridgeDiag(b, diag.get(b), snow);   // Ersatz, bis das Bild da ist
   if (!sprite) for (const b of bridges) if (!diag.get(b)) drawBridge(b, snow);
   ctx.restore();
+  if (!paved) drawPathTufts(tiles, door, snow);
   for (const b of bridges) {
     ctx.save();
     if (b.build > 0) ctx.globalAlpha = 0.25 + 0.5 * bridgeProgress(b);   // Baustelle: die Brücke wird nach und nach sichtbar
@@ -2712,7 +2759,72 @@ function drawStake(x, y) {
 
 // Fackel bzw. Laterne am Wegrand (selbst gezeichnet, kein Bild nötig). Nachts leuchtet sie (Loch in der Dunkelheit).
 const TORCH_SPOT = [0.84, 0.16];   // rechte Ecke des Wegfelds – neben dem Weg, nicht mitten drauf
+// Grasbüschel am Rand des Trampelpfads (V250): je Wegfeld an den Seiten ohne Nachbarweg, fest nach Lage gewürfelt
+const PATH_TUFTS = ['pfad-bueschel-1', 'pfad-bueschel-2', 'pfad-bueschel-3', 'pfad-bueschel-4', 'pfad-bueschel-5', 'pfad-bueschel-6'];
+function drawPathTufts(tiles, door, snow) {
+  if (!images[PATH_TUFTS[0]]) return;
+  const z = cam.zoom, doors = new Set(Object.values(door).map(d => d.b.x + ',' + d.b.y + ',' + d.dx + ',' + d.dy));
+  if (snow > 0.5) ctx.globalAlpha = 1 - (snow - 0.5) * 1.6;   // im Winter verschwinden sie unter dem Schnee
+  for (const b of tiles) {
+    let k = 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      k++;
+      if (isPathAt(b.x + dx, b.y + dy) || isBridgeAt(b.x + dx, b.y + dy) || doors.has(b.x + ',' + b.y + ',' + dx + ',' + dy)) continue;
+      for (let n = 0; n < 2; n++) {   // bis zu zwei Büschel je Seite
+        const h = hash(b.x * 4 + k + n * 13, b.y * 3 - k + n * 5);
+        if (h > 0.62) continue;
+        const along = (hash(b.y + k * 7 + n * 3, b.x - 3) - 0.5) * 0.9, edge = PATH_WIDTH / 2 + 0.01;
+        const p = tileToScreen(b.x + 0.5 + dx * edge + dy * along, b.y + 0.5 + dy * edge + dx * along);
+        const img = images[PATH_TUFTS[Math.floor(h / 0.62 * PATH_TUFTS.length) % PATH_TUFTS.length]];
+        if (!img) continue;
+        const w = (13 + hash(b.x - k, b.y + 11 + n) * 7) * z, hh = w * img.height / img.width;
+        ctx.drawImage(img, p.x - w / 2, p.y - hh * 0.75, w, hh);
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Fackel bzw. Laterne als Bild (V250); Flamme und Licht zeichnet das Spiel darüber, damit sie flackern.
+// Lage im Bild (Anteile): Fuß des Pfahls, Mitte des Fackelkopfs bzw. Fenster der Laterne
+const PATH_LIGHT_IMG = { fackel: { img: 'pfad-fackel', h: 24, foot: [0.5, 0.97], head: [0.53, 0.06] },
+  laterne: { img: 'pfad-laterne', h: 26, foot: [0.3, 0.96], head: [0.8, 0.34] } };
 function drawPathLight(p, style, seed) {
+  const spec = PATH_LIGHT_IMG[style], img = spec && images[spec.img];
+  if (img) {
+    const z = cam.zoom, h = spec.h * z, w = h * img.width / img.height;
+    const x0 = p.x - spec.foot[0] * w, y0 = p.y - spec.foot[1] * h;
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y, 3.4 * z, 1.3 * z, 0, 0, 7); ctx.fill();
+    ctx.drawImage(img, x0, y0, w, h);
+    const hx = x0 + spec.head[0] * w, hy = y0 + spec.head[1] * h;
+    const fl = Math.sin(frameTime * 11 + seed) * 0.5 + Math.sin(frameTime * 17 + seed * 3) * 0.5;
+    if (style === 'laterne') {
+      ctx.fillStyle = `rgba(255,${200 + fl * 20},110,0.85)`;
+      ctx.beginPath(); ctx.ellipse(hx, hy, 0.8 * z, 1.1 * z, 0, 0, 7); ctx.fill();
+    } else {
+      const fh = (6 + fl * 1.3) * z, sway = fl * 0.8 * z, top = hy - 1 * z;
+      const glow = ctx.createRadialGradient(hx, top - fh * 0.4, 0, hx, top - fh * 0.4, 9 * z);   // warmer Schein um die Flamme
+      glow.addColorStop(0, 'rgba(255,170,60,0.45)'); glow.addColorStop(1, 'rgba(255,170,60,0)');
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(hx, top - fh * 0.4, 9 * z, 0, 7); ctx.fill();
+      ctx.fillStyle = '#e8501a';   // äußere, dunklere Zunge
+      ctx.beginPath(); ctx.moveTo(hx - 2.6 * z, top + 1 * z);
+      ctx.quadraticCurveTo(hx - 2.4 * z + sway * 1.3, top - fh * 0.55, hx + sway * 1.4 - 0.6 * z, top - fh * 1.08);
+      ctx.quadraticCurveTo(hx + 2.4 * z + sway, top - fh * 0.5, hx + 2.6 * z, top + 1 * z); ctx.fill();
+      ctx.fillStyle = '#ff9a24';
+      ctx.beginPath(); ctx.moveTo(hx - 2.2 * z, top + 1 * z);
+      ctx.quadraticCurveTo(hx - 2 * z + sway, top - fh * 0.5, hx + sway, top - fh);
+      ctx.quadraticCurveTo(hx + 2 * z + sway, top - fh * 0.5, hx + 2.2 * z, top + 1 * z); ctx.fill();
+      ctx.fillStyle = '#ffe07a';
+      ctx.beginPath(); ctx.ellipse(hx + sway * 0.5, top - fh * 0.25, 1 * z, 1.8 * z, 0, 0, 7); ctx.fill();
+    }
+    if (typeof addLight === 'function') addLight(hx, hy, 46 * z);
+    return;
+  }
+  drawPathLightPlain(p, style, seed);
+}
+
+function drawPathLightPlain(p, style, seed) {
   const z = cam.zoom, h = 15 * z, top = p.y - h;
   ctx.fillStyle = 'rgba(0,0,0,0.18)';
   ctx.beginPath(); ctx.ellipse(p.x, p.y, 3 * z, 1.2 * z, 0, 0, 7); ctx.fill();

@@ -12,6 +12,16 @@ function lifeRandom() { return Math.random(); }
 // Menschenbilder je Lage (aus Canva). Grundbilder: mensch-mann trägt Holz auf der Schulter, mensch-frau einen
 // Beerenkorb – darum gehen Spaziergänger und Leute auf dem Weg zur Arbeit mit leeren Händen (…-leer),
 // und nur wer wirklich Holz bzw. Beeren heimbringt, trägt sie. Fehlt ein Bild noch, nimmt man das Grundbild.
+// Laufbilder (V250, Emin: „Laufbewegung nicht natürlich“): je Figur vier echte Schrittbilder aus Scenario statt geschwungener Beine
+const WALK_FRAMES = ['mensch-mann', 'mensch-frau', 'mensch-mann-leer', 'mensch-frau-leer', 'mensch-jaeger', 'mensch-jaeger-bogen-1', 'mensch-jaeger-beute', 'mensch-tongrube-korb', 'mensch-bergmann-korb', 'mensch-mann-stein', 'mensch-hirte'];
+LIFE_NAMES.push(...WALK_FRAMES.flatMap(n => [1, 2, 3, 4].map(i => `${n}-lauf-${i}`)));
+// Welches Laufbild gerade? step läuft je Doppelschritt um 2π weiter: Aufsetzen links – Durchschwingen – rechts – Durchschwingen
+function walkFrame(name, step) {
+  if (step === null || !WALK_FRAMES.includes(name)) return null;
+  const k = Math.floor((((step % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) / (Math.PI / 2)) % 4;
+  const f = `${name}-lauf-${k + 1}`;
+  return images[f] ? f : null;
+}
 const PERSON_LOOK = { leer: { 'mensch-mann': 'mensch-mann-leer', 'mensch-frau': 'mensch-frau-leer' } };
 function personImg(base, look) {
   const n = PERSON_LOOK[look] && PERSON_LOOK[look][base];
@@ -1281,14 +1291,15 @@ function drawCreature(name, x, y, height, face, bob, fallback, step = null) {
   const z = cam.zoom;
   ctx.fillStyle = 'rgba(0,0,0,0.18)';
   ctx.beginPath(); ctx.ellipse(p.x, p.y, height * 0.32 * z, height * 0.1 * z, 0, 0, 7); ctx.fill();
-  const img = images[name];
+  const frame = walkFrame(name, step);
+  const img = images[frame || name];
   if (!img) { ctx.font = `${Math.round(height * z)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(fallback, p.x, p.y - bob); return; }
   const h = height * z, w = h * img.width / img.height;
   ctx.save();
-  ctx.translate(p.x, p.y - bob);
+  ctx.translate(p.x, p.y - (frame ? bob * 0.5 : bob));   // die Laufbilder heben und senken sich schon selbst
   if (face < 0) ctx.scale(-1, 1);
   const legs = LEGS[name];
-  if (step === null || !legs) {
+  if (frame || step === null || !legs) {
     ctx.drawImage(img, -w / 2, -h, w, h);
   } else {
     const iw = img.width, ih = img.height, cut = Math.round(ih * legs);

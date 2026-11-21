@@ -1133,6 +1133,19 @@ function updateNetwork() {
     const def = BUILDINGS[b.type];
     return def.isPath || def.deko || b.type === 'lagerfeuer' || touchesNetworkRaw(b.x, b.y, def.size);   // Deko braucht keinen Weg
   });
+  turnGatesToWays();
+}
+
+// Liegt das Tor eines Gebäudes mit Zaun nicht am Weg (vor V240 gebaut oder der Weg kam später), dreht es sich so,
+// dass das Tor am Weg liegt – sofern eine Drehung das schafft. Sonst bleibt es, wie es ist.
+function turnGatesToWays() {
+  const onWay = g => g && inMap(g[0], g[1]) && (isPathAt(g[0], g[1]) || isFireAt(g[0], g[1]));
+  for (const b of state.buildings) {
+    const def = BUILDINGS[b.type];
+    if (!def || !def.gate || def.stilts || halfInWater(def) || onWay(gateTile(b))) continue;
+    const steps = def.views ? 4 : 2;
+    for (let r = 0; r < steps; r++) if (onWay(gateTileAt(b.type, b.x, b.y, r))) { b.rot = r; break; }
+  }
 }
 
 function touchesNetworkRaw(x, y, s) {

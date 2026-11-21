@@ -2497,13 +2497,14 @@ test('Alte Spielstände (128er-Karte bis Version 54): Kern Feld für Feld gleich
     const moved = i => (Math.floor(i / oldN) + O) * g.run('N') + (i % oldN) + O;
     const r = g.run(`(() => { const t = ${JSON.stringify(fx.staende[k + '_terrain'])}; let diff = 0;
       for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) if (Number(t[y * 128 + x]) !== terrain[(y + O) * N + x + O]) diff++;
-      const a = state.buildings.map(b => [b.type, b.x - O, b.y - O, b.rot, !!b.torch].join());
+      // Gebäude mit Zaun drehen sich seit V249 mit dem Tor zum Weg: deren Drehung zählt hier nicht
+      const a = state.buildings.map(b => [b.type, b.x - O, b.y - O, BUILDINGS[b.type].gate ? 'tor' : b.rot, !!b.torch].join());
       return { diff, a, core: state.mapCore, size: state.mapSize, gen: state.mapGen, cleared: state.cleared, planted: state.planted, saplings: state.saplings, owned: state.plots.filter(p => p === 1).length,
         oki: state.buildings.every((b, i) => !placeProblem(b.type, b.x, b.y, i)), net: state.buildings.every((b, i) => isConnected(i)), hunt: state.hunt,
         lake: !!mapFeatures.lake, src: !!mapFeatures.source, fall: mapFeatures.fall, pop: state.pop }; })()`);
     ok(r.diff === 0, k + ': ' + r.diff + ' Felder im Kern anders');
     ok(r.core === 128 && r.size === g.run('N') && r.gen === (k === 'gen1' ? 1 : 2), k + ': Felder falsch ' + JSON.stringify([r.core, r.size, r.gen]));
-    ok(JSON.stringify(r.a) === JSON.stringify(old.buildings.map(b => [b.type, b.x, b.y, b.rot, !!b.torch].join())), k + ': Gebäude/Wege nicht an Ort und Stelle');
+    ok(JSON.stringify(r.a) === JSON.stringify(g.run(`${JSON.stringify(old.buildings.map(b => [b.type, b.x, b.y, b.rot, !!b.torch]))}.map(([t, x, y, r, f]) => [t, x, y, BUILDINGS[t].gate ? 'tor' : r, f].join())`)), k + ': Gebäude/Wege nicht an Ort und Stelle');
     ok(r.oki && r.net, k + ': Gebäude ungültig oder Wege unterbrochen');
     ok(JSON.stringify(r.cleared) === JSON.stringify(old.cleared.map(moved)), k + ': gefällte Bäume');
     ok(JSON.stringify(r.planted) === JSON.stringify(old.planted.map(moved)), k + ': gepflanzte Bäume');

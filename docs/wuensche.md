@@ -25,6 +25,7 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 
 ## Erledigt
 
+- 21.11.2026, V249: Gebäude mit Zaun drehen sich von selbst mit dem Tor zum Weg, auch wenn sie vor V240 gebaut wurden oder der Weg später kam.
 - 21.11.2026, V248: Steinzeit-Welt komplett im neuen Stil – Höhle der Geschichten (alle Bauphasen, Rückseite, Winter), Baustellen 2–4 mit Winter, Holzbrücke (gerade, schräg, Steg, Gerüst, Pflock) und 9 Steinzeit-Deko-Stücke ohne Sockel.
 - 20.11.2026, V247: Letzte alte Figuren im neuen Stil – Fischer im Einbaum (zwei Paddelbilder, leeres Boot), Bergmann mit Erzkorb (schaut jetzt wie alle nach links), Händler und Südhändler.
 - 20.11.2026, V246: Tiere im neuen Stil – Hirsch, Mammut, Ziege, Esel mit Amphoren neu; Schaf und Rind mit eigenen Bildern statt eingefärbter Ziege.

@@ -825,7 +825,14 @@ function showBuildingWindow(i) {
       tile(`−${perMin((stats.staff[i] || 0) * CONFIG.provision.perWorker)} ${ware('nahrung')}`, 'Proviant je Min.', hungry);
       if (hungry) lines.push('❗ Kein Proviant – die Arbeiter schaffen nur die Hälfte');
     }
-    for (const id of Object.keys(def.consumes || {})) if ((state.res[id] || 0) < 0.5) lines.push(`❗ Fehlt: ${RESOURCES[id].name} – darum steht es still${sourceText(id)}`);
+    for (const id of Object.keys(def.consumes || {})) if ((state.res[id] || 0) < 0.5 && supplyOf(b, id) < 0.5) lines.push(`❗ Fehlt: ${RESOURCES[id].name} – darum steht es still${sourceText(id)}`);
+    if (usesSupply(def)) {   // Lieferkette (V252): eigener Vorrat und wohin der Träger gerade geht
+      tile(Object.keys(def.consumes).map(id => `${Math.floor(supplyOf(b, id))} ${ware(id)}`).join(' '), 'Vorrat hier');
+      if (b.trip) {
+        const k = b.trip.sx !== undefined ? buildingAt(Math.floor(b.trip.sx), Math.floor(b.trip.sy)) : -1;
+        lines.push(`🚶 Träger holt ${RESOURCES[b.trip.id].name}${k >= 0 ? ' bei ' + BUILDINGS[state.buildings[k].type].name : ''} – noch ${Math.ceil(b.trip.left)} s`);
+      }
+    }
     if (def.bonus) tile(`🌲 +${Math.round(terrainBonus(b) * 100)} %`, 'Gelände: ' + terrainNames(def.bonus.terrain));
     if (SEASON_FACTORS[b.type]) tile(`${season().icon} ${Math.round(SEASON_FACTORS[b.type][seasonIndex()] * 100)} %`, season().name);
   }

@@ -3049,7 +3049,7 @@ test('Hinweis „hier arbeitet niemand“ nur, wenn wirklich alle beschäftigt s
   // Gebäude gerade fertig, Arbeiter noch nicht neu verteilt, Leute sind frei
   g.run(`state.buildings.push({ type: 'steinschlaeger', x: 200, y: 200, rot: 0, build: 0 }); rebuildOccupancy(); stats.staff = []; checkStaffHint();`);
   ok(!g.run(`elderHint`), 'Falsche Meldung: ' + g.run(`elderHint`));
-  ok(g.run(`stats.staff[state.buildings.length - 1]`) === 2, 'Arbeiter nicht verteilt');
+  ok(g.run(`stats.staff[state.buildings.length - 1]`) === g.run(`workersOf(state.buildings[state.buildings.length - 1])`), 'Arbeiter nicht verteilt');
   // Wirklich niemand mehr frei: Meldung kommt
   g.run(`for (let k = 0; k < 5; k++) state.buildings.push({ type: 'steinschlaeger', x: 204 + k * 3, y: 200, rot: 0, build: 0 }); rebuildOccupancy(); recalcStats(); state.pop = stats.housing; lastHintAt = -1e9; elderHint = null; checkStaffHint();`);
   ok(/Hier arbeitet niemand/.test(g.run(`elderHint`) || ''), 'Echte Meldung fehlt');
@@ -3900,6 +3900,28 @@ test('V207: Kaputte Stände – Jagd außerhalb der Karte, Tagesbelohnung 9 – 
   ok(g.run('loadFromText(JSON.stringify(__d))'), 'Stand lädt nicht');
   ok(g.run('["cx", "cy", "x", "y"].every(k => state.hunt[k] >= 0 && state.hunt[k] < N)'), 'Jagd liegt außerhalb der Karte');
   ok(g.run('state.daily.pending >= 0 && state.daily.pending <= DAILY_REWARDS.length && Number.isInteger(state.daily.streak) && state.daily.streak >= 0'), 'Tagesbelohnung nicht begrenzt');
+  noErrors(g);
+});
+
+test('V252: Lieferkette – Träger holt Felle beim Jäger, Werkstatt stellt nur aus eigenem Vorrat her, Vorrat bleibt im Spielstand', () => {
+  const g = fresh();
+  g.run(`isConnected = () => true; state.pop = 40; { const m = Math.floor(N / 2) + 12;
+    state.buildings.push({ type: 'fellmacherin', x: m, y: m, rot: 0, build: 0 }, { type: 'jaegerlager', x: m + 8, y: m, rot: 0, build: 0 }); }
+    rebuildOccupancy(); recalcStats(); var __f = state.buildings.find(b => b.type === 'fellmacherin');
+    state.res.felle = 50; state.res.kleidung = 0;`);
+  ok(g.run('workersOf(__f)') === g.run('BUILDINGS.fellmacherin.workers') + 1, 'Kein Träger-Arbeitsplatz');
+  g.run('updateProduction(0.25)');
+  ok(g.run('__f.trip && __f.trip.id') === 'felle', 'Träger geht nicht los');
+  ok(g.run(`Math.abs(__f.trip.sx - state.buildings.find(b => b.type === "jaegerlager").x - BUILDINGS.jaegerlager.size / 2) < 0.01`), "Träger geht nicht zum Jäger: " + g.run("JSON.stringify(__f.trip)"));
+  ok(g.run('state.res.kleidung') === 0, 'Ohne Vorrat wird schon hergestellt');
+  g.run('state.res.felle = 50; var __vor = state.res.felle; for (let k = 0; k < 400 && __f.trip; k++) updateProduction(0.25);');
+  ok(!g.run('__f.trip') && g.run('supplyOf(__f, "felle")') > 0, 'Träger kommt nicht zurück');
+  g.run('state.res.kleidung = 0; for (let k = 0; k < 40; k++) updateProduction(0.25);');
+  ok(g.run('state.res.kleidung') > 0, 'Aus dem Vorrat wird nichts hergestellt');
+  const vorrat = g.run('supplyOf(__f, "felle")');
+  g.run('var __txt = JSON.stringify(state); loadFromText(__txt); var __f2 = state.buildings.find(b => b.type === "fellmacherin");');
+  ok(Math.abs(g.run('supplyOf(__f2, "felle")') - vorrat) < 1e-6, 'Vorrat nach dem Laden weg');
+  ok(!g.run('__f2.trip'), 'Weg darf nicht im Spielstand landen');
   noErrors(g);
 });
 

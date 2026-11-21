@@ -2,7 +2,7 @@
 // Epochia – alle Spieldaten (Zahlen zum Feinjustieren stehen hier oben, die Logik liest nur daraus).
 // Pläne: docs/konzept-neu.md und docs/epoche-1-steinzeit.md
 
-const APP_VERSION = 251;
+const APP_VERSION = 252;
 
 const CONFIG = {
   mapSize: 512,           // Felder je Seite, zentral änderbar (Vielfaches von 16; 64 bis Version 21, 128 bis Version 54 – alte Karten liegen in der Mitte)
@@ -184,6 +184,9 @@ const CONFIG = {
   },  // Steuer nach der Forschung „Münzen“: Münzen je Einwohner und Minute, mal Zufriedenheit
   // Mehr Ausgaben für Holz und Nahrung (V230, Emin 18.11.: „Nahrung und Holz zu hoch“, Ideen 1, 2 und 5)
   fuel: { winter: 2 },    // Feuer verbrennen Holz (BUILDINGS[…].fuel je Minute), im Winter doppelt; ohne Holz wärmen sie nicht
+  // Lieferketten (V252): ein Träger mehr je Werkstatt; Gehtempo in Feldern je Sekunde, Umweg über die Straße, Warten beim
+  // Abholen (s), nachholen wenn der Vorrat unter `refill` Minuten fällt, eine Ladung reicht `load` Minuten (oder 3 Wege)
+  supply: { carriers: 1, speed: 0.8, detour: 1.3, wait: 4, minTrip: 6, refill: 2, load: 4 },
   provision: { perWorker: 0.6, without: 0.5 },   // Proviant: Nahrung je Arbeiter und Minute (nicht bei Nahrungs-Herstellern); ohne nur halbe Arbeit
   feast: { nahrung: 80, holz: 40, stagePlus: 0.5, seconds: 600, wait: 1800, happy: 10, growth: 2 },   // Festmahl: Kosten (+50 % je Zeitalter), 10 min Laune +10 und doppelt so schnell Zuzug, dann 30 min Pause
   fest: { happy: 15, seconds: 300 },   // Sonnwendfest (nach der „Himmelsscheibe“): mitten im Sommer 5 Minuten Fest, Laune +15

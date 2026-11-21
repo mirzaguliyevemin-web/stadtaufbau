@@ -20,15 +20,13 @@ Stichworte reichen, z. B. „- Farm zeigt falsche Arbeiterzahl nach dem Verschie
 - Design (Emin, 04.11.): Schritt 1–3 gebaut (Version 95), Leisten, Titelband und Symbole gemalt (Version 105). Alle Warenbilder da (Version 106), Boden neu mit Scenario (Version 187). Zu dunkle Gebäude geprüft (V220: Halle und Pflanzerin aufgehellt, alle anderen im Rahmen). Plan: `docs/plan-design.md`.
 
 - Meer in späteren Zeitaltern (Emin, 21.11.): Attraktionen für die Bevölkerung am Meer, später eine Promenade bauen können. Fabriken, die nur am Meer stehen dürfen (welche, überlegen wir zusammen). Fabriken machen Verschmutzung – man muss darauf achten, dass alles grün bleibt.
-  → Frage: großer Umbau, wird in einer Sitzung mit Emin geplant (Liste der Meeresfabriken, Verschmutzungsregeln, Zahlen).
-
-- Lieferketten zwischen Gebäuden (Emin, 21.11.): Rohstoffe für ein Produkt werden sichtbar angeliefert, auch schon in der Steinzeit – z. B. holt die Fellmacherin erst die Felle beim Jäger ab, bevor Leder entsteht. Dafür dürfen die Gebäude mehr Arbeiter brauchen.
-  → Frage: großer Umbau (heute nehmen Werkstätten die Rohstoffe direkt aus dem Lager), wird mit Emin geplant: welche Ketten, Personal je Gebäude, was mit alten Spielständen passiert.
+  → Mit Emin besprochen (21.11.): Verschmutzung als Ring um jede schmutzige Fabrik (Gras braun, Wasser trüb, Häuser dort unzufriedener; Bäume, Parks, Filter-Forschung helfen). Offen: welche Meeresfabriken je Zeitalter (Vorschlag: Salzgarten, Purpurfärberei, Werft, Räucherei, Walöl-Siederei, Stahlwerk am Hafen …), Promenade, Zahlen.
 
 - Zweite Karte und zweite Stadt (Emin, 03.11.): Inselstadt, Siedlerschiff und Wechseln gebaut (V235). Offen: Schiffsrouten und Inselgebäude. Plan: `docs/plan-zweite-stadt.md`.
 
 ## Erledigt
 
+- 21.11.2026, V252: Lieferketten – jede Werkstatt hat einen Träger mehr, der die Rohstoffe beim nächsten Erzeuger holt (Felle beim Jäger, sonst aus dem Lager) und in ihren eigenen Vorrat bringt; ohne Träger geht ein Arbeiter, doppelt so lange. Im Fenster: Vorrat und wohin der Träger geht
 - 21.11.2026, V251: Arbeiter gehen über die Straßen (Jäger und Sammler weiter querfeldein), Tiere laufen mit vier echten Schrittbildern, springende Fische und Wale mit Fontäne aus dem Blasloch (Bilder von Scenario)
 - 21.11.2026, V250: Wasserfall als echtes Video (nahtlose Schleife, nur das Wasser bewegt sich), Wege mit weichem Rand und Grasbüscheln, Fackeln und Laternen gemalt mit Flamme, natürliche Laufbewegung mit je vier echten Schrittbildern für 11 Figuren.
 - 21.11.2026, V249: Gebäude mit Zaun drehen sich von selbst mit dem Tor zum Weg, auch wenn sie vor V240 gebaut wurden oder der Weg später kam.

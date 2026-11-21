@@ -1059,6 +1059,50 @@ function updateCarriers(dt, range) {
   life.carriers = life.carriers.filter(c => !c.gone);
 }
 
+// Lieferketten (V252): Den Weg des Werkstatt-Trägers (b.trip aus logik.js) zeigen – hin mit leeren Händen, beim Erzeuger
+// kurz drinnen, zurück mit der Ware. Wo er gerade ist, folgt allein aus der verbleibenden Zeit; der Weg wird einmal gesucht.
+const supplyWays = new WeakMap();   // je Weg (b.trip): { pts, cum, len }
+function supplyWay(b, trip) {
+  if (supplyWays.has(trip)) return supplyWays.get(trip);
+  let way = null;
+  const s = BUILDINGS[b.type].size, a = frontSpot(b, 0) || { x: b.x + s / 2, y: b.y + s / 2 };
+  const k = inMap(Math.floor(trip.sx), Math.floor(trip.sy)) ? buildingAt(Math.floor(trip.sx), Math.floor(trip.sy)) : -1;
+  const e = (k >= 0 && frontSpot(state.buildings[k], 0)) || null;
+  if (e) {
+    const pts = [[a.x, a.y], ...(walkRoute(a.x, a.y, e.x, e.y, -1, 8) || [[e.x, e.y]])];
+    const cum = [0];
+    for (let n = 1; n < pts.length; n++) cum.push(cum[n - 1] + Math.hypot(pts[n][0] - pts[n - 1][0], pts[n][1] - pts[n - 1][1]));
+    way = { pts, cum, len: cum[cum.length - 1] };
+  }
+  supplyWays.set(trip, way);
+  return way;
+}
+
+function supplyObjects(inView, t) {
+  const out = [];
+  for (const b of state.buildings) {
+    const trip = b.trip;
+    if (!trip || trip.sx === undefined || !(trip.total > 0)) continue;
+    const way = supplyWay(b, trip);
+    if (!way || way.len < 0.5) continue;
+    const p = 1 - trip.left / trip.total, walk = (1 - Math.min(0.5, CONFIG.supply.wait / trip.total)) / 2;
+    if (p > walk && p < 1 - walk) continue;   // beim Erzeuger drinnen
+    const back = p >= 1 - walk, q = back ? 1 - (p - (1 - walk)) / walk : p / walk;   // 0 = an der Werkstatt, 1 = am Erzeuger
+    const d = Math.max(0, Math.min(1, q)) * way.len;
+    let n = 1;
+    while (n < way.pts.length - 1 && way.cum[n] < d) n++;
+    const [ax, ay] = way.pts[n - 1], [bx, by] = way.pts[n], seg = way.cum[n] - way.cum[n - 1] || 1, r = (d - way.cum[n - 1]) / seg;
+    const x = ax + (bx - ax) * r, y = ay + (by - ay) * r;
+    if (!inView(x, y)) continue;
+    let dx = bx - ax, dy = by - ay;
+    if (back) { dx = -dx; dy = -dy; }
+    const c = { x, y, ware: trip.id, img: (b.x + b.y) % 2 ? 'mensch-frau' : 'mensch-mann', phase: back ? 'go' : 'back', ph: b.x * 1.7,
+      face: Math.abs(dx - dy) > 0.01 ? (dx - dy > 0 ? -1 : 1) : 1, alpha: Math.min(1, d / 0.5, (way.len - d) / 0.5) };
+    out.push({ d: x + y - 0.5, kind: 'leben', fx: x, fy: y, draw: () => drawCarrier(c, t) });   // phase 'go' = trägt Ware
+  }
+  return out;
+}
+
 function carrierObjects(inView, t) {
   return life.carriers.filter(c => c.phase !== 'drop' && inView(c.x, c.y)).map(c => ({ d: c.x + c.y - 0.5, kind: 'leben', fx: c.x, fy: c.y, draw: () => drawCarrier(c, t) }));
 }
@@ -1373,7 +1417,7 @@ function lifeObjects(range) {
   out.push(...suedObjects(inView, t));
   out.push(...wandererObjects(inView, t));
   out.push(...workerObjects(inView, t));
-  out.push(...carrierObjects(inView, t));
+  out.push(...carrierObjects(inView, t), ...supplyObjects(inView, t));
   out.push(...visitorObjects(inView, t));
   for (const w of life.walkers) {
     if (!inView(w.x, w.y)) continue;

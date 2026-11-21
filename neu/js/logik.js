@@ -435,7 +435,7 @@ function isStoreLevel(def) { return !!(def && def.storage && def.line === 'lager
 function hasLevels(def) { return !!(def && ((def.produces && def.workers && !def.wonder) || isStoreLevel(def))); }
 function storageOf(b) { const def = BUILDINGS[b.type]; return Math.round((def.storage || 0) * (isStoreLevel(def) ? 1 + (levelOf(b) - 1) * CONFIG.levels.storagePerLevel : 1)); }
 function levelOf(b) { return hasLevels(BUILDINGS[b.type]) ? Math.max(1, Math.min(CONFIG.levels.max, Math.floor(b.level) || 1)) : 1; }
-function workersOf(b) { const def = BUILDINGS[b.type]; return def.workers ? def.workers + Math.floor((levelOf(b) - 1) / CONFIG.levels.workersEvery) : 0; }
+function workersOf(b) { const def = BUILDINGS[b.type]; return def.workers ? def.workers + Math.floor((levelOf(b) - 1) / CONFIG.levels.workersEvery) + carrierSlots(def) : 0; }
 function levelFactor(b) { return 1 + (levelOf(b) - 1) * CONFIG.levels.outputPerLevel; }
 // Höchste Stufe im jetzigen Zeitalter: Steinzeit 3, Bronzezeit 6, Eisenzeit 9 …
 function epochNumber() { const epochs = [...new Set(STAGES.map(s => s.epoch))]; return epochs.indexOf(STAGES[stageIndex()].epoch) + 1; }
@@ -825,9 +825,63 @@ function outputFactor(i) {
   const b = state.buildings[i];
   const def = BUILDINGS[b.type];
   if (b.build || !isConnected(i)) return 0;
-  const staffShare = def.workers ? (stats.staff[i] || 0) / workersOf(b) : 1;
+  const slots = workersOf(b) - carrierSlots(def);   // der Träger stellt nichts her
+  const staffShare = def.workers ? Math.min(stats.staff[i] || 0, slots) / slots : 1;
   const seasonF = SEASON_FACTORS[b.type] ? SEASON_FACTORS[b.type][seasonIndex()] : 1;
   return staffShare * levelFactor(b) * seasonF * effectFactor(b.type) * happinessFactor() * (1 + terrainBonus(b)) * (1 + techSum('bonus', b.type)) * wonderBonus(b.type);
+}
+
+// ---------------------------------------------------------------------
+// Lieferketten (Emin, 21.11.2026, V252): Werkstätten nehmen ihre Rohstoffe nicht mehr unsichtbar aus dem Lager. Ihr Träger
+// (ein Arbeitsplatz mehr) geht zum nächsten Gebäude, das den Rohstoff herstellt – z. B. holt die Fellmacherin die Felle
+// beim Jäger –, gibt es keins, zum nächsten Lager. Er bringt eine Ladung in den kleinen Vorrat der Werkstatt (b.sup, im
+// Spielstand); hergestellt wird nur daraus. Ist der Träger nicht besetzt, geht ein Arbeiter selbst – doppelt so lange.
+// Der Weg (b.trip) ist nur Zeit, kein Spielstand: Abgeholt wird erst bei der Rückkehr, nach dem Laden geht er neu los.
+// ---------------------------------------------------------------------
+function usesSupply(def) { return !!(def && def.consumes && def.workers && !def.wonder); }
+function carrierSlots(def) { return usesSupply(def) ? CONFIG.supply.carriers : 0; }
+function supplyOf(b, id) { return (b.sup && b.sup[id]) || 0; }
+
+// Woher der Träger holt: nächstes fertiges, angeschlossenes Gebäude, das die Ware herstellt, sonst das nächste Lager
+function supplySource(i, id) {
+  const b = state.buildings[i], s = BUILDINGS[b.type].size, cx = b.x + s / 2, cy = b.y + s / 2;
+  let maker = null, store = null;
+  state.buildings.forEach((o, k) => {
+    if (k === i || o.build) return;
+    const od = BUILDINGS[o.type], x = o.x + od.size / 2, y = o.y + od.size / 2, d = Math.hypot(x - cx, y - cy);
+    if (od.produces && od.produces[id] && !o.paused && isConnected(k)) { if (!maker || d < maker.d) maker = { k, x, y, d }; }
+    else if (od.storage && (!store || d < store.d)) store = { k, x, y, d };
+  });
+  return maker || store;
+}
+
+function updateSupply(dt, available) {
+  const c = CONFIG.supply;
+  state.buildings.forEach((b, i) => {
+    const def = BUILDINGS[b.type];
+    if (!usesSupply(def) || b.build) return;
+    if (b.trip) {
+      b.trip.left -= dt;
+      if (b.trip.left > 0) return;
+      const id = b.trip.id, amt = Math.min(b.trip.amt, available(id));
+      if (amt > 0) { state.res[id] -= amt; (b.sup ||= {})[id] = supplyOf(b, id) + amt; }
+      b.trip = null;
+      return;
+    }
+    const staff = stats.staff[i] || 0;
+    if (b.paused || !staff || !isConnected(i)) return;
+    const pace = Math.max(0.2, outputFactor(i));   // so schnell wird verbraucht (Stufe, Forschung …)
+    let pick = null, low = Infinity;
+    for (const [id, n] of Object.entries(def.consumes)) {
+      const minutes = supplyOf(b, id) / (n * pace);
+      if (minutes < c.refill && minutes < low && available(id) >= 0.5) { low = minutes; pick = id; }
+    }
+    if (!pick) return;
+    const src = supplySource(i, pick);
+    const total = Math.max(c.minTrip, 2 * (src ? src.d : 3) * c.detour / c.speed + c.wait) * (staff >= workersOf(b) ? 1 : 2);
+    const rate = def.consumes[pick] * pace;
+    b.trip = { id: pick, left: total, total, amt: rate * Math.max(c.load, 3 * total / 60), ...(src ? { sx: src.x, sy: src.y } : {}) };
+  });
 }
 
 // Was ein Gebäude je Minute herstellt (für Anzeige und Logik)
@@ -1000,6 +1054,7 @@ function updateProductionStep(dt) {
       coldFires.delete(b);
     } else coldFires.add(b);
   }
+  updateSupply(dt, available);   // Träger holen Rohstoffe in die Werkstätten
   const throttled = new Set();   // Waren, deren Herstellung wegen vollem Lager gebremst wurde
   const potential = {};          // je Ware: was alle Gebäude ohne Lagergrenze je Minute herstellen könnten
   state.buildings.forEach((b, i) => {
@@ -1026,9 +1081,11 @@ function updateProductionStep(dt) {
     // Was ohne Lagergrenze ginge – aber nur so weit die Rohstoffe reichen (sonst hielt eine Werkstatt ohne Rohstoffe
     // ihr volles Lager für immer voll, V207)
     let fIn = f;
+    const have = id => (usesSupply(def) ? supplyOf(b, id) : available(id));   // Werkstatt: nur ihr eigener Vorrat
+    // was sie könnte: auch was der Träger noch aus dem Lager holen kann
     if (def.consumes) for (const [id, n] of Object.entries(def.consumes)) {
       const need = n * fIn * dt / 60;
-      if (need > 0) fIn = Math.min(fIn, fIn * available(id) / need);
+      if (need > 0) fIn = Math.min(fIn, fIn * (have(id) + (usesSupply(def) ? available(id) : 0)) / need);
     }
     for (const [id, n] of Object.entries(def.produces)) { potential[id] = (potential[id] || 0) + n * fIn; if (room < fIn) throttled.add(id); }   // könnte mehr – Lager ist voll
     // „Stelle … her“ zählt die Arbeit, auch bei vollem Lager (sonst hing „Sammle 200 Nahrung“ bei 200 im Lager fest)
@@ -1040,11 +1097,12 @@ function updateProductionStep(dt) {
       const before = f;
       for (const [id, n] of Object.entries(def.consumes)) {
         const need = n * f * dt / 60;
-        if (need > 0) f = Math.min(f, f * available(id) / need);
+        if (need > 0) f = Math.min(f, f * have(id) / need);
       }
       inputShare[i] = before > 0 ? f / before : 1;
       for (const [id, n] of Object.entries(def.consumes)) {
-        state.res[id] = Math.max(0, (state.res[id] || 0) - n * f * dt / 60);
+        if (usesSupply(def)) (b.sup ||= {})[id] = Math.max(0, supplyOf(b, id) - n * f * dt / 60);
+        else state.res[id] = Math.max(0, (state.res[id] || 0) - n * f * dt / 60);
         rates[id] = (rates[id] || 0) - n * f;
         flow(id, 'out', b.type, n * f);
       }
